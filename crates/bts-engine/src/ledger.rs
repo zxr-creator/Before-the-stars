@@ -248,6 +248,8 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
                 (&a.seconded_out, &b.seconded_out),
                 (&a.seconded_in, &b.seconded_in),
                 (&a.seconded_lost, &b.seconded_lost),
+                (&a.seconded_home, &b.seconded_home),
+                (&a.seconded_back, &b.seconded_back),
             ];
             if channels.iter().any(|(was, now)| now[q] < was[q]) {
                 out.push(format!("{at}: seat {} {qual:?}: a ledger channel ran backwards", c.seat));
@@ -263,9 +265,20 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
         if moved != 0 {
             out.push(format!("{at}: {qual:?}: {moved} more arrived from other civilizations than left for them"));
         }
-        let seconded: i64 = cur.civs.iter().map(|c| c.qual_flows.seconded_in[q] + c.qual_flows.seconded_lost[q] - c.qual_flows.seconded_out[q]).sum();
-        if seconded > 0 {
-            out.push(format!("{at}: {qual:?}: {seconded} more seconded experts arrived than were sent"));
+        // experts lent abroad: every one received was sent, every one released from
+        // service abroad is booked by both sides, and nobody comes back who never went
+        let sum = |f: &dyn Fn(&QualFlows) -> &Vec<i64>| -> i64 { cur.civs.iter().map(|c| f(&c.qual_flows)[q]).sum() };
+        let (s_out, s_in, s_home, s_back) = (sum(&|x| &x.seconded_out), sum(&|x| &x.seconded_in), sum(&|x| &x.seconded_home), sum(&|x| &x.seconded_back));
+        if s_in != s_out {
+            out.push(format!("{at}: {qual:?}: {s_in} seconded experts arrived but {s_out} were sent"));
+        }
+        if s_home != s_back || s_home > s_in {
+            out.push(format!("{at}: {qual:?}: {s_home} seconded experts released at home, {s_back} released abroad, {s_in} ever sent"));
+        }
+        for c in &cur.civs {
+            if c.qual_flows.seconded_lost[q] > c.qual_flows.seconded_home[q] {
+                out.push(format!("{at}: seat {} {qual:?}: {} experts lost abroad of {} released", c.seat, c.qual_flows.seconded_lost[q], c.qual_flows.seconded_home[q]));
+            }
         }
         let held: i64 = cur.regions.iter().map(|r| r.quals[q] as i64).sum();
         let accounted: i64 = cur.civs.iter().map(|c| c.qual_flows.balance(q)).sum();

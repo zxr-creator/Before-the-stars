@@ -351,6 +351,13 @@ pub const REPAIR_WORKS: &str = "parts_works";
 /// The most that congested freight adds to the loss in carriage, basis points.
 pub const CONGESTION_LOSS_CAP_BP: i64 = 2000;
 
+/// Joint programmes (design chapter 35, slice E): partners one installation
+/// serves at most, the share of its operating inputs, upkeep and electric draw
+/// each of them adds, and the rate below which the service lapses for the month.
+pub const HOST_CLIENTS_MAX: u32 = 2;
+pub const HOST_LOAD_PER_CLIENT_BP: i64 = 5000;
+pub const SERVICE_RATE_BP: u16 = 5000;
+
 /// Whether a facility's levels load the region's freight: industry, extraction
 /// and power. Food, civic, education, research and transport works do not.
 pub fn loads_freight(def: &FacDef) -> bool {
@@ -618,6 +625,21 @@ pub fn step(w: &mut World, seat: SeatId) {
                 .collect()
         })
         .collect();
+    // joint programmes: an installation that serves partners takes half as much
+    // again of its operating inputs, upkeep and electricity for each of them (two
+    // at most). `(region, facility kind, load in basis points)`.
+    let hosting: Vec<(usize, usize, i64)> = [ProgrammeService::Launch, ProgrammeService::OrbitalYard, ProgrammeService::HighEnergy]
+        .into_iter()
+        .filter_map(|s| {
+            let clients = w.programme_clients(seat, s).min(HOST_CLIENTS_MAX) as i64;
+            if clients == 0 {
+                return None;
+            }
+            let site = w.service_site(seat, s)?;
+            Some((site, c.f(facility_of_service(s)?), 10_000 + HOST_LOAD_PER_CLIENT_BP * clients))
+        })
+        .collect();
+    let load_of = |ri: usize, kind: usize| -> i64 { hosting.iter().find(|h| h.0 == ri && h.1 == kind).map(|h| h.2).unwrap_or(10_000) };
     let mob_cap = mobilization_cap(w, seat) as i64;
     let mob = mob_cap * w.civs[si].mobilization_bp as i64 / 10_000;
     let tools_ok = w.civs[si].stock_of(Good::Tools) > 0;
@@ -757,6 +779,8 @@ pub fn step(w: &mut World, seat: SeatId) {
     // gross output where it is made, and what of it reaches the common stock
     let mut made = vec![0i64; NG];
     let mut made_net = vec![0i64; NG];
+    // output the works stood ready to make but for full stores (never made)
+    let mut withheld = vec![0i64; NG];
     let mut compute_demand_total: i64 = 0;
     let mut grid_surplus: i64 = 0;
     let mut grid_deficit: i64 = 0;
@@ -1048,7 +1072,8 @@ pub fn step(w: &mut World, seat: SeatId) {
                 let rec = &def.recipes[ridx];
                 let base = if rec.research.is_some() { skilled_bp } else { staff_bp };
                 shaft_demand += rec.shaft * level * base / 10_000;
-                elec_demand += rec.elec * level * base / 10_000;
+                // an installation serving partners asks for their share as well
+                elec_demand += rec.elec * level * base / 10_000 * load_of(ri, kind) / 10_000;
                 compute_demand_total += rec.compute * level * base / 10_000;
             }
         }
@@ -1219,6 +1244,8 @@ pub fn step(w: &mut World, seat: SeatId) {
             if level == 0 {
                 continue;
             }
+            // what serving partners adds to this installation's inputs, upkeep and electricity
+            let load = load_of(ri, kind);
             // upkeep and condition
             if enabled {
                 let mut ok = 10_000i64;
@@ -1226,7 +1253,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 // fewer spares and tools: less is taken, nothing is made
                 let pooled = pools_upkeep(def) && infra.maint_bp > 0;
                 for (g, a) in &def.upkeep {
-                    let mut need = a * level;
+                    let mut need = a * level * load / 10_000;
                     if pooled && matches!(g, Good::Spares | Good::Tools) {
                         need = (need * (10_000 - infra.maint_bp) + 9_999) / 10_000;
                     }
@@ -1288,6 +1315,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 blockers |= 32;
             }
             // storage throttle
+            let mut unthrottled: Option<i64> = None;
             if !rec.outputs.is_empty() {
                 let mut throttle = 0i64;
                 for (g, _) in &rec.outputs {
@@ -1297,6 +1325,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                     throttle = throttle.max(th);
                 }
                 if throttle < rate {
+                    unthrottled = Some(rate);
                     rate = throttle;
                     blockers |= 128;
                 }
@@ -1330,10 +1359,11 @@ pub fn step(w: &mut World, seat: SeatId) {
                     }
                 }
             }
-            // inputs
+            // inputs (an installation serving partners takes their share as well; if
+            // it cannot be supplied the rate falls for everyone it serves)
             let before_inputs = rate;
             for (g, a) in &rec.inputs {
-                let need = a * level * rate / 10_000;
+                let need = a * level * rate / 10_000 * load / 10_000;
                 if need > 0 {
                     let have = w.civs[si].stock_of(*g).max(0);
                     if have < need {
@@ -1347,14 +1377,40 @@ pub fn step(w: &mut World, seat: SeatId) {
             let mut rate = rate.clamp(0, 10_000);
             // no works draws service that is not there: what is left in the region's
             // (and for compute the nation's) account bounds the rate exactly
-            for (per_full, left, flag) in [(rec.shaft * level, pw.shaft_left, 8u16), (rec.elec * level, pw.elec_left, 16), (rec.compute * level, compute_left, 32)] {
+            let elec_full = rec.elec * level * load / 10_000;
+            for (per_full, left, flag) in [(rec.shaft * level, pw.shaft_left, 8u16), (elec_full, pw.elec_left, 16), (rec.compute * level, compute_left, 32)] {
                 let fitted = fit_rate(rate, per_full, left);
                 if fitted < rate {
                     rate = fitted;
                     blockers |= flag;
                 }
             }
-            let (shaft_used, elec_used, comp_used) = (rec.shaft * level * rate / 10_000, rec.elec * level * rate / 10_000, rec.compute * level * rate / 10_000);
+            // what the works stood ready to make this month and did not make only
+            // because the stores were full: the rate their posts, inputs in store and
+            // service would have carried, less the rate they ran at. A memorandum
+            // (`Flows::withheld`): nothing is made and no input is taken for it.
+            if let (Some(free), None) = (unthrottled, rec.depletes) {
+                let mut ready = free;
+                for (g, a) in &rec.inputs {
+                    let need = a * level * ready / 10_000 * load / 10_000;
+                    if need > 0 {
+                        let have = w.civs[si].stock_of(*g).max(0);
+                        if have < need {
+                            ready = ready * have / need;
+                        }
+                    }
+                }
+                let mut ready = ready.clamp(0, 10_000);
+                for (per_full, left) in [(rec.shaft * level, pw.shaft_left), (elec_full, pw.elec_left), (rec.compute * level, compute_left)] {
+                    ready = fit_rate(ready, per_full, left);
+                }
+                if ready > rate {
+                    for (g, a) in &rec.outputs {
+                        withheld[g.index()] += a * level * (ready - rate) / 10_000;
+                    }
+                }
+            }
+            let (shaft_used, elec_used, comp_used) = (rec.shaft * level * rate / 10_000, elec_full * rate / 10_000, rec.compute * level * rate / 10_000);
             pw.shaft_left -= shaft_used;
             pw.elec_left -= elec_used;
             compute_left -= comp_used;
@@ -1362,7 +1418,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             w.regions[ri].last.power.shaft_used += shaft_used;
             w.regions[ri].last.power.elec_used += elec_used;
             for (g, a) in &rec.inputs {
-                let took = w.civs[si].take(*g, a * level * rate / 10_000);
+                let took = w.civs[si].take(*g, a * level * rate / 10_000 * load / 10_000);
                 w.regions[ri].last.infra.used[g.index()] += took;
             }
             for (g, a) in &rec.outputs {
@@ -1468,6 +1524,12 @@ pub fn step(w: &mut World, seat: SeatId) {
             civ.add(*g, gross);
             civ.lose(*g, gross - net);
         }
+    }
+    if civ.flows.withheld.len() < NG {
+        civ.flows.withheld.resize(NG, 0);
+    }
+    for g in 0..NG {
+        civ.flows.withheld[g] += withheld[g];
     }
     civ.labor = civ_labor;
     civ.qual_employed = qual_employed;

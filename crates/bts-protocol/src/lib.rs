@@ -132,6 +132,18 @@ public_enum!(
 });
 
 public_enum!(
+    /// A service a host's installation gives a partner under a joint programme
+    /// clause (`Clause::JointProgramme`). `Undisclosed` is what a seat that has not
+    /// discovered the installation is shown in its place; it is never valid in a
+    /// proposal.
+    ProgrammeService {
+    Launch => "Launch services",
+    OrbitalYard => "Orbital construction services",
+    HighEnergy => "High-energy laboratory time",
+    Undisclosed => "A programme facility service",
+});
+
+public_enum!(
     /// Knowledge state of a technology for one civilization.
     KnowledgeState {
     Hinted => "Hinted",
@@ -352,6 +364,12 @@ pub struct GoodLine {
     /// `stock change = produced - consumed - lost + traded_in - traded_out`.
     #[serde(default)]
     pub lost: i64,
+    /// Output the works stood ready to make last round (staffed, supplied and
+    /// powered) but did not make because the stores of the good were full. It was
+    /// never made and is in no stock; it counts only where a rule asks what the
+    /// works can sustain (the industrial base of the jump programme).
+    #[serde(default)]
+    pub withheld: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1133,6 +1151,48 @@ pub enum Clause {
     Subordination { from: SeatId, tribute_bp: u16 },
     /// Transfer sovereignty over a region.
     CedeRegion { from: SeatId, region: RegionId },
+    /// `from` lends `count` holders of `qual` (people) to the other party for
+    /// `months` months (6 to 240). They leave the lender's regions and labour pool,
+    /// live, eat and work in the borrower's regions, and the survivors go home when
+    /// the term ends or the lender ends the treaty. If the borrower repudiates the
+    /// treaty or the parties go to war, a quarter of the survivors stay behind
+    /// without their qualification. Payment is by goods clauses of the same treaty.
+    Secondment { from: SeatId, qual: Qual, count: u32, months: u16 },
+    /// For `months` months (12 to 240) the `host`'s installation of this kind also
+    /// serves the other party: while the treaty is active and the installation ran
+    /// at half rate or better the month before, the other party counts as having
+    /// access to it. Each party served raises the installation's operating inputs,
+    /// upkeep and electric draw by half; an installation serves at most two.
+    JointProgramme { host: SeatId, service: ProgrammeService, months: u16 },
+}
+
+/// What has become of the experts of one secondment clause.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SecondmentView {
+    /// Index of the clause in the treaty's `clauses`.
+    pub clause: u16,
+    /// People who actually left the lender when the treaty was signed.
+    pub sent: u32,
+    /// People still owed home (never more than were sent; 0 once it is settled).
+    pub owed: u32,
+    /// People who came home, and people who stayed behind without their
+    /// qualification after a breach.
+    pub returned: u32,
+    pub lost: u32,
+    /// Month in which the survivors are due home.
+    pub due_month: Month,
+}
+
+/// The state of one joint programme clause.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct JointProgrammeView {
+    /// Index of the clause in the treaty's `clauses`.
+    pub clause: u16,
+    /// Whether the service is being given this month: the treaty is active and the
+    /// host's installation ran at half rate or better the month before.
+    pub served: bool,
+    /// Months in which the host's installation ran below half rate.
+    pub shortfalls: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1158,6 +1218,12 @@ pub struct TreatyView {
     pub ends_month: Option<Month>,
     pub status: String,
     pub performance: Vec<String>,
+    /// One entry for each secondment clause of the treaty.
+    #[serde(default)]
+    pub secondments: Vec<SecondmentView>,
+    /// One entry for each joint programme clause of the treaty.
+    #[serde(default)]
+    pub programmes: Vec<JointProgrammeView>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1204,6 +1270,11 @@ pub struct Check {
     pub label: String,
     pub detail: String,
     pub ok: bool,
+    /// For the checks of the jump programme, the base the check belongs to:
+    /// "industrial", "scientific", "educational", "logistical" or "service".
+    /// Empty for governance checks and on referees older than ruleset 2.0 slice E.
+    #[serde(default)]
+    pub category: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -555,6 +555,9 @@ pub struct Program {
     pub graduates: u32,
     pub paused: bool,
     pub blockers: Vec<String>,
+    /// Month in which the last cohort graduated (0: none has).
+    #[serde(default)]
+    pub last_grad: Month,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -606,6 +609,63 @@ pub struct Treaty {
     /// "active", "completed", "broken", "expired"
     pub status: String,
     pub performance: Vec<String>,
+    pub shortfalls: u16,
+    /// The experts lent under the treaty's secondment clauses, one entry a clause.
+    #[serde(default)]
+    pub secondments: Vec<Secondment>,
+    /// The treaty's joint programme clauses, one entry a clause.
+    #[serde(default)]
+    pub programmes: Vec<Programme>,
+    /// The party that repudiated the treaty, if one did. A treaty ended by war has
+    /// status "broken" and nobody here.
+    #[serde(default)]
+    pub broken_by: Option<SeatId>,
+}
+
+/// Experts lent under one secondment clause (`Clause::Secondment`).
+///
+/// `sent` holders of `qual` left the lender for the borrower's capital when the
+/// treaty was signed. `owed` of them are still due home; it never exceeds `sent`
+/// and is zero once the secondment has been settled, whatever became of them.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Secondment {
+    /// Index of the clause in the treaty's `clauses`.
+    pub clause: u16,
+    pub lender: SeatId,
+    pub borrower: SeatId,
+    pub qual: Qual,
+    pub sent: u32,
+    pub owed: u32,
+    /// The lender's region that gave the most of them: where the survivors return.
+    pub home: RegionId,
+    /// Month in which the survivors are due home.
+    pub due: Month,
+    /// People who came home, and people who stayed behind without their
+    /// qualification after a breach.
+    pub returned: u32,
+    pub lost: u32,
+    /// The borrower's holders of `qual` who had died, retired or been enlisted when
+    /// the secondment was last reviewed. Experts abroad share the attrition of the
+    /// holders they live among: each month `owed` falls in the proportion of the
+    /// borrower's holders who left that way, and those are never returned.
+    #[serde(default)]
+    pub exits_seen: i64,
+}
+
+/// One joint programme clause (`Clause::JointProgramme`).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Programme {
+    /// Index of the clause in the treaty's `clauses`.
+    pub clause: u16,
+    pub host: SeatId,
+    pub client: SeatId,
+    pub service: ProgrammeService,
+    /// Month in which the service ends.
+    pub ends: Month,
+    /// Whether the client has access this month: decided at the start of every
+    /// month from the rate the host's installation ran at the month before.
+    pub served: bool,
+    /// Months in which the installation ran below half rate.
     pub shortfalls: u16,
 }
 
@@ -716,6 +776,13 @@ pub struct Flows {
     pub lost: Vec<i64>,
     pub traded_in: Vec<i64>,
     pub traded_out: Vec<i64>,
+    /// Output the works stood ready to make (staffed, supplied, powered) and did not
+    /// make only because the stores of the good were full. A memorandum: it was
+    /// never made, is in no stock and is no part of the identity above. The
+    /// industrial-base check of the jump programme counts it as output the works
+    /// can sustain (`sim::victory`).
+    #[serde(default = "zeros_ng")]
+    pub withheld: Vec<i64>,
     /// Births, and deaths of residents and soldiers (battle and militia losses included).
     pub births: u32,
     pub deaths: u32,
@@ -732,7 +799,7 @@ fn zeros_nq() -> Vec<i64> {
 
 impl Flows {
     pub fn new() -> Self {
-        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], births: 0, deaths: 0, migration: 0 }
+        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], births: 0, deaths: 0, migration: 0 }
     }
 }
 
@@ -742,11 +809,25 @@ impl Flows {
 /// A civilization's holders of a qualification are the `quals` of the regions it
 /// controls. At every moment, for every qualification:
 /// `holders = initial + trained - entered + returned - died - retired - enlisted
-///            + moved_in - moved_out - seconded_out + seconded_in - seconded_lost`.
+///            + moved_in - moved_out
+///            - seconded_out + seconded_home - seconded_lost      (as a lender)
+///            + seconded_in - seconded_back`                      (as a borrower).
 /// Learners are not holders: a holder who enrols in a further course leaves through
 /// `entered` and comes back as a graduate (`trained`, under the new qualification) or
 /// when the course is closed (`returned`). Movements between a civilization's own
 /// regions net to zero and are not recorded.
+///
+/// Experts lent under a treaty have channels of their own, so that the audit can
+/// tell a loan from migration. A lender books those it sends (`seconded_out`), all
+/// who are released from service abroad when the secondment ends
+/// (`seconded_home`) and, of those released, the ones who did not come home because
+/// a breach kept them abroad without their qualification (`seconded_lost`). A
+/// borrower books those it receives (`seconded_in`) and all who leave its holders
+/// when the secondment ends (`seconded_back`). Over the world, at every moment:
+/// `sum(seconded_in) = sum(seconded_out)`, `sum(seconded_home) = sum(seconded_back)
+/// <= sum(seconded_in)` and, for every lender, `seconded_lost <= seconded_home`.
+/// An expert who dies, retires or is enlisted abroad leaves through the borrower's
+/// ordinary channels and is never returned.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QualFlows {
     /// The declared starting endowment.
@@ -775,19 +856,29 @@ pub struct QualFlows {
     pub moved_in: Vec<i64>,
     #[serde(default = "zeros_nq")]
     pub moved_out: Vec<i64>,
-    /// Experts lent under a secondment treaty (slice E; zero until then).
+    /// Lender: experts sent abroad under a secondment clause.
     #[serde(default = "zeros_nq")]
     pub seconded_out: Vec<i64>,
+    /// Borrower: experts received under a secondment clause.
     #[serde(default = "zeros_nq")]
     pub seconded_in: Vec<i64>,
+    /// Lender: of the experts released from service abroad (`seconded_home`), those
+    /// who stayed there as ordinary residents without their qualification because
+    /// the borrower repudiated the treaty or the parties went to war.
     #[serde(default = "zeros_nq")]
     pub seconded_lost: Vec<i64>,
+    /// Lender: experts released from service abroad when a secondment ended.
+    #[serde(default = "zeros_nq")]
+    pub seconded_home: Vec<i64>,
+    /// Borrower: foreign experts who left its holders when a secondment ended.
+    #[serde(default = "zeros_nq")]
+    pub seconded_back: Vec<i64>,
 }
 
 impl Default for QualFlows {
     fn default() -> Self {
         let z = || vec![0i64; NQ];
-        QualFlows { initial: z(), trained: z(), entered: z(), returned: z(), died: z(), retired: z(), enlisted: z(), moved_in: z(), moved_out: z(), seconded_out: z(), seconded_in: z(), seconded_lost: z() }
+        QualFlows { initial: z(), trained: z(), entered: z(), returned: z(), died: z(), retired: z(), enlisted: z(), moved_in: z(), moved_out: z(), seconded_out: z(), seconded_in: z(), seconded_lost: z(), seconded_home: z(), seconded_back: z() }
     }
 }
 
@@ -803,8 +894,10 @@ impl QualFlows {
     /// Holders the ledger accounts for.
     pub fn balance(&self, q: usize) -> i64 {
         self.initial[q] + self.trained[q] - self.entered[q] + self.returned[q] - self.died[q] - self.retired[q] - self.enlisted[q] + self.moved_in[q] - self.moved_out[q] - self.seconded_out[q]
-            + self.seconded_in[q]
+            + self.seconded_home[q]
             - self.seconded_lost[q]
+            + self.seconded_in[q]
+            - self.seconded_back[q]
     }
     pub fn exit(&mut self, how: QualExit, q: usize, n: u32) {
         let v = match how {
@@ -1085,6 +1178,58 @@ impl World {
     }
 }
 
+/// The installation a joint programme service is given by, and the service an
+/// installation can give. The jump works themselves are never a service.
+pub fn facility_of_service(s: ProgrammeService) -> Option<&'static str> {
+    match s {
+        ProgrammeService::Launch => Some("launch_complex"),
+        ProgrammeService::OrbitalYard => Some("orbital_yard"),
+        ProgrammeService::HighEnergy => Some("high_energy"),
+        ProgrammeService::Undisclosed => None,
+    }
+}
+
+pub fn service_of_facility(key: &str) -> Option<ProgrammeService> {
+    match key {
+        "launch_complex" => Some(ProgrammeService::Launch),
+        "orbital_yard" => Some(ProgrammeService::OrbitalYard),
+        "high_energy" => Some(ProgrammeService::HighEnergy),
+        _ => None,
+    }
+}
+
+impl World {
+    /// Whether a partner's installation is serving `seat` this month under an
+    /// active joint programme: the treaty is active and the host's installation
+    /// ran at half rate or better the month before (`sim::diplomacy::step`).
+    pub fn programme_access(&self, seat: SeatId, service: ProgrammeService) -> bool {
+        self.treaties.iter().any(|t| t.status == "active" && t.programmes.iter().any(|p| p.client == seat && p.service == service && p.served && self.month < p.ends))
+    }
+    /// The host's installation that serves its partners: the one at its capital if
+    /// it has one there, otherwise the one in its lowest-numbered region; enabled
+    /// and of at least one level. Returns the region.
+    pub fn service_site(&self, host: SeatId, service: ProgrammeService) -> Option<usize> {
+        let kind = content().f(facility_of_service(service)?);
+        let has = |ri: usize| self.regions[ri].controller == Some(host) && self.regions[ri].fac(kind).map(|f| f.enabled && f.level > 0).unwrap_or(false);
+        let capital = self.civs[host as usize].capital as usize;
+        if has(capital) {
+            return Some(capital);
+        }
+        (0..self.regions.len()).find(|ri| has(*ri))
+    }
+    /// Partners a host's installation of this kind is bound to serve under active treaties.
+    pub fn programme_clients(&self, host: SeatId, service: ProgrammeService) -> u32 {
+        self.treaties.iter().filter(|t| t.status == "active").flat_map(|t| t.programmes.iter()).filter(|p| p.host == host && p.service == service && self.month < p.ends).count() as u32
+    }
+}
+
+impl QualFlows {
+    /// Holders who left for good through death, retirement or enlistment.
+    pub fn exits(&self, q: usize) -> i64 {
+        self.died[q] + self.retired[q] + self.enlisted[q]
+    }
+}
+
 /// Requirement context for one civilization.
 pub struct CivCtx<'a> {
     pub world: &'a World,
@@ -1099,7 +1244,12 @@ impl ReqCtx for CivCtx<'_> {
         self.world.civs[self.seat as usize].established(i)
     }
     fn fac(&self, i: usize) -> bool {
+        // an installation of the seat's own, or one a partner is serving it with
+        // under a joint programme this month. Access stands in only for "exists
+        // somewhere under the seat": same-region rules (`Site::With`) look at the
+        // region's own works and never come here.
         self.world.regions.iter().any(|r| r.owner == Some(self.seat) && r.fac(i).map(|f| f.level > 0).unwrap_or(false))
+            || service_of_facility(content().facilities[i].key).map(|s| self.world.programme_access(self.seat, s)).unwrap_or(false)
     }
     fn pop(&self) -> u32 {
         self.world.civ_population(self.seat)

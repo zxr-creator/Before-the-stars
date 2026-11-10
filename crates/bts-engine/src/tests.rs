@@ -8,6 +8,7 @@ use crate::{Match, MatchConfig};
 use bts_protocol::*;
 
 mod construction;
+mod cooperation;
 mod methods;
 
 fn cfg(seed: &str) -> MatchConfig {
@@ -159,8 +160,15 @@ fn endgame_world() -> World {
         p.adoption_bp = 10_000;
     }
     civ.stability = 90;
-    civ.stock[Good::Spares.index()] = 1_000_000;
-    civ.stock[Good::Fuel.index()] = 1_000_000;
+    // the logistical base: a year of the programme's fuel and spares in store
+    civ.stock[Good::Spares.index()] = 2_000_000;
+    civ.stock[Good::Fuel.index()] = 3_000_000;
+    // the industrial base: a year's output of flight hardware
+    for g in victory::HARDWARE_GOODS {
+        civ.last_flows.produced[g.index()] = 10_000_000;
+    }
+    // the scientific base: staffed frontier research posts
+    civ.research_cap[ResearchClass::Frontier.index()] = 60_000;
     let nodes = w.test_nodes.clone();
     let mut yards = 0;
     for ri in 0..w.regions.len() {
@@ -178,11 +186,26 @@ fn endgame_world() -> World {
             if yards < 2 {
                 add("jump_yard", r);
                 add("orbital_yard", r);
+                if yards == 0 {
+                    // launch, the station the yard stands on, the laboratory and the institute
+                    for key in ["launch_complex", "orbital_station", "high_energy", "tech_institute"] {
+                        add(key, r);
+                    }
+                }
                 yards += 1;
+            }
+            // freight links at every programme site
+            if nodes.contains(&(ri as RegionId)) || r.facilities.iter().any(|f| c.facilities[f.kind].key == "jump_yard") {
+                add("rail", r);
             }
             r.quals[Qual::FtlEngineer.index()] = 40_000;
             r.quals[Qual::Orbital.index()] = 40_000;
         }
+    }
+    // the educational base: running courses for both qualifications
+    let campus = w.regions.iter().position(|r| r.fac(c.f("tech_institute")).is_some()).unwrap() as RegionId;
+    for (i, course) in ["E023", "E024"].iter().enumerate() {
+        w.civs[0].programs.push(Program { id: 9100 + i as u32, course: c.course_ix[*course], region: campus, seats: 10_000, enrolled: 10_000, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 24, graduates: 0, paused: false, blockers: vec![], last_grad: 0 });
     }
     let yard = c.f("jump_yard");
     let yard_regions: Vec<RegionId> = w.regions.iter().filter(|r| r.fac(yard).is_some()).map(|r| r.id).collect();
@@ -652,7 +675,7 @@ fn a_founding_cohort_is_at_most_four_thousand_and_courses_use_materials_per_thou
     m.world.regions[home].facilities.sort_by_key(|f| f.kind);
     let (cap, reserved) = crate::sim::projects::venue_seats(&m.world, 0, home, crate::content::Cap::SeatsLodge);
     assert_eq!((cap, reserved), (32_000, 0));
-    m.world.civs[0].programs.push(Program { id: 900, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![] });
+    m.world.civs[0].programs.push(Program { id: 900, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![], last_grad: 0 });
     m.world.regions[home].quals[Qual::Artisan.index()] = 0;
     crate::sim::projects::step(&mut m.world, 0);
     let p = m.world.civs[0].programs[0].clone();
@@ -660,7 +683,7 @@ fn a_founding_cohort_is_at_most_four_thousand_and_courses_use_materials_per_thou
     assert_eq!(p.teachers, 0);
     assert_eq!(m.world.regions[home].students, 4_000);
     // with instructors the class size is people per instructor, unchanged
-    m.world.civs[0].programs[0] = Program { id: 901, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![] };
+    m.world.civs[0].programs[0] = Program { id: 901, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![], last_grad: 0 };
     m.world.regions[home].students = 0;
     m.world.regions[home].quals[Qual::Artisan.index()] = 1_000;
     crate::sim::projects::step(&mut m.world, 0);

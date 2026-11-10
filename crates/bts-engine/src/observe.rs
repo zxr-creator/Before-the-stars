@@ -645,6 +645,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             traded_out: civ.last_flows.traded_out[g.index()],
             capacity: if *g == Good::Food { Some(storage) } else { None },
             lost: civ.last_flows.lost.get(g.index()).copied().unwrap_or(0),
+            withheld: civ.last_flows.withheld.get(g.index()).copied().unwrap_or(0),
         })
         .collect();
     let quals = Qual::ALL
@@ -1216,7 +1217,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             from: o.from,
             to: o.to,
             clauses: o.clauses.iter().map(|cl| view_clause(w, seat, cl)).collect(),
-            summary: o.clauses.iter().map(|cl| crate::sim::diplomacy::clause_summary(w, cl)).collect(),
+            summary: o.clauses.iter().map(|cl| crate::sim::diplomacy::clause_summary_for(w, seat, cl)).collect(),
             text: o.text.clone(),
             created_month: o.created,
             expires_round: o.expires_round,
@@ -1231,11 +1232,13 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             id: t.id,
             parties: t.parties,
             clauses: t.clauses.iter().map(|cl| view_clause(w, seat, cl)).collect(),
-            summary: t.clauses.iter().map(|cl| crate::sim::diplomacy::clause_summary(w, cl)).collect(),
+            summary: t.clauses.iter().map(|cl| crate::sim::diplomacy::clause_summary_for(w, seat, cl)).collect(),
             signed_month: t.signed,
             ends_month: t.ends,
             status: t.status.clone(),
             performance: t.performance.clone(),
+            secondments: t.secondments.iter().map(|x| SecondmentView { clause: x.clause, sent: x.sent, owed: x.owed, returned: x.returned, lost: x.lost, due_month: x.due }).collect(),
+            programmes: t.programmes.iter().map(|x| JointProgrammeView { clause: x.clause, served: x.served, shortfalls: x.shortfalls }).collect(),
         })
         .collect();
     let active = treaties.iter().filter(|t| t.status == "active").count();

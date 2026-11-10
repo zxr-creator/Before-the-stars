@@ -9,13 +9,95 @@ use crate::sim::chronicle::{brief, moment, reported};
 use crate::state::*;
 use bts_protocol::*;
 
-/// Jump engineers, and orbital crew, an operating fleet needs with reliefs.
-/// A plain scaling of the ruleset 1.0 rule (thirty-six of each); design chapter 35
-/// replaces it with checks derived from the posts of the installed works.
-const FLEET_CREW: u32 = 36_000;
+/// The installations of an independent jump programme (design chapter 35, slice E).
+pub const PROGRAMME_WORKS: [&str; 7] = ["high_energy", "launch_complex", "orbital_station", "orbital_yard", "jump_testbed", "jump_yard", "jump_base"];
+
+/// Base checks of the jump programme: frontier researcher-months a month (check 9),
+/// holders per post with reliefs (7, as a ratio 3/2), course places per post (8, 1/20),
+/// months a past cohort still counts (8), a year of hardware with margin (10, 6/5),
+/// months of stores (11), transport grade and share of electric demand at the sites (12).
+pub const FRONTIER_NEED: i64 = 30_000;
+pub const CREW_RELIEF: (u32, u32) = (3, 2);
+pub const PLACES_PER_POST: (u32, u32) = (1, 20);
+pub const COHORT_MONTHS: Month = 60;
+pub const HARDWARE_MARGIN: (i64, i64) = (6, 5);
+pub const STORE_MONTHS: i64 = 12;
+pub const SITE_TRANSPORT: u8 = 2;
+pub const SITE_POWER_BP: i64 = 9000;
+/// The goods of the industrial base (check 10).
+pub const HARDWARE_GOODS: [Good; 5] = [Good::Components, Good::Electronics, Good::Hardware, Good::Conductors, Good::Metal];
 
 fn check(label: &str, ok: bool, detail: String) -> Check {
-    Check { label: label.to_string(), detail, ok }
+    Check { label: label.to_string(), detail, ok, category: String::new() }
+}
+
+fn base_check(category: &str, label: &str, ok: bool, detail: String) -> Check {
+    Check { label: label.to_string(), detail, ok, category: category.to_string() }
+}
+
+/// The levels of each programme installation the seat's base is measured against:
+/// what it has installed, and never less than an independent programme needs - two
+/// assembly lines, three deployment nodes, and a launch complex, an orbital station
+/// with its yard and a high-energy laboratory unless a partner serves it with that
+/// installation under a joint programme. With the factor (basis points) by which
+/// serving partners raises an installation's inputs, upkeep and electric draw.
+/// Returns `(facility kind, levels, load)`; no population figure enters it.
+pub fn programme_levels(w: &World, seat: SeatId) -> Vec<(usize, i64, i64)> {
+    let c = content();
+    PROGRAMME_WORKS
+        .iter()
+        .map(|key| {
+            let kind = c.f(key);
+            let installed: i64 = w.regions.iter().filter(|r| r.controller == Some(seat)).filter_map(|r| r.fac(kind)).filter(|f| f.enabled).map(|f| f.level as i64).sum();
+            let served = |s: ProgrammeService| w.programme_access(seat, s);
+            let floor = match *key {
+                "jump_yard" => 2,
+                "jump_base" => 3,
+                "launch_complex" => (!served(ProgrammeService::Launch)) as i64,
+                "orbital_station" | "orbital_yard" => (!served(ProgrammeService::OrbitalYard)) as i64,
+                "high_energy" => (!served(ProgrammeService::HighEnergy)) as i64,
+                _ => 0,
+            };
+            let load = service_of_facility(key)
+                .map(|s| 10_000 + crate::sim::economy::HOST_LOAD_PER_CLIENT_BP * w.programme_clients(seat, s).min(crate::sim::economy::HOST_CLIENTS_MAX) as i64)
+                .unwrap_or(10_000);
+            (kind, installed.max(floor), load)
+        })
+        .collect()
+}
+
+/// What the programme installations take of a good in a month at full rate, inputs
+/// and upkeep, for the installations whose keys are listed.
+fn programme_use(levels: &[(usize, i64, i64)], keys: &[&str], g: Good) -> i64 {
+    let c = content();
+    levels
+        .iter()
+        .filter(|(k, _, _)| keys.contains(&c.facilities[*k].key))
+        .map(|(k, lv, load)| {
+            let def = &c.facilities[*k];
+            let per: i64 = def.recipes.first().map(|r| r.inputs.iter().filter(|(x, _)| *x == g).map(|(_, a)| *a).sum()).unwrap_or(0) + def.upkeep.iter().filter(|(x, _)| *x == g).map(|(_, a)| *a).sum::<i64>();
+            per * lv * load / 10_000
+        })
+        .sum()
+}
+
+/// Deliveries of a good still contracted to the seat over the coming year under
+/// active treaties.
+pub fn contracted_imports(w: &World, seat: SeatId, g: Good) -> i64 {
+    w.treaties
+        .iter()
+        .filter(|t| t.status == "active" && t.parties.contains(&seat))
+        .flat_map(|t| t.clauses.iter().zip(t.remaining.iter()))
+        .map(|(c, rem)| match c {
+            Clause::Goods { from, good, amount_per_month, .. } if *from != seat && *good == g => amount_per_month * (*rem).min(12) as i64,
+            _ => 0,
+        })
+        .sum()
+}
+
+/// Whether the seat has an active secondment that lends it holders of `q`.
+pub fn seconded_to(w: &World, seat: SeatId, q: Qual) -> bool {
+    w.treaties.iter().filter(|t| t.status == "active").flat_map(|t| t.secondments.iter()).any(|s| s.borrower == seat && s.qual == q && s.owed > 0 && w.month < s.due)
 }
 
 pub fn governance_checks(w: &World, seat: SeatId) -> Vec<Check> {
@@ -62,7 +144,14 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
     let c = content();
     let civ = &w.civs[seat as usize];
     let mut out = Vec::new();
-    out.push(check("Fleet-wide jump engineering standards understood", civ.knows_id("T167"), if civ.knows_id("T167") { "Understood".into() } else { "Not yet understood".into() }));
+    let g = |n: i64| crate::util::group(n);
+    let k = |n: i64| crate::util::group(n / 1000);
+    // an installation is named only to a seat that has discovered it
+    let name = |key: &str| -> String {
+        let kind = c.f(key);
+        if crate::actions::facility_visible(w, seat, kind) { c.facilities[kind].name.to_lowercase() } else { "a programme installation".into() }
+    };
+    out.push(base_check("scientific", "Fleet-wide jump engineering standards understood", civ.knows_id("T167"), if civ.knows_id("T167") { "Understood".into() } else { "Not yet understood".into() }));
     let live: Vec<&Assembly> = civ.ftl.assemblies.iter().filter(|a| !a.retired).collect();
     let mut series = false;
     for a in &live {
@@ -72,29 +161,131 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
             }
         }
     }
-    out.push(check("Two operational assemblies from two independent lines", live.len() >= 2 && series, format!("{} operational; series manufacture {}", live.len(), if series { "verified" } else { "not verified" })));
+    out.push(base_check("industrial", "Two operational assemblies from two independent lines", live.len() >= 2 && series, format!("{} operational; series manufacture {}", live.len(), if series { "verified" } else { "not verified" })));
     let yard = c.f("jump_yard");
     let base = c.f("jump_base");
-    let oyard = c.f("orbital_yard");
     let running = |kind: usize, r: &Region| r.fac(kind).map(|f| f.level > 0 && f.run.as_ref().map(|x| x.rate_bp >= 5000).unwrap_or(false)).unwrap_or(false);
+    let own_running = |key: &str| -> bool {
+        let kind = c.f(key);
+        w.regions.iter().any(|r| r.controller == Some(seat) && running(kind, r))
+    };
     let yards = w.regions.iter().filter(|r| r.controller == Some(seat) && r.fac(yard).map(|f| f.level > 0 && f.staffed * 2 >= f.staff_needed.max(1)).unwrap_or(false)).count();
-    out.push(check("Both assembly lines staffed", yards >= 2, format!("{yards} of 2 lines staffed")));
+    out.push(base_check("industrial", "Both assembly lines staffed", yards >= 2, format!("{yards} of 2 lines staffed")));
     let nodes = w.test_nodes.iter().filter(|n| {
         let r = &w.regions[**n as usize];
         w.authority(**n as usize) == Some(seat) && running(base, r)
     }).count();
-    out.push(check("Three deployment nodes operating", nodes >= 3, format!("{nodes} of 3 nodes operating")));
-    out.push(check("Three-node deployment exercise completed", civ.ftl.deployment_done.is_some(), civ.ftl.deployment_done.map(|m| format!("Completed in month {m}")).unwrap_or_else(|| "Not yet held".into())));
-    out.push(check("Assembly replacement and crew relief verified", civ.ftl.replacement_done.is_some(), civ.ftl.replacement_done.map(|m| format!("Verified in month {m}")).unwrap_or_else(|| "Not yet verified".into())));
-    let quals = |q: Qual| -> u32 { w.regions.iter().filter(|r| r.controller == Some(seat)).map(|r| r.quals[q.index()]).sum() };
-    let (eng, orb) = (quals(Qual::FtlEngineer), quals(Qual::Orbital));
-    let g = |n: u32| crate::util::group(n as i64);
-    out.push(check("Qualified jump engineers and orbital crews, with reliefs", eng >= FLEET_CREW && orb >= FLEET_CREW, format!("{} jump engineers ({} needed), {} orbital crew ({} needed)", g(eng), g(FLEET_CREW), g(orb), g(FLEET_CREW))));
+    out.push(base_check("logistical", "Three deployment nodes operating", nodes >= 3, format!("{nodes} of 3 nodes operating")));
+    out.push(base_check("service", "Three-node deployment exercise completed", civ.ftl.deployment_done.is_some(), civ.ftl.deployment_done.map(|m| format!("Completed in month {m}")).unwrap_or_else(|| "Not yet held".into())));
+    out.push(base_check("service", "Assembly replacement and crew relief verified", civ.ftl.replacement_done.is_some(), civ.ftl.replacement_done.map(|m| format!("Verified in month {m}")).unwrap_or_else(|| "Not yet verified".into())));
+
+    let levels = programme_levels(w, seat);
+    // ---- 7. educational base, headcount: every post filled with reliefs --------------
+    let posts = |q: Qual| -> u32 {
+        levels.iter().map(|(kind, lv, _)| c.facilities[*kind].skilled.iter().filter(|(qs, _)| qs.iter().all(|x| *x == q)).map(|(_, n)| *n as i64 * lv).sum::<i64>()).sum::<i64>() as u32
+    };
+    let holders = |q: Qual| -> u32 { w.regions.iter().filter(|r| r.controller == Some(seat)).map(|r| r.quals[q.index()]).sum() };
+    let (eng, orb) = (holders(Qual::FtlEngineer), holders(Qual::Orbital));
+    let (eng_posts, orb_posts) = (posts(Qual::FtlEngineer), posts(Qual::Orbital));
+    let (rn, rd) = CREW_RELIEF;
+    let enough = |have: u32, need: u32| have as u64 * rd as u64 >= need as u64 * rn as u64;
+    out.push(base_check(
+        "educational",
+        "Educational base: qualified crews for every post, with reliefs",
+        enough(eng, eng_posts) && enough(orb, orb_posts),
+        format!(
+            "{} jump engineers for {} posts ({} needed); {} orbital crew for {} posts ({} needed); seconded experts resident here count",
+            g(eng as i64), g(eng_posts as i64), g((eng_posts as u64 * rn as u64).div_ceil(rd as u64) as i64),
+            g(orb as i64), g(orb_posts as i64), g((orb_posts as u64 * rn as u64).div_ceil(rd as u64) as i64)
+        ),
+    ));
+    // ---- 8. educational base, replacement: courses, or experts on loan ---------------
+    let mut parts = Vec::new();
+    let mut replaced = true;
+    for (q, need_posts) in [(Qual::FtlEngineer, eng_posts), (Qual::Orbital, orb_posts)] {
+        let places: u32 = civ
+            .programs
+            .iter()
+            .filter(|p| {
+                let course = &c.courses[p.course];
+                let r = &w.regions[p.region as usize];
+                course.output == q && r.controller == Some(seat) && r.cap(course.venue) > 0 && (p.enrolled > 0 || (p.last_grad > 0 && w.month.saturating_sub(p.last_grad) < COHORT_MONTHS))
+            })
+            .map(|p| p.seats)
+            .sum();
+        let need = (need_posts as u64 * PLACES_PER_POST.0 as u64).div_ceil(PLACES_PER_POST.1 as u64) as u32;
+        let loan = seconded_to(w, seat, q);
+        let ok = places >= need || loan;
+        replaced &= ok;
+        parts.push(format!("{}: {} places in running courses ({} needed){}", q.label().to_lowercase(), g(places as i64), g(need as i64), if loan { ", experts on loan" } else { "" }));
+    }
+    out.push(base_check("educational", "Educational base: training that replaces the crews", replaced, parts.join("; ")));
+    // ---- 9. scientific base ---------------------------------------------------------
+    let frontier = civ.research_cap.get(ResearchClass::Frontier.index()).copied().unwrap_or(0);
+    let lab_own = own_running("high_energy");
+    let lab_shared = w.programme_access(seat, ProgrammeService::HighEnergy);
+    out.push(base_check(
+        "scientific",
+        "Scientific base: frontier research capacity",
+        frontier >= FRONTIER_NEED && (lab_own || lab_shared),
+        format!(
+            "{} researcher-months of frontier research a month ({} needed); {} {}",
+            g(frontier), g(FRONTIER_NEED), name("high_energy"),
+            if lab_own { "operating" } else if lab_shared { "served by a partner" } else { "not operating" }
+        ),
+    ));
+    // ---- 10. industrial base --------------------------------------------------------
+    let hardware_keys = ["jump_yard", "jump_base", "launch_complex", "orbital_yard"];
+    let mut short = Vec::new();
+    let mut lines = Vec::new();
+    for good in HARDWARE_GOODS {
+        let need = programme_use(&levels, &hardware_keys, good) * 12 * HARDWARE_MARGIN.0 / HARDWARE_MARGIN.1;
+        let made = civ.last_flows.produced[good.index()] + civ.last_flows.withheld.get(good.index()).copied().unwrap_or(0);
+        let bought = contracted_imports(w, seat, good);
+        if made + bought < need {
+            short.push(format!("{}: {} made and {} contracted of {} needed", good.label().to_lowercase(), k(made), k(bought), k(need)));
+        } else {
+            lines.push(good.label().to_lowercase());
+        }
+    }
+    out.push(base_check(
+        "industrial",
+        "Industrial base: a year of flight hardware from own output or contracts",
+        short.is_empty(),
+        if short.is_empty() { format!("Last year's output and contracted imports cover {} for a year with a fifth to spare", lines.join(", ")) } else { short.join("; ") },
+    ));
+    // ---- 11. logistical base, stores ------------------------------------------------
+    let all: Vec<&str> = PROGRAMME_WORKS.to_vec();
+    let spares_need = programme_use(&levels, &all, Good::Spares) * STORE_MONTHS;
+    let fuel_need = programme_use(&levels, &all, Good::Fuel) * STORE_MONTHS;
     let (spares, fuel) = (civ.stock_of(Good::Spares), civ.stock_of(Good::Fuel));
-    out.push(check("Twelve months of maintenance stock on hand", spares >= 240_000 && fuel >= 200_000, format!("{} spares (240 needed), {} fuel (200 needed)", spares / 1000, fuel / 1000)));
-    let support = w.regions.iter().any(|r| r.controller == Some(seat) && running(oyard, r));
-    out.push(check("Orbital yard supporting the fleet", support, if support { "Operating".into() } else { "Not operating".into() }));
-    out.push(check("Common mission charter across sites established", civ.est_id("C064"), if civ.est_id("C064") { "Established".into() } else { "Not established".into() }));
+    out.push(base_check(
+        "logistical",
+        "Logistical base: a year of fuel and spares in store",
+        spares >= spares_need && fuel >= fuel_need,
+        format!("{} spares ({} needed), {} fuel ({} needed)", k(spares), k(spares_need), k(fuel), k(fuel_need)),
+    ));
+    // ---- 12. logistical base, links and power at the sites ---------------------------
+    let sites: Vec<&Region> = w.regions.iter().filter(|r| r.controller == Some(seat) && [yard, base].iter().any(|kind| r.fac(*kind).map(|f| f.level > 0).unwrap_or(false))).collect();
+    let weak_links = sites.iter().filter(|r| crate::sim::economy::transport_level(r) < SITE_TRANSPORT).count();
+    let dark = sites.iter().filter(|r| r.last.elec_supply * 10_000 < r.last.elec_demand * SITE_POWER_BP).count();
+    out.push(base_check(
+        "logistical",
+        "Logistical base: freight links and electric supply at every programme site",
+        !sites.is_empty() && weak_links == 0 && dark == 0,
+        if sites.is_empty() { "No region holds a jump assembly line or deployment node".into() } else { format!("{} sites; {} below transport grade {}; {} received less than 90% of their electric demand", sites.len(), weak_links, SITE_TRANSPORT, dark) },
+    ));
+    // ---- 13. launch and recovery ----------------------------------------------------
+    let launch = (own_running("launch_complex"), w.programme_access(seat, ProgrammeService::Launch));
+    let oyard = (own_running("orbital_yard"), w.programme_access(seat, ProgrammeService::OrbitalYard));
+    let how = |x: (bool, bool)| if x.0 { "operating" } else if x.1 { "served by a partner" } else { "not operating" };
+    out.push(base_check(
+        "logistical",
+        "Launch and recovery services operating",
+        (launch.0 || launch.1) && (oyard.0 || oyard.1),
+        format!("{} {}; {} {}", name("launch_complex"), how(launch), name("orbital_yard"), how(oyard)),
+    ));
+    out.push(base_check("service", "Common mission charter across sites established", civ.est_id("C064"), if civ.est_id("C064") { "Established".into() } else { "Not established".into() }));
     out
 }
 
@@ -123,7 +314,7 @@ pub fn complete_trial(w: &mut World, seat: SeatId) {
     let capital = w.civs[si].capital;
     let last = w.civs[si].ftl.trials.last().map(|t| t.1);
     let oyard = c.f("orbital_yard");
-    let support = w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(oyard).map(|f| f.level > 0 && f.operated).unwrap_or(false));
+    let support = w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(oyard).map(|f| f.level > 0 && f.operated).unwrap_or(false)) || w.programme_access(seat, ProgrammeService::OrbitalYard);
     let pick = w.civs[si].ftl.assemblies.iter().filter(|a| !a.retired).map(|a| a.id).find(|id| Some(*id) != last).or_else(|| w.civs[si].ftl.assemblies.iter().filter(|a| !a.retired).map(|a| a.id).next());
     let Some(assembly) = pick else {
         brief(w, seat, "warning", "Jump trial cancelled".into(), "No operational jump assembly was available. Propellant and stores prepared for the trial were consumed.".into(), None, "objectives");
