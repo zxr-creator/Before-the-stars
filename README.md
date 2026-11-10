@@ -19,18 +19,45 @@ a local server, and a TypeScript browser client.
 
 ## Play
 
+### As an installed game
+
+Packaged builds open the game in its own window, with nothing else to install:
+
+- **macOS** (Apple silicon and Intel): `Before-the-Stars-<version>-macos.dmg` — drag the
+  app to Applications and open it.
+- **Windows 10/11 x64**: `Before-the-Stars-<version>-windows-x64.zip` (portable) or the
+  `-setup.exe` installer.
+
+Build them yourself with `scripts/package.sh` (output in `dist/release/`), or let the
+`release` GitHub workflow build them on native runners when you push a `v*` tag. The
+builds are not code-signed: macOS asks for right-click → Open the first time, and
+Windows SmartScreen asks for "More info → Run anyway". Signing needs your own Apple
+Developer ID and Windows certificate. See [docs/packaging.md](docs/packaging.md).
+
+### From the repository
+
 Requirements: macOS or Linux with `bash`, `curl` and `git`. Everything else is
 installed **inside this repository** (`.toolchain/`), nothing globally.
 
 ```bash
 scripts/bootstrap.sh     # once: Rust + Node.js into .toolchain/, web packages
-scripts/run.sh           # builds if needed, then serves the game
+scripts/run.sh           # builds if needed, then serves the game for a browser
+target/release/bts       # or: the same game in its own window
 ```
 
-Open <http://127.0.0.1:7878/>. Choose a seed, who controls each of the four seats
-(human, or native AI on Easy / Medium / Hard), world size and length, then start.
-The match autosaves each round to `saves/` and resumes when the server restarts
-(`scripts/run.sh --fresh` ignores the autosave).
+`scripts/run.sh` serves <http://127.0.0.1:7878/> for development and for external
+agents. The match autosaves each round and resumes on restart (`--fresh` ignores the
+autosave).
+
+### Seats, observers and languages
+
+Each of the four seats can be a human, a built-in opponent (Easy / Medium / Hard), or
+a language-model agent: Claude over the API, the local Claude Code or Codex
+command-line tools using their own logins, or any OpenAI-compatible endpoint. With no
+human seat you are an **observer**: you see the whole world, a scoreboard, every
+civilization's own view and each model's stated reasoning, and you control playback.
+The interface is available in English, 简体中文 and 繁體中文, switchable on the title
+screen. A guided tutorial and an in-game almanac explain the systems.
 
 ### A round
 
@@ -124,7 +151,8 @@ crates/bts-ai         Native Easy/Medium/Hard opponents; depends only on bts-pro
 crates/bts-server     `bts` binary: HTTP referee, web host, headless runner, agent CLI
 apps/web              TypeScript + Preact client: atlas map, panels, chronicle
 content/              Technology, practice and course graphs extracted from the design atlases
-scripts/              bootstrap, build, run, content extraction
+scripts/              bootstrap, build, run, package, content extraction
+packaging/            app icon, macOS bundle metadata, Windows installer script
 docs/                 v1.0 design documentation, agent API, implementation status
 dist/                 The original design archive and its checksum
 ```
@@ -158,8 +186,8 @@ In short:
   been driven by automated browser runs (every panel, hot-seat diplomacy, a late-game
   state against the AI), but wars, religion founding and the jump programme have not
   been played by hand in the browser.
-- Not built: the 3D atlas tier (the flat atlas tier is complete), a Mac shell, MCP
-  adapter, multi-match server rooms, generated SDKs, and post-match counterfactual replay.
+- Not built: an MCP adapter, multi-match server rooms, generated SDKs, and post-match
+  counterfactual replay.
 
 Numbers are provisional calibration, as the design states, tuned only through all-AI
 matches. In those matches the stronger native opponents typically reach the scientific
