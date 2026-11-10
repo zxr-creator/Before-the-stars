@@ -7,12 +7,19 @@
 //! over what its observation contains: no future node IDs, no foreign ledgers.
 //! Difficulty changes how many candidate actions it may take, how far ahead it
 //! prepares and how carefully it weighs offers — never resources or information.
+//!
+//! Head counts in an observation are real people; goods are base units (rations,
+//! tonnes, lots) with 1,000 to the display unit. Thresholds below are written in
+//! those units, and anything per person is stated per thousand people.
 
 use crate::{Difficulty, NativeAi};
 use bts_protocol::*;
 use std::collections::{HashMap, HashSet};
 
 const TIER_POWER: [i64; 6] = [1000, 2500, 6250, 15625, 39063, 97656];
+
+/// One thousand people: the grain in which the policy reasons about head counts.
+const K: i64 = 1000;
 
 fn base_price(g: Good) -> i64 {
     match g {
@@ -43,7 +50,7 @@ struct Plan<'a> {
     diff: Difficulty,
     actions: Vec<Action>,
     budget: usize,
-    /// Stock not yet spoken for by open projects or by actions chosen this round (milli).
+    /// Stock not yet spoken for by open projects or by actions chosen this round (base units).
     avail: HashMap<Good, i64>,
     wanted: HashSet<Good>,
     builds: HashMap<RegionId, usize>,
@@ -125,7 +132,7 @@ impl<'a> Plan<'a> {
             "fishery" => s.fishery,
             "forest" => s.forest,
             "river" => {
-                if r.river { ft.max_level } else if s.water >= 2500 { 2 } else { 0 }
+                if r.river { ft.max_level } else if s.water as i64 >= 2500 * K { 2 } else { 0 }
             }
             "coast" => {
                 if r.coastal { ft.max_level } else { 0 }
@@ -209,7 +216,8 @@ impl<'a> Plan<'a> {
             }
             let idle = *self.idle.get(&r.id).unwrap_or(&0);
             let link = r.own.as_ref().map(|o| o.link_efficiency_bp as i64).unwrap_or(0);
-            let mut score = idle.min(jobs * 3) * 100 + link / 10;
+            // a hundred points for every thousand idle adults the workplace could take on
+            let mut score = idle.min(jobs * 3) * 100 / K + link / 10;
             if r.id == self.obs.civ.capital {
                 score += 300;
             }
@@ -273,11 +281,11 @@ fn own_power(obs: &Observation) -> i64 {
 
 fn their_power(obs: &Observation, seat: SeatId) -> i64 {
     let tier = obs.others.iter().find(|o| o.seat == seat).and_then(|o| o.observed_tier).unwrap_or(obs.civ.military_tier) as usize;
-    obs.foreign_armies.iter().filter(|a| a.owner == seat).map(|a| (a.strength_low + a.strength_high) as i64 / 2 * TIER_POWER[a.tier_estimate.map(|t| t as usize).unwrap_or(tier).min(5)] / 1000).sum()
+    obs.foreign_armies.iter().filter(|a| a.owner == seat).map(|a| (a.strength_low as i64 + a.strength_high as i64) / 2 * TIER_POWER[a.tier_estimate.map(|t| t as usize).unwrap_or(tier).min(5)] / 1000).sum()
 }
 
 fn their_population(obs: &Observation, seat: SeatId) -> i64 {
-    obs.others.iter().find(|o| o.seat == seat).map(|o| (o.population_low + o.population_high) as i64 / 2).unwrap_or(0)
+    obs.others.iter().find(|o| o.seat == seat).map(|o| (o.population_low as i64 + o.population_high as i64) / 2).unwrap_or(0)
 }
 
 fn borders(obs: &Observation, seat: SeatId) -> bool {
@@ -584,10 +592,11 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
             p.wanted.insert(l.good);
         }
     }
-    if p.stock(Good::Tools) < 12_000 + pop * 30 {
+    // thirty tool lots and sixty tonnes of materials in hand for every thousand people
+    if p.stock(Good::Tools) < 12_000 + pop * 30 / K {
         p.wanted.insert(Good::Tools);
     }
-    if p.stock(Good::Materials) < 50_000 + pop * 60 {
+    if p.stock(Good::Materials) < 50_000 + pop * 60 / K {
         p.wanted.insert(Good::Materials);
     }
 
@@ -643,7 +652,8 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
 fn food_and_water(p: &mut Plan, regions: &[&RegionView]) {
     let obs = p.obs;
     let pop = obs.civ.population.max(1) as i64;
-    let months = p.stock(Good::Food) / (pop * 1000);
+    let food_each = obs.units.food_per_person_month.max(1);
+    let months = p.stock(Good::Food) / (pop * food_each);
     let hungry = obs.civ.food_fulfillment_bp < 10_000 || months < 3;
     let step: u16 = match p.diff {
         Difficulty::Easy => 1,
@@ -654,7 +664,8 @@ fn food_and_water(p: &mut Plan, regions: &[&RegionView]) {
     for r in regions {
         let o = r.own.as_ref().unwrap();
         let rp = o.population as i64;
-        let farm_jobs = p.level(r, "fields") as i64 * 10 + p.level(r, "pasture") as i64 * 5 + p.level(r, "fishery") as i64 * 8;
+        let crew = |kind: &str| p.level(r, kind) as i64 * p.fac_type(kind).map(|ft| ft.jobs.iter().map(|j| j.count as i64).sum::<i64>()).unwrap_or(0);
+        let farm_jobs = crew("fields") + crew("pasture") + crew("fishery");
         // jobs needed if every mouth is fed from improved land at early yields
         let need_jobs = rp * 125 / 100 * ahead / 100 * 10 / 36;
         let relying_on_wild = o.labor.food as i64 > farm_jobs;
@@ -675,8 +686,8 @@ fn food_and_water(p: &mut Plan, regions: &[&RegionView]) {
         if rp * 100 > o.water_capacity as i64 * (88 - 2 * p.diff.lookahead() as i64) {
             let _ = p.try_build(r, "water_treatment", 1, 2) || p.try_build(r, "sewers", 1, 2) || p.try_build(r, "waterworks", 1, 2);
         }
-        if o.health_pressure_bp > 1500 || rp > 600 {
-            let covered = (p.level(r, "clinic") as i64) * 800 + (p.level(r, "hospital") as i64) * 4000;
+        if o.health_pressure_bp > 1500 || rp > 600 * K {
+            let covered = (p.level(r, "clinic") as i64) * 800 * K + (p.level(r, "hospital") as i64) * 4000 * K;
             if covered < rp {
                 let _ = p.try_build(r, "hospital", 1, 4) || p.try_build(r, "clinic", 1, 4);
             }
@@ -829,18 +840,19 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
     }
     let have = |q: Qual| obs.civ.quals.iter().find(|x| x.qual == q).map(|x| x.count as i64).unwrap_or(0);
     let prep = 100 + 4 * p.diff.lookahead() as i64;
-    let share = |bp: i64, min: i64| (working * bp / 10_000).max(min) * prep / 100;
+    // a share of working adults, and never fewer than `min` thousand people
+    let share = |bp: i64, min: i64| (working * bp / 10_000).max(min * K) * prep / 100;
     let coastal = regions.iter().any(|r| r.coastal);
     let fields: i64 = regions.iter().map(|r| p.level(r, "fields") as i64).sum();
     let schools = p.civ_has("school");
     let targets: Vec<(Qual, i64)> = vec![
         (Qual::Artisan, share(250, 14)),
         (Qual::Lorekeeper, share(60, 10)),
-        (Qual::Agronomist, (fields / 2 + 2).min(share(200, 4))),
+        (Qual::Agronomist, ((fields * K) / 2 + 2 * K).min(share(200, 4))),
         (Qual::Tallier, share(50, 6)),
         (Qual::Builder, share(150, 6)),
         (Qual::Smith, share(50, 4)),
-        (Qual::Navigator, if coastal { 4 } else { 0 }),
+        (Qual::Navigator, if coastal { 4 * K } else { 0 }),
         (Qual::Literate, if schools { share(600, 30) } else { share(200, 12) }),
         (Qual::Scribe, share(150, 16)),
         (Qual::Teacher, share(50, 12)),
@@ -853,8 +865,8 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         (Qual::Programmer, share(100, 8)),
         (Qual::Physician, share(40, 4)),
         (Qual::AiEngineer, share(30, 8)),
-        (Qual::Orbital, 70),
-        (Qual::FtlEngineer, 60),
+        (Qual::Orbital, 70 * K),
+        (Qual::FtlEngineer, 60 * K),
     ];
     // 1. work out who is short and who is in surplus; stop feeding surpluses first
     struct Need<'c> {
@@ -868,7 +880,7 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         if courses.is_empty() {
             continue;
         }
-        let target = (*base).max(demand.get(q).copied().unwrap_or(0) * 12 / 10 + 2).max(1);
+        let target = (*base).max(demand.get(q).copied().unwrap_or(0) * 12 / 10 + 2 * K).max(1);
         let training: i64 = obs.programs.iter().filter(|g| courses.iter().any(|c| c.key == g.course)).map(|g| g.enrolled as i64).sum();
         let deficit = target - have(*q) - training;
         if deficit <= 0 {
@@ -904,7 +916,7 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         }
         // places already open but unfilled and able to fill: more programmes would not train anyone sooner
         let open_places: i64 = mine.iter().filter(|g| g.blockers.is_empty() || g.enrolled > 0).map(|g| (g.seats as i64 - g.enrolled as i64).max(0)).sum();
-        if resumed || open_places >= n.deficit.min(8) || opened >= max_open {
+        if resumed || open_places >= n.deficit.min(8 * K) || opened >= max_open {
             continue;
         }
         // a course needs places and eligible learners in the same region
@@ -928,12 +940,13 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
                     })
                     .max()
                     .unwrap_or(0);
-                if learners < 4 {
+                if learners < 4 * K {
                     continue;
                 }
                 let free = o.venues.iter().find(|v| v.venue == course.venue).map(|v| v.capacity as i64 - v.reserved as i64).unwrap_or(0);
-                if free >= 4 {
-                    let seats = free.min(n.deficit.max(4)).min(learners).min(course.class_size as i64 * 3).max(4) as u16;
+                if free >= 4 * K {
+                    // at most three thousand instructors' worth of learners in one programme
+                    let seats = free.min(n.deficit.max(4 * K)).min(learners).min(course.class_size as i64 * 3 * K).clamp(4 * K, 2_000 * K) as u32;
                     p.push(Action::StartProgram { region: r.id, course: course.key.clone(), seats });
                     opened += 1;
                     placed = true;
@@ -1022,7 +1035,7 @@ fn production(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
     // roads tie outlying regions to the common stock
     for r in regions {
         let o = r.own.as_ref().unwrap();
-        if r.id != capital.id && o.population >= 250 && o.transport_level == 0 {
+        if r.id != capital.id && o.population as i64 >= 250 * K && o.transport_level == 0 {
             let _ = p.try_build(r, "roads", 1, 5) || (r.coastal && p.try_build(r, "port", 1, 5));
         }
     }
@@ -1175,14 +1188,14 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
     };
     let slack = if p.diff == Difficulty::Hard { 1 } else { 0 };
     let pop = obs.civ.population.max(1) as i64;
-    if settling || obs.round < ai.memory.last_settle_round + gap || (obs.civ.admin_load as i64) >= obs.civ.admin_capacity as i64 + slack || p.stock(Good::Food) < pop * 3000 {
+    if settling || obs.round < ai.memory.last_settle_round + gap || (obs.civ.admin_load as i64) >= obs.civ.admin_capacity as i64 + slack || p.stock(Good::Food) < pop * 3 * obs.units.food_per_person_month.max(1) {
         return;
     }
     let sea_ok = p.fac_type("port").map(|f| f.available).unwrap_or(false);
     let mut best: Option<(i64, RegionId, RegionId)> = None;
     for from in regions {
         let fo = from.own.as_ref().unwrap();
-        if fo.population < 260 {
+        if (fo.population as i64) < 260 * K {
             continue;
         }
         for n in &from.neighbors {
@@ -1203,7 +1216,7 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
                 score += 150;
             }
             if let Some(s) = &t.survey {
-                score = s.arable as i64 * 12 + s.wild_food as i64 + s.water as i64 / 20 + s.forest as i64 * 5;
+                score = s.arable as i64 * 12 + s.wild_food as i64 + s.water as i64 / (20 * K) + s.forest as i64 * 5;
                 for d in &s.deposits {
                     let g = match d.kind {
                         Deposit::CopperOre => Good::CopperOre,
@@ -1224,7 +1237,7 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
     if let Some((score, from, to)) = best {
         if score >= 250 {
             let fp = regions.iter().find(|r| r.id == from).and_then(|r| r.own.as_ref()).map(|o| o.population).unwrap_or(0);
-            let people = (fp / 5).clamp(30, 120);
+            let people = (fp / 5).clamp(30_000, 120_000);
             if p.push(Action::StartProject { spec: ProjectSpec::Settle { from, to, people }, priority: Some(3) }) {
                 ai.memory.last_settle_round = obs.round;
             }
@@ -1246,7 +1259,7 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
         ai.memory.war_target = None;
     }
     let revealed = obs.objectives.victory.is_some();
-    if ai.memory.war_target.is_none() && !at_war && p.diff != Difficulty::Easy && obs.civ.overlord.is_none() && soldiers >= 150 {
+    if ai.memory.war_target.is_none() && !at_war && p.diff != Difficulty::Easy && obs.civ.overlord.is_none() && soldiers >= 150 * K {
         let pacts: Vec<SeatId> = obs.diplomacy.treaties.iter().filter(|t| t.status == "active" && t.clauses.iter().any(|c| matches!(c, Clause::NonAggression { .. } | Clause::DefensivePact { .. }))).flat_map(|t| t.parties.iter().copied()).collect();
         let edge = if p.diff == Difficulty::Hard { 2 } else { 3 };
         let mut best: Option<(i64, SeatId)> = None;
@@ -1267,21 +1280,22 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
     let room_bp: i64 = if at_war { 500 } else if ai.memory.war_target.is_some() || revealed { 350 } else if threatened { 250 } else if !neighbours.is_empty() { match p.diff { Difficulty::Easy => 60, Difficulty::Medium => 120, Difficulty::Hard => 180 } } else { 0 };
     let target = pop * room_bp / 10_000;
     let recruiting: Vec<&ProjectView> = obs.projects.iter().filter(|x| x.kind == "recruit").collect();
-    if soldiers + (recruiting.len() as i64) * 200 < target && recruiting.len() < 2 && obs.civ.food_fulfillment_bp >= 9500 {
+    if soldiers + (recruiting.len() as i64) * 200 * K < target && recruiting.len() < 2 && obs.civ.food_fulfillment_bp >= 9500 {
         let tier = obs.catalog.unit_tiers.iter().filter(|t| t.available).map(|t| t.tier).max().unwrap_or(0);
         let home = regions.iter().copied().find(|r| r.own.as_ref().unwrap().facilities.iter().any(|f| f.kind == "barracks")).unwrap_or(capital);
         if tier >= 1 && p.level(home, "barracks") == 0 {
             p.try_build(home, "barracks", 1, 3);
         }
         // the best equipment we can actually supply, falling back a tier at a time
-        let size = (target - soldiers).clamp(40, if at_war || revealed { 800 } else { 300 });
+        let size = (target - soldiers).clamp(40 * K, if at_war || revealed { 800 * K } else { 300 * K });
         let mut chosen: Option<u8> = None;
         for t in (0..=tier).rev() {
             if t >= 1 && p.level(home, "barracks") == 0 {
                 continue;
             }
             if let Some(def) = obs.catalog.unit_tiers.iter().find(|x| x.tier == t && x.available) {
-                if def.equipment.iter().all(|e| *p.avail.get(&e.good).unwrap_or(&0) >= e.amount * size) {
+                // equipment is listed per thousand soldiers
+                if def.equipment.iter().all(|e| *p.avail.get(&e.good).unwrap_or(&0) >= e.amount * size / K) {
                     chosen = Some(t);
                     break;
                 }
@@ -1296,7 +1310,7 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
             let def = obs.catalog.unit_tiers.iter().find(|x| x.tier == t).unwrap();
             let role = Role::ALL[(mix(ai.policy_seed ^ obs.round as u64) % 3) as usize];
             for e in &def.equipment {
-                *p.avail.entry(e.good).or_insert(0) -= e.amount * size;
+                *p.avail.entry(e.good).or_insert(0) -= e.amount * size / K;
             }
             p.push(Action::StartProject { spec: ProjectSpec::Recruit { region: home.id, role, soldiers: size as u32, tier: t }, priority: Some(if at_war { 1 } else { 4 }) });
         }
@@ -1308,8 +1322,8 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
         if merged.contains(&a.id) {
             continue;
         }
-        let size: u32 = a.soldiers.iter().map(|(_, n)| *n).sum();
-        if size >= 300 {
+        let size: i64 = a.soldiers.iter().map(|(_, n)| *n as i64).sum();
+        if size >= 300 * K {
             continue;
         }
         if let Some(b) = obs.armies.iter().find(|b| b.id != a.id && b.region == a.region && b.tier == a.tier && b.training_months_left == 0 && !merged.contains(&b.id)) {
@@ -1321,7 +1335,7 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
 
     // orders
     let region = |id: RegionId| obs.regions.iter().find(|r| r.id == id);
-    let enemy: Option<SeatId> = obs.diplomacy.wars.first().copied().or(if mine > 0 && soldiers >= 150 { ai.memory.war_target } else { None });
+    let enemy: Option<SeatId> = obs.diplomacy.wars.first().copied().or(if mine > 0 && soldiers >= 150 * K { ai.memory.war_target } else { None });
     // one objective for the whole field force: the enemy region nearest our capital
     let objective: Option<RegionId> = enemy.and_then(|e| {
         let mut dist: HashMap<RegionId, u32> = HashMap::new();
@@ -1354,7 +1368,7 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
         let invaded = regions.iter().copied().find(|r| obs.foreign_armies.iter().any(|f| f.region == r.id && obs.diplomacy.wars.contains(&f.owner)) || r.controller != Some(seat));
         if let Some(r) = invaded {
             let threat: i64 = obs.foreign_armies.iter().filter(|f| f.region == r.id).map(|f| f.strength_high as i64).sum();
-            if defending < threat * 3 + 100 || r.controller != Some(seat) {
+            if defending < threat * 3 + 100 * K || r.controller != Some(seat) {
                 defending += a.soldiers.iter().map(|(_, n)| *n as i64).sum::<i64>();
                 if a.region != r.id && a.target != Some(r.id) {
                     p.push(Action::MilitaryOrder { army: a.id, order: if r.controller == Some(seat) { ArmyOrder::Move { to: r.id } } else { ArmyOrder::Attack { region: r.id } } });
@@ -1372,7 +1386,7 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
             continue;
         }
         // march only with enough to take and hold something
-        if field_strength < 150 || a.morale_bp < 4500 {
+        if field_strength < 150 * K || a.morale_bp < 4500 {
             continue;
         }
         p.push(Action::MilitaryOrder { army: a.id, order: ArmyOrder::Attack { region: goal } });

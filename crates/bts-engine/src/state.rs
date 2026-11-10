@@ -133,12 +133,13 @@ pub struct Facility {
     pub level: u16,
     pub condition_bp: u16,
     pub enabled: bool,
+    /// Posts filled and posts required last month, in people.
     pub staffed: u32,
     pub staff_needed: u32,
     pub skilled_bp: u16,
     pub run: Option<RunStat>,
     pub operated: bool,
-    /// Progress toward the next jump assembly (milli) for assembly lines.
+    /// Progress toward the next jump assembly, in thousandths, for assembly lines.
     pub assembly_progress: i64,
 }
 
@@ -151,9 +152,11 @@ pub struct RegionMonth {
     pub elec_demand: i64,
     pub compute_supply: i64,
     pub compute_demand: i64,
+    /// Rations.
     pub food_made: i64,
     pub qual_employed: Vec<u32>,
     pub tag_staff: Vec<u32>,
+    /// Worker-months of called-up labour not yet assigned to a project this month.
     pub project_labor_free: i64,
 }
 
@@ -170,7 +173,7 @@ pub struct Region {
     pub elevation: u8,
     pub arable: u16,
     pub pasture: u16,
-    /// Wild food the land yields per month at most (milli).
+    /// Wild food the land yields per month at most, in rations.
     pub wild: i64,
     pub fishery: u16,
     pub forest: u16,
@@ -181,6 +184,7 @@ pub struct Region {
     pub owner: Option<SeatId>,
     pub controller: Option<SeatId>,
     pub blocks: Vec<PopBlock>,
+    /// Holders of each qualification resident here, in people.
     pub quals: [u32; NQ],
     pub facilities: Vec<Facility>,
     pub nutrition_debt: i64,
@@ -239,19 +243,35 @@ impl Region {
         self.deposits.iter().find(|x| x.kind == d)
     }
     pub fn settlement(&self) -> SettlementKind {
-        let p = self.population();
-        match p {
-            0 => SettlementKind::Wilderness,
-            1..=399 => SettlementKind::Camp,
-            400..=1999 => SettlementKind::Village,
-            2000..=7999 => SettlementKind::Town,
-            8000..=29999 => SettlementKind::City,
-            _ => SettlementKind::Metropolis,
-        }
+        settlement_class(self.population())
     }
     pub fn avg_bp(hist: &[u16; 12]) -> u16 {
         (hist.iter().map(|v| *v as u32).sum::<u32>() / 12) as u16
     }
+}
+
+/// Lower bound, in residents, of each settlement class (units chapter, section 3).
+/// The classes are descriptive: no rule keys on them.
+pub const SETTLEMENT_BOUNDS: [(SettlementKind, u32); 6] = [
+    (SettlementKind::Wilderness, 0),
+    (SettlementKind::Camp, 1),
+    (SettlementKind::Village, 150_000),
+    (SettlementKind::Town, 1_000_000),
+    (SettlementKind::City, 4_000_000),
+    (SettlementKind::Metropolis, 12_000_000),
+];
+
+/// Residents at which a region counts as urban for cultural drift.
+pub const URBAN_RESIDENTS: u32 = 2_000_000;
+
+pub fn settlement_class(residents: u32) -> SettlementKind {
+    let mut kind = SettlementKind::Wilderness;
+    for (k, lower) in SETTLEMENT_BOUNDS {
+        if residents >= lower {
+            kind = k;
+        }
+    }
+    kind
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -316,8 +336,10 @@ pub struct Project {
     pub id: u32,
     pub kind: ProjKind,
     pub region: Option<RegionId>,
+    /// Worker-months, or researcher-months for research, leads and studies.
     pub work_needed: i64,
     pub work_done: i64,
+    /// `(good, needed, committed)` in base units.
     pub inputs: Vec<(Good, i64, i64)>,
     pub priority: u8,
     pub paused: bool,
@@ -332,10 +354,11 @@ pub struct Program {
     pub id: u32,
     pub course: usize,
     pub region: RegionId,
-    pub seats: u16,
-    pub enrolled: u16,
+    /// Places booked, learners enrolled and instructors occupied, in people.
+    pub seats: u32,
+    pub enrolled: u32,
     pub entrant: Option<Qual>,
-    pub teachers: u16,
+    pub teachers: u32,
     pub teacher_qual: Option<Qual>,
     pub progress: u16,
     pub duration: u16,
@@ -520,10 +543,11 @@ pub struct Civ {
     pub status: SeatStatus,
     pub capital: RegionId,
     pub lineage: u16,
+    /// Goods in store, base units (rations, tonnes, lots), indexed by `Good`.
     pub stock: Vec<i64>,
     pub flows: Flows,
     pub last_flows: Flows,
-    /// Smoothed monthly consumption per good (milli), used for stock targets.
+    /// Smoothed monthly consumption per good (base units), used for stock targets.
     pub use_ema: Vec<i64>,
     pub tech: Vec<TechSt>,
     pub practice: Vec<PracSt>,
@@ -547,6 +571,7 @@ pub struct Civ {
     pub stability: u8,
     pub overlord: Option<SeatId>,
     pub tag_activity: Vec<i64>,
+    /// Researcher-months available this month by class: one per staffed research post.
     pub research_cap: Vec<i64>,
     pub research_used: Vec<i64>,
     pub compute_supply: i64,

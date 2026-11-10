@@ -12,6 +12,19 @@ use bts_protocol::*;
 const W: f64 = 1600.0;
 const H: f64 = 1000.0;
 
+/// Starting population of a seat: `START_POP_MIN` plus up to `START_POP_SPREAD` people.
+pub const START_POP_MIN: u32 = 236_000;
+pub const START_POP_SPREAD: u32 = 12_000;
+/// The starting age pyramid is laid out in bands of this many people.
+const START_BAND: u32 = 1000;
+/// Lorekeepers and artisans among the first people.
+pub const START_LOREKEEPERS: u32 = 14_000;
+pub const START_ARTISANS: u32 = 8_000;
+/// Residents the natural water of a home region supports at least.
+pub const HOME_WATER_MIN: u32 = 2_600_000;
+/// Natural water is drawn in thousands of residents.
+const WATER_STEP: u32 = 1000;
+
 struct Noise {
     key: u64,
 }
@@ -257,7 +270,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             wild: wild * 1000,
             fishery: if coastal { a(6, 8, 16) as u16 } else { 0 },
             forest: forest as u16,
-            water: water as u32,
+            water: water as u32 * WATER_STEP,
             hydro: hydro as u16,
             deposits: vec![],
             owner: None,
@@ -333,7 +346,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         if regions[i].river {
             let b = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("riverattr"), i as u64, k], lo, hi);
             regions[i].arable += b(0, 6, 12) as u16;
-            regions[i].water += b(1, 1200, 2200) as u32;
+            regions[i].water += b(1, 1200, 2200) as u32 * WATER_STEP;
             regions[i].hydro += b(2, 4, 8) as u16;
             regions[i].fishery += b(3, 3, 6) as u16;
             regions[i].wild += b(4, 40, 90) * 1000;
@@ -452,7 +465,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
     // --- 7. starting positions ---------------------------------------------
     let seats = cfg.controllers.len().clamp(2, 4);
     let score = |r: &Region| -> i64 {
-        let base = r.arable as i64 * 12 + r.wild / 1000 + r.water as i64 / 20 + r.forest as i64 * 6;
+        let base = r.arable as i64 * 12 + r.wild / 1000 + r.water as i64 / (20 * WATER_STEP as i64) + r.forest as i64 * 6;
         let bonus = if r.river { 200 } else { 0 } + if r.coastal { 80 } else { 0 };
         let penalty = match r.terrain {
             Terrain::Mountains | Terrain::Desert | Terrain::Tundra => 600,
@@ -494,7 +507,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             let r = &mut regions[home];
             r.arable = r.arable.max(34);
             r.wild = r.wild.max(560_000);
-            r.water = r.water.max(2600);
+            r.water = r.water.max(HOME_WATER_MIN);
             r.forest = r.forest.max(12);
             r.pasture = r.pasture.max(12);
             r.hydro = r.hydro.max(4);
@@ -591,18 +604,26 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             trait_streak: [0; 8],
         });
 
-        // Starting people: a young age pyramid of roughly 240.
+        // Starting people: a young age pyramid of roughly 240,000, laid out in whole
+        // bands of a thousand. The founders the weights do not place in whole bands
+        // (about three in twenty) are young adults of twenty, so half of the first
+        // people are of child-bearing age and hardly any are past sixty-five. This is
+        // the age structure ruleset 1.0.1 started from when it placed single people the
+        // same way, and the opening demography is calibrated on it: a smooth pyramid
+        // has a fifth fewer adults of child-bearing age and, in all-AI matches, leaves
+        // populations about a sixth smaller through the first hundred years.
         let mut block = PopBlock::new(s as u16, None);
-        let total = 236 + rng_between(secret, &[stream("startpop"), s as u64], 0, 12) as u32;
+        let total = START_POP_MIN + rng_between(secret, &[stream("startpop"), s as u64], 0, START_POP_SPREAD as i64) as u32;
         let mut weights = [0u32; AGES];
         let mut wsum = 0u32;
         for (age, w) in weights.iter_mut().enumerate() {
             *w = if age < 60 { 100 - age as u32 } else if age < 75 { 30 - (age as u32 - 60) * 2 } else { 0 };
             wsum += *w;
         }
+        let bands = total / START_BAND;
         let mut placed = 0u32;
         for age in 0..AGES {
-            let nppl = total * weights[age] / wsum;
+            let nppl = bands * weights[age] / wsum * START_BAND;
             block.ages[age] = nppl;
             placed += nppl;
         }
@@ -612,8 +633,8 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             r.owner = Some(s as SeatId);
             r.controller = Some(s as SeatId);
             r.blocks.push(block);
-            r.quals[Qual::Lorekeeper.index()] = 14;
-            r.quals[Qual::Artisan.index()] = 8;
+            r.quals[Qual::Lorekeeper.index()] = START_LOREKEEPERS;
+            r.quals[Qual::Artisan.index()] = START_ARTISANS;
             for key in ["makers_circle", "camp", "workshop"] {
                 r.facilities.push(Facility {
                     kind: c.f(key),
@@ -643,6 +664,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             p.adoption_bp = 9000;
             p.source = "Inherited custom".into();
         }
+        // the declared initial endowment: 900,000 rations, 90 kt of materials, 45,000 tool lots
         let mut stock = vec![0i64; NG];
         stock[Good::Food.index()] = 900_000;
         stock[Good::Materials.index()] = 90_000;

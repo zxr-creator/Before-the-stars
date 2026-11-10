@@ -9,6 +9,9 @@ use crate::sim::chronicle::{brief, moment, reported};
 use crate::state::*;
 use bts_protocol::*;
 
+/// Home-defence militia: one working adult in forty, at most this many.
+const MILITIA_MAX: u32 = 500_000;
+
 pub fn military_tier(w: &World, seat: SeatId) -> u8 {
     let c = content();
     let ctx = CivCtx { world: w, seat };
@@ -276,7 +279,8 @@ pub fn step(w: &mut World) {
             if *g == Good::Food {
                 continue;
             }
-            let need = a * count;
+            // upkeep is stated per thousand soldiers
+            let need = a * count / 1000;
             if need > 0 {
                 let got = w.civs[owner].take(*g, need);
                 ok = ok.min(got * 10_000 / need);
@@ -359,7 +363,7 @@ pub fn step(w: &mut World) {
         let defenders: Vec<usize> = present.iter().copied().filter(|i| friendly(w, w.armies[*i].owner, ctrl)).collect();
         let lead = w.armies[attackers[0]].owner;
         let home_defence = w.regions[ri].owner == Some(ctrl);
-        let militia = if home_defence { (w.regions[ri].working() / 40).min(500) } else { 0 };
+        let militia = if home_defence { (w.regions[ri].working() / 40).min(MILITIA_MAX) } else { 0 };
         let def_side = Side { armies: defenders.clone(), militia, militia_tier: military_tier(w, ctrl).min(1) };
         let att_side = Side { armies: attackers.clone(), militia: 0, militia_tier: 0 };
         let terrain_bp = match w.regions[ri].terrain {
@@ -395,19 +399,20 @@ pub fn step(w: &mut World) {
             }
             let lc = &mut w.civs[lead as usize];
             lc.flows.deaths += la;
-            lc.war_weariness = (lc.war_weariness + (la as i32 * 40 / att_people.max(1) as i32).max(1)).min(60);
+            lc.war_weariness = (lc.war_weariness + ((la as i64 * 40 / att_people.max(1) as i64) as i32).max(1)).min(60);
             let dc = &mut w.civs[ctrl as usize];
             dc.flows.deaths += ld + militia_lost;
             dc.war_weariness = (dc.war_weariness + 1).min(60);
             let rname = w.regions[ri].name.clone();
-            brief(w, lead, "warning", format!("Fighting at {rname}"), format!("Our forces lost {la}; the defenders are estimated to have lost {}.", ld + militia_lost), Some(ri as RegionId), "military");
-            brief(w, ctrl, "danger", format!("Fighting at {rname}"), format!("We lost {} defending; attackers are estimated to have lost {la}.", ld + militia_lost), Some(ri as RegionId), "military");
+            let (la_txt, ld_txt) = (crate::util::group(la as i64), crate::util::group(ld as i64 + militia_lost as i64));
+            brief(w, lead, "warning", format!("Fighting at {rname}"), format!("Our forces lost {la_txt}; the defenders are estimated to have lost {ld_txt}."), Some(ri as RegionId), "military");
+            brief(w, ctrl, "danger", format!("Fighting at {rname}"), format!("We lost {ld_txt} defending; attackers are estimated to have lost {la_txt}."), Some(ri as RegionId), "military");
             if !overwhelmed {
                 w.regions[ri].capture = None;
             }
             // broken formations withdraw or dissolve
             for &ai in attackers.iter().chain(defenders.iter()) {
-                let broken = w.armies[ai].morale_bp < 3000 || w.armies[ai].count() * 10 < w.armies[ai].initial * 3;
+                let broken = w.armies[ai].morale_bp < 3000 || (w.armies[ai].count() as u64) * 10 < (w.armies[ai].initial as u64) * 3;
                 if broken && w.armies[ai].count() > 0 {
                     let owner = w.armies[ai].owner;
                     let retreat = w.regions[ri].neighbors.iter().map(|(n, _)| *n as usize).find(|n| w.regions[*n].controller.map(|c| friendly(w, owner, c)).unwrap_or(false));

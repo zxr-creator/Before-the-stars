@@ -71,6 +71,8 @@ export interface Observation {
   briefing: BriefingItem[];
   chronicle: ChronicleEntry[];
   receipts: Receipt[];
+  /** bts-protocol/1.2: what one integer step of each quantity means. */
+  units?: UnitsView;
 }
 
 export interface WorldFrame {
@@ -953,4 +955,58 @@ export interface AgentLogEntry {
 export interface ApiErrorBody {
   error: string;
   message: string;
+}
+
+// ---------------------------------------------------------------------------
+// bts-protocol/1.2 (ruleset bts-rules/2.0.0): scale and units
+// ---------------------------------------------------------------------------
+//
+// Head counts everywhere in the protocol are real people: populations, labour,
+// qualification holders, `JobSpec.count`, soldiers, and programme `seats`,
+// `enrolled` and `teachers` (these were small integers before 1.2 and are now
+// in the thousands and millions). Goods, work, research and services are
+// integer base units; 1,000 base units make one display unit. Catalog amounts
+// stated per person (`CourseType.materials`, `UnitTier.equipment` and
+// `UnitTier.upkeep`) are per thousand people.
+
+/** Unit and mass of one base unit of a good. */
+export interface GoodUnit {
+  good: Good;
+  /** "t" (tonne), "ration" or "lot". */
+  unit: string;
+  /** Mass of one base unit in kilograms, i.e. thousandths of a tonne. */
+  tonnes_per_unit_milli: number;
+}
+
+/** The unit system of the running ruleset, so a client need not hard-code scale. */
+export interface UnitsView {
+  /** Food base units (rations) one resident or soldier eats in a month. */
+  food_per_person_month: number;
+  /** Base units per display unit for goods, work, research and services. */
+  display_divisor: number;
+  goods: GoodUnit[];
+  /** What one base unit of project work is ("worker-month"). */
+  work_unit: string;
+  /** What one base unit of research work is ("researcher-month"). */
+  research_unit: string;
+  /** What one base unit of shaft or electric service is. */
+  service_unit: string;
+  /** Lower bound, in residents, of each settlement class in ascending order. */
+  settlement_bounds: [SettlementKind, number][];
+  /** Bounds on orders that name a number of people. */
+  limits?: PeopleLimits;
+}
+
+/** Bounds, in people, on the orders that name a head count. */
+export interface PeopleLimits {
+  /** A settling party (`settle`). */
+  settlers_min: number;
+  settlers_max: number;
+  /** A formation (`recruit`). */
+  soldiers_min: number;
+  soldiers_max: number;
+  /** Places one programme may book (`start_program`, `manage_program`). */
+  program_seats_max: number;
+  /** Learners a founding cohort can hold while nobody qualified can teach it. */
+  founding_cohort_max: number;
 }

@@ -2,7 +2,7 @@
 //! one combined mortality calculation, annual ageing and migration. People are
 //! conserved: every flow moves or removes counts from the same age vectors.
 
-use crate::content::Cap;
+use crate::content::{content, Cap, FOOD_PER_PERSON_MONTH};
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
@@ -10,8 +10,16 @@ use bts_protocol::*;
 /// Monthly baseline deaths per 100,000 by age band.
 const BANDS: [(usize, usize, i64); 6] = [(0, 0, 900), (1, 4, 180), (5, 14, 50), (15, 49, 55), (50, 64, 160), (65, 80, 620)];
 
+/// People who always stay behind when a region sends people elsewhere.
+const MOVE_FLOOR: u32 = 10_000;
+/// Regions smaller than this do not shed people to their neighbours.
+const MIGRATION_MIN_RESIDENTS: u32 = 120_000;
+/// Residents a precinct of the Menders' Order cares for.
+const HEALERS_ORDER_CARE: i64 = 800_000;
+
+/// Residents the natural supply and waterworks of a region support.
 pub fn water_capacity(r: &Region) -> u32 {
-    r.water + (r.cap(Cap::Water) / 1000) as u32
+    (r.water as i64 + r.cap(Cap::Water)).clamp(0, u32::MAX as i64) as u32
 }
 
 /// Move `count` people from one region to another, proportionally across blocks,
@@ -24,7 +32,7 @@ pub fn move_people(regions: &mut [Region], from: usize, to: usize, count: u32, a
     if pop == 0 || count == 0 {
         return 0;
     }
-    let count = count.min(pop.saturating_sub(10));
+    let count = count.min(pop.saturating_sub(MOVE_FLOOR));
     if count == 0 {
         return 0;
     }
@@ -179,7 +187,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     let pop: u32 = regs.iter().map(|i| w.regions[*i].population()).sum();
 
     // ---- food ---------------------------------------------------------------
-    let need = (pop + soldiers) as i64 * 1000;
+    let need = (pop as i64 + soldiers as i64) * FOOD_PER_PERSON_MONTH;
     let have = w.civs[si].stock_of(Good::Food).max(0);
     let food_bp = if need == 0 { 10_000 } else { ratio_bp(have, need) };
     w.civs[si].take(Good::Food, need.min(have));
@@ -257,8 +265,8 @@ pub fn step(w: &mut World, seat: SeatId) {
         // health pressure
         let crowd = rpop as i64 * 10_000 / wcap as i64;
         let mut pressure = ((crowd - 8000) * 12 / 10).clamp(0, 8000);
-        let debt_pc = r.nutrition_debt / rpop as i64; // milli-months of missed food per person
-        let hcap = (r.cap(Cap::Health) / 1000) as i64 + if crate::sim::culture::region_belief(&w.religions, r, "healers_order") { 800 } else { 0 };
+        let debt_pc = r.nutrition_debt / rpop as i64; // thousandths of a month of missed food per person
+        let hcap = r.cap(Cap::Health) + if crate::sim::culture::region_belief(&w.religions, r, "healers_order") { HEALERS_ORDER_CARE } else { 0 };
         let coverage = ratio_bp(hcap * if medicine { 2 } else { 1 }, rpop as i64);
         pressure = pressure * (10_000 - coverage / 2) / 10_000;
         r.health_bp = pressure as u16;
@@ -290,7 +298,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 b.birth_hist[i] = b.birth_hist[i + 1];
             }
             b.birth_hist[8] = intensity;
-            let eq: i64 = b.ages[16..=40].iter().sum::<u32>() as i64 * 500; // milli reproductive equivalents
+            let eq: i64 = b.ages[16..=40].iter().map(|n| *n as i64).sum::<i64>() * 500; // thousandths of reproductive equivalents
             // 0.030 births per equivalent per month at full intensity
             let expected = eq * 30 / 1000 * lagged / 10_000 * health_factor / 10_000;
             let births = carry_round(expected, &mut b.birth_rem);
@@ -303,7 +311,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 }
                 let mult = if *hi <= 14 { child_mult } else { adult_mult };
                 let rate = base * mult / 10_000 * hazard / 10_000; // per 100k
-                let expected = count as i64 * rate / 100; // milli deaths
+                let expected = count as i64 * rate / 100; // thousandths of deaths
                 let mut deaths = carry_round(expected, &mut b.death_rem[bi]).min(count);
                 region_deaths += deaths;
                 // take proportionally from the band's cells, oldest first for the remainder
@@ -388,13 +396,14 @@ pub fn step(w: &mut World, seat: SeatId) {
     let migrated = 0i32;
     for &ri in &regs {
         let rpop = w.regions[ri].population();
-        if rpop < 120 {
+        if rpop < MIGRATION_MIN_RESIDENTS {
             continue;
         }
         let crowd = rpop as i64 * 10_000 / water_capacity(&w.regions[ri]).max(1) as i64;
         // food-limited pressure: more people than local livelihoods
-        let foragers_cap = w.regions[ri].wild / 2600;
-        let fields = w.regions[ri].fac_level("fields") as i64 * 10 + w.regions[ri].fac_level("pasture") as i64 * 5 + w.regions[ri].fac_level("fishery") as i64 * 8;
+        let foragers_cap = w.regions[ri].wild * 1000 / 2600;
+        let crew = |key: &str| w.regions[ri].fac_level(key) as i64 * content().facilities[content().f(key)].general as i64;
+        let fields = crew("fields") + crew("pasture") + crew("fishery");
         let livelihoods = (foragers_cap + fields).max(1);
         let food_pressure = w.regions[ri].last.labor.food as i64 * 10_000 / livelihoods;
         let push = crowd.max(if food_pressure > 9500 { 9000 } else { 0 });
@@ -414,7 +423,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
         }
         if let Some((_, nb)) = best {
-            let want = rpop as i64 * 12 + w.regions[ri].migr_rem; // 1.2% per month, milli
+            let want = rpop as i64 * 12 + w.regions[ri].migr_rem; // 1.2% per month, in thousandths of a person
             let whole = (want / 1000) as u32;
             w.regions[ri].migr_rem = want % 1000;
             // people moving between our own regions change no national total

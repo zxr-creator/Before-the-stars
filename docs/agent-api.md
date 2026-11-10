@@ -94,7 +94,7 @@ Example batch:
 {"seat": 0, "token": "", "actions": [
   {"kind": "start_project", "spec": {"kind": "build", "region": 12, "facility": "fields", "levels": 2}, "priority": 2},
   {"kind": "investigate", "lead": "k03fa91c"},
-  {"kind": "start_program", "region": 12, "course": "E002", "seats": 8},
+  {"kind": "start_program", "region": 12, "course": "E002", "seats": 8000},
   {"kind": "set_policy", "setting": {"kind": "labor_weight", "category": "knowledge", "weight": 8}}
 ]}
 ```
@@ -158,8 +158,19 @@ never delegated.
 
 ## Reading an observation
 
-- Goods, work, power and research are integer milli-units (1000 = one unit); shares are
-  basis points; months are absolute simulation months.
+- Head counts are real people: populations, labour, qualification holders, posts
+  (`jobs[].count`), soldiers and programme places. A seat starts with about 240,000
+  people; a settling party is 20,000 to 400,000 people, a formation 1,000 to 5,000,000
+  soldiers, a programme 1 to 2,000,000 places.
+- Goods, work, power and research are integer base units: one ration (a person's food
+  for a month), tonne or standard lot of a good; one worker-month or researcher-month
+  of work; 0.1 MWh of shaft or electric service. 1,000 base units make the display
+  unit that amounts are normally quoted in. Catalog amounts stated per person (course
+  materials, formation equipment and upkeep) are per thousand people. `units` in every
+  observation states the food ration, the display divisor, the unit and mass of each
+  good, the settlement class bounds and the limits above; see
+  [`units-and-scale.md`](units-and-scale.md).
+- Shares are basis points; months are absolute simulation months.
 - `regions` contains only regions the seat has seen. `own` is present for regions it
   controls; `foreign` gives population as a range; `visibility: "remembered"` means the
   data is as old as `last_seen`.

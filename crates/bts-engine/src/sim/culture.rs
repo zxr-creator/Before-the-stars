@@ -12,6 +12,18 @@ use bts_protocol::*;
 const REL_A: &[&str] = &["Ember", "Tide", "Lantern", "Reed", "Quiet", "Bright", "Ash", "Hollow", "Clear", "Grain", "Stone", "Swift", "Winter", "Open"];
 const REL_B: &[&str] = &["Covenant", "Path", "Measure", "Hearth", "Return", "Watch", "Fellowship", "Chorus", "Circle", "Accord", "Vigil", "Radiance"];
 
+/// A local movement can start in a region of this many residents once customs of
+/// sharing exist, or of `MOVEMENT_RESIDENTS_ALONE` without them.
+const MOVEMENT_RESIDENTS: u32 = 500_000;
+const MOVEMENT_RESIDENTS_ALONE: u32 = 900_000;
+/// Participants a movement starts with and never falls below.
+const MOVEMENT_SEED: u32 = 30_000;
+const MOVEMENT_FLOOR: i64 = 10_000;
+/// Trained organizers (lorekeepers, scribes, teachers) a recognized founder needs.
+const MOVEMENT_ORGANIZERS: u32 = 6_000;
+/// Regions smaller than this are not reached by a spreading religion.
+const SPREAD_MIN_RESIDENTS: i64 = 20_000;
+
 pub fn region_belief(religions: &[Religion], r: &Region, key: &str) -> bool {
     r.cap(Cap::Sacred) > 0 && religions.iter().any(|rel| rel.holy_region == r.id && rel.beliefs.iter().any(|b| b == key))
 }
@@ -147,6 +159,7 @@ pub fn advance_movement(w: &mut World, seat: SeatId, beliefs: Vec<String>, name:
             w.civs[si].founded_religion = true;
             let converts = mv.participants;
             convert(&mut w.regions[mv.region as usize], id, converts);
+            let converts = group(converts as i64);
             let m = w.civs[si].movement.as_mut().unwrap();
             m.stage = 4;
             m.religion = Some(id);
@@ -239,7 +252,8 @@ pub fn step(w: &mut World, seat: SeatId) {
             if !p.prereq.eval(&PracEnactedCtx { world: w, seat, recognized_only: false }) {
                 continue;
             }
-            let mut gain = isqrt(pop) * 7 + record / 3 + 40;
+            // the index counts thousands of people, so its pace does not depend on the unit of account
+            let mut gain = isqrt(pop / 1000) * 7 + record / 3 + 40;
             for &o in &peaceful {
                 if w.civs[o].practice[i].state >= 3 {
                     gain += if customs { 220 } else { 110 };
@@ -286,10 +300,10 @@ pub fn step(w: &mut World, seat: SeatId) {
     if w.civs[si].movement.is_none() {
         let big = w.regions.iter().filter(|r| r.owner == Some(seat)).max_by_key(|r| (r.population(), r.id));
         if let Some(r) = big {
-            let ready = r.population() >= 500 && month >= 60 && (w.civs[si].est_id("C004") || w.civs[si].est_id("C015") || r.population() >= 900);
+            let ready = r.population() >= MOVEMENT_RESIDENTS && month >= 60 && (w.civs[si].est_id("C004") || w.civs[si].est_id("C015") || r.population() >= MOVEMENT_RESIDENTS_ALONE);
             if ready && draw_range(w.secret, &[stream("movement"), seat as u64, month as u64], 100) < 2 {
                 let (rid, rname) = (r.id, r.name.clone());
-                w.civs[si].movement = Some(Movement { region: rid, stage: 0, participants: 30, devotion: 0, pantheon: None, religion: None, started: month });
+                w.civs[si].movement = Some(Movement { region: rid, stage: 0, participants: MOVEMENT_SEED, devotion: 0, pantheon: None, religion: None, started: month });
                 moment(w, seat, MomentCategory::Religion, format!("Gatherings at {rname}"),
                     format!("People at {rname} have begun to meet regularly for remembrance and shared rites. Nobody has founded a religion; the government may support the gatherings, leave them alone, or ignore them."),
                     Some(rid), "shrine", false, vec![format!("First recorded in month {month}")]);
@@ -304,15 +318,16 @@ pub fn step(w: &mut World, seat: SeatId) {
             let m = w.civs[si].movement.as_mut().unwrap();
             if m.stage < 4 {
                 let goal = rpop / 4;
-                m.participants = (m.participants as i64 + ((goal - m.participants as i64) / 40).max(1)).clamp(10, goal.max(10)) as u32;
-                m.devotion = (m.devotion + m.participants as i64 / 40 + 1).min(5000);
+                m.participants = (m.participants as i64 + ((goal - m.participants as i64) / 40).max(1000)).clamp(MOVEMENT_FLOOR, goal.max(MOVEMENT_FLOOR)) as u32;
+                // devotion grows with every forty thousand participants
+                m.devotion = (m.devotion + m.participants as i64 / 40_000 + 1).min(5000);
             }
             if m.stage == 1 && w.regions[ri].cap(Cap::Sacred) > 0 {
                 m.stage = 2;
             }
             if m.stage == 2 && m.devotion >= movement_requirements(2).0 {
                 let organizers = w.regions[ri].quals[Qual::Lorekeeper.index()] + w.regions[ri].quals[Qual::Scribe.index()] + w.regions[ri].quals[Qual::Teacher.index()];
-                if organizers >= 6 {
+                if organizers >= MOVEMENT_ORGANIZERS {
                     m.stage = 3;
                     let rname = w.regions[ri].name.clone();
                     brief(w, seat, "info", "A founder is recognized".into(), format!("The movement at {rname} now has a recognized founder and trained organizers. It can be formally founded while a founding opportunity remains."), Some(mv.region), "culture");
@@ -349,7 +364,7 @@ pub fn step_world(w: &mut World) {
         }
         for ri in 0..n {
             let pop = w.regions[ri].population() as i64;
-            if pop < 20 {
+            if pop < SPREAD_MIN_RESIDENTS {
                 continue;
             }
             let mut rate = 0;
@@ -383,7 +398,8 @@ pub fn step_world(w: &mut World) {
         let working = civ.labor.working_age.max(1) as i64;
         let food_share = civ.labor.food as i64 * 10_000 / working;
         let fac_share = civ.labor.facilities as i64 * 10_000 / working;
-        let learn_share = (civ.labor.students as i64 + civ.research_cap.iter().sum::<i64>() / 1000) * 10_000 / working;
+        // one researcher-month of capacity is one person in a research post
+        let learn_share = (civ.labor.students as i64 + civ.research_cap.iter().sum::<i64>()) * 10_000 / working;
         let soldier_share = civ.labor.soldiers as i64 * 10_000 / working;
         let met = civ.contacts.iter().filter(|c| c.met).count() as i64;
         let at_war = civ.contacts.iter().any(|c| c.at_war);
@@ -391,7 +407,7 @@ pub fn step_world(w: &mut World) {
         let exploring = civ.projects.iter().any(|p| matches!(p.kind, ProjKind::Survey { .. } | ProjKind::Settle { .. }));
         let regions = w.regions.iter().filter(|r| r.controller == Some(seat)).count() as i64;
         let pop = w.civ_population(seat).max(1) as i64;
-        let urban: i64 = w.regions.iter().filter(|r| r.controller == Some(seat) && r.population() >= 2000).map(|r| r.population() as i64).sum();
+        let urban: i64 = w.regions.iter().filter(|r| r.controller == Some(seat) && r.population() >= URBAN_RESIDENTS).map(|r| r.population() as i64).sum();
         let targets: [i64; 8] = [
             (4000 + 700 * met + 500 * treaties.min(4)).min(9000),
             (3500 + learn_share * 3).min(9000),

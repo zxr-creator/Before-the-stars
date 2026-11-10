@@ -51,6 +51,22 @@ pub fn course_visible(w: &World, seat: SeatId, course: usize) -> bool {
     ts.iter().all(|t| civ.tech[*t].state >= ST_DISCOVERED) && ps.iter().all(|p| civ.practice[*p].state >= 1)
 }
 
+/// A settling party, in people, and what the sending region must keep.
+pub const SETTLERS_MIN: u32 = 20_000;
+pub const SETTLERS_MAX: u32 = 400_000;
+const SETTLE_KEEP: u32 = 80_000;
+/// Rations a party carries for each settler, and tool lots for each thousand settlers.
+const SETTLER_RATIONS: i64 = 4;
+const SETTLER_TOOLS_PER_K: i64 = 50;
+/// What a region must keep when people are moved out of it by order.
+const RESETTLE_KEEP: u32 = 50_000;
+/// A formation, in soldiers, and the worker-months to muster a thousand recruits.
+pub const FORMATION_MIN: u32 = 1_000;
+pub const FORMATION_MAX: u32 = 5_000_000;
+const MUSTER_WORK_PER_K: i64 = 150;
+/// Places one programme may book.
+pub const PROGRAM_SEATS_MAX: u32 = 2_000_000;
+
 struct Fail {
     code: &'static str,
     reason: String,
@@ -440,17 +456,18 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.civs[si].memory[ti].owner.is_some() {
                         return fail("CONFLICTING_ACTIONS", "our records show that land is already held");
                     }
-                    if !(20..=400).contains(&people) {
-                        return fail("INVALID_SCHEMA", "a settling party is 20 to 400 people");
+                    if !(SETTLERS_MIN..=SETTLERS_MAX).contains(&people) {
+                        return fail("INVALID_SCHEMA", "a settling party is 20,000 to 400,000 people");
                     }
-                    if w.regions[fi].population() < people + 80 {
+                    if w.regions[fi].population() < people + SETTLE_KEEP {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "the sending region cannot spare that many people");
                     }
                     if w.civs[si].projects.iter().any(|p| matches!(p.kind, ProjKind::Settle { to: t, .. } if t == to)) {
                         return fail("CONFLICTING_ACTIONS", "a party is already preparing to settle there");
                     }
                     let work = scaled(18_000, pace);
-                    let inputs = vec![(Good::Food, people as i64 * 4000), (Good::Tools, people as i64 * 50), (Good::Materials, 10_000)];
+                    // four rations for every settler and fifty tool lots for every thousand
+                    let inputs = vec![(Good::Food, people as i64 * SETTLER_RATIONS), (Good::Tools, people as i64 * SETTLER_TOOLS_PER_K / 1000), (Good::Materials, 10_000)];
                     let id = new_project(w, seat, ProjKind::Settle { from, to, people }, Some(from), work, inputs, 3, priority);
                     Ok(("Settling party is being provisioned.".into(), Some(id)))
                 }
@@ -477,11 +494,11 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 ProjectSpec::Resettle { from, to, people } => {
                     let fi = own_region(w, seat, from)?;
                     let ti = own_region(w, seat, to)?;
-                    if fi == ti || people == 0 || w.regions[fi].population() < people + 50 {
+                    if fi == ti || people == 0 || (w.regions[fi].population() as u64) < people as u64 + RESETTLE_KEEP as u64 {
                         return fail("INVALID_SCHEMA", "the sending region cannot spare that many people");
                     }
                     let work = scaled(6000, pace);
-                    let id = new_project(w, seat, ProjKind::Resettle { from, to, people }, Some(from), work, vec![(Good::Food, people as i64 * 1000)], 2, priority);
+                    let id = new_project(w, seat, ProjKind::Resettle { from, to, people }, Some(from), work, vec![(Good::Food, people as i64 * crate::content::FOOD_PER_PERSON_MONTH)], 2, priority);
                     Ok(("Resettlement organized.".into(), Some(id)))
                 }
                 ProjectSpec::Recruit { region, role, soldiers, tier } => {
@@ -492,19 +509,20 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.regions[ri].owner != Some(seat) {
                         return fail("CONFLICTING_ACTIONS", "occupied populations cannot be recruited");
                     }
-                    if !(10..=5000).contains(&soldiers) {
-                        return fail("INVALID_SCHEMA", "a formation is 10 to 5,000 soldiers");
+                    if !(FORMATION_MIN..=FORMATION_MAX).contains(&soldiers) {
+                        return fail("INVALID_SCHEMA", "a formation is 1,000 to 5,000,000 soldiers");
                     }
                     let room = crate::sim::military::recruit_room(w, seat);
                     if soldiers > room {
-                        return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("at most {room} more people would currently serve"));
+                        return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("at most {} more people would currently serve", group(room as i64)));
                     }
                     if tier >= 1 && w.regions[ri].cap(Cap::Barracks) == 0 {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "this formation needs a barracks in the region");
                     }
                     let def = &c.unit_tiers[tier as usize];
-                    let inputs = def.equipment.iter().map(|(g, a)| (*g, a * soldiers as i64)).collect();
-                    let work = scaled(soldiers as i64 * 150, pace);
+                    // equipment is stated per thousand soldiers
+                    let inputs = def.equipment.iter().map(|(g, a)| (*g, a * soldiers as i64 / 1000)).collect();
+                    let work = scaled(soldiers as i64 * MUSTER_WORK_PER_K / 1000, pace);
                     let id = new_project(w, seat, ProjKind::Recruit { role, soldiers, tier }, Some(region), work, inputs, 2, priority);
                     Ok(("Recruitment and equipment ordered.".into(), Some(id)))
                 }
@@ -655,12 +673,12 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
             if !def.req.eval(&CivCtx { world: w, seat }) {
                 return fail("INSUFFICIENT_VISIBLE_BUDGET", "the content of this course is not yet available");
             }
-            if seats == 0 || seats > 2000 {
-                return fail("INVALID_SCHEMA", "choose between 1 and 2,000 places");
+            if seats == 0 || seats > PROGRAM_SEATS_MAX {
+                return fail("INVALID_SCHEMA", "choose between 1 and 2,000,000 places");
             }
             let (cap, reserved) = crate::sim::projects::venue_seats(w, seat, ri, def.venue);
             if reserved + seats as i64 > cap {
-                return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("the venue in {} has {} free places", w.regions[ri].name, (cap - reserved).max(0)));
+                return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("the venue in {} has {} free places", w.regions[ri].name, group((cap - reserved).max(0))));
             }
             if w.civs[si].programs.len() >= 200 {
                 return fail("RATE_LIMITED", "too many programmes");
@@ -677,7 +695,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     (p.course, p.region as usize, p.seats)
                 };
                 let (cap, reserved) = crate::sim::projects::venue_seats(w, seat, region, c.courses[course].venue);
-                if s == 0 || reserved - old as i64 + s as i64 > cap {
+                if s == 0 || s > PROGRAM_SEATS_MAX || reserved - old as i64 + s as i64 > cap {
                     return fail("INSUFFICIENT_VISIBLE_BUDGET", "the venue does not have that many places");
                 }
                 w.civs[si].programs[pos].seats = s;

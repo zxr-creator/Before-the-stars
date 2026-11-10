@@ -8,6 +8,11 @@ use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
 
+/// Learners a founding cohort can hold when nobody qualified can teach it.
+pub const FOUNDING_COHORT_MAX: i64 = 4_000;
+/// Teaching places a precinct of the Teaching Order hosts.
+const TEACHING_ORDER_PLACES: i64 = 16_000;
+
 pub fn uses_labor(kind: &ProjKind) -> bool {
     !matches!(kind, ProjKind::Research { .. } | ProjKind::LeadStudy { .. } | ProjKind::Study { .. })
 }
@@ -47,10 +52,10 @@ pub fn project_title(w: &World, kind: &ProjKind, region: Option<RegionId>) -> St
         ProjKind::Research { tech } => format!("Investigate: {}", c.techs[*tech].name),
         ProjKind::LeadStudy { .. } => "Follow up a lead".to_string(),
         ProjKind::Survey { region } => format!("Survey {}", rn(*region)),
-        ProjKind::Settle { to, people, .. } => format!("Settle {} with {} people", rn(*to), people),
+        ProjKind::Settle { to, people, .. } => format!("Settle {} with {} people", rn(*to), group(*people as i64)),
         ProjKind::Study { tag } => format!("Exploratory study: {}", Tag::ALL[*tag].name()),
-        ProjKind::Resettle { from, to, people } => format!("Move {} people from {} to {}", people, rn(*from), rn(*to)),
-        ProjKind::Recruit { role, soldiers, tier } => format!("Raise {} {} ({})", soldiers, c.unit_tiers[*tier as usize].roles[role.index()], region.map(rn).unwrap_or_default()),
+        ProjKind::Resettle { from, to, people } => format!("Move {} people from {} to {}", group(*people as i64), rn(*from), rn(*to)),
+        ProjKind::Recruit { role, soldiers, tier } => format!("Raise {} {} ({})", group(*soldiers as i64), c.unit_tiers[*tier as usize].roles[role.index()], region.map(rn).unwrap_or_default()),
         ProjKind::Reform { practice } => format!("Reform: {}", c.practices[*practice].name),
         ProjKind::Religion { .. } => "Advance the local movement".to_string(),
         ProjKind::FtlTrial => "Loaded jump round trip".to_string(),
@@ -337,13 +342,13 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                     seat,
                     MomentCategory::Settlement,
                     format!("Settlement at {name}"),
-                    format!("{moved} people from {} established a lasting camp at {name}. The polity now holds {count} regions.", w.regions[fi].name),
+                    format!("{} people from {} established a lasting camp at {name}. The polity now holds {count} regions.", group(moved as i64), w.regions[fi].name),
                     Some(to),
                     "camp",
                     count == 2,
-                    vec![format!("Arrival recorded in month {month}"), format!("{moved} settlers")],
+                    vec![format!("Arrival recorded in month {month}"), format!("{} settlers", group(moved as i64))],
                 );
-                brief(w, seat, "good", format!("Settled {name}"), format!("{moved} people arrived with their stores."), Some(to), "map");
+                brief(w, seat, "good", format!("Settled {name}"), format!("{} people arrived with their stores.", group(moved as i64)), Some(to), "map");
             }
         }
         ProjKind::Study { tag } => {
@@ -358,7 +363,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
         }
         ProjKind::Resettle { from, to, people } => {
             let moved = crate::sim::population::move_people(&mut w.regions, from as usize, to as usize, people, false);
-            brief(w, seat, "info", format!("{moved} people resettled"), format!("They arrived in {}.", w.regions[to as usize].name), Some(to), "population");
+            brief(w, seat, "info", format!("{} people resettled", group(moved as i64)), format!("They arrived in {}.", w.regions[to as usize].name), Some(to), "population");
         }
         ProjKind::Recruit { role, soldiers, tier } => {
             let ri = p.region.unwrap() as usize;
@@ -390,7 +395,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                 move_progress: 0,
                 initial: got,
             });
-            brief(w, seat, "info", format!("Raised: {name}"), format!("{got} recruits begin {} months of training.", def.training_months), p.region, "military");
+            brief(w, seat, "info", format!("Raised: {name}"), format!("{} recruits begin {} months of training.", group(got as i64), def.training_months), p.region, "military");
         }
         ProjKind::Reform { practice } => {
             {
@@ -421,12 +426,12 @@ fn ordinal(n: u32) -> String {
     format!("{n}{suffix}")
 }
 
-/// Seats a venue offers in a region and the seats already reserved by programmes.
+/// Places a venue offers in a region and the places already reserved by programmes, in people.
 pub fn venue_seats(w: &World, seat: SeatId, region: usize, venue: Cap) -> (i64, i64) {
     let c = content();
-    let mut cap = w.regions[region].cap(venue) / 1000;
+    let mut cap = w.regions[region].cap(venue);
     if venue == Cap::SeatsLodge && crate::sim::culture::region_belief(&w.religions, &w.regions[region], "teaching_order") {
-        cap += 16;
+        cap += TEACHING_ORDER_PLACES;
     }
     let reserved: i64 = w.civs[seat as usize]
         .programs
@@ -493,7 +498,7 @@ fn step_programs(w: &mut World, seat: SeatId) {
                 }
             }
             let bootstrap = teacher_avail == 0;
-            let teach_limit = if bootstrap { 4 } else { teacher_avail * class_size };
+            let teach_limit = if bootstrap { FOUNDING_COHORT_MAX } else { teacher_avail * class_size };
             // entrants
             let qsum: u32 = r.quals.iter().sum();
             let unskilled = (working as i64 * 92 / 100 - qsum as i64 - r.students as i64).max(0);
@@ -544,9 +549,9 @@ fn step_programs(w: &mut World, seat: SeatId) {
                 }
             }
             let p = &mut w.civs[si].programs[i];
-            p.enrolled = enrol as u16;
+            p.enrolled = enrol as u32;
             p.entrant = entrant;
-            p.teachers = teachers_needed as u16;
+            p.teachers = teachers_needed as u32;
             p.teacher_qual = if bootstrap { None } else { teacher_qual };
             p.progress = 0;
             p.duration = duration as u16;
@@ -555,7 +560,8 @@ fn step_programs(w: &mut World, seat: SeatId) {
             // --- a month of teaching ------------------------------------------------
             let mut ok = true;
             for (g, a) in &course.materials {
-                let need = a * enrolled as i64;
+                // course materials are stated per thousand learners
+                let need = a * enrolled as i64 / 1000;
                 let got = w.civs[si].take(*g, need);
                 if got * 2 < need {
                     ok = false;
@@ -575,9 +581,9 @@ fn step_programs(w: &mut World, seat: SeatId) {
             }
             p.blockers = blockers;
             if p.progress >= p.duration {
-                let grads = p.enrolled as u32;
+                let grads = p.enrolled;
                 let tq = p.teacher_qual;
-                let tn = p.teachers as u32;
+                let tn = p.teachers;
                 p.graduates += grads;
                 let first = p.graduates == grads;
                 p.enrolled = 0;
@@ -605,14 +611,14 @@ fn step_programs(w: &mut World, seat: SeatId) {
                         seat,
                         MomentCategory::Education,
                         format!("First graduates: {}", course.name),
-                        format!("{grads} learners at {rname} completed {} and qualified as {}. Their skills are usable from next month.", course.name.to_lowercase(), course.output.label().to_lowercase()),
+                        format!("{} learners at {rname} completed {} and qualified as {}. Their skills are usable from next month.", group(grads as i64), course.name.to_lowercase(), course.output.label().to_lowercase()),
                         Some(ri as RegionId),
                         "school",
                         course.months >= 36,
-                        vec![format!("Cohort verified in month {month}"), format!("{grads} graduates")],
+                        vec![format!("Cohort verified in month {month}"), format!("{} graduates", group(grads as i64))],
                     );
                 }
-                brief(w, seat, "good", format!("{grads} new {}", course.output.label().to_lowercase()), format!("A cohort of {} graduated at {rname}.", course.name.to_lowercase()), Some(ri as RegionId), "population");
+                brief(w, seat, "good", format!("{} new {}", group(grads as i64), course.output.label().to_lowercase()), format!("A cohort of {} graduated at {rname}.", course.name.to_lowercase()), Some(ri as RegionId), "population");
             }
         }
     }
@@ -625,16 +631,16 @@ fn step_programs(w: &mut World, seat: SeatId) {
 /// Return learners and instructors of a cancelled programme to their previous roles.
 pub fn release_program(w: &mut World, p: &Program) {
     let r = &mut w.regions[p.region as usize];
-    r.students = r.students.saturating_sub(p.enrolled as u32);
+    r.students = r.students.saturating_sub(p.enrolled);
     if let Some(q) = p.entrant {
-        r.quals[q.index()] += p.enrolled as u32;
+        r.quals[q.index()] += p.enrolled;
     }
     if let Some(q) = p.teacher_qual {
-        r.teachers[q.index()] = r.teachers[q.index()].saturating_sub(p.teachers as u32);
+        r.teachers[q.index()] = r.teachers[q.index()].saturating_sub(p.teachers);
     }
 }
 
-/// Monthly cap on useful work for a project of the given size.
+/// Monthly cap on useful work (worker- or researcher-months) for a project of the given size.
 pub fn max_per_month(work: i64, min_months: i64) -> i64 {
     (work / min_months.max(1)).max(4000)
 }

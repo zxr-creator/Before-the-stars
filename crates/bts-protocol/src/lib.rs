@@ -8,7 +8,10 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: &str = "bts-protocol/1.1";
+/// 1.2: head counts are real people (`JobSpec.count`, programme places and
+/// `start_program`/`manage_program` seats widen to `u32`), quantities are base units,
+/// and `Observation.units` states the unit system.
+pub const PROTOCOL_VERSION: &str = "bts-protocol/1.2";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -35,7 +38,10 @@ macro_rules! public_enum {
 }
 
 public_enum!(
-    /// Storable goods. Quantities are integer milli-units on the wire (1000 = one unit).
+    /// Storable goods. Quantities on the wire are integer base units: one ration for
+    /// food (one person's food for one month, 50 kg grain-equivalent), one tonne for
+    /// bulk goods and one standard lot for manufactures. 1,000 base units make one
+    /// display unit (see [`UnitsView`] for the unit and mass of each good).
     Good {
     Food => "Food",
     Materials => "Timber, stone and clay",
@@ -258,6 +264,58 @@ pub struct Observation {
     pub briefing: Vec<BriefingItem>,
     pub chronicle: Vec<ChronicleEntry>,
     pub receipts: Vec<Receipt>,
+    /// What one integer step of each quantity means under the running ruleset, so a
+    /// client need not hard-code scale. Absent in observations older than protocol 1.2.
+    #[serde(default)]
+    pub units: UnitsView,
+}
+
+/// Unit and mass of one base unit of a good.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GoodUnit {
+    pub good: Good,
+    /// "t" (tonne), "ration" or "lot".
+    pub unit: String,
+    /// Mass of one base unit in kilograms, i.e. thousandths of a tonne:
+    /// 1000 for bulk goods, 50 for a ration, the lot mass for manufactures.
+    pub tonnes_per_unit_milli: i64,
+}
+
+/// The unit system of the running ruleset. Head counts everywhere in the protocol
+/// are real people; nothing is multiplied on the way out of the engine.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UnitsView {
+    /// Food base units (rations) one resident or soldier eats in a month.
+    pub food_per_person_month: i64,
+    /// Base units per display unit for goods, work, research and services (1000).
+    pub display_divisor: i64,
+    pub goods: Vec<GoodUnit>,
+    /// What one base unit of project work is ("worker-month").
+    pub work_unit: String,
+    /// What one base unit of research work is ("researcher-month").
+    pub research_unit: String,
+    /// What one base unit of shaft or electric service is ("0.1 MWh delivered in the month").
+    pub service_unit: String,
+    /// Lower bound, in residents, of each settlement class in ascending order.
+    pub settlement_bounds: Vec<(SettlementKind, u32)>,
+    /// Bounds on orders that name a number of people.
+    #[serde(default)]
+    pub limits: PeopleLimits,
+}
+
+/// Bounds, in people, on the orders that name a head count.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct PeopleLimits {
+    /// A settling party (`settle`).
+    pub settlers_min: u32,
+    pub settlers_max: u32,
+    /// A formation (`recruit`).
+    pub soldiers_min: u32,
+    pub soldiers_max: u32,
+    /// Places one programme may book (`start_program`, `manage_program`).
+    pub program_seats_max: u32,
+    /// Learners a founding cohort can hold while nobody qualified can teach it.
+    pub founding_cohort_max: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -280,6 +338,7 @@ pub struct MatchOutcome {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GoodLine {
     pub good: Good,
+    /// All quantities are base units of the good (rations, tonnes or lots).
     pub stock: i64,
     /// Totals over the last resolved round.
     pub produced: i64,
@@ -311,6 +370,7 @@ pub struct LaborSummary {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ResearchLine {
     pub class: ResearchClass,
+    /// Researcher-months available per month: one per staffed research post.
     pub capacity: i64,
     pub used: i64,
 }
@@ -381,6 +441,7 @@ pub struct NeighborLink {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DepositView {
     pub kind: Deposit,
+    /// Tonnes left in the ground.
     pub remaining: i64,
     pub quality_bp: u16,
     pub epistemic: Epistemic,
@@ -390,9 +451,11 @@ pub struct DepositView {
 pub struct SurveyView {
     pub arable: u16,
     pub pasture: u16,
+    /// Wild food the land yields per month at most, in thousands of rations.
     pub wild_food: u32,
     pub fishery: u16,
     pub forest: u16,
+    /// Residents the natural water supply supports.
     pub water: u32,
     pub hydro: u16,
     pub deposits: Vec<DepositView>,
@@ -437,6 +500,9 @@ pub struct BlockView {
     pub count: u32,
 }
 
+/// Services delivered and demanded last month. Shaft and electric figures are base
+/// units of 0.1 MWh delivered in the month (1,000 = 100 MWh); compute is an index
+/// (1,000 = one standard machine-hall-month). None of them can be stored.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PowerView {
     pub shaft_supply: i64,
@@ -451,12 +517,14 @@ pub struct PowerView {
 pub struct VenueSeats {
     /// Facility kind that provides the places ("lodge", "school", "college", "tech_institute").
     pub venue: String,
+    /// Places offered and places booked, in people.
     pub capacity: u32,
     pub reserved: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BuildSiteView {
+    /// Worker-months per level, including the first-of-kind surcharge where it applies.
     pub work_per_level: i64,
     pub min_months: u16,
     pub kind: String,
@@ -478,6 +546,7 @@ pub struct OwnRegion {
     pub facilities: Vec<FacilityView>,
     pub food_fulfillment_bp: u16,
     pub water_fulfillment_bp: u16,
+    /// Residents the natural supply and waterworks together support.
     pub water_capacity: u32,
     pub health_pressure_bp: u16,
     pub unrest_bp: u16,
@@ -565,6 +634,7 @@ pub struct TechCard {
     /// True when the investigators know further knowledge is missing but cannot name it yet.
     pub unknown_requirements: bool,
     pub class: ResearchClass,
+    /// Researcher-months.
     pub work_needed: i64,
     pub work_done: i64,
     pub source: String,
@@ -679,13 +749,15 @@ pub struct CultureView {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GoodQty {
     pub good: Good,
+    /// Base units of the good (rations, tonnes or lots).
     pub amount: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JobSpec {
     pub qual: Option<Qual>,
-    pub count: u16,
+    /// People per facility level.
+    pub count: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -694,17 +766,20 @@ pub struct RecipeView {
     pub name: String,
     pub inputs: Vec<GoodQty>,
     pub outputs: Vec<GoodQty>,
+    /// Services drawn per level per month at full rate: base units of 0.1 MWh for
+    /// shaft and electricity, an index for compute. Inputs and outputs are base
+    /// units of goods per level per month.
     pub shaft: i64,
     pub elec: i64,
     pub compute: i64,
-    /// Services delivered per level per month at full rate (milli).
+    /// Services delivered per level per month at full rate, in the same units.
     #[serde(default)]
     pub out_shaft: i64,
     #[serde(default)]
     pub out_elec: i64,
     #[serde(default)]
     pub out_compute: i64,
-    /// Research work delivered per level per month at full staffing (milli), if any.
+    /// Research work delivered per level per month at full staffing (researcher-months), if any.
     #[serde(default)]
     pub research: Option<(ResearchClass, i64)>,
     pub note: String,
@@ -717,8 +792,11 @@ pub struct FacilityType {
     pub name: String,
     pub category: String,
     pub description: String,
+    /// Goods per level, base units.
     pub cost: Vec<GoodQty>,
+    /// Worker-months per level before any first-of-kind surcharge.
     pub work: i64,
+    /// Posts per level, in people.
     pub jobs: Vec<JobSpec>,
     pub recipes: Vec<RecipeView>,
     pub provides: Vec<String>,
@@ -730,6 +808,7 @@ pub struct FacilityType {
     /// Highest level any region can hold regardless of site.
     #[serde(default)]
     pub max_level: u16,
+    /// Goods per level per month, base units.
     pub upkeep: Vec<GoodQty>,
     pub requirements: Vec<KnownRequirement>,
     pub available: bool,
@@ -742,12 +821,14 @@ pub struct CourseType {
     pub name: String,
     pub description: String,
     pub months: u16,
+    /// Learners per instructor.
     pub class_size: u16,
     pub entrants: Vec<Option<Qual>>,
     pub teachers: Vec<Qual>,
     pub output: Qual,
     pub venue: String,
     pub venue_name: String,
+    /// Goods used each month per thousand enrolled learners, base units.
     pub materials: Vec<GoodQty>,
     pub requirements: Vec<KnownRequirement>,
     pub available: bool,
@@ -758,7 +839,9 @@ pub struct UnitTier {
     pub tier: u8,
     pub name: String,
     pub role_names: Vec<(Role, String)>,
+    /// Goods to equip a thousand soldiers, base units.
     pub equipment: Vec<GoodQty>,
+    /// Goods a thousand soldiers use each month, base units (food is one ration each).
     pub upkeep: Vec<GoodQty>,
     pub training_months: u16,
     pub requirements: Vec<KnownRequirement>,
@@ -781,6 +864,8 @@ pub struct ProjectView {
     pub title: String,
     pub region: Option<RegionId>,
     pub target: Option<String>,
+    /// Work is in worker-months for labour projects and researcher-months for
+    /// research, leads and studies; inputs are base units of goods.
     pub work_needed: i64,
     pub work_done: i64,
     pub inputs_needed: Vec<GoodQty>,
@@ -800,9 +885,10 @@ pub struct ProgramView {
     pub course: String,
     pub course_name: String,
     pub region: RegionId,
-    pub seats: u16,
-    pub enrolled: u16,
-    pub teachers: u16,
+    /// Places booked, learners enrolled and instructors occupied, in people.
+    pub seats: u32,
+    pub enrolled: u32,
+    pub teachers: u32,
     pub progress_months: u16,
     pub months: u16,
     pub graduates_total: u32,
@@ -840,7 +926,7 @@ pub struct ForeignArmyView {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Clause {
-    /// Deliver goods. `months` = 1 for a single delivery.
+    /// Deliver goods. `months` = 1 for a single delivery. `amount_per_month` is base units.
     Goods { from: SeatId, good: Good, amount_per_month: i64, months: u16 },
     /// Hand over records and demonstrations of an understood technology.
     Knowledge { from: SeatId, tech: String },
@@ -1012,6 +1098,7 @@ pub struct SpectatorCiv {
     pub highest_tier: u8,
     pub soldiers: u32,
     pub stability: u8,
+    /// Months of food in store at the present population, in thousandths of a month.
     pub food_months_milli: i64,
     pub sci_method: Option<Month>,
     pub planetary: Option<Month>,
@@ -1085,13 +1172,14 @@ pub enum ProjectSpec {
     Research { tech: String },
     /// Send a supplied survey party into a region adjacent to known land.
     Survey { region: RegionId },
-    /// Found a camp in a neighbouring unclaimed region with real settlers and stores.
+    /// Found a camp in a neighbouring unclaimed region with real settlers and stores
+    /// (20,000 to 400,000 people).
     Settle { from: RegionId, to: RegionId, people: u32 },
     /// Bounded exploratory study of a known domain; yields evidence, not a chosen node.
     Study { domain: String },
     /// Move people between two governed regions.
     Resettle { from: RegionId, to: RegionId, people: u32 },
-    /// Raise and train a formation.
+    /// Raise and train a formation of 1,000 to 5,000,000 soldiers.
     Recruit { region: RegionId, role: Role, soldiers: u32, tier: u8 },
     /// Advance the local religious movement to its next stage.
     Religion { beliefs: Vec<String>, name: Option<String> },
@@ -1153,8 +1241,9 @@ pub enum Action {
     ManageProject { project: u32, op: ManageOp, priority: Option<u8> },
     Investigate { lead: String },
     ProposeReform { practice: String },
-    StartProgram { region: RegionId, course: String, seats: u16 },
-    ManageProgram { program: u32, op: ManageOp, seats: Option<u16> },
+    /// `seats` are places for learners, in people (1 to 2,000,000).
+    StartProgram { region: RegionId, course: String, seats: u32 },
+    ManageProgram { program: u32, op: ManageOp, seats: Option<u32> },
     Demolish { region: RegionId, facility: String, levels: u16 },
     MilitaryOrder { army: u32, order: ArmyOrder },
     /// Formally withdraw from the match. Irreversible; the seat scores -1.

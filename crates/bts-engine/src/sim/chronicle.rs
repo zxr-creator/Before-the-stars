@@ -100,13 +100,13 @@ pub fn monthly(w: &mut World) {
                 Some(capital), "famine", true, vec![format!("Food access below 80% since month {}", month - 4)]);
             brief(w, seat, "danger", "Hunger is spreading".into(), "Food access has been below 80% for four months. Free labour for food, open new land or reduce other commitments.".into(), Some(capital), "economy");
         }
-        for (threshold, label) in [(1_000u32, "a thousand"), (5_000, "five thousand"), (20_000, "twenty thousand"), (100_000, "a hundred thousand")] {
+        for (threshold, label) in [(1_000_000u32, "a million"), (5_000_000, "five million"), (20_000_000, "twenty million"), (100_000_000, "a hundred million")] {
             let flag = format!("pop{threshold}");
             if pop >= threshold && !w.civs[s].milestones.flags.contains(&flag) {
                 w.civs[s].milestones.flags.push(flag);
                 moment(w, seat, MomentCategory::Settlement, format!("{name} numbers {label}"),
                     format!("Counts across every governed region now exceed {label} people. More hands, and more mouths, housing and care to answer for."),
-                    Some(capital), "town", threshold >= 5_000, vec![format!("Counted population {pop} in month {month}")]);
+                    Some(capital), "town", threshold >= 5_000_000, vec![format!("Counted population {} in month {month}", crate::util::group(pop as i64))]);
             }
         }
     }

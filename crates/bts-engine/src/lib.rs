@@ -183,7 +183,23 @@ impl Match {
         serde_json::to_string(&self.world).expect("world serializes")
     }
 
+    /// Restore a saved match. A save written by another ruleset is refused: people,
+    /// posts and goods are counted in different units and cannot be migrated exactly.
     pub fn load_json(s: &str) -> Result<Match, String> {
+        // read the recorded versions first, so an old save is refused by name even
+        // when its layout no longer deserializes
+        #[derive(serde::Deserialize)]
+        struct Versions {
+            #[serde(default)]
+            versions: Vec<String>,
+        }
+        let head: Versions = serde_json::from_str(s).map_err(|e| e.to_string())?;
+        let running = content::RULESET_VERSION;
+        match head.versions.first() {
+            Some(v) if v == running => {}
+            Some(v) => return Err(format!("this save was written by ruleset {v}; this build runs {running} and cannot load it: people, posts and goods are counted in different units")),
+            None => return Err(format!("this save does not record the ruleset that wrote it; this build runs {running} and cannot load it")),
+        }
         let world: World = serde_json::from_str(s).map_err(|e| e.to_string())?;
         Ok(Match { world })
     }

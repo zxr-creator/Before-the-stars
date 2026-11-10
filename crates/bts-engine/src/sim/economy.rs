@@ -5,12 +5,17 @@
 //! the order of the government's category weights. Inputs are read from stock at
 //! the start of the month and outputs become available next month, so a recipe
 //! can never consume something produced later in the same month.
+//!
+//! Head counts are real people. Yields and other per-person coefficients are
+//! stored per thousand people and applied as `people * coefficient / 1000`.
 
-use crate::content::{content, Cap, FacDef, Recipe, Tag};
+use crate::content::{content, Cap, FacDef, Recipe, Tag, FOOD_PER_PERSON_MONTH};
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
 
+/// Food methods a civilization can use. Yields are rations per thousand workers
+/// per month; the chemical and fuel draws are tonnes per thousand field workers.
 pub struct FoodTech {
     pub forage: i64,
     pub field: i64,
@@ -97,6 +102,14 @@ pub fn mobilization_cap(w: &World, seat: SeatId) -> u16 {
     cap.min(6500) as u16
 }
 
+/// Residents of natural water above which a region without a river can still
+/// carry two levels of river-site works.
+pub const AMPLE_WATER: u32 = 2_500_000;
+/// Idle adults in a region above which they start drifting to regions that hire.
+const JOBLESS_DRIFT_MIN: u32 = 40_000;
+/// Tonnes of building material a thousand idle adults make at home in a month.
+const HOUSEHOLD_CRAFT_PER_K: i64 = 300;
+
 pub fn transport_level(r: &Region) -> u8 {
     (r.cap(Cap::Transport) / 1000).clamp(0, 3) as u8
 }
@@ -144,7 +157,9 @@ pub fn link_efficiencies(w: &World, seat: SeatId) -> Vec<i64> {
 }
 
 struct FoodOpt {
-    yield_milli: i64,
+    /// Rations per thousand workers per month.
+    yield_k: i64,
+    /// Workers the land or works can occupy.
     capacity: u32,
     used: u32,
     tag: Tag,
@@ -168,14 +183,14 @@ impl RegionPlan {
                 break;
             }
             let free = (o.capacity - o.used).min(self.max_food_workers - self.food_workers);
-            if free == 0 || o.yield_milli <= 0 {
+            if free == 0 || o.yield_k <= 0 {
                 continue;
             }
-            let need = ((want + o.yield_milli - 1) / o.yield_milli) as u32;
+            let need = ((want * 1000 + o.yield_k - 1) / o.yield_k).min(u32::MAX as i64) as u32;
             let take = need.min(free);
             o.used += take;
             self.food_workers += take;
-            let m = take as i64 * o.yield_milli;
+            let m = take as i64 * o.yield_k / 1000;
             made += m;
             want -= m;
         }
@@ -186,7 +201,7 @@ impl RegionPlan {
         if self.food_workers >= self.max_food_workers {
             return 0;
         }
-        self.opts.iter().filter(|o| o.used < o.capacity).map(|o| o.yield_milli).max().unwrap_or(0)
+        self.opts.iter().filter(|o| o.used < o.capacity).map(|o| o.yield_k).max().unwrap_or(0)
     }
 }
 
@@ -206,9 +221,9 @@ pub fn scale_saving_bp(def: &FacDef, f: &Facility) -> u16 {
 }
 
 fn general_posts(def: &FacDef, f: &Facility) -> u32 {
-    let base = def.general as u32 * f.level as u32;
+    let base = def.general as u64 * f.level as u64;
     // Round requirements up: many tiny buildings cannot exploit fractional posts.
-    (base * (10_000 - scale_saving_bp(def, f) as u32) + 9999) / 10_000
+    ((base * (10_000 - scale_saving_bp(def, f) as u64) + 9999) / 10_000) as u32
 }
 
 /// Effective level cap of a facility in a region for a civilization.
@@ -222,7 +237,7 @@ pub fn level_cap(w: &World, seat: SeatId, region: usize, def: &FacDef) -> u16 {
         Site::Fishery => r.fishery,
         Site::Forest => r.forest,
         Site::River => {
-            if r.river { def.max_level } else if r.water >= 2500 { 2 } else { 0 }
+            if r.river { def.max_level } else if r.water >= AMPLE_WATER { 2 } else { 0 }
         }
         Site::Coast => {
             if r.coastal { def.max_level } else { 0 }
@@ -279,6 +294,8 @@ pub fn step(w: &mut World, seat: SeatId) {
     let pasture_k = c.f("pasture");
     let fields_k = c.f("fields");
     let fishery_k = c.f("fishery");
+    // cultivators, herders and fishers one level occupies
+    let (field_crew, pasture_crew, fishery_crew) = (c.facilities[fields_k].general, c.facilities[pasture_k].general, c.facilities[fishery_k].general);
     let has_pasture = regs.iter().any(|i| w.regions[*i].fac(pasture_k).map(|f| f.level > 0).unwrap_or(false));
     let ft = food_tech(&w.civs[si], has_pasture);
     let link = link_efficiencies(w, seat);
@@ -289,11 +306,11 @@ pub fn step(w: &mut World, seat: SeatId) {
     // ---- 1. food plan ------------------------------------------------------
     let soldiers: u32 = w.armies.iter().filter(|a| a.owner == seat).map(|a| a.count()).sum();
     let mut plans: Vec<RegionPlan> = Vec::new();
-    let mut need_total: i64 = soldiers as i64 * 1000;
+    let mut need_total: i64 = soldiers as i64 * FOOD_PER_PERSON_MONTH;
     for &ri in &regs {
         let r = &w.regions[ri];
         let pop = r.population();
-        need_total += pop as i64 * 1000;
+        need_total += pop as i64 * FOOD_PER_PERSON_MONTH;
         let working = r.working();
         let busy = r.students + r.teachers.iter().sum::<u32>();
         let workers = (working as i64 * 92 / 100 - busy as i64).max(0) as u32;
@@ -302,34 +319,36 @@ pub fn step(w: &mut World, seat: SeatId) {
         let adj = |y: i64| y * unrest_factor / 10_000;
         if let Some(f) = r.fac(fields_k) {
             if f.enabled && f.level > 0 {
+                // full husbandry needs five hundred agronomists for each level of fields
                 let agr = r.quals[Qual::Agronomist.index()] as i64;
-                let skill = 8500 + 1500 * (agr * 2).min(f.level as i64) / (f.level as i64).max(1);
+                let skill = 8500 + 1500 * (agr * 2).min(f.level as i64 * 1000) / (f.level as i64 * 1000).max(1);
                 let tool = if tools_ok { 10_000 } else { 7000 };
                 let y = ft.field * skill / 10_000 * tool / 10_000 * f.condition_bp.max(5000) as i64 / 10_000;
                 let irrigated = ((r.cap(Cap::Irrigation) / 1000) as u16).min(f.level);
                 if irrigated > 0 {
-                    opts.push(FoodOpt { yield_milli: adj(y * 125 / 100), capacity: irrigated as u32 * 10, used: 0, tag: Tag::Farm, inputs: true });
+                    opts.push(FoodOpt { yield_k: adj(y * 125 / 100), capacity: irrigated as u32 * field_crew, used: 0, tag: Tag::Farm, inputs: true });
                 }
                 if f.level > irrigated {
-                    opts.push(FoodOpt { yield_milli: adj(y), capacity: (f.level - irrigated) as u32 * 10, used: 0, tag: Tag::Farm, inputs: true });
+                    opts.push(FoodOpt { yield_k: adj(y), capacity: (f.level - irrigated) as u32 * field_crew, used: 0, tag: Tag::Farm, inputs: true });
                 }
             }
         }
         if let Some(f) = r.fac(pasture_k) {
             if f.enabled && f.level > 0 {
-                opts.push(FoodOpt { yield_milli: adj(ft.pasture), capacity: f.level as u32 * 5, used: 0, tag: Tag::Farm, inputs: false });
+                opts.push(FoodOpt { yield_k: adj(ft.pasture), capacity: f.level as u32 * pasture_crew, used: 0, tag: Tag::Farm, inputs: false });
             }
         }
         if let Some(f) = r.fac(fishery_k) {
             if f.enabled && f.level > 0 {
                 let port = r.cap(Cap::Port) > 0;
                 let y = if port { ft.fish_port } else { ft.fish };
-                opts.push(FoodOpt { yield_milli: adj(y), capacity: f.level as u32 * 8, used: 0, tag: Tag::Sea, inputs: false });
+                opts.push(FoodOpt { yield_k: adj(y), capacity: f.level as u32 * fishery_crew, used: 0, tag: Tag::Sea, inputs: false });
             }
         }
-        opts.push(FoodOpt { yield_milli: adj(ft.forage), capacity: (r.wild / ft.forage) as u32, used: 0, tag: Tag::Forage, inputs: false });
-        opts.sort_by(|a, b| b.yield_milli.cmp(&a.yield_milli));
-        plans.push(RegionPlan { idx: ri, workers, opts, food_workers: 0, food_made: 0, max_food_workers: workers * 94 / 100 });
+        // the land feeds foragers only up to what grows wild
+        opts.push(FoodOpt { yield_k: adj(ft.forage), capacity: (r.wild * 1000 / ft.forage).min(u32::MAX as i64) as u32, used: 0, tag: Tag::Forage, inputs: false });
+        opts.sort_by(|a, b| b.yield_k.cmp(&a.yield_k));
+        plans.push(RegionPlan { idx: ri, workers, opts, food_workers: 0, food_made: 0, max_food_workers: (workers as u64 * 94 / 100) as u32 });
     }
     let food_stock = w.civs[si].stock_of(Good::Food);
     let reserve = need_total * w.civs[si].food_reserve_months as i64;
@@ -345,8 +364,8 @@ pub fn step(w: &mut World, seat: SeatId) {
     };
     let mut made_total = 0;
     for p in plans.iter_mut() {
-        let pop = w.regions[p.idx].population() as i64 * 1000;
-        made_total += p.add_food(pop * factor / 100);
+        let need = w.regions[p.idx].population() as i64 * FOOD_PER_PERSON_MONTH;
+        made_total += p.add_food(need * factor / 100);
     }
     let mut short = need_total * factor / 100 - made_total;
     while short > 0 {
@@ -361,6 +380,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
         match best {
             Some(i) => {
+                // at most twenty thousand workers' worth at a time, so regions share the shortfall
                 let chunk = short.min(by * 20);
                 let made = plans[i].add_food(chunk);
                 if made <= 0 {
@@ -449,23 +469,20 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
         let mut unskilled = nonfood - qsum;
 
-        // project labour: builders count double
+        // project labour: a called-up worker supplies one worker-month; builders count double
         let cap_workers = (nonfood as i64 * mob / 10_000) as u32;
-        let mut proj_workers = 0u32;
-        let mut proj_work: i64 = 0;
         let bi = Qual::Builder.index();
-        while proj_work < demand && proj_workers < cap_workers && avail[bi] > 0 {
-            avail[bi] -= 1;
-            proj_workers += 1;
-            proj_work += 2000;
-            month.qual_employed[bi] += 1;
-        }
+        let builders = (avail[bi] as i64).min(cap_workers as i64).min((demand.max(0) + 1) / 2) as u32;
+        avail[bi] -= builders;
+        month.qual_employed[bi] += builders;
+        let mut proj_workers = builders;
+        let mut proj_work: i64 = builders as i64 * 2;
         if proj_work < demand && proj_workers < cap_workers {
-            let want = (((demand - proj_work) + 999) / 1000) as u32;
+            let want = (demand - proj_work).min(u32::MAX as i64) as u32;
             let take = want.min(cap_workers - proj_workers).min(unskilled);
             unskilled -= take;
             proj_workers += take;
-            proj_work += take as i64 * 1000;
+            proj_work += take as i64;
         }
         month.labor.projects = proj_workers;
         month.project_labor_free = proj_work * unrest_factor / 10_000;
@@ -489,7 +506,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             let mut skilled_needed = 0u32;
             let mut skilled_got = 0u32;
             for (quals, n) in &def.skilled {
-                let need = *n as u32 * lv;
+                let need = *n * lv;
                 skilled_needed += need;
                 let mut left = need;
                 for q in quals {
@@ -547,7 +564,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         household_total += leftover as i64;
         if open_general > 0 {
             hiring.push((ri, open_general));
-        } else if leftover > 40 {
+        } else if leftover > JOBLESS_DRIFT_MIN {
             jobless.push((ri, leftover));
         }
         for q in 0..NQ {
@@ -667,7 +684,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         let have = w.civs[si].stock_of(Good::Materials);
         if have < 2 * t {
             let bp = if have <= t { 10_000 } else { (2 * t - have) * 10_000 / t };
-            made[Good::Materials.index()] += household_total * 300 * bp / 10_000;
+            made[Good::Materials.index()] += household_total * HOUSEHOLD_CRAFT_PER_K * bp / 10_000 / 1000;
         }
     }
     // specialists move to where their posts are: a few each month, as real people
@@ -724,10 +741,10 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
         }
         if ft.chem_per_worker > 0 {
-            w.civs[si].take(Good::Chemicals, farm_workers * ft.chem_per_worker);
+            w.civs[si].take(Good::Chemicals, farm_workers * ft.chem_per_worker / 1000);
         }
         if ft.fuel_per_worker > 0 {
-            w.civs[si].take(Good::Fuel, farm_workers * ft.fuel_per_worker);
+            w.civs[si].take(Good::Fuel, farm_workers * ft.fuel_per_worker / 1000);
         }
         made[Good::Food.index()] += p.food_made;
     }
@@ -745,7 +762,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             let Some(fi) = w.regions[ri].facilities.iter().position(|f| f.kind == kind) else { continue };
             let (level, cond, enabled, staff_bp, skilled_bp, skilled_count) = {
                 let f = &w.regions[ri].facilities[fi];
-                let sk: u32 = def.skilled.iter().map(|(_, n)| *n as u32 * f.level as u32).sum();
+                let sk: u32 = def.skilled.iter().map(|(_, n)| *n * f.level as u32).sum();
                 (f.level as i64, f.condition_bp as i64, f.enabled, staff_rate(def, f), f.skilled_bp as i64, sk as i64 * f.skilled_bp as i64 / 10_000)
             };
             if level == 0 {
@@ -875,7 +892,8 @@ pub fn step(w: &mut World, seat: SeatId) {
                 made[g.index()] += out * link_bp / 10_000;
             }
             if let Some((class, pts)) = rec.research {
-                let staff_pts = skilled_count.min(pts * level / 1000) * 1000;
+                // one researcher-month per staffed research post, up to what the installation supports
+                let staff_pts = skilled_count.min(pts * level);
                 let base = if staff_pts > 0 { staff_pts } else { pts * level * skilled_bp / 10_000 };
                 let support = [cond, if rec.elec > 0 { pw.elec_bp } else { 10_000 }, if rec.compute > 0 { compute_bp } else { 10_000 }, unrest_factor]
                     .into_iter()
@@ -932,10 +950,10 @@ pub fn step(w: &mut World, seat: SeatId) {
     civ.compute_demand = compute_demand_total;
     // activities feed the evidence model; square-root so scale helps but saturates
     for t in 0..Tag::COUNT {
-        civ.tag_activity[t] = isqrt(tag_activity[t] * 10_000);
+        civ.tag_activity[t] = activity_index(tag_activity[t]);
     }
-    civ.tag_activity[Tag::War as usize] = isqrt(soldiers as i64 * 10_000);
-    civ.tag_activity[Tag::Teach as usize] += isqrt(civ.labor.students as i64 * 10_000);
+    civ.tag_activity[Tag::War as usize] = activity_index(soldiers as i64);
+    civ.tag_activity[Tag::Teach as usize] += activity_index(civ.labor.students as i64);
 
     // jump assemblies leaving the lines
     let yard = c.f("jump_yard");
@@ -968,6 +986,12 @@ pub fn step(w: &mut World, seat: SeatId) {
             );
         }
     }
+}
+
+/// Evidence index of a head count: one hundred times the square root of the
+/// thousands of people engaged (a thousand people give 100, a million 3,162).
+pub fn activity_index(people: i64) -> i64 {
+    isqrt(people.max(0) * 10)
 }
 
 fn staff_rate(def: &FacDef, f: &Facility) -> i64 {

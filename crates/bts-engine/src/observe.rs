@@ -5,11 +5,32 @@
 //! placeholders, counts or stable hidden IDs.
 
 use crate::actions::{channel_open, course_visible, facility_visible, prac_handle, tech_handle, view_clause};
-use crate::content::{content, Cap, Req, Site, Tag, BELIEFS, RELIGION_SLOTS, TRAIT_NAMES};
+use crate::content::{content, good_mass_kg, good_unit, Cap, Req, Site, Tag, BELIEFS, DISPLAY_DIVISOR, FOOD_PER_PERSON_MONTH, RELIGION_SLOTS, TRAIT_NAMES};
 use crate::sim::{culture, economy, military, population, projects, victory};
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
+
+/// The unit system of this ruleset, stated once so clients need not hard-code it.
+pub fn units_view() -> UnitsView {
+    UnitsView {
+        food_per_person_month: FOOD_PER_PERSON_MONTH,
+        display_divisor: DISPLAY_DIVISOR,
+        goods: Good::ALL.iter().map(|g| GoodUnit { good: *g, unit: good_unit(*g).to_string(), tonnes_per_unit_milli: good_mass_kg(*g) }).collect(),
+        work_unit: "worker-month".into(),
+        research_unit: "researcher-month".into(),
+        service_unit: "0.1 MWh delivered in the month".into(),
+        settlement_bounds: SETTLEMENT_BOUNDS.to_vec(),
+        limits: PeopleLimits {
+            settlers_min: crate::actions::SETTLERS_MIN,
+            settlers_max: crate::actions::SETTLERS_MAX,
+            soldiers_min: crate::actions::FORMATION_MIN,
+            soldiers_max: crate::actions::FORMATION_MAX,
+            program_seats_max: crate::actions::PROGRAM_SEATS_MAX,
+            founding_cohort_max: projects::FOUNDING_COHORT_MAX as u32,
+        },
+    }
+}
 
 fn qty(v: &[(Good, i64)]) -> Vec<GoodQty> {
     v.iter().map(|(g, a)| GoodQty { good: *g, amount: *a }).collect()
@@ -42,9 +63,9 @@ fn req_items(w: &World, seat: SeatId, req: &Req, prac_enacted: bool) -> (Vec<Kno
                 }
             }
             Req::Fac(i) => Some((format!("A working {}", c.facilities[*i].name.to_lowercase()), ctx.fac(*i), None)),
-            Req::Pop(n) => Some((format!("Population of at least {n}"), ctx.pop() >= *n, None)),
+            Req::Pop(n) => Some((format!("Population of at least {}", group(*n as i64)), ctx.pop() >= *n, None)),
             Req::Regions(n) => Some((format!("Govern at least {n} regions"), ctx.regions() >= *n, None)),
-            Req::QualAtLeast(q, n) => Some((format!("At least {n} {}", q.label().to_lowercase()), ctx.qual(*q) >= *n, None)),
+            Req::QualAtLeast(q, n) => Some((format!("At least {} {}", group(*n as i64), q.label().to_lowercase()), ctx.qual(*q) >= *n, None)),
             Req::Contact => Some(("Contact with another people".into(), ctx.contact(), None)),
             Req::Religion => Some(("A local religious tradition".into(), ctx.religion(), None)),
             Req::SciMethod => Some(("The scientific method as a working institution".into(), ctx.sci_method(), None)),
@@ -115,9 +136,11 @@ fn fuzz(w: &World, seat: SeatId, key: u64, value: u32, spread_pct: u64) -> (u32,
     let mid = (value as i64 * (100 + shift) / 100).max(1);
     let lo = mid * (100 - spread_pct as i64 / 2) / 100;
     let hi = mid * (100 + spread_pct as i64 / 2) / 100;
+    // estimates of people are reported in round numbers: to the nearest 5,000 for a
+    // camp or a formation, 500,000 for a nation
     let round = |v: i64| -> u32 {
-        let step = if v >= 10_000 { 500 } else if v >= 1000 { 100 } else if v >= 100 { 10 } else { 5 };
-        ((v / step) * step).max(0) as u32
+        let step = if v >= 10_000_000 { 500_000 } else if v >= 1_000_000 { 100_000 } else if v >= 100_000 { 10_000 } else { 5_000 };
+        ((v / step) * step).clamp(0, u32::MAX as i64) as u32
     };
     (round(lo), round(hi).max(round(lo) + 1))
 }
@@ -192,9 +215,10 @@ fn site_key(s: Site) -> String {
 }
 
 fn cap_text(c: Cap, v: i64) -> String {
-    let n = v / 1000;
+    // people are quoted as people; everything else in display units
+    let n = if c.in_people() { group(v) } else { group(v / 1000) };
     match c {
-        Cap::Storage => format!("Stores {n} food"),
+        Cap::Storage => format!("Stores {n} thousand rations of food"),
         Cap::Water => format!("Water and sanitation for {n} residents"),
         Cap::Health => format!("Care for {n} residents"),
         Cap::SeatsLodge => format!("{n} apprenticeship places"),
@@ -339,7 +363,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             Some(SurveyView {
                 arable: r.arable,
                 pasture: r.pasture,
-                wild_food: (r.wild / 1000) as u32,
+                wild_food: (r.wild / DISPLAY_DIVISOR) as u32,
                 fishery: r.fishery,
                 forest: r.forest,
                 water: r.water,
@@ -363,18 +387,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             }
             _ => None,
         };
-        let settlement = if mine || current {
-            r.settlement()
-        } else {
-            match mem.pop_estimate {
-                0 => SettlementKind::Wilderness,
-                1..=399 => SettlementKind::Camp,
-                400..=1999 => SettlementKind::Village,
-                2000..=7999 => SettlementKind::Town,
-                8000..=29999 => SettlementKind::City,
-                _ => SettlementKind::Metropolis,
-            }
-        };
+        let settlement = if mine || current { r.settlement() } else { settlement_class(mem.pop_estimate) };
         regions.push(RegionView {
             id: r.id,
             name: r.name.clone(),
@@ -446,7 +459,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             key: "learned".into(),
             name: "Teachers and investigators".into(),
             description: "Learners, instructors and research staff.".into(),
-            weight_bp: share(civ.labor.students as i64 + civ.labor.teachers as i64 + civ.research_cap.iter().sum::<i64>() / 1000),
+            // one researcher-month of capacity is one person in a research post
+            weight_bp: share(civ.labor.students as i64 + civ.labor.teachers as i64 + civ.research_cap.iter().sum::<i64>()),
             support: (50 + civ.stability as i64 / 4 + if civ.research_used.iter().sum::<i64>() > 0 { 10 } else { -10 }).clamp(0, 100) as u8,
             demand: "Funded questions, instruments and places for students".into(),
         },
@@ -1014,8 +1028,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     // ---- objectives -------------------------------------------------------------------------------------
     let owned = w.owned(seat).len();
     let mut agendas = vec![
-        Agenda { key: "population".into(), title: "People".into(), description: "Improve supply and health so the population can grow without hunger.".into(), progress: format!("{} people; food access {:.0}%, water {:.0}%", population, civ.food_ful_bp as f64 / 100.0, civ.water_ful_bp as f64 / 100.0) },
-        Agenda { key: "economy".into(), title: "Livelihoods".into(), description: "Reduce stoppages, build a reliable surplus and keep works maintained.".into(), progress: format!("{:.0} months of food in store", civ.stock_of(Good::Food) as f64 / (population.max(1) as f64 * 1000.0)) },
+        Agenda { key: "population".into(), title: "People".into(), description: "Improve supply and health so the population can grow without hunger.".into(), progress: format!("{} people; food access {:.0}%, water {:.0}%", group(population as i64), civ.food_ful_bp as f64 / 100.0, civ.water_ful_bp as f64 / 100.0) },
+        Agenda { key: "economy".into(), title: "Livelihoods".into(), description: "Reduce stoppages, build a reliable surplus and keep works maintained.".into(), progress: format!("{:.0} months of food in store", civ.stock_of(Good::Food) as f64 / (population.max(1) as f64 * FOOD_PER_PERSON_MONTH as f64)) },
         Agenda { key: "territory".into(), title: "Land".into(), description: "Develop and actually govern reachable regions.".into(), progress: format!("{owned} regions governed; administration can carry {}", culture::admin_capacity(w, seat)) },
         Agenda { key: "resources".into(), title: "Resources".into(), description: "Secure stable extraction or supply of the materials known to matter.".into(), progress: format!("{} known deposits under our control", ctrl.iter().map(|r| r.deposits.iter().filter(|d| deposit_known(civ, d.kind)).count()).sum::<usize>()) },
     ];
@@ -1056,12 +1070,12 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     let mut briefing = civ.briefing.clone();
     if month == 0 {
         let home = &w.regions[civ.capital as usize];
-        briefing.push(BriefingItem { severity: "info".into(), title: format!("{} people are camped at {}", population, home.name), detail: "They live by gathering, hunting and fishing, with stores for a few months. There is no currency, school, religion or state budget. Each round is one year; standing arrangements continue on their own.".into(), region: Some(civ.capital), panel: "map".into() });
+        briefing.push(BriefingItem { severity: "info".into(), title: format!("{} people are camped at {}", group(population as i64), home.name), detail: "They live by gathering, hunting and fishing, with stores for a few months. There is no currency, school, religion or state budget. Each round is one year; standing arrangements continue on their own.".into(), region: Some(civ.capital), panel: "map".into() });
         briefing.push(BriefingItem { severity: "info".into(), title: "A makers' circle already compares methods".into(), detail: "As people work, practitioners will report problems that current methods do not explain. Those leads appear in the knowledge panel, where they can be followed up and then investigated.".into(), region: None, panel: "knowledge".into() });
         briefing.push(BriefingItem { severity: "info".into(), title: "Only a share of spare labour answers a call".into(), detail: "Food comes first. Of the rest, custom lets the community call up a limited share for common projects such as building, surveying or settling new land. Institutions can raise that share later.".into(), region: None, panel: "economy".into() });
         briefing.push(BriefingItem { severity: "info".into(), title: "The land around is unrecorded".into(), detail: "A supplied survey party can record a neighbouring region; a settling party can then found a camp there.".into(), region: None, panel: "projects".into() });
     }
-    let months_food = civ.stock_of(Good::Food) / (population.max(1) as i64 * 1000);
+    let months_food = civ.stock_of(Good::Food) / (population.max(1) as i64 * FOOD_PER_PERSON_MONTH);
     if months_food < 2 && population > 0 {
         briefing.push(BriefingItem { severity: "danger".into(), title: "Less than two months of food in store".into(), detail: "Open land, add fields, pastures or fishing grounds, or lower other calls on labour.".into(), region: Some(civ.capital), panel: "economy".into() });
     }
@@ -1081,7 +1095,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     if inbox > 0 {
         briefing.push(BriefingItem { severity: "warning".into(), title: format!("{inbox} proposal(s) await your answer"), detail: "Unsigned proposals lapse after next round.".into(), region: None, panel: "diplomacy".into() });
     }
-    if civ.labor.household as i64 * 4 > working && working > 200 {
+    if civ.labor.household as i64 * 4 > working && working > 200_000 {
         briefing.push(BriefingItem { severity: "info".into(), title: "Many households lack steady work".into(), detail: "Facilities, schools or new settlements would employ them.".into(), region: None, panel: "economy".into() });
     }
     let rank = |s: &str| match s {
@@ -1121,6 +1135,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         briefing,
         chronicle: civ.chronicle.clone(),
         receipts: civ.receipts.clone(),
+        units: units_view(),
     }
 }
 
@@ -1152,7 +1167,7 @@ pub fn spectate(w: &World) -> SpectatorView {
             survey: Some(SurveyView {
                 arable: r.arable,
                 pasture: r.pasture,
-                wild_food: (r.wild / 1000) as u32,
+                wild_food: (r.wild / DISPLAY_DIVISOR) as u32,
                 fishery: r.fishery,
                 forest: r.forest,
                 water: r.water,
@@ -1189,7 +1204,7 @@ pub fn spectate(w: &World) -> SpectatorView {
                 highest_tier: (0..c.techs.len()).filter(|i| civ.knows(*i)).map(|i| c.techs[i].tier).max().unwrap_or(0),
                 soldiers: w.armies.iter().filter(|a| a.owner == seat).map(|a| a.count()).sum(),
                 stability: civ.stability,
-                food_months_milli: civ.stock_of(Good::Food).max(0) / (pop.max(1) as i64),
+                food_months_milli: civ.stock_of(Good::Food).max(0) * 1000 / (pop.max(1) as i64 * FOOD_PER_PERSON_MONTH),
                 sci_method: civ.milestones.sci_method,
                 planetary: civ.milestones.planetary,
                 interstellar: civ.milestones.interstellar,
