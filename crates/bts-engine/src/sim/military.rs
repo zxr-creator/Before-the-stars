@@ -25,12 +25,13 @@ pub fn military_tier(w: &World, seat: SeatId) -> u8 {
 pub fn recruit_room(w: &World, seat: SeatId) -> u32 {
     let civ = &w.civs[seat as usize];
     let working: i64 = w.regions.iter().filter(|r| r.controller == Some(seat) && r.owner == Some(seat)).map(|r| r.working() as i64).sum();
-    let mut share: i64 = 300;
+    // even a camp can raise a small warband; rotating duty and professional command widen the pool
+    let mut share: i64 = 800;
     if civ.est_id("C016") {
-        share = 800;
+        share = 1200;
     }
     if civ.est_id("C037") {
-        share = 1200;
+        share = 1600;
     }
     if crate::sim::culture::belief_share(w, seat, "watchfulness") > 3000 {
         share += 200;

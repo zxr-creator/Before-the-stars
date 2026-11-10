@@ -119,9 +119,12 @@ impl Match {
                 w.sent_window.iter_mut().for_each(|x| *x = false);
             }
             Phase::Plan => {
+                // receipts of the round being resolved stay readable through the next round,
+                // so orders given late (including a steward's) can still be reviewed
+                let round = w.round;
                 for c in w.civs.iter_mut() {
                     c.briefing.clear();
-                    c.receipts.clear();
+                    c.receipts.retain(|r| r.round >= round);
                 }
                 for _ in 0..w.cfg.months_per_round {
                     sim::step_month(w);

@@ -273,7 +273,9 @@ pub fn step(w: &mut World, seat: SeatId) {
             + r.students;
         let edu_bp = (educated as i64 * 10_000 / working as i64).min(10_000);
         // thin stores make households cautious well before anyone goes hungry
-        let secure = (reserve_months_milli * 10_000 / reserve_target_milli).clamp(1200, 10_000);
+        // quadratic in the reserve ratio, so households hold back well before stores run thin
+        let ratio = (reserve_months_milli * 10_000 / reserve_target_milli).clamp(0, 10_000);
+        let secure = (ratio * ratio / 10_000).clamp(1000, 10_000);
         let food_factor = if food_bp >= 10_000 { secure } else { ((food_bp - 6000).max(0) * 10_000 / 4000 * 6 / 10 + 2000).min(secure) };
         let crowd_factor = if crowd <= 8500 { 10_000 } else { (10_000 - (crowd - 8500) * 2).max(2500) };
         let dev_factor = (10_000 - edu_bp * 7 / 10).max(2800);

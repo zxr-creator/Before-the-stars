@@ -364,6 +364,9 @@ pub struct OwnCiv {
     pub food_fulfillment_bp: u16,
     pub water_fulfillment_bp: u16,
     pub military_tier: u8,
+    /// How many more people would currently agree to serve as soldiers.
+    #[serde(default)]
+    pub recruit_room: u32,
     pub overlord: Option<SeatId>,
     pub subordinates: Vec<SeatId>,
 }
@@ -1041,6 +1044,7 @@ pub enum Action {
     DeclineOffer { offer: u32 },
     BreakTreaty { treaty: u32 },
     SetPolicy { setting: PolicySetting },
+    /// `priority` is 0..=9 and lower numbers are served first (default 5).
     StartProject { spec: ProjectSpec, priority: Option<u8> },
     ManageProject { project: u32, op: ManageOp, priority: Option<u8> },
     Investigate { lead: String },

@@ -497,6 +497,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         food_fulfillment_bp: civ.food_ful_bp,
         water_fulfillment_bp: civ.water_ful_bp,
         military_tier: military::military_tier(w, seat),
+        recruit_room: military::recruit_room(w, seat),
         overlord: civ.overlord,
         subordinates: w.civs.iter().filter(|o| o.overlord == Some(seat)).map(|o| o.seat).collect(),
     };
