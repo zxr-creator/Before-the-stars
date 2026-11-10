@@ -1,5 +1,5 @@
 ; Inno Setup script for Before the Stars. Built by .github/workflows/release.yml:
-;   iscc /DAppVersion=0.2.0 /DSourceDir=..\..\dist\release\windows packaging\windows\installer.iss
+;   iscc /DAppVersion=0.3.0 /DSourceDir=..\..\dist\release\windows packaging\windows\installer.iss
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif

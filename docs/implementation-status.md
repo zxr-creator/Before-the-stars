@@ -24,7 +24,11 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Information boundary (06, 02) | Implemented | Observations are projected per seat before serialization; unknown nodes do not appear; opaque per-seat handles; uniform errors for unknown and nonexistent references; foreign estimates are coarse and stable within a year |
 | Native AI (33) | Implemented | Deterministic, non-LLM, protocol-only crate. Difficulty changes candidate actions per round (12/24/48), preparation horizon and offer margins; no resource or information bonus. It is a bounded rule-and-scoring policy, not the forward-search planner sketched in the design |
 | Agent access (technical/02, 04) | Partly | HTTP API and CLI with seat tokens. MCP adapter, generated SDKs, idempotency keys and isolated runner images are not built |
-| Interface and chronicle (34) | Partly | Flat illustrated atlas tier, shared information panels, known-graph views, Historic Moments timeline with deterministic templates and Markdown/JSON export. The 3D atlas tier, post-match world timeline and counterfactual replay are not built |
+| Language-model seats | Built, unverified against real models | A seat can be driven by Claude over the Messages API, the local `claude` or `codex` command, or an OpenAI-compatible endpoint. Each consult sends that seat's own observation as a briefing and applies the returned actions; the built-in steward covers what the model leaves out. Three consecutive failures stop the seat. Only a scripted stand-in provider has been run end to end |
+| Observer mode | Implemented | A match with no human seat exposes a referee-wide spectator view, a scoreboard, world events, playback control (step, play, run ten), each seat's own view read-only and each model's notes. Refused when a human seat exists or seat tokens are required |
+| Interface and chronicle (34) | Mostly | 3D diorama map with four lenses and a flat atlas fallback; technology and civics trees limited to discovered nodes; economy ledger (market, production, chains, workforce, balance sheet); title screen, setup, tutorial (24 steps) and almanac (21 topics); Historic Moments timeline with Markdown/JSON export. Post-match world timeline and counterfactual replay are not built. Seasonal map grading and further lenses are not built |
+| Languages | Implemented | English, Simplified Chinese, Traditional Chinese (derived from Simplified with a regional phrase table and overrides). Server-generated text is translated in the client by template; an automated harvest of several full matches found no untranslated string, but 41 rare event templates were never seen in context and no native-speaking reviewer has read it. Generated region names stay in Latin script |
+| Desktop application | Built; Windows unverified | `bts` opens the game in a native window (system WebView) with the referee in-process, full screen, per-user saves and a title screen. `scripts/package.sh` produces a universal macOS disk image and a Windows x64 zip; a GitHub workflow builds both natively plus a Windows installer. The macOS app has been launched here; the Windows executable and the workflow have never been run. Nothing is code-signed |
 | Multicore (technical/03) | Partly | Independent matches run in parallel across cores; a single match is fast enough to settle a full 240-round game in about two seconds single-threaded, so in-match staged parallelism is not implemented |
 | Persistence | Implemented | Full checkpoint saves including controller memory; state hashes; `bts verify` checks repeatability and checkpoint recovery |
 
@@ -34,6 +38,10 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 - Late-game supply chains (fuel, spares, compute) are fragile for the native opponents.
 - In all-AI matches the leader conquers or subordinates rivals after the objective is
   revealed, but no seat has completed global integration within the horizon.
-- The browser client was verified by automated runs; religion founding, battles and the
+- The client was verified by automated runs; religion founding, battles and the
   jump programme screens were built from the protocol types and have not been exercised
   by hand.
+- The 3D map has only been rendered with software WebGL in automated runs. Its frame
+  rate on real hardware, and on integrated graphics in particular, is unmeasured.
+- The economy ledger's own estimates (marked as such in the interface) agreed with the
+  referee's totals to within about 25% in 41 of 57 comparisons; the rest diverge more.

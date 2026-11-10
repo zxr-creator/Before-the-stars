@@ -1,5 +1,5 @@
 # Builds installable packages on native runners.
-#   - push a tag like v0.2.0, or run the workflow by hand from the Actions tab
+#   - push a tag like v0.3.0, or run the workflow by hand from the Actions tab
 #   - macOS: universal .dmg; Windows: .zip and a setup .exe (Inno Setup)
 # Packages are attached to the workflow run, and to a GitHub release for tags.
 name: release

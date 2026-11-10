@@ -8,14 +8,19 @@ governance of the whole inhabited world **and** a jump-capable service the winne
 build, crew, supply and replace.
 
 This repository contains the v1.0 design documentation (`docs/`) and a playable
-implementation of it: an authoritative Rust rules engine with native non-LLM opponents,
-a local server, and a TypeScript browser client.
+implementation of it: an authoritative Rust rules engine with native non-LLM opponents
+and optional language-model seats, and a desktop application for macOS and Windows
+(the same client also runs in a browser).
 
-![The atlas and round briefing late in a match](docs/screenshots/atlas-and-briefing.png)
+![The world map and round briefing late in a match](docs/screenshots/world.png)
 
-| Chronicle | Known graph | Setup |
+| Title screen | Technology tree | Economy ledger |
 | --- | --- | --- |
-| ![Historic Moments timeline](docs/screenshots/chronicle.png) | ![Known technology graph](docs/screenshots/knowledge-graph.png) | ![New match](docs/screenshots/setup.png) |
+| ![Title screen](docs/screenshots/title.png) | ![Only discovered technologies appear](docs/screenshots/technology-tree.png) | ![Market view of the ledger](docs/screenshots/economy-ledger.png) |
+
+| Observer console | Match setup | 简体中文 |
+| --- | --- | --- |
+| ![Watching four seats play](docs/screenshots/observer.png) | ![Seats: human, built-in or model](docs/screenshots/setup.png) | ![The same view in Simplified Chinese](docs/screenshots/chinese.png) |
 
 ## Play
 
@@ -58,6 +63,28 @@ human seat you are an **observer**: you see the whole world, a scoreboard, every
 civilization's own view and each model's stated reasoning, and you control playback.
 The interface is available in English, 简体中文 and 繁體中文, switchable on the title
 screen. A guided tutorial and an in-game almanac explain the systems.
+
+Language-model seats need something to talk to: an Anthropic or OpenAI-compatible API
+key (typed at setup and held in memory only, or taken from `ANTHROPIC_API_KEY` /
+`OPENAI_API_KEY`), or a logged-in `claude` or `codex` command on this machine. A seat
+whose model cannot be reached reports the error in the observer console and stops
+after three consecutive failures; the match continues without it.
+
+### The screen
+
+- **Map.** A 3D diorama of the known world (terrain, rivers, vegetation, settlements
+  that change with the era, districts, resource badges, borders, armies) with
+  political, terrain, resource and population lenses and a minimap. Land nobody of
+  yours has seen is blank parchment. A flat atlas is one click away and is used
+  automatically where WebGL is unavailable.
+- **Technology and civics trees** (`T`, `C`). They show only what your civilization
+  has discovered: the tree grows as leads are followed, and nothing undiscovered is
+  drawn, named or counted.
+- **Economy ledger** (`L`). Market balance per good, production by facility and
+  region, production chains, workforce and a balance sheet. Figures the referee
+  reported are marked apart from the ledger's own estimates.
+- **Chronicle** (`H`), **almanac** (`?`), and panels for people, knowledge, culture,
+  politics, diplomacy, military and objectives.
 
 ### A round
 
@@ -148,8 +175,10 @@ crates/bts-protocol   Seat-facing contracts: Observation, Action, Receipt (serde
 crates/bts-engine     Authoritative rules: content, world generation, monthly simulation,
                       actions, observation projection, victory, tests
 crates/bts-ai         Native Easy/Medium/Hard opponents; depends only on bts-protocol
-crates/bts-server     `bts` binary: HTTP referee, web host, headless runner, agent CLI
-apps/web              TypeScript + Preact client: atlas map, panels, chronicle
+crates/bts-server     `bts` binary: desktop window, HTTP referee, language-model seats,
+                      headless runner, agent CLI
+apps/web              TypeScript + Preact client: 3D and flat maps, trees, ledger, panels,
+                      tutorial, observer console, translations
 content/              Technology, practice and course graphs extracted from the design atlases
 scripts/              bootstrap, build, run, package, content extraction
 packaging/            app icon, macOS bundle metadata, Windows installer script
@@ -176,7 +205,10 @@ In short:
   limits; three-role warfare, occupation and elimination; G96 ∧ F24 ∧ Trials96 with
   terminal reward; seat-filtered observations with opaque handles; three native AI
   difficulties without information or resource bonuses; saves, replay hashes, HTTP and
-  CLI agent access; a flat illustrated atlas client with a Historic Moments chronicle.
+  CLI agent access; observer mode and language-model seats; a desktop application with
+  a 3D map, discovery-limited technology and civics trees, an economy ledger, a
+  tutorial and almanac, a Historic Moments chronicle, and English, Simplified Chinese
+  and Traditional Chinese throughout.
 - Abstracted: goods are pooled nationally with a per-region carriage loss instead of
   per-shipment logistics; the 34 recipes are represented by about sixty facility types;
   private actors, prices and money are folded into labour, goods and callable-labour
@@ -185,7 +217,12 @@ In short:
 - Verified by tests and scripts, not by a human playthrough to the end: the client has
   been driven by automated browser runs (every panel, hot-seat diplomacy, a late-game
   state against the AI), but wars, religion founding and the jump programme have not
-  been played by hand in the browser.
+  been played by hand.
+- Not yet verified at all: language-model seats against a real model (only a scripted
+  stand-in has been run end to end); the 3D map on a real graphics card (automated
+  runs use software rendering, so frame rate is unmeasured); the Windows build (it
+  compiles, it has never been started); the `release` workflow; the Chinese text by a
+  native-speaking reviewer.
 - Not built: an MCP adapter, multi-match server rooms, generated SDKs, and post-match
   counterfactual replay.
 
@@ -195,8 +232,9 @@ method between year 45 and year 75 and complete the full technology and practice
 graphs between year 160 and year 200. Once the final objective is revealed they fight:
 the leader usually conquers or subordinates one or two rivals and can end holding most
 of the world. No native opponent has yet completed 96 months of global governance
-inside the 240-round horizon, so all-AI matches end unresolved, which the design treats
-as a legitimate outcome. The complete-victory rules themselves are covered by tests.
+inside the 240-round horizon in the evaluation batches, so all-AI matches almost always
+end unresolved, which the design treats as a legitimate outcome. The complete-victory
+rules themselves are covered by tests.
 
 ## Design documentation
 

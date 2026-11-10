@@ -90,7 +90,7 @@ dependencies = [
 
 [[package]]
 name = "bts-ai"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bts-protocol",
  "serde",
@@ -98,7 +98,7 @@ dependencies = [
 
 [[package]]
 name = "bts-engine"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bts-protocol",
  "serde",
@@ -107,14 +107,14 @@ dependencies = [
 
 [[package]]
 name = "bts-protocol"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "bts-server"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bts-ai",
  "bts-engine",
