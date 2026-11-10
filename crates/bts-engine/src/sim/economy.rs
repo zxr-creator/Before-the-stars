@@ -1,8 +1,12 @@
 //! Monthly labour allocation, power, production and upkeep.
 //!
 //! One person works one job. Food comes first; a bounded share of the remaining
-//! labour can be called up for public projects; the rest staffs facilities in
-//! the order of the government's category weights. Inputs are read from stock at
+//! labour can be called up for public projects, the qualified site crews of open
+//! orders before anyone else; the rest staffs facilities in the order of the
+//! government's category weights. A site crew is reserved from the region's
+//! qualified residents for as long as its order is open and holds no other post.
+//! Construction sites ask for shaft work with the region's works and are rationed
+//! with them (`docs/units-and-scale.md`, section 6). Inputs are read from stock at
 //! the start of the month and outputs become available next month, so a recipe
 //! can never consume something produced later in the same month.
 //!
@@ -307,6 +311,12 @@ pub fn step(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
     let regs: Vec<usize> = (0..w.regions.len()).filter(|i| w.regions[*i].controller == Some(seat)).collect();
+    // site crews are reserved afresh every month: an order that is paused, or whose
+    // site we no longer govern, holds nobody
+    for pr in w.civs[si].projects.iter_mut() {
+        pr.crew_on_site = vec![0; pr.crew.len()];
+        pr.crew_capped = false;
+    }
     if w.civs[si].status == SeatStatus::Eliminated || regs.is_empty() {
         // a government that runs no region has no labour, no researchers and no
         // service this month: nothing carries over from the month it last had some
@@ -497,14 +507,14 @@ pub fn step(w: &mut World, seat: SeatId) {
 
     for p in &plans {
         let ri = p.idx;
-        // project labour demand in this region
-        let mut demand: i64 = 0;
-        for pr in &w.civs[si].projects {
-            if pr.paused || pr.region != Some(ri as RegionId) || !crate::sim::projects::uses_labor(&pr.kind) {
-                continue;
-            }
-            demand += (pr.work_needed - pr.work_done).min(pr.max_per_month).max(0);
-        }
+        // the region's active orders, in the order in which they are served
+        let mut queue: Vec<usize> = (0..w.civs[si].projects.len())
+            .filter(|i| {
+                let pr = &w.civs[si].projects[*i];
+                !pr.paused && pr.region == Some(ri as RegionId) && crate::sim::projects::uses_labor(&pr.kind)
+            })
+            .collect();
+        queue.sort_by_key(|i| w.civs[si].projects[*i].service_key());
         let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
         let r = &mut w.regions[ri];
         let mut month = RegionMonth { seat: Some(seat), qual_employed: vec![0; NQ], tag_staff: vec![0; Tag::COUNT], ..Default::default() };
@@ -536,26 +546,51 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
         let mut unskilled = nonfood - qsum;
 
-        // project labour: every called-up worker supplies one worker-month and no more.
-        // Builders are called first, for up to half of the work asked for.
+        // project labour: every called-up worker supplies one worker-month and no more,
+        // and the call-up is bounded by the mobilization the practices allow.
+        // Site crews are called up first, order by order: qualified residents who are
+        // not teaching, each group in its order of preference. They hold no other
+        // post this month and work only on their own order. An order keeps its crew
+        // for as long as it is open, whether or not its goods have arrived.
         let cap_workers = (nonfood as i64 * mob / 10_000) as u32;
-        let bi = Qual::Builder.index();
-        let builders = (avail[bi] as i64).min(cap_workers as i64).min((demand.max(0) + 1) / 2) as u32;
-        avail[bi] -= builders;
-        month.qual_employed[bi] += builders;
-        let mut proj_workers = builders;
-        if (proj_workers as i64) < demand && proj_workers < cap_workers {
-            let want = (demand - proj_workers as i64).min(u32::MAX as i64) as u32;
-            let take = want.min(cap_workers - proj_workers).min(unskilled);
-            unskilled -= take;
-            proj_workers += take;
+        let mut crew_workers = 0u32;
+        let mut demand: i64 = 0;
+        for &pi in &queue {
+            let pr = &mut w.civs[si].projects[pi];
+            let mut on_site = vec![0u32; pr.crew.len()];
+            let mut capped = false;
+            for (e, (quals, need)) in pr.crew.iter().enumerate() {
+                let mut left = *need;
+                for q in quals {
+                    let take = left.min(avail[q.index()]).min(cap_workers - crew_workers);
+                    avail[q.index()] -= take;
+                    month.qual_employed[q.index()] += take;
+                    crew_workers += take;
+                    left -= take;
+                    if left == 0 {
+                        break;
+                    }
+                }
+                on_site[e] = *need - left;
+                if left > 0 && crew_workers < cap_workers {
+                    // qualified people without a post elsewhere will move to the site
+                    vacant.push((ri, quals.clone(), left));
+                } else if left > 0 {
+                    capped = true;
+                }
+            }
+            let own: i64 = on_site.iter().map(|n| *n as i64).sum();
+            pr.crew_on_site = on_site;
+            pr.crew_capped = capped;
+            // the other labour the order can use this month beside its own crew
+            let want = (pr.work_needed - pr.work_done).min(muldiv(pr.max_per_month, pr.crew_bp(), 10_000)).max(0);
+            demand += (want - own * unrest_factor / 10_000).max(0);
         }
-        month.labor.projects = proj_workers;
-        month.project_labor_free = proj_workers as i64 * unrest_factor / 10_000;
 
         // staffing, in two passes: qualified people take skilled posts everywhere first,
         // then general posts are filled, so a programmer is never spent on a pit crew
-        // while a computing centre stands empty
+        // while a computing centre stands empty. Between the two the orders' other
+        // labour is called up (below).
         let mut fac_workers = 0u32;
         let mut skilled: Vec<(usize, u32, u32)> = Vec::new(); // (facility index, needed, got)
         for &kind in &order {
@@ -591,6 +626,26 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
             skilled.push((fi, skilled_needed, skilled_got));
         }
+        // ordinary labour for what the orders can still use, within what is left of
+        // the call-up: people without a qualification first, then qualified people
+        // whom no qualified post took this month (builders before the others). It is
+        // called up before the general posts of the works are filled.
+        let mut wanted = demand.min((cap_workers - crew_workers) as i64).max(0) as u32;
+        let mut called = wanted.min(unskilled);
+        unskilled -= called;
+        wanted -= called;
+        let builder = Qual::Builder.index();
+        for q in std::iter::once(builder).chain((0..NQ).filter(|q| *q != builder)) {
+            if wanted == 0 {
+                break;
+            }
+            let take = wanted.min(avail[q]);
+            avail[q] -= take;
+            called += take;
+            wanted -= take;
+        }
+        month.labor.projects = crew_workers + called;
+        month.project_labor_free = called as i64 * unrest_factor / 10_000;
         let mut open_general: u32 = 0;
         for (fi, skilled_needed, skilled_got) in skilled {
             let f = &mut r.facilities[fi];
@@ -699,6 +754,19 @@ pub fn step(w: &mut World, seat: SeatId) {
                 compute_demand_total += rec.compute * level * base / 10_000;
             }
         }
+        // construction sites ask for shaft work alongside the region's works: each
+        // open order that has crew on site and goods to work with asks for the share
+        // of its draw that its crew can use
+        let mut site_ask: i64 = 0;
+        for pr in &w.civs[si].projects {
+            if pr.paused || pr.region != Some(ri as RegionId) || pr.power_need <= 0 || pr.work_done >= pr.work_needed {
+                continue;
+            }
+            if crate::sim::projects::goods_allow_work(&w.civs[si], pr) {
+                site_ask += pr.power_need * pr.crew_bp() / 10_000;
+            }
+        }
+        shaft_demand += site_ask;
         let mut shaft = led.shaft_made;
         let mut elec = led.elec_made;
         // generator halls turn spare shaft work into electricity at nine tenths
@@ -732,13 +800,18 @@ pub fn step(w: &mut World, seat: SeatId) {
                 grid_deficit += elec_short;
             }
         }
+        // the sites' share of the region's shaft work is set aside for them: under a
+        // shortage they are rationed like every works, and no works can draw their part
+        let shaft_bp = ratio_bp(shaft, shaft_demand);
+        let site_share = (site_ask * shaft_bp / 10_000).min(shaft.max(0));
         let r = &mut w.regions[ri];
         r.last.shaft_supply = shaft;
         r.last.shaft_demand = shaft_demand;
         r.last.elec_supply = led.elec_made + led.elec_from_generators;
         r.last.elec_demand = elec_demand + led.elec_to_motors;
         r.last.power = led;
-        powers.push(RegionPower { ri, shaft_bp: ratio_bp(shaft, shaft_demand), elec_bp: 10_000, shaft_left: shaft, elec_left: elec, elec_demand, elec_short, grid });
+        r.last.site_power_free = site_share;
+        powers.push(RegionPower { ri, shaft_bp, elec_bp: 10_000, shaft_left: shaft - site_share, elec_left: elec, elec_demand, elec_short, grid });
     }
     // the grid shares the surplus among linked regions in deficit; 8% is lost on the way
     let grid_pool = grid_surplus * 92 / 100;

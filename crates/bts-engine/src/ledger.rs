@@ -54,6 +54,12 @@ pub struct RegionLedger {
     /// Workers called up for projects last month and the work projects accepted from them.
     pub project_workers: u32,
     pub project_work_done: i64,
+    /// People reserved as site crews by the orders sited here. They are among the
+    /// workers called up, and hold no other post.
+    pub site_crew: u32,
+    /// How the region's people of working age were occupied when the month's
+    /// labour was given out: one person, one role.
+    pub labor: LaborSummary,
 }
 
 #[derive(Clone, Debug)]
@@ -139,6 +145,9 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
             power: r.last.power.clone(),
             project_workers: r.last.labor.projects,
             project_work_done: r.last.project_work_done,
+            // the crews were reserved by the seat whose economy ran the month here
+            site_crew: r.last.seat.map(|s| w.civs[s as usize].projects.iter().filter(|p| p.region == Some(ri as RegionId)).map(|p| p.crew_counts().1).sum()).unwrap_or(0),
+            labor: r.last.labor.clone(),
         })
         .collect();
     let deposits = w
@@ -269,11 +278,16 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
             out.push(format!("{name}: counts {} learners but its programmes enrol {}", r.students, r.enrolled));
         }
         let p = &r.power;
-        if [p.shaft_made, p.shaft_to_generators, p.shaft_from_motors, p.shaft_used, p.elec_made, p.elec_from_generators, p.elec_to_motors, p.grid_out, p.grid_in, p.elec_used].iter().any(|v| *v < 0) {
+        if [p.shaft_made, p.shaft_to_generators, p.shaft_from_motors, p.shaft_used, p.elec_made, p.elec_from_generators, p.elec_to_motors, p.grid_out, p.grid_in, p.elec_used, p.site_from_supply, p.site_from_engines, p.site_coal, p.site_fuel].iter().any(|v| *v < 0) {
             out.push(format!("{name}: a negative service flow {p:?}"));
         }
-        if p.shaft_used > p.shaft_made - p.shaft_to_generators + p.shaft_from_motors {
+        // works and construction sites together draw no more shaft work than exists
+        if p.shaft_used + p.site_from_supply > p.shaft_made - p.shaft_to_generators + p.shaft_from_motors {
             out.push(format!("{name}: shaft work used exceeds supply {p:?}"));
+        }
+        // site engines deliver only what the coal and fuel they burned can give
+        if p.site_from_engines > p.site_coal * crate::content::SITE_ENGINE_PER_T_COAL + p.site_fuel * crate::content::SITE_ENGINE_PER_T_FUEL {
+            out.push(format!("{name}: site engines delivered more than their fuel gives {p:?}"));
         }
         if p.elec_from_generators > p.shaft_to_generators * 9 / 10 || p.shaft_from_motors * 10 > p.elec_to_motors * 9 {
             out.push(format!("{name}: a conversion returned more than nine tenths {p:?}"));
@@ -289,6 +303,15 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
         }
         if r.project_work_done > r.project_workers as i64 || r.project_work_done < 0 {
             out.push(format!("{name}: projects accepted {} worker-months from {} called-up workers", r.project_work_done, r.project_workers));
+        }
+        // site crews are people called up for projects, and nobody holds two roles
+        if r.site_crew > r.project_workers {
+            out.push(format!("{name}: site crews of {} among {} workers called up", r.site_crew, r.project_workers));
+        }
+        let l = &r.labor;
+        let occupied = l.food as u64 + l.facilities as u64 + l.projects as u64 + l.household as u64 + l.students as u64 + l.teachers as u64;
+        if occupied > l.working_age as u64 {
+            out.push(format!("{name}: {occupied} roles were given to {} residents of working age", l.working_age));
         }
     }
     for s in 0..n {

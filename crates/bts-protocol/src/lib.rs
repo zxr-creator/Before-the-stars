@@ -528,20 +528,100 @@ pub struct VenueSeats {
     pub reserved: u32,
 }
 
+/// One group of a qualified site crew: `count` people who hold any of `quals`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CrewSpec {
+    /// Acceptable qualifications, most preferred first.
+    pub quals: Vec<Qual>,
+    /// People.
+    pub count: u32,
+}
+
+/// One group of a site crew as it stood last month.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CrewOnSite {
+    /// Acceptable qualifications, most preferred first.
+    pub quals: Vec<Qual>,
+    /// People the order needs in this group, and people reserved for it last month.
+    pub needed: u32,
+    pub on_site: u32,
+}
+
+/// The true price of one level of a facility in one region, as it would be charged
+/// if ordered now. An order of `n` levels is charged exactly `n` times the goods,
+/// work, crew and site power stated here and takes the same minimum months.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BuildSiteView {
     /// Worker-months per level, including the first-of-kind surcharge where it applies.
     pub work_per_level: i64,
+    /// Months the order takes at least, whatever is supplied, including the
+    /// first-of-kind surcharge where it applies. The same for any number of levels.
     pub min_months: u16,
     pub kind: String,
     pub max_level: u16,
     pub queued_levels: u16,
+    /// Goods per level, base units (rations, tonnes or lots); committed from stock
+    /// as available and never refunded.
+    #[serde(default)]
+    pub cost_per_level: Vec<GoodQty>,
+    /// Qualified site crew per level, in people: reserved from the region's
+    /// qualified residents while the order is active (they hold no other post) and
+    /// returned when it completes, is paused or is cancelled.
+    #[serde(default)]
+    pub crew_per_level: Vec<CrewSpec>,
+    /// Shaft service the site draws per level in a month of full work, base units
+    /// of 0.1 MWh (1,000 = 100 MWh). Taken from the region's shaft supply; what the
+    /// region cannot give is made by site engines burning coal (1 t for 5 units),
+    /// then refined fuel (1 t for 10 units), from the common stock.
+    #[serde(default)]
+    pub site_power_per_level: i64,
+    /// True when the seat has no installation of this kind anywhere: the work and
+    /// the minimum months above are then half as much again.
+    #[serde(default)]
+    pub first_of_kind: bool,
+}
+
+/// One order in a region's construction queue (builds and the other labour
+/// projects sited in the region), in the order in which they are served.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct QueueEntry {
+    /// Project id, as in [`ProjectView::id`] and `manage_project`.
+    pub project: u32,
+    /// 0-based place in the region's service order; `manage_project` with
+    /// `position` moves an order to another place.
+    pub position: u16,
+    /// Project kind, as in [`ProjectView::kind`].
+    pub kind: String,
+    pub title: String,
+    /// Facility kind for a build order.
+    pub facility: Option<String>,
+    /// Levels a build order adds.
+    pub levels: Option<u16>,
+    pub priority: u8,
+    pub paused: bool,
+    /// Share of the work done, basis points.
+    pub progress_bp: u16,
+    /// The qualified site crew: needed and reserved last month, in people.
+    pub crew: Vec<CrewOnSite>,
+    /// Share of the site power asked for last month that was delivered, basis
+    /// points (10,000 when the site needs none or asked for none).
+    pub power_bp: u16,
+    /// Share of the goods bill committed so far, basis points (the least over the goods).
+    pub goods_bp: u16,
+    /// What the order was short of last month, in words; empty when nothing held it back.
+    pub waiting_for: Vec<String>,
+    pub eta_months_low: Option<u32>,
+    pub eta_months_high: Option<u32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OwnRegion {
     #[serde(default)]
     pub construction_sites: Vec<BuildSiteView>,
+    /// Every project sited in this region, in the order in which crews, labour
+    /// and site power are given out: by priority, then by place in the queue.
+    #[serde(default)]
+    pub construction_queue: Vec<QueueEntry>,
     pub population: u32,
     pub children: u32,
     pub working_age: u32,
@@ -819,6 +899,17 @@ pub struct FacilityType {
     pub requirements: Vec<KnownRequirement>,
     pub available: bool,
     pub labor_category: Option<LaborCategory>,
+    /// Qualified site crew per level under construction, in people (see
+    /// [`BuildSiteView`] for the price as charged in a particular region).
+    #[serde(default)]
+    pub build_crew: Vec<CrewSpec>,
+    /// Shaft service a site draws per level in a month of full work, base units of
+    /// 0.1 MWh (1,000 = 100 MWh).
+    #[serde(default)]
+    pub build_power: i64,
+    /// Minimum months of construction before any first-of-kind surcharge.
+    #[serde(default)]
+    pub build_months: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -883,6 +974,26 @@ pub struct ProjectView {
     pub blockers: Vec<String>,
     pub eta_months_low: Option<u32>,
     pub eta_months_high: Option<u32>,
+    /// The qualified site crew the order needs and had reserved last month, in
+    /// people. Empty for projects that need none.
+    #[serde(default)]
+    pub crew: Vec<CrewOnSite>,
+    /// Shaft service the site draws in a month of full work, base units of 0.1 MWh.
+    #[serde(default)]
+    pub site_power: i64,
+    /// Share of the site power asked for last month that was delivered, basis points.
+    #[serde(default)]
+    pub power_bp: u16,
+    /// Share of the goods bill committed so far, basis points (the least over the goods).
+    #[serde(default)]
+    pub goods_bp: u16,
+    /// Months the project takes at least (0 where no minimum is recorded).
+    #[serde(default)]
+    pub min_months: u16,
+    /// 0-based place in the construction queue of the region the project is sited
+    /// in; absent for projects without a site.
+    #[serde(default)]
+    pub queue_position: Option<u16>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1244,7 +1355,20 @@ pub enum Action {
     SetPolicy { setting: PolicySetting },
     /// `priority` is 0..=9 and lower numbers are served first (default 5).
     StartProject { spec: ProjectSpec, priority: Option<u8> },
-    ManageProject { project: u32, op: ManageOp, priority: Option<u8> },
+    /// Pause, resume or cancel a project, and optionally set its `priority` or move
+    /// it to `position`, the 0-based place in the construction queue of the region it
+    /// is sited in (see [`OwnRegion::construction_queue`]). Moving an order re-sorts
+    /// that region's orders only: they exchange priorities and places among
+    /// themselves, so orders in other regions are served as before. A project
+    /// without a site ignores `position`. To change only the priority or the place
+    /// of a running order, send `op: resume`. Pausing an order releases its site crew.
+    ManageProject {
+        project: u32,
+        op: ManageOp,
+        priority: Option<u8>,
+        #[serde(default)]
+        position: Option<u16>,
+    },
     Investigate { lead: String },
     ProposeReform { practice: String },
     /// `seats` are places for learners, in people (1 to 2,000,000).

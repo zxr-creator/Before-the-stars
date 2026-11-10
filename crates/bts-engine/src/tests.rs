@@ -7,6 +7,8 @@ use crate::state::*;
 use crate::{Match, MatchConfig};
 use bts_protocol::*;
 
+mod construction;
+
 fn cfg(seed: &str) -> MatchConfig {
     MatchConfig { seed: seed.into(), regions: 24, ..Default::default() }
 }
@@ -750,6 +752,8 @@ fn print_unit_tables() {
         println!("{} [{}] ({})", f.name, f.key, f.category);
         println!("    crew {} = {} general + {} qualified{}", group(crew as i64), group(f.general as i64), group(skilled as i64), if crew_txt.is_empty() { String::new() } else { format!(" ({crew_txt})") });
         println!("    build: {} ; {} worker-months", goods(&f.cost), group(f.work));
+        let site_crew = f.crew.iter().map(|(qs, n)| format!("{} {}", group(*n as i64), qs.iter().map(|q| q.label().to_lowercase()).collect::<Vec<_>>().join("/"))).collect::<Vec<_>>().join(" + ");
+        println!("    site: crew {} ; power {} a month ; at least {} months", if site_crew.is_empty() { "none".to_string() } else { site_crew }, disp(f.build_power), f.build_months);
         if !f.upkeep.is_empty() {
             println!("    upkeep: {}", goods(&f.upkeep));
         }
@@ -1299,12 +1303,17 @@ fn project_work_comes_only_from_called_up_workers_and_research_only_from_staffed
     let mut m = Match::new(cfg("work"), 1);
     let capital = m.world.civs[0].capital;
     let home = capital as usize;
-    // builders are called up first; each of them supplies one worker-month like anyone else
+    // builders are called up first, as the site crews of the orders that need them;
+    // each of them supplies one worker-month like anyone else
     endow(&mut m.world, home, Qual::Builder, 30_000);
     m.world.regions[home].forest = 30;
-    let r = m.act(0, vec![Action::StartProject { spec: ProjectSpec::Build { region: capital, facility: "camp".into(), levels: 8 }, priority: None }]);
-    assert_eq!(r[0].status, "accepted", "{}", r[0].reason);
-    let work_needed = m.world.civs[0].projects[0].work_needed;
+    m.world.civs[0].tech[c.t("T021")].state = ST_ADOPTED;
+    let r = m.act(0, vec![
+        Action::StartProject { spec: ProjectSpec::Build { region: capital, facility: "camp".into(), levels: 8 }, priority: None },
+        Action::StartProject { spec: ProjectSpec::Build { region: capital, facility: "waterworks".into(), levels: 4 }, priority: None },
+    ]);
+    assert!(r.iter().all(|x| x.status == "accepted"), "{:?}", r);
+    let work_needed: i64 = m.world.civs[0].projects.iter().map(|p| p.work_needed).sum();
     let mut prev = m.ledger_snapshot();
     let mut done_total = 0;
     for _ in 0..4 {
@@ -1313,7 +1322,17 @@ fn project_work_comes_only_from_called_up_workers_and_research_only_from_staffed
         assert_balanced(&prev, &cur);
         let last = &m.world.regions[home].last;
         assert!(last.project_work_done <= last.labor.projects as i64, "{} worker-months from {} workers", last.project_work_done, last.labor.projects);
-        assert!(last.qual_employed[Qual::Builder.index()] <= last.labor.projects);
+        // the waterworks hold two thousand builders; the camps hold none, and no
+        // builder is called up beyond the crews
+        let crew: u32 = m.world.civs[0].projects.iter().map(|p| p.crew_counts().1).sum();
+        assert_eq!(crew, 2_000);
+        assert!(crew <= last.labor.projects);
+        assert!(last.qual_employed[Qual::Builder.index()] >= crew);
+        // nobody's month is counted twice: what the open orders accepted is in the
+        // region's account, which is at most one worker-month for each crew member
+        // and each other worker called up
+        let accepted: i64 = m.world.civs[0].projects.iter().map(|p| p.last_progress).sum();
+        assert!(accepted > 0 && accepted <= last.project_work_done);
         done_total += last.project_work_done;
         prev = cur;
     }
@@ -1656,6 +1675,46 @@ fn the_audit_notices_goods_people_and_qualifications_from_nothing() {
     assert!(has(&v, "the grid delivered"), "{v:?}");
     let v = cooked(&|w| w.regions[home].last.project_work_done = w.regions[home].last.labor.projects as i64 + 1);
     assert!(has(&v, "worker-months"), "{v:?}");
+    // construction sites: power from nowhere, engines that burned nothing, crews nobody called up
+    let v = cooked(&|w| {
+        w.regions[home].last.seat = Some(0);
+        w.regions[home].last.power.site_from_supply = 1;
+    });
+    assert!(has(&v, "shaft work used exceeds supply"), "{v:?}");
+    let v = cooked(&|w| {
+        w.regions[home].last.seat = Some(0);
+        w.regions[home].last.power.site_coal = 3;
+        w.regions[home].last.power.site_from_engines = 16;
+    });
+    assert!(has(&v, "site engines delivered more than their fuel gives"), "{v:?}");
+    let v = cooked(&|w| {
+        w.regions[home].last.seat = Some(0);
+        let capital = w.civs[0].capital;
+        w.civs[0].projects.push(Project {
+            id: 77,
+            kind: ProjKind::FtlTrial,
+            region: Some(capital),
+            work_needed: 1000,
+            work_done: 0,
+            inputs: vec![],
+            priority: 5,
+            paused: false,
+            started: 0,
+            last_progress: 0,
+            blockers: vec![],
+            max_per_month: 1000,
+            crew: vec![(vec![Qual::Builder], 10)],
+            crew_on_site: vec![w.regions[home].last.labor.projects + 1],
+            crew_capped: false,
+            power_need: 0,
+            power_bp: 0,
+            min_months: 1,
+            order_key: 0,
+        });
+    });
+    assert!(has(&v, "site crews of"), "{v:?}");
+    let v = cooked(&|w| w.regions[home].last.labor.facilities = w.regions[home].last.labor.working_age + 1);
+    assert!(has(&v, "roles were given to"), "{v:?}");
     let v = cooked(&|w| w.civs[0].research_used[0] = w.civs[0].research_cap[0] + 1);
     assert!(has(&v, "researcher-months"), "{v:?}");
     let v = cooked(&|w| w.civs[0].flows.produced[Good::Coal.index()] += 7);
@@ -1812,8 +1871,15 @@ fn a_scripted_match_balances_every_month_for_thirty_years() {
                 Action::StartProject { spec: ProjectSpec::Recruit { region: capital, role: Role::Assault, soldiers: if s == 0 { 60_000 } else { 20_000 }, tier: 0 }, priority: None },
                 Action::StartProject { spec: ProjectSpec::Recruit { region: capital, role: Role::Denial, soldiers: 6_000, tier: 0 }, priority: None },
                 Action::StartProject { spec: ProjectSpec::Build { region: capital, facility: "camp".into(), levels: 2 }, priority: None },
+                // works with site crews and site power: the capital's mills and engines turn for them
+                Action::StartProject { spec: ProjectSpec::Build { region: capital, facility: "steelworks".into(), levels: 1 }, priority: None },
+                Action::StartProject { spec: ProjectSpec::Build { region: capital, facility: "waterworks".into(), levels: 2 }, priority: None },
             ],
         ));
+    }
+    // seats 0 and 1 also build where there is no shaft power at all: site engines burn fuel
+    for (s, far) in [(0u8, far0), (1u8, far1)] {
+        accept(m.act(s, vec![Action::StartProject { spec: ProjectSpec::Build { region: far as RegionId, facility: "parts_works".into(), levels: 1 }, priority: None }]));
     }
     // seat 1 teaches letters in its outlying region, with nobody there able to teach yet
     accept(m.act(1, vec![Action::StartProgram { region: far1 as RegionId, course: "E006".into(), seats: 4_000 }]));
@@ -1833,6 +1899,7 @@ fn a_scripted_match_balances_every_month_for_thirty_years() {
     let mut seen_traded = 0i64;
     let mut seen_grid = 0i64;
     let mut seen_work = 0i64;
+    let (mut seen_crew, mut seen_site_supply, mut seen_site_engines) = (0i64, 0i64, 0i64);
     let mut months = 0;
     for round in 1..=30u32 {
         match round {
@@ -1886,6 +1953,9 @@ fn a_scripted_match_balances_every_month_for_thirty_years() {
                 months += 1;
                 seen_grid += cur.regions.iter().map(|r| r.power.grid_in).sum::<i64>();
                 seen_work += cur.regions.iter().map(|r| r.project_work_done).sum::<i64>();
+                seen_crew += cur.regions.iter().map(|r| r.site_crew as i64).sum::<i64>();
+                seen_site_supply += cur.regions.iter().map(|r| r.power.site_from_supply).sum::<i64>();
+                seen_site_engines += cur.regions.iter().map(|r| r.power.site_from_engines).sum::<i64>();
                 if cur.month % 12 == 0 {
                     for civ in &cur.civs {
                         for g in 0..NG {
@@ -1914,6 +1984,12 @@ fn a_scripted_match_balances_every_month_for_thirty_years() {
     assert!(seen_lost[Good::Food.index()] > 0, "food spoiled");
     assert!(seen_lost[Good::Materials.index()] > 0 && seen_lost[Good::IronOre.index()] > 0, "carriage from the outlying regions cost something");
     assert!(seen_traded > 0 && seen_grid > 0 && seen_work > 0);
+    assert!(seen_crew > 0, "no order held a site crew");
+    assert!(seen_site_supply > 0, "no site drew on a region's shaft work");
+    assert!(seen_site_engines > 0, "no site engine ran");
+    for s in 0..3usize {
+        assert!(m.world.regions[capitals[s]].fac_level("steelworks") >= 2, "seat {s}'s steelworks was never finished");
+    }
     let deposits = &prev.deposits;
     assert!(deposits.iter().any(|d| d.remaining == 0 && d.drawn > 0), "a deposit was worked out");
     assert!(deposits.iter().map(|d| d.drawn - d.delivered).sum::<i64>() > 0, "shallow workings left ore in the ground");

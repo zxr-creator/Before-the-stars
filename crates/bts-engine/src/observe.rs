@@ -250,6 +250,68 @@ fn venue_key(c: Cap) -> (&'static str, &'static str) {
     }
 }
 
+fn crew_spec(crew: &[(Vec<Qual>, u32)]) -> Vec<CrewSpec> {
+    crew.iter().map(|(qs, n)| CrewSpec { quals: qs.clone(), count: *n }).collect()
+}
+
+fn crew_on_site(p: &Project) -> Vec<CrewOnSite> {
+    p.crew.iter().enumerate().map(|(i, (qs, n))| CrewOnSite { quals: qs.clone(), needed: *n, on_site: p.crew_on_site.get(i).copied().unwrap_or(0).min(*n) }).collect()
+}
+
+fn project_kind_key(kind: &ProjKind) -> &'static str {
+    match kind {
+        ProjKind::Build { .. } => "build",
+        ProjKind::Research { .. } => "research",
+        ProjKind::LeadStudy { .. } => "lead",
+        ProjKind::Survey { .. } => "survey",
+        ProjKind::Settle { .. } => "settle",
+        ProjKind::Study { .. } => "study",
+        ProjKind::Resettle { .. } => "resettle",
+        ProjKind::Recruit { .. } => "recruit",
+        ProjKind::Reform { .. } => "reform",
+        ProjKind::Religion { .. } => "religion",
+        ProjKind::FtlTrial => "ftl_trial",
+        ProjKind::FtlDeployment => "ftl_deployment",
+        ProjKind::FtlReplacement => "ftl_replacement",
+    }
+}
+
+/// Share of the site power asked for last month that was delivered; a site that
+/// needs none, or asked for none, is not short of any.
+fn power_share(p: &Project) -> u16 {
+    if p.power_need <= 0 || p.paused { 10_000 } else { p.power_bp }
+}
+
+/// Months of work left at the pace of last month: the pace the crew, the labour,
+/// the site power and the goods then allowed, and never faster than the minimum
+/// duration allows. An order that has not been served yet is assumed to get all it
+/// asks for; one that stood still has no estimate.
+fn eta_months(p: &Project) -> (Option<u32>, Option<u32>) {
+    let remaining = (p.work_needed - p.work_done).max(0);
+    let full = p.max_per_month.max(1);
+    let pace = if p.paused {
+        0
+    } else if p.last_progress > 0 {
+        p.last_progress.min(full)
+    } else if p.work_done == 0 && p.blockers.is_empty() {
+        full
+    } else {
+        0
+    };
+    if pace <= 0 {
+        return (None, None);
+    }
+    let low = ((remaining + pace - 1) / pace) as u32;
+    (Some(low), Some(low + low / 2 + 1))
+}
+
+/// The projects sited in a region, in the order in which they are served.
+fn region_queue(civ: &Civ, region: usize) -> Vec<&Project> {
+    let mut queue: Vec<&Project> = civ.projects.iter().filter(|p| p.region == Some(region as RegionId)).collect();
+    queue.sort_by_key(|p| p.service_key());
+    queue
+}
+
 fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
     let c = content();
     let r = &w.regions[ri];
@@ -288,17 +350,56 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
         .map(|q| QualCount { qual: *q, count: r.quals[q.index()], employed: r.last.qual_employed.get(q.index()).copied().unwrap_or(0) + r.teachers[q.index()] })
         .collect();
     let slot = (w.month % 12) as usize;
+    let construction_queue = region_queue(&w.civs[seat as usize], ri)
+        .into_iter()
+        .enumerate()
+        .map(|(position, p)| {
+            let (eta_months_low, eta_months_high) = eta_months(p);
+            QueueEntry {
+                project: p.id,
+                position: position as u16,
+                kind: project_kind_key(&p.kind).to_string(),
+                title: projects::project_title(w, &p.kind, p.region),
+                facility: match &p.kind {
+                    ProjKind::Build { facility, .. } => Some(c.facilities[*facility].key.to_string()),
+                    _ => None,
+                },
+                levels: match p.kind {
+                    ProjKind::Build { levels, .. } => Some(levels),
+                    _ => None,
+                },
+                priority: p.priority,
+                paused: p.paused,
+                progress_bp: ratio_bp(p.work_done, p.work_needed) as u16,
+                crew: crew_on_site(p),
+                power_bp: power_share(p),
+                goods_bp: p.goods_bp() as u16,
+                waiting_for: p.blockers.clone(),
+                eta_months_low,
+                eta_months_high,
+            }
+        })
+        .collect();
     OwnRegion {
-        construction_sites: c.facilities.iter().enumerate().filter(|(k, _)| facility_visible(w, seat, *k)).map(|(k, def)| BuildSiteView {
-            kind: def.key.to_string(),
-            work_per_level: { let base = projects::scaled(def.work, w.cfg.pace_bp); if projects::civ_has_facility(w, seat, k) { base } else { base * 3 / 2 } },
-            min_months: if def.work >= 1_000_000 { 12 } else if def.work >= 100_000 { 6 } else { 2 },
-            max_level: economy::level_cap(w, seat, ri, def),
-            queued_levels: w.civs[seat as usize].projects.iter().filter(|p| p.region == Some(ri as RegionId)).map(|p| match p.kind {
-                ProjKind::Build { facility, levels } if facility == k => levels,
-                _ => 0,
-            }).sum(),
+        // the price of one more level here, exactly as an order placed now is charged
+        construction_sites: c.facilities.iter().enumerate().filter(|(k, _)| facility_visible(w, seat, *k)).map(|(k, def)| {
+            let quote = projects::build_quote(w, seat, k);
+            BuildSiteView {
+                kind: def.key.to_string(),
+                work_per_level: quote.work,
+                min_months: quote.months,
+                max_level: economy::level_cap(w, seat, ri, def),
+                queued_levels: w.civs[seat as usize].projects.iter().filter(|p| p.region == Some(ri as RegionId)).map(|p| match p.kind {
+                    ProjKind::Build { facility, levels } if facility == k => levels,
+                    _ => 0,
+                }).sum(),
+                cost_per_level: qty(&quote.cost),
+                crew_per_level: crew_spec(&quote.crew),
+                site_power_per_level: quote.power,
+                first_of_kind: quote.first,
+            }
         }).collect(),
+        construction_queue,
         population: r.population(),
         children: r.children(),
         working_age: r.working(),
@@ -805,6 +906,9 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             requirements,
             available: def.req.eval(&ctx),
             labor_category: def.labor,
+            build_crew: crew_spec(&def.crew),
+            build_power: def.build_power,
+            build_months: projects::build_months(def.build_months, w.cfg.pace_bp) as u16,
         });
     }
     let mut cat_courses = Vec::new();
@@ -857,27 +961,11 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         .projects
         .iter()
         .map(|p| {
-            let remaining = (p.work_needed - p.work_done).max(0);
-            let eta = if p.last_progress > 0 { Some(((remaining + p.last_progress - 1) / p.last_progress) as u32) } else { None };
+            let (eta_low, eta_high) = eta_months(p);
             ProjectView {
                 levels: match p.kind { ProjKind::Build { levels, .. } => Some(levels), _ => None },
                 id: p.id,
-                kind: match &p.kind {
-                    ProjKind::Build { .. } => "build",
-                    ProjKind::Research { .. } => "research",
-                    ProjKind::LeadStudy { .. } => "lead",
-                    ProjKind::Survey { .. } => "survey",
-                    ProjKind::Settle { .. } => "settle",
-                    ProjKind::Study { .. } => "study",
-                    ProjKind::Resettle { .. } => "resettle",
-                    ProjKind::Recruit { .. } => "recruit",
-                    ProjKind::Reform { .. } => "reform",
-                    ProjKind::Religion { .. } => "religion",
-                    ProjKind::FtlTrial => "ftl_trial",
-                    ProjKind::FtlDeployment => "ftl_deployment",
-                    ProjKind::FtlReplacement => "ftl_replacement",
-                }
-                .to_string(),
+                kind: project_kind_key(&p.kind).to_string(),
                 title: projects::project_title(w, &p.kind, p.region),
                 region: match &p.kind {
                     ProjKind::Survey { region } => Some(*region),
@@ -900,8 +988,14 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
                 started_month: p.started,
                 last_progress: p.last_progress,
                 blockers: p.blockers.clone(),
-                eta_months_low: eta,
-                eta_months_high: eta.map(|e| e + e / 2 + 1),
+                eta_months_low: eta_low,
+                eta_months_high: eta_high,
+                crew: crew_on_site(p),
+                site_power: p.power_need,
+                power_bp: power_share(p),
+                goods_bp: p.goods_bp() as u16,
+                min_months: p.min_months,
+                queue_position: p.region.and_then(|r| region_queue(civ, r as usize).iter().position(|x| x.id == p.id)).map(|i| i as u16),
             }
         })
         .collect();

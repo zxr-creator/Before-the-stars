@@ -16,9 +16,11 @@
 //!   territory changing hands), per civilization and for the world;
 //! - people: residents plus soldiers of the world change by births less deaths;
 //! - roles: no region has more qualified people and learners than working-age
-//!   residents, or more instructors than holders;
+//!   residents, or more instructors than holders; the month's labour gives nobody
+//!   two roles, and site crews are among the workers called up for projects;
 //! - services: shaft and electric service used never exceed supply after
-//!   conversion and grid loss; compute used never exceeds what was installed the
+//!   conversion and grid loss, construction sites included; site engines deliver
+//!   no more than the coal and fuel they burned gives; compute used never exceeds what was installed the
 //!   month before; research used never exceeds the researcher-months of staffed
 //!   posts; project work never exceeds the workers called up;
 //! - deposits: every tonne of ore booked as produced was delivered by a deposit,
@@ -91,6 +93,11 @@ struct Seen {
     project_work: i64,
     research_used: i64,
     eliminated: usize,
+    /// Person-months spent on site crews, and site power drawn from the regions'
+    /// shaft work and from site engines.
+    site_crew_months: i64,
+    site_power_from_supply: i64,
+    site_power_from_engines: i64,
 }
 
 fn audit(seed: &str, controllers: Vec<ControllerKind>, rounds: u32) -> Seen {
@@ -112,6 +119,9 @@ fn audit(seed: &str, controllers: Vec<ControllerKind>, rounds: u32) -> Seen {
                 seen.grid_shared += cur.regions.iter().map(|r| r.power.grid_in).sum::<i64>();
                 seen.compute_used += cur.civs.iter().map(|c| c.compute_used).sum::<i64>();
                 seen.project_work += cur.regions.iter().map(|r| r.project_work_done).sum::<i64>();
+                seen.site_crew_months += cur.regions.iter().map(|r| r.site_crew as i64).sum::<i64>();
+                seen.site_power_from_supply += cur.regions.iter().map(|r| r.power.site_from_supply).sum::<i64>();
+                seen.site_power_from_engines += cur.regions.iter().map(|r| r.power.site_from_engines).sum::<i64>();
                 seen.research_used += cur.civs.iter().map(|c| c.research_used.iter().sum::<i64>()).sum::<i64>();
                 if cur.month % 12 == 0 {
                     // the goods accounts are closed after the round's last month
@@ -162,14 +172,15 @@ fn all_ai_matches_balance_every_month_for_three_hundred_months() {
     }
 }
 
-/// Two whole campaigns (2,880 months each), every month audited. Between them they
+/// Three whole campaigns (2,880 months each), every month audited. Between them they
 /// include settlement, recruitment, war, regions changing hands, trade, mining,
 /// electricity shared over a grid and compute, so every ledger channel that exists
 /// in this ruleset is exercised under the audit.
 #[test]
 fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment() {
     let mut total = Seen::default();
-    for (seed, controllers) in [("riverland", mixed()), ("eval-4", vec![ControllerKind::NativeMedium; 4])] {
+    // (the third world is one in which a war moves borders under this ruleset)
+    for (seed, controllers) in [("riverland", mixed()), ("eval-4", vec![ControllerKind::NativeMedium; 4]), ("war-2", mixed())] {
         let seen = audit(seed, controllers, 240);
         eprintln!("{seed}: {seen:?}");
         assert_eq!(seen.months, 2880, "{seed}: {seen:?}");
@@ -179,6 +190,11 @@ fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment()
         assert!(seen.trained > 0 && seen.entered > 0 && seen.died > 0 && seen.retired > 0, "{seed}: {seen:?}");
         assert!(seen.ore_delivered > 0 && seen.ore_left_in_the_ground > 0, "{seed}: {seen:?}");
         assert!(seen.electricity_used > 0 && seen.compute_used > 0, "{seed}: {seen:?}");
+        // construction held qualified crews and drew site power in every campaign
+        assert!(seen.site_crew_months > 0, "{seed}: no order held a site crew: {seen:?}");
+        assert!(seen.site_power_from_supply + seen.site_power_from_engines > 0, "{seed}: no site drew power: {seen:?}");
+        total.site_power_from_supply += seen.site_power_from_supply;
+        total.site_power_from_engines += seen.site_power_from_engines;
         total.changed_hands += seen.changed_hands;
         total.traded += seen.traded;
         total.returned += seen.returned;
@@ -186,6 +202,8 @@ fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment()
         total.eliminated += seen.eliminated;
     }
     // war that moves a border, trade, closed courses and a shared grid occur in at least one
-    assert!(total.changed_hands > 0, "no region changed hands in either campaign: {total:?}");
-    assert!(total.grid_shared > 0, "no electricity crossed a grid in either campaign: {total:?}");
+    assert!(total.changed_hands > 0, "no region changed hands in any campaign: {total:?}");
+    assert!(total.grid_shared > 0, "no electricity crossed a grid in any campaign: {total:?}");
+    // sites ran both on the regions' own shaft work and on engines burning coal or fuel
+    assert!(total.site_power_from_supply > 0 && total.site_power_from_engines > 0, "site power came from one source only: {total:?}");
 }

@@ -869,6 +869,92 @@ pub struct FacDef {
     /// recipe that puts out goods without goods going in; every other recipe must
     /// take in at least the mass it puts out.
     pub extractive: bool,
+    /// Qualified site crew per level under construction, in people: acceptable
+    /// qualifications in order of preference. Reserved from the region's qualified
+    /// residents while the order is active; they hold no other post meanwhile.
+    pub crew: Vec<(Vec<Qual>, u32)>,
+    /// Shaft service the site draws per level in a month of full work, base units.
+    pub build_power: i64,
+    /// Months a level takes at least, whatever is supplied.
+    pub build_months: u16,
+}
+
+/// Service a tonne of coal, and of refined fuel, gives when burned in site engines:
+/// the conversion of the first steam and combustion engines (units chapter, section 5).
+pub const SITE_ENGINE_PER_T_COAL: i64 = 5;
+pub const SITE_ENGINE_PER_T_FUEL: i64 = 10;
+
+/// What building one level takes besides goods and work: the qualified site crew,
+/// the shaft service drawn in a month of full work (display units) and the
+/// minimum months. Classes and magnitudes follow design chapter 35, slice C.
+///
+/// No entry may be satisfiable only by a qualification whose course cannot be
+/// opened before the facility exists; the engine test
+/// `no_site_crew_needs_people_who_cannot_exist_yet` walks every chain. Hence:
+/// artisans stand in for builders everywhere below the nuclear class, because the
+/// starting people include artisans; smiths and artisans stand in for mechanics at
+/// every works that can be built before a technical institute trains mechanics,
+/// and the institute itself and the other teaching venues need no engineers at
+/// all; technicians stand in for electricians until the nuclear class; the launch
+/// complex needs no orbital crews (life support is investigated there) and the
+/// first station accepts technicians in their place; the jump testbed needs no
+/// jump engineers (their course follows from the experiments run there).
+fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
+    use Qual::*;
+    // builders, or artisans doing a builder's work
+    const B: &[Qual] = &[Builder, Artisan];
+    // millwrights of the first industrial works: mechanics once they exist
+    const ME: &[Qual] = &[Mechanic, Smith, Artisan];
+    // engineers trained at a technical institute
+    const MT: &[Qual] = &[Mechanic, Technician];
+    // the first electrical works are wired by whoever understands machines
+    const EL1: &[Qual] = &[Electrician, Mechanic, Technician];
+    const EL: &[Qual] = &[Electrician, Technician];
+    let (crew, power, months): (&[(&[Qual], u32)], f64, u16) = match key {
+        // subsistence and simple works: hands and time
+        "fields" | "pasture" | "fishery" | "granary" | "camp" | "workshop" | "kiln" | "clinic" | "lodge" | "makers_circle" => (&[], 0.0, 2),
+        "holy_site" => (&[], 0.0, 3),
+        // civil works and early industry: builders
+        "copper_smelter" | "bloomery" | "press" | "instrument_shop" | "archive" | "barracks" => (&[(B, 500)], 0.0, 3),
+        "irrigation" | "mine_copper" | "mine_iron" | "mine_coal" | "mine_minerals" | "waterwheel" | "waterworks" | "school" => (&[(B, 500)], 0.0, 4),
+        "port" | "admin" | "insulation_works" => (&[(B, 1_000)], 0.0, 5),
+        "roads" | "sewers" | "hospital" | "college" | "laboratory" | "tech_institute" => (&[(B, 1_000)], 0.0, 6),
+        // industrial works: builders, millwrights and site power
+        "oilwell" | "machine_shop" | "parts_works" | "wire_works" => (&[(B, 1_000), (ME, 500)], 5.0, 6),
+        "diesel" => (&[(B, 1_000), (ME, 1_000)], 10.0, 8),
+        "steelworks" | "chem_plant" | "steam" => (&[(B, 2_000), (ME, 1_000)], 10.0, 9),
+        "water_treatment" => (&[(B, 2_000), (ME, 500)], 10.0, 9),
+        "institute" => (&[(B, 2_000), (ME, 500)], 5.0, 9),
+        "pharma" => (&[(B, 2_000), (MT, 500)], 10.0, 9),
+        "depot" => (&[(B, 1_000), (MT, 1_000)], 10.0, 8),
+        "rail" => (&[(B, 2_000), (ME, 1_000)], 20.0, 12),
+        "refinery" => (&[(B, 2_000), (MT, 1_000)], 20.0, 12),
+        // electrical and computing works: builders, engineers and electricians
+        "generator" => (&[(B, 1_000), (EL1, 500)], 10.0, 9),
+        "grid" => (&[(B, 1_000), (EL, 1_000)], 10.0, 9),
+        "datacenter" => (&[(B, 1_000), (MT, 500), (EL, 1_000)], 20.0, 9),
+        "computer_works" => (&[(B, 1_000), (MT, 500), (EL, 1_000)], 20.0, 10),
+        "synfuel" => (&[(B, 2_000), (MT, 1_000), (EL, 500)], 30.0, 12),
+        "purifier" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 20.0, 12),
+        "fab" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 30.0, 12),
+        "advanced_lab" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 20.0, 12),
+        "auto_lab" => (&[(B, 2_000), (MT, 1_000), (EL, 2_000)], 30.0, 12),
+        "hydro" => (&[(B, 3_000), (ME, 1_000), (EL1, 1_000)], 20.0, 15),
+        // nuclear, orbital and jump works: the engineers themselves, and years
+        "high_energy" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Scientist], 1_000)], 100.0, 24),
+        "fission" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Scientist], 1_000)], 100.0, 30),
+        "fusion" => (&[(&[Builder], 6_000), (&[Technician], 4_000), (&[Electrician], 4_000), (&[Scientist], 2_000)], 200.0, 36),
+        "launch_complex" => (&[(&[Builder], 6_000), (&[Mechanic], 3_000), (&[Technician], 3_000), (&[Electrician], 2_000), (&[Scientist], 1_000)], 100.0, 24),
+        "orbital_station" => (&[(&[Builder], 4_000), (&[Technician], 3_000), (&[Electrician], 2_000), (&[Scientist], 1_000), (&[Orbital, Technician], 4_000)], 150.0, 30),
+        "orbital_yard" => (&[(&[Builder], 6_000), (&[Mechanic], 4_000), (&[Technician], 4_000), (&[Electrician], 2_000), (&[Orbital], 6_000)], 200.0, 36),
+        "orbital_power" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Orbital], 2_000)], 150.0, 24),
+        "interferometer" => (&[(&[Builder], 2_000), (&[Technician], 2_000), (&[Scientist], 2_000), (&[Orbital], 3_000)], 100.0, 24),
+        "jump_testbed" => (&[(&[Builder], 6_000), (&[Technician], 4_000), (&[Electrician], 4_000), (&[Scientist], 4_000), (&[Orbital], 4_000)], 300.0, 36),
+        "jump_yard" => (&[(&[Builder], 6_000), (&[Mechanic], 4_000), (&[Technician], 4_000), (&[Electrician], 4_000), (&[FtlEngineer], 4_000)], 400.0, 48),
+        "jump_base" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Orbital], 2_000), (&[FtlEngineer], 2_000)], 150.0, 24),
+        _ => panic!("no construction terms for {key}"),
+    };
+    (crew.iter().map(|(qs, n)| (qs.to_vec(), *n)).collect(), m(power), months)
 }
 
 impl Cap {
@@ -984,6 +1070,9 @@ fn fac(key: &'static str, name: &'static str, category: &'static str, desc: &'st
         food: false,
         power_source: false,
         extractive: false,
+        crew: vec![],
+        build_power: 0,
+        build_months: 2,
     })
 }
 impl FB {
@@ -1404,7 +1493,16 @@ fn facilities() -> Vec<FacDef> {
             .recipe(rec("node_ops", "Node operations").inp(&[(Fuel, 4.0), (Electronics, 1.0)]).elec(100.0))
             .provides(Cap::FtlBase, 1.0).upkeep(&[(Spares, 3.0)]).labor(L::Industry).tags(&[Tag::Space]).max(1),
     ];
-    v.into_iter().map(|f| f.0).collect()
+    v.into_iter()
+        .map(|f| {
+            let mut def = f.0;
+            let (crew, power, months) = build_terms(def.key);
+            def.crew = crew;
+            def.build_power = power;
+            def.build_months = months;
+            def
+        })
+        .collect()
 }
 
 // ---------------------------------------------------------------------------

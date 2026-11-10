@@ -1,6 +1,14 @@
 //! Projects (construction, research, surveys, settlement, reform, recruitment,
 //! jump trials) and education programmes. Work comes from real labour or real
 //! research staff; inputs are committed from stock and never refunded.
+//!
+//! Construction and the preparations of the jump programme also need a qualified
+//! site crew (reserved in `economy::step`), site power and a minimum duration. An
+//! order advances each month by the least of what its duration accepts, what its
+//! goods allow, the share of its crew that is present, the labour called up in its
+//! region and the site power delivered; whatever held it back is named in its
+//! blockers. Projects are served by priority and then by their place in the queue
+//! of the region they are sited in (`docs/units-and-scale.md`, section 6).
 
 use crate::content::{content, Cap, Tag};
 use crate::sim::chronicle::{brief, moment};
@@ -64,6 +72,106 @@ pub fn project_title(w: &World, kind: &ProjKind, region: Option<RegionId>) -> St
     }
 }
 
+/// What one level of a facility is charged a seat that orders it now. An order of
+/// `n` levels is charged `n` times the goods, work, crew and site power and takes
+/// the same minimum months, so the quote shown to the seat is exactly the charge.
+pub struct BuildQuote {
+    /// No installation of this kind exists anywhere under the seat: the first one
+    /// is also the prototype and takes half as much work and time again.
+    pub first: bool,
+    /// Worker-months per level.
+    pub work: i64,
+    /// Months the order takes at least.
+    pub months: u16,
+    /// Goods per level, base units.
+    pub cost: Vec<(Good, i64)>,
+    /// Qualified site crew per level, in people.
+    pub crew: Vec<(Vec<Qual>, u32)>,
+    /// Shaft service per level in a month of full work, base units.
+    pub power: i64,
+}
+
+/// Minimum months of a level before any first-of-kind surcharge: the scenario's
+/// pace shortens or lengthens it with the work.
+pub fn build_months(months: u16, pace_bp: u32) -> i64 {
+    ((months as i64 * pace_bp as i64 + 9_999) / 10_000).max(1)
+}
+
+pub fn build_quote(w: &World, seat: SeatId, kind: usize) -> BuildQuote {
+    let def = &content().facilities[kind];
+    let first = !civ_has_facility(w, seat, kind);
+    let mut work = scaled(def.work, w.cfg.pace_bp);
+    let mut months = build_months(def.build_months, w.cfg.pace_bp);
+    if first {
+        work = work * 3 / 2;
+        months = (months * 3 + 1) / 2;
+    }
+    BuildQuote { first, work, months: months.min(u16::MAX as i64) as u16, cost: def.cost.clone(), crew: def.crew.clone(), power: def.build_power }
+}
+
+/// The crews a jump trial, the deployment exercise and a replacement keep on hand
+/// while they are prepared, and the site power they draw in a month of full work.
+pub fn ftl_terms(kind: &ProjKind) -> (Vec<(Vec<Qual>, u32)>, i64) {
+    let (engineers, orbital, power) = match kind {
+        ProjKind::FtlTrial => (4_000, 4_000, 2_000_000),
+        ProjKind::FtlDeployment => (6_000, 6_000, 1_500_000),
+        ProjKind::FtlReplacement => (2_000, 2_000, 500_000),
+        _ => return (Vec::new(), 0),
+    };
+    (vec![(vec![Qual::FtlEngineer], engineers), (vec![Qual::Orbital], orbital)], power)
+}
+
+/// The most work an order with a stated minimum duration accepts in a month: what
+/// spreads its work over exactly that many months.
+pub fn monthly_share(work: i64, months: i64) -> i64 {
+    let months = months.max(1);
+    ((work + months - 1) / months).max(1)
+}
+
+/// Whether the goods an order has, with what the stores hold now, let any more of
+/// its work be done. Used only to decide whether a site is worth setting power
+/// aside for; what is actually committed is decided when the order is served.
+pub fn goods_allow_work(civ: &Civ, p: &Project) -> bool {
+    let mut frac_bp: i64 = 10_000;
+    for (g, needed, committed) in &p.inputs {
+        if *needed > 0 {
+            let reach = (*committed + civ.stock_of(*g).max(0)).min(*needed);
+            frac_bp = frac_bp.min(ratio_bp(reach, *needed));
+        }
+    }
+    muldiv(p.work_needed, frac_bp, 10_000) > p.work_done
+}
+
+/// Deliver up to `ask` of shaft service to a construction site: first from what
+/// the region set aside for its sites this month, then from site engines burning
+/// coal, then refined fuel, out of the common stock (whole tonnes). Returns what
+/// was delivered; everything is booked in the region's service account.
+fn draw_site_power(w: &mut World, seat: SeatId, ri: usize, ask: i64) -> i64 {
+    use crate::content::{SITE_ENGINE_PER_T_COAL, SITE_ENGINE_PER_T_FUEL};
+    let local = ask.min(w.regions[ri].last.site_power_free.max(0)).max(0);
+    w.regions[ri].last.site_power_free -= local;
+    w.regions[ri].last.power.site_from_supply += local;
+    let mut short = ask - local;
+    let mut engines = 0;
+    for (good, per_tonne) in [(Good::Coal, SITE_ENGINE_PER_T_COAL), (Good::Fuel, SITE_ENGINE_PER_T_FUEL)] {
+        if short <= 0 {
+            break;
+        }
+        let burned = w.civs[seat as usize].take(good, (short + per_tonne - 1) / per_tonne);
+        let got = (burned * per_tonne).min(short);
+        short -= got;
+        engines += got;
+        let led = &mut w.regions[ri].last.power;
+        if good == Good::Coal {
+            led.site_coal += burned;
+        } else {
+            led.site_fuel += burned;
+        }
+    }
+    w.regions[ri].last.power.site_from_engines += engines;
+    local + engines
+}
+
 pub fn step(w: &mut World, seat: SeatId) {
     let si = seat as usize;
     if w.civs[si].status == SeatStatus::Eliminated {
@@ -71,7 +179,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
     let c = content();
     let mut order: Vec<usize> = (0..w.civs[si].projects.len()).collect();
-    order.sort_by_key(|i| (w.civs[si].projects[*i].priority, w.civs[si].projects[*i].id));
+    order.sort_by_key(|i| w.civs[si].projects[*i].service_key());
     let mut pools = w.civs[si].research_cap.clone();
     let mut used = vec![0i64; ResearchClass::COUNT];
     let mut done: Vec<u32> = Vec::new();
@@ -83,7 +191,12 @@ pub fn step(w: &mut World, seat: SeatId) {
             (p.kind.clone(), p.region, p.paused)
         };
         if paused {
-            w.civs[si].projects[i].last_progress = 0;
+            // a paused order holds no crew, draws nothing and reports nothing
+            let p = &mut w.civs[si].projects[i];
+            p.last_progress = 0;
+            p.blockers.clear();
+            p.crew_on_site.iter_mut().for_each(|n| *n = 0);
+            p.power_bp = 0;
             continue;
         }
         let mut blockers: Vec<String> = Vec::new();
@@ -148,14 +261,51 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
             progress = got;
         } else if let Some(r) = region {
-            // work is done only by the workers called up in the project's region this month
-            let free = w.regions[r as usize].last.project_labor_free.max(0);
-            if free < progress {
-                blockers.push(format!("Little labour can be called up in {}", w.regions[r as usize].name));
+            let ri = r as usize;
+            // the qualified site crew: the site works at the share of its crew that
+            // is present, and a group that is missing altogether stops it
+            let (crew_bp, crew_on, power_need, capped) = {
+                let p = &w.civs[si].projects[i];
+                for (e, (quals, need)) in p.crew.iter().enumerate() {
+                    let on = p.crew_on_site.get(e).copied().unwrap_or(0);
+                    if on < *need {
+                        blockers.push(format!("Site crew short: {} of {} {}", group(on as i64), group(*need as i64), quals.first().map(|q| q.label().to_lowercase()).unwrap_or_default()));
+                    }
+                }
+                (p.crew_bp(), p.crew_counts().1 as i64, p.power_need, p.crew_capped)
+            };
+            // a crew can be short because the region's call-up is used up, whoever lives there
+            let labour_short = format!("Little labour can be called up in {}", w.regions[ri].name);
+            if capped {
+                blockers.push(labour_short.clone());
             }
-            progress = progress.min(free);
-            w.regions[r as usize].last.project_labor_free -= progress;
-            w.regions[r as usize].last.project_work_done += progress;
+            // (a share of the month's full work, so the last of an order is not
+            // rounded away under a crew that is a few people short)
+            progress = progress.min(muldiv(max_pm, crew_bp, 10_000));
+            // work is done only by people called up in the project's region this
+            // month: the site's own crew first, then the region's other workers
+            let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
+            let own = crew_on * unrest_factor / 10_000;
+            let free = w.regions[ri].last.project_labor_free.max(0);
+            if own + free < progress && !blockers.contains(&labour_short) {
+                blockers.push(labour_short);
+            }
+            progress = progress.min(own + free);
+            // site power for the work that can be done this month: from the region's
+            // supply, then from site engines; what is not delivered is work not done
+            let mut power_bp: i64 = 10_000;
+            if power_need > 0 && progress > 0 {
+                let ask = ((power_need as i128 * progress as i128 + max_pm.max(1) as i128 - 1) / max_pm.max(1) as i128) as i64;
+                let got = draw_site_power(w, seat, ri, ask);
+                if got < ask {
+                    power_bp = ratio_bp(got, ask);
+                    blockers.push(format!("Site power short: {}% delivered", power_bp / 100));
+                    progress = muldiv(progress, got, ask);
+                }
+            }
+            w.civs[si].projects[i].power_bp = power_bp as u16;
+            w.regions[ri].last.project_labor_free -= (progress - own).max(0);
+            w.regions[ri].last.project_work_done += progress;
         } else {
             // work without a place to do it has nobody to do it
             progress = 0;

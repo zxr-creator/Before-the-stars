@@ -161,10 +161,11 @@ pub struct Facility {
 /// units of 0.1 MWh. Service is never stored: what is not used in the month is gone.
 ///
 /// The identities the conservation tests assert:
-/// `shaft_used <= shaft_made - shaft_to_generators + shaft_from_motors`,
+/// `shaft_used + site_from_supply <= shaft_made - shaft_to_generators + shaft_from_motors`,
 /// `elec_from_generators <= shaft_to_generators * 9 / 10`,
 /// `shaft_from_motors <= elec_to_motors * 9 / 10`,
 /// `elec_used + elec_to_motors + grid_out <= elec_made + elec_from_generators + grid_in`,
+/// `site_from_engines <= site_coal * 5 + site_fuel * 10`,
 /// and, over the regions of one civilization, `sum(grid_in) <= sum(grid_out) * 92 / 100`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PowerLedger {
@@ -187,6 +188,18 @@ pub struct PowerLedger {
     pub grid_in: i64,
     /// Electricity the region's recipes actually drew.
     pub elec_used: i64,
+    /// Shaft work construction sites drew from the region's own supply.
+    #[serde(default)]
+    pub site_from_supply: i64,
+    /// Service site engines delivered to construction sites, all of it used there.
+    #[serde(default)]
+    pub site_from_engines: i64,
+    /// Tonnes of coal and of refined fuel the site engines burned for it, taken
+    /// from the common stock and booked as consumed.
+    #[serde(default)]
+    pub site_coal: i64,
+    #[serde(default)]
+    pub site_fuel: i64,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -212,7 +225,12 @@ pub struct RegionMonth {
     pub qual_employed: Vec<u32>,
     pub tag_staff: Vec<u32>,
     /// Worker-months of called-up labour not yet assigned to a project this month.
+    /// Site crews are not in this pool: each works only on its own order.
     pub project_labor_free: i64,
+    /// Shaft work set aside from the region's supply for its construction sites
+    /// this month and not yet drawn by one. What no site draws is not used at all.
+    #[serde(default)]
+    pub site_power_free: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -402,6 +420,65 @@ pub struct Project {
     pub last_progress: i64,
     pub blockers: Vec<String>,
     pub max_per_month: i64,
+    /// Qualified site crew the whole order needs, in people: acceptable
+    /// qualifications in order of preference (per level x levels for a build).
+    #[serde(default)]
+    pub crew: Vec<(Vec<Qual>, u32)>,
+    /// People reserved for the order this month, parallel to `crew`. They hold no
+    /// other post, are counted under the region's project labour and each supplies
+    /// one worker-month to this order.
+    #[serde(default)]
+    pub crew_on_site: Vec<u32>,
+    /// The region's call-up was used up before this order's crew was complete this
+    /// month: the crew is short of callable labour, whoever lives there.
+    #[serde(default)]
+    pub crew_capped: bool,
+    /// Shaft service the site draws in a month of full work, base units.
+    #[serde(default)]
+    pub power_need: i64,
+    /// Share of the site power asked for this month that was delivered, basis points.
+    #[serde(default)]
+    pub power_bp: u16,
+    /// Months the order takes at least (0 where the project kind states none).
+    #[serde(default)]
+    pub min_months: u16,
+    /// Place in the service order among orders of equal priority; 0 stands for the
+    /// project's id, so orders are served in the order they were given until moved.
+    #[serde(default)]
+    pub order_key: u32,
+}
+
+impl Project {
+    /// The order in which projects are served: priority, place in the queue, id.
+    pub fn service_key(&self) -> (u8, u32, u32) {
+        (self.priority, if self.order_key == 0 { self.id } else { self.order_key }, self.id)
+    }
+    /// People the site crew needs and people it has this month.
+    pub fn crew_counts(&self) -> (u32, u32) {
+        (self.crew.iter().map(|(_, n)| *n).sum(), self.crew_on_site.iter().sum())
+    }
+    /// The share of the site crew present, basis points: the least over the groups
+    /// of the crew, so a group that is missing altogether stops the site.
+    pub fn crew_bp(&self) -> i64 {
+        let mut bp = 10_000i64;
+        for (i, (_, need)) in self.crew.iter().enumerate() {
+            if *need > 0 {
+                let on = self.crew_on_site.get(i).copied().unwrap_or(0);
+                bp = bp.min(on as i64 * 10_000 / *need as i64);
+            }
+        }
+        bp
+    }
+    /// The share of the goods bill committed, basis points: the least over the goods.
+    pub fn goods_bp(&self) -> i64 {
+        let mut bp = 10_000i64;
+        for (_, needed, committed) in &self.inputs {
+            if *needed > 0 {
+                bp = bp.min(crate::util::ratio_bp(*committed, *needed));
+            }
+        }
+        bp
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -8,6 +8,13 @@
 //! Difficulty changes how many candidate actions it may take, how far ahead it
 //! prepares and how carefully it weighs offers — never resources or information.
 //!
+//! Construction needs a qualified site crew, site power and time besides goods and
+//! labour. The controller reads the price of every order from the quote its
+//! observation carries (`OwnRegion.construction_sites`) and orders only what the
+//! region's qualified residents, its call-up and its power (or coal and fuel in
+//! store) can serve; it trains the people its orders are short of, and pauses an
+//! order that holds part of a crew while the rest cannot be found.
+//!
 //! Head counts in an observation are real people; goods are base units (rations,
 //! tonnes, lots) with 1,000 to the display unit. Thresholds below are written in
 //! those units, and anything per person is stated per thousand people.
@@ -77,6 +84,27 @@ struct Plan<'a> {
     builds: HashMap<RegionId, usize>,
     planned: HashSet<(RegionId, String)>,
     idle: HashMap<RegionId, i64>,
+    /// Qualified residents of each governed region who can still be put on a site
+    /// crew this round: those without a post, and a quarter of those in one (a crew
+    /// outranks a post, but thinning the works has a cost).
+    crew_pool: HashMap<(RegionId, Qual), i64>,
+    /// Qualified people without a post anywhere under this seat: they move to a
+    /// site that is short of them, a few each month.
+    crew_spare: HashMap<Qual, i64>,
+    /// People this seat's orders are short of, by the qualification asked for first.
+    crew_wanted: HashMap<Qual, i64>,
+    /// Shaft work each region has to spare for sites (base units a month).
+    shaft_spare: HashMap<RegionId, i64>,
+    /// People each region can still put on site crews within the call-up its
+    /// practices allow, leaving a quarter of the call-up for plain labour.
+    callup_room: HashMap<RegionId, i64>,
+    /// Open orders that stand still for want of their site crew.
+    crew_stalled: usize,
+}
+
+/// Whether an open order has stood still because part of its site crew is missing.
+fn crew_stalled(p: &ProjectView) -> bool {
+    !p.paused && p.last_progress == 0 && p.crew.iter().any(|c| c.on_site < c.needed)
 }
 
 impl<'a> Plan<'a> {
@@ -86,23 +114,160 @@ impl<'a> Plan<'a> {
             avail.insert(g.good, g.stock);
         }
         let mut builds = HashMap::new();
+        let mut crew_stalled_count = 0;
         for p in &obs.projects {
             for (need, have) in p.inputs_needed.iter().zip(p.inputs_committed.iter()) {
                 *avail.entry(need.good).or_insert(0) -= (need.amount - have.amount).max(0);
             }
-            if p.kind == "build" {
+            if crew_stalled(p) {
+                crew_stalled_count += 1;
+            }
+            // an order that is paused, or waiting for people who do not exist yet, is
+            // not using the region's builders: it does not count against new orders
+            if p.kind == "build" && !p.paused && !crew_stalled(p) {
                 if let Some(r) = p.region {
                     *builds.entry(r).or_insert(0) += 1;
                 }
             }
         }
         let mut idle = HashMap::new();
+        let mut crew_pool = HashMap::new();
+        let mut crew_spare: HashMap<Qual, i64> = HashMap::new();
+        let mut shaft_spare = HashMap::new();
+        let mut callup_room = HashMap::new();
         for r in &obs.regions {
             if let Some(o) = &r.own {
                 idle.insert(r.id, o.labor.household as i64);
+                for q in &o.quals {
+                    let free = (q.count as i64 - q.employed as i64).max(0);
+                    crew_pool.insert((r.id, q.qual), free + q.employed.min(q.count) as i64 / 4);
+                    *crew_spare.entry(q.qual).or_insert(0) += free;
+                }
+                shaft_spare.insert(r.id, (o.power.shaft_supply - o.power.shaft_demand).max(0));
+                // the share of the people not needed for food that may be called up,
+                // less the crews the region's open orders already ask for
+                let l = &o.labor;
+                let nonfood = (l.working_age as i64 * 92 / 100 - l.students as i64 - l.teachers as i64 - l.food as i64).max(0);
+                let cap = nonfood * obs.civ.mobilization_cap_bp as i64 / 10_000 * obs.civ.policies.mobilization_bp as i64 / 10_000;
+                let asked: i64 = obs.projects.iter().filter(|p| !p.paused && p.region == Some(r.id)).flat_map(|p| p.crew.iter()).map(|c| c.needed as i64).sum();
+                callup_room.insert(r.id, cap * 3 / 4 - asked);
             }
         }
-        Plan { obs, diff, actions: Vec::new(), budget: diff.candidates(), avail, wanted: HashSet::new(), builds, planned: HashSet::new(), idle }
+        Plan { obs, diff, actions: Vec::new(), budget: diff.candidates(), avail, wanted: HashSet::new(), builds, planned: HashSet::new(), idle, crew_pool, crew_spare, crew_wanted: HashMap::new(), shaft_spare, callup_room, crew_stalled: crew_stalled_count }
+    }
+    /// The price of one more level of a facility in a region, as the seat is quoted it.
+    fn quote(&self, region: &RegionView, kind: &str) -> Option<&'a BuildSiteView> {
+        let obs: &'a Observation = self.obs;
+        obs.regions.iter().find(|r| r.id == region.id).and_then(|r| r.own.as_ref()).and_then(|o| o.construction_sites.iter().find(|s| s.kind == kind))
+    }
+    /// How a site crew could be drawn from a pool of people by qualification: for
+    /// each group, the people taken from each acceptable qualification in order of
+    /// preference. `Err` names, for each group that cannot be filled, the
+    /// qualification asked for first and how many are missing.
+    fn draw_crew(pool: &dyn Fn(Qual) -> i64, crew: &[(Vec<Qual>, i64)]) -> Result<Vec<(Qual, i64)>, Vec<(Qual, i64)>> {
+        let mut taken: Vec<(Qual, i64)> = Vec::new();
+        let mut short: Vec<(Qual, i64)> = Vec::new();
+        for (quals, need) in crew {
+            let mut left = *need;
+            for q in quals {
+                let already: i64 = taken.iter().filter(|(x, _)| x == q).map(|(_, n)| *n).sum();
+                let take = left.min((pool(*q) - already).max(0));
+                if take > 0 {
+                    taken.push((*q, take));
+                    left -= take;
+                }
+                if left == 0 {
+                    break;
+                }
+            }
+            if left > 0 {
+                if let Some(q) = quals.first() {
+                    short.push((*q, left));
+                }
+            }
+        }
+        if short.is_empty() { Ok(taken) } else { Err(short) }
+    }
+    /// Reserve a site crew for an order in a region: from the region's own people,
+    /// or failing that from qualified people without a post elsewhere, who will move
+    /// to the site (only while no other order is already waiting for such a move).
+    /// When neither can crew it, the missing people are noted so they get trained.
+    fn reserve_crew(&mut self, region: RegionId, crew: &[(Vec<Qual>, i64)], may_move: bool) -> bool {
+        if crew.is_empty() {
+            return true;
+        }
+        // a region whose call-up cannot hold the crew cannot build it, whoever lives there
+        let heads: i64 = crew.iter().map(|c| c.1).sum();
+        if heads > *self.callup_room.get(&region).unwrap_or(&0) {
+            return false;
+        }
+        let local = Self::draw_crew(&|q| *self.crew_pool.get(&(region, q)).unwrap_or(&0), crew);
+        match local {
+            Ok(taken) => {
+                for (q, n) in taken {
+                    *self.crew_pool.entry((region, q)).or_insert(0) -= n;
+                    *self.crew_spare.entry(q).or_insert(0) -= n;
+                }
+                *self.callup_room.entry(region).or_insert(0) -= heads;
+                true
+            }
+            Err(short) => {
+                if may_move && self.crew_stalled == 0 {
+                    if let Ok(taken) = Self::draw_crew(&|q| *self.crew_spare.get(&q).unwrap_or(&0), crew) {
+                        for (q, n) in taken {
+                            *self.crew_spare.entry(q).or_insert(0) -= n;
+                            *self.crew_pool.entry((region, q)).or_insert(0) -= n;
+                        }
+                        self.crew_stalled += 1;
+                        *self.callup_room.entry(region).or_insert(0) -= heads;
+                        return true;
+                    }
+                }
+                for (q, n) in short {
+                    let w = self.crew_wanted.entry(q).or_insert(0);
+                    *w = (*w).max(n);
+                }
+                false
+            }
+        }
+    }
+    /// Whether a region can crew one level of a facility now, without reserving anyone.
+    fn can_crew(&self, region: &RegionView, kind: &str) -> bool {
+        match self.quote(region, kind) {
+            Some(q) => {
+                let crew: Vec<(Vec<Qual>, i64)> = q.crew_per_level.iter().map(|c| (c.quals.clone(), c.count as i64)).collect();
+                let heads: i64 = crew.iter().map(|c| c.1).sum();
+                (heads == 0 || heads <= *self.callup_room.get(&region.id).unwrap_or(&0)) && Self::draw_crew(&|x| *self.crew_pool.get(&(region.id, x)).unwrap_or(&0), &crew).is_ok()
+            }
+            None => true,
+        }
+    }
+    /// Site power for an order: the region's spare shaft work, or coal or fuel in
+    /// store for the site engines for as long as the order takes at least. Returns
+    /// false, and notes what is missing, when the site would stand without power.
+    fn reserve_site_power(&mut self, region: &RegionView, per_month: i64, months: i64) -> bool {
+        if per_month <= 0 {
+            return true;
+        }
+        let spare = *self.shaft_spare.get(&region.id).unwrap_or(&0);
+        if spare >= per_month {
+            *self.shaft_spare.entry(region.id).or_insert(0) -= per_month;
+            return true;
+        }
+        // site engines: a tonne of coal for 5 units, a tonne of fuel for 10
+        let short = per_month - spare;
+        for (g, per_tonne) in [(Good::Coal, 5), (Good::Fuel, 10)] {
+            let tonnes = (short * months + per_tonne - 1) / per_tonne;
+            let have = *self.avail.get(&g).unwrap_or(&0);
+            let yearly = self.line(g).map(|l| made_in_year(l) - used_in_year(l)).unwrap_or(0);
+            if have >= tonnes || (have >= tonnes / 4 && yearly * months >= tonnes * 12) {
+                *self.avail.entry(g).or_insert(0) -= tonnes;
+                self.shaft_spare.insert(region.id, 0);
+                return true;
+            }
+        }
+        self.wanted.insert(Good::Coal);
+        false
     }
     fn full(&self) -> bool {
         self.actions.len() >= self.budget
@@ -215,7 +380,26 @@ impl<'a> Plan<'a> {
             return false;
         }
         let levels = levels.min(cap - existing).max(1);
-        if !self.affordable(&ft.cost, levels as i64) {
+        // an order needs its goods, its site crew and its site power: all three are
+        // looked at, so that whatever is missing is noted and gets made or trained
+        let goods_ok = self.affordable(&ft.cost, levels as i64);
+        let mut site_ok = true;
+        if let Some(q) = self.quote(region, kind) {
+            let crew: Vec<(Vec<Qual>, i64)> = q.crew_per_level.iter().map(|c| (c.quals.clone(), c.count as i64 * levels as i64)).collect();
+            let saved = (self.crew_pool.clone(), self.crew_spare.clone(), self.crew_stalled, self.callup_room.clone());
+            let crew_ok = self.reserve_crew(region.id, &crew, true);
+            let power = q.site_power_per_level * levels as i64;
+            let power_ok = !goods_ok || !crew_ok || self.reserve_site_power(region, power, q.min_months as i64);
+            site_ok = crew_ok && power_ok;
+            if !(goods_ok && site_ok) {
+                (self.crew_pool, self.crew_spare, self.crew_stalled, self.callup_room) = saved;
+            }
+            if goods_ok && crew_ok && !power_ok && kind != "waterwheel" {
+                // no power for the site and nothing to burn: a mill here would turn for it
+                self.try_build(region, "waterwheel", 1, priority.min(3));
+            }
+        }
+        if !goods_ok || !site_ok {
             return false;
         }
         for c in &ft.cost {
@@ -241,6 +425,10 @@ impl<'a> Plan<'a> {
             let mut score = idle.min(jobs * 3) * 100 / K + link / 10;
             if r.id == self.obs.civ.capital {
                 score += 300;
+            }
+            // a region that has the people for the site crew comes before any that has not
+            if self.can_crew(r, &ft.kind) {
+                score += 1_000_000;
             }
             if best.map(|(s, _)| score > s).unwrap_or(true) {
                 best = Some((score, r));
@@ -624,9 +812,10 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
     // stale projects that never got their inputs free up what they reserved
     for pr in &obs.projects {
         if full && pr.kind == "build" && obs.month > pr.started_month + 180 && pr.work_done * 10 < pr.work_needed {
-            p.push(Action::ManageProject { project: pr.id, op: ManageOp::Cancel, priority: None });
+            p.push(Action::ManageProject { project: pr.id, op: ManageOp::Cancel, priority: None, position: None });
         }
     }
+    site_orders(&mut p, on("economy"));
 
     if on("economy") {
         food_and_water(&mut p, &regions);
@@ -668,6 +857,48 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
     imports.sort();
     ai.memory.imports = imports;
     p.actions
+}
+
+/// Open orders that stand still for want of a site crew or site power. The people
+/// missing are noted so that courses are opened for them; an order that holds part
+/// of a crew while another part is missing altogether is paused, which sends the
+/// people it holds back to their posts, and resumed once the region can crew it;
+/// a site without power makes coal a want.
+fn site_orders(p: &mut Plan, manage: bool) {
+    let obs = p.obs;
+    for pr in &obs.projects {
+        if pr.crew.is_empty() {
+            continue;
+        }
+        let Some(region) = pr.region else { continue };
+        if pr.paused {
+            // only orders this policy paused for their crew are taken up again
+            if pr.kind != "build" {
+                continue;
+            }
+            let crew: Vec<(Vec<Qual>, i64)> = pr.crew.iter().map(|c| (c.quals.clone(), c.needed as i64)).collect();
+            // resumed only when the region itself can crew it: waiting for people
+            // to move in is what it was paused for
+            if p.reserve_crew(region, &crew, false) && manage {
+                p.push(Action::ManageProject { project: pr.id, op: ManageOp::Resume, priority: None, position: None });
+            }
+            continue;
+        }
+        for c in pr.crew.iter().filter(|c| c.on_site < c.needed) {
+            if let Some(q) = c.quals.first() {
+                let w = p.crew_wanted.entry(*q).or_insert(0);
+                *w = (*w).max((c.needed - c.on_site) as i64);
+            }
+        }
+        if pr.blockers.iter().any(|b| b.starts_with("Site power short")) {
+            p.wanted.insert(Good::Coal);
+        }
+        let held: u32 = pr.crew.iter().map(|c| c.on_site).sum();
+        let missing = pr.crew.iter().any(|c| c.needed > 0 && c.on_site == 0);
+        if manage && pr.kind == "build" && pr.last_progress == 0 && missing && held > 0 {
+            p.push(Action::ManageProject { project: pr.id, op: ManageOp::Pause, priority: None, position: None });
+        }
+    }
 }
 
 fn food_and_water(p: &mut Plan, regions: &[&RegionView]) {
@@ -775,7 +1006,7 @@ fn research(ai: &NativeAi, p: &mut Plan) {
     });
     // investigations nobody can staff do not hold a slot; drop them so the reports stay honest
     for x in obs.projects.iter().filter(|x| x.kind == "research" && x.work_done == 0 && class_of(&x.target).map(|k| cap_for(k) == 0).unwrap_or(false)) {
-        p.push(Action::ManageProject { project: x.id, op: ManageOp::Cancel, priority: None });
+        p.push(Action::ManageProject { project: x.id, op: ManageOp::Cancel, priority: None, position: None });
     }
     for t in cands.into_iter().take(slots.saturating_sub(active)) {
         let prio = if needed.contains(t.handle.as_str()) { 3 } else { 5 };
@@ -894,6 +1125,8 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         courses: Vec<&'c CourseType>,
         deficit: i64,
         ratio: i64,
+        /// An order is waiting for people of this qualification on its site.
+        crew: bool,
     }
     let mut needs: Vec<Need> = Vec::new();
     for (q, base) in &targets {
@@ -901,7 +1134,11 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         if courses.is_empty() {
             continue;
         }
-        let target = (*base).max(demand.get(q).copied().unwrap_or(0) * 12 / 10 + 2 * K).max(1);
+        // people an order's site crew is short of come on top of those who already
+        // hold posts: twice the shortfall, so the works are not stripped for the site
+        let crew_short = p.crew_wanted.get(q).copied().unwrap_or(0);
+        let posts = demand.get(q).copied().unwrap_or(0);
+        let target = (*base).max(posts * 12 / 10 + 2 * K).max(if crew_short > 0 { posts + crew_short * 2 + 2 * K } else { 0 }).max(1);
         let training: i64 = obs.programs.iter().filter(|g| courses.iter().any(|c| c.key == g.course)).map(|g| g.enrolled as i64).sum();
         let deficit = target - have(*q) - training;
         if deficit <= 0 {
@@ -909,7 +1146,9 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
                 p.push(Action::ManageProgram { program: g.id, op: ManageOp::Pause, seats: None });
             }
         } else {
-            needs.push(Need { courses, deficit, ratio: (have(*q) + training) * 100 / target });
+            // a qualification an order is waiting for goes to the head of the list
+            let ratio = if crew_short > 0 { -1 } else { (have(*q) + training) * 100 / target };
+            needs.push(Need { courses, deficit, ratio, crew: crew_short > 0 });
         }
     }
     // 2. the most depleted qualifications get attention first
@@ -981,7 +1220,8 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
             if let Some((rid, venue)) = want_venue {
                 if !venue_builds.contains(&venue) && p.fac_type(&venue).map(|f| f.available).unwrap_or(false) {
                     if let Some(r) = regions.iter().find(|r| r.id == rid) {
-                        if p.level(r, &venue) < 10 && p.try_build(r, &venue, 1, 3) {
+                        // a venue an order's crew depends on is not held up by the region's other building
+                        if p.level(r, &venue) < 10 && p.try_build(r, &venue, 1, if n.crew { 2 } else { 3 }) {
                             venue_builds.insert(venue);
                         }
                     }
@@ -1046,7 +1286,7 @@ fn production(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
             let built = if ft.site_key == "any" {
                 p.workplace_region(ft).map(|r| p.try_build(r, &ft.kind, 1, prio)).unwrap_or(false)
             } else {
-                regions.iter().copied().filter(|r| p.level(r, &ft.kind) == 0 && p.site_cap(ft, r) > 0).max_by_key(|r| (*p.idle.get(&r.id).unwrap_or(&0), std::cmp::Reverse(r.id))).map(|r| p.try_build(r, &ft.kind, 2, prio)).unwrap_or(false)
+                regions.iter().copied().filter(|r| p.level(r, &ft.kind) == 0 && p.site_cap(ft, r) > 0).max_by_key(|r| (p.can_crew(r, &ft.kind), *p.idle.get(&r.id).unwrap_or(&0), std::cmp::Reverse(r.id))).map(|r| p.try_build(r, &ft.kind, 2, prio)).unwrap_or(false)
             };
             if built {
                 break;
@@ -1138,9 +1378,14 @@ fn new_capabilities(p: &mut Plan, regions: &[&RegionView], capital: &RegionView)
             continue;
         }
         let target = if ft.site_key == "any" {
-            if ft.category == "Research" || ft.category == "Education" || ft.category == "Civic" { Some(capital) } else { p.workplace_region(ft).or(Some(capital)) }
+            // institutions belong at the capital, unless only another region has the site crew
+            if ft.category == "Research" || ft.category == "Education" || ft.category == "Civic" {
+                if p.can_crew(capital, &ft.kind) { Some(capital) } else { p.workplace_region(ft).filter(|r| p.can_crew(r, &ft.kind)).or(Some(capital)) }
+            } else {
+                p.workplace_region(ft).or(Some(capital))
+            }
         } else {
-            regions.iter().copied().filter(|r| p.site_cap(ft, r) > 0).max_by_key(|r| (*p.idle.get(&r.id).unwrap_or(&0), std::cmp::Reverse(r.id)))
+            regions.iter().copied().filter(|r| p.site_cap(ft, r) > 0).max_by_key(|r| (p.can_crew(r, &ft.kind), *p.idle.get(&r.id).unwrap_or(&0), std::cmp::Reverse(r.id)))
         };
         if let Some(r) = target {
             if p.try_build(r, &ft.kind, 1, 4) {
