@@ -991,6 +991,16 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
             p.wanted.insert(l.good);
         }
     }
+    // the jump programme's base: a year of flight hardware, and of fuel and spares in store
+    if base_short(obs, "Industrial base") {
+        for g in [Good::Components, Good::Electronics, Good::Hardware, Good::Conductors, Good::Metal] {
+            p.wanted.insert(g);
+        }
+    }
+    if base_short(obs, "Logistical base: a year of fuel") {
+        p.wanted.insert(Good::Fuel);
+        p.wanted.insert(Good::Spares);
+    }
     // thirty tool lots and sixty tonnes of materials in hand for every thousand people
     if p.stock(Good::Tools) < 12_000 + pop * 30 / K {
         p.wanted.insert(Good::Tools);
