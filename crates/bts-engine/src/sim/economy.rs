@@ -307,6 +307,39 @@ pub fn stock_target(civ: &Civ, g: Good) -> i64 {
     250_000 + civ.use_ema[g.index()] * 18 + need * 3 / 2
 }
 
+/// Posts of the enabled fields, and of the fishing grounds that work from a harbour,
+/// in the regions a seat governs: the people whose methods can draw chemicals and fuel.
+pub fn field_and_boat_posts(w: &World, seat: SeatId) -> (i64, i64) {
+    let c = content();
+    let (fields_k, fishery_k) = (c.f("fields"), c.f("fishery"));
+    let (field_crew, fishery_crew) = (c.facilities[fields_k].general as i64, c.facilities[fishery_k].general as i64);
+    let (mut field_posts, mut boat_posts) = (0i64, 0i64);
+    for r in w.regions.iter().filter(|r| r.controller == Some(seat)) {
+        if let Some(f) = r.fac(fields_k) {
+            if f.enabled {
+                field_posts += f.level as i64 * field_crew;
+            }
+        }
+        if let Some(f) = r.fac(fishery_k) {
+            if f.enabled && r.cap(Cap::Port) > 0 {
+                boat_posts += f.level as i64 * fishery_crew;
+            }
+        }
+    }
+    (field_posts, boat_posts)
+}
+
+/// Tonnes of fuel that must be in store at the start of a month for the seat's
+/// fields and motor boats to be worked by machine (see [`food_tech`]); nothing
+/// before mechanized work is understood. Site engines never burn into it.
+pub fn fields_fuel_month(w: &World, seat: SeatId) -> i64 {
+    if !w.civs[seat as usize].knows_id("T094") {
+        return 0;
+    }
+    let (field_posts, boat_posts) = field_and_boat_posts(w, seat);
+    (field_posts + boat_posts) * FIELD_FUEL_PER_K / 1000
+}
+
 pub fn step(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
@@ -338,20 +371,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     // a method that needs chemicals or fuel is used only when a full month's draw
     // for every field and motor boat is in store; the draw is taken before anything
     // else this month, so the yield is never credited without its inputs
-    let (mut field_posts, mut boat_posts) = (0i64, 0i64);
-    for &ri in &regs {
-        let r = &w.regions[ri];
-        if let Some(f) = r.fac(fields_k) {
-            if f.enabled {
-                field_posts += f.level as i64 * field_crew as i64;
-            }
-        }
-        if let Some(f) = r.fac(fishery_k) {
-            if f.enabled && r.cap(Cap::Port) > 0 {
-                boat_posts += f.level as i64 * fishery_crew as i64;
-            }
-        }
-    }
+    let (field_posts, boat_posts) = field_and_boat_posts(w, seat);
     let chem_ok = w.civs[si].stock_of(Good::Chemicals) > 0 && w.civs[si].stock_of(Good::Chemicals) >= field_posts * FIELD_CHEM_PER_K / 1000;
     let fuel_ok = w.civs[si].stock_of(Good::Fuel) > 0 && w.civs[si].stock_of(Good::Fuel) >= (field_posts + boat_posts) * FIELD_FUEL_PER_K / 1000;
     let ft = food_tech(&w.civs[si], has_pasture, chem_ok, fuel_ok);

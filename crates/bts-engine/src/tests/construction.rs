@@ -514,6 +514,49 @@ fn site_engines_burn_real_coal_then_fuel_and_local_power_is_used_first() {
 }
 
 #[test]
+fn site_engines_never_burn_the_fuel_the_fields_need_in_store() {
+    let fuel = Good::Fuel.index();
+    let (mut m, capital, home) = site_world("engines-fields");
+    endow(&mut m.world, home, Qual::Builder, 20_000);
+    endow(&mut m.world, home, Qual::Mechanic, 20_000);
+    // ten levels of mechanized fields: a hundred thousand cultivators draw a
+    // thousand tonnes of fuel a month, and must find that much in store to start
+    put_works(&mut m.world.regions[home], "fields", 10);
+    assert_eq!(crate::sim::economy::fields_fuel_month(&m.world, 0), 1_000);
+    let id = order(&mut m, capital, "machine_shop", 2);
+    // the sites ask for 10 units a month: a thousand tonnes of fuel, with no coal about
+    m.world.civs[0].stock[fuel] = 2_400;
+    let used = m.world.civs[0].flows.consumed[fuel];
+    audited_month(&mut m);
+    // the fields took their thousand first; of the 1,400 left the sites may burn 400
+    let led = m.world.regions[home].last.power.clone();
+    assert_eq!((led.site_fuel, led.site_from_engines), (400, 4_000), "{led:?}");
+    assert_eq!(m.world.civs[0].stock[fuel], 1_000);
+    assert_eq!(m.world.civs[0].flows.consumed[fuel] - used, 1_400);
+    assert_eq!(project(&m, id).power_bp, 4_000);
+    assert_eq!(project(&m, id).blockers, vec!["Site power short: 40% delivered".to_string()]);
+    // next month the fields are worked by machine again, and the sites stand still
+    let used = m.world.civs[0].flows.consumed[fuel];
+    audited_month(&mut m);
+    assert_eq!(m.world.civs[0].flows.consumed[fuel] - used, 1_000, "the fields found their fuel");
+    assert_eq!(m.world.regions[home].last.power.site_fuel, 0);
+    assert_eq!(project(&m, id).last_progress, 0);
+    assert_eq!(project(&m, id).blockers, vec!["Site power short: 0% delivered".to_string()]);
+    // a seat that does not work its fields by machine keeps nothing back
+    let (mut m, capital, home) = site_world("engines-no-tractors");
+    m.world.civs[0].tech[content().t("T094")].state = ST_DISCOVERED;
+    endow(&mut m.world, home, Qual::Builder, 20_000);
+    endow(&mut m.world, home, Qual::Mechanic, 20_000);
+    put_works(&mut m.world.regions[home], "fields", 10);
+    assert_eq!(crate::sim::economy::fields_fuel_month(&m.world, 0), 0);
+    let id = order(&mut m, capital, "machine_shop", 2);
+    m.world.civs[0].stock[fuel] = 1_000;
+    audited_month(&mut m);
+    assert_eq!(m.world.regions[home].last.power.site_fuel, 1_000);
+    assert_eq!(project(&m, id).power_bp, 10_000);
+}
+
+#[test]
 fn a_seat_reorders_the_queue_of_a_region_and_the_first_order_is_served_first() {
     let (mut m, capital, home) = site_world("reorder");
     // five hundred builders: one crew, and two orders that each need it

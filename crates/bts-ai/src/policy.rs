@@ -258,7 +258,9 @@ impl<'a> Plan<'a> {
         let short = per_month - spare;
         for (g, per_tonne) in [(Good::Coal, 5), (Good::Fuel, 10)] {
             let tonnes = (short * months + per_tonne - 1) / per_tonne;
-            let have = *self.avail.get(&g).unwrap_or(&0);
+            // fuel the fields and everything else use in two months is not for the sites
+            let kept = if g == Good::Fuel { self.line(g).map(|l| used_in_year(l) / 6).unwrap_or(0) } else { 0 };
+            let have = *self.avail.get(&g).unwrap_or(&0) - kept;
             let yearly = self.line(g).map(|l| made_in_year(l) - used_in_year(l)).unwrap_or(0);
             if have >= tonnes || (have >= tonnes / 4 && yearly * months >= tonnes * 12) {
                 *self.avail.entry(g).or_insert(0) -= tonnes;

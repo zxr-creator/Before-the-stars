@@ -153,11 +153,16 @@ fn draw_site_power(w: &mut World, seat: SeatId, ri: usize, ask: i64) -> i64 {
     w.regions[ri].last.power.site_from_supply += local;
     let mut short = ask - local;
     let mut engines = 0;
+    // the month of fuel the fields and motor boats must find in store is theirs:
+    // a site stands still before it burns the harvest's fuel
+    let fields_fuel = if short > 0 { crate::sim::economy::fields_fuel_month(w, seat) } else { 0 };
     for (good, per_tonne) in [(Good::Coal, SITE_ENGINE_PER_T_COAL), (Good::Fuel, SITE_ENGINE_PER_T_FUEL)] {
         if short <= 0 {
             break;
         }
-        let burned = w.civs[seat as usize].take(good, (short + per_tonne - 1) / per_tonne);
+        let keep = if good == Good::Fuel { fields_fuel } else { 0 };
+        let spare = (w.civs[seat as usize].stock_of(good) - keep).max(0);
+        let burned = w.civs[seat as usize].take(good, ((short + per_tonne - 1) / per_tonne).min(spare));
         let got = (burned * per_tonne).min(short);
         short -= got;
         engines += got;

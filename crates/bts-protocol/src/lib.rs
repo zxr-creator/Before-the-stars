@@ -572,7 +572,8 @@ pub struct BuildSiteView {
     /// Shaft service the site draws per level in a month of full work, base units
     /// of 0.1 MWh (1,000 = 100 MWh). Taken from the region's shaft supply; what the
     /// region cannot give is made by site engines burning coal (1 t for 5 units),
-    /// then refined fuel (1 t for 10 units), from the common stock.
+    /// then refined fuel (1 t for 10 units), from the common stock, but never the
+    /// month of fuel that mechanized fields and motor boats must find in store.
     #[serde(default)]
     pub site_power_per_level: i64,
     /// True when the seat has no installation of this kind anywhere: the work and
