@@ -52,5 +52,16 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 - Service rationing is strict since slice B: an understaffed, underpowered works runs
   at the product of the two shares, not the lesser. All-AI matches end with about the
   same technology and a few percent fewer people than before (`docs/calibration/`).
+- Construction since ruleset 2.0 slice C needs a qualified site crew, site power and
+  a minimum duration besides goods and work (`docs/units-and-scale.md` section 6), and
+  each region has an ordered construction queue. The client does not yet show the
+  quote's crew, site power and minimum months, the queue or the `position` of
+  `manage_project`; the new blockers ("Site crew short: ...", "Site power short: ...")
+  and receipts are English strings without translations. Sites are not fed from the
+  grid, and the native opponents do not move people to a thinly peopled test node
+  whose call-up cannot hold a deployment node's crew. In all-AI matches the last
+  technologies arrive some twenty rounds later than under slice B, because the
+  installations their investigation needs take three to five years each to build
+  (`docs/calibration/`).
 - The economy ledger's own estimates (marked as such in the interface) agreed with the
   referee's totals to within about 25% in 41 of 57 comparisons; the rest diverge more.

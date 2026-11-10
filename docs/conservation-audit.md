@@ -1,4 +1,4 @@
-# Conservation audit (ruleset 2.0, slice B)
+# Conservation audit (ruleset 2.0, slices B and C)
 
 Nothing in the rules engine enters the world from nothing. This chapter lists every
 place where goods, people, qualified people, service (shaft, electric, compute) or
@@ -16,8 +16,8 @@ Units are those of `docs/units-and-scale.md`. File references are to
 | Goods, per civilization and round | `Civ.flows` (`state.rs`, `Flows`): `produced`, `consumed`, `lost`, `traded_in`, `traded_out` | for every good, over any interval: `stock_end - stock_start = produced - consumed - lost + traded_in - traded_out`; over the world, `sum(traded_in) = sum(traded_out)` |
 | People, per civilization and round | `Civ.flows.births`, `Civ.flows.deaths` | residents of all regions plus soldiers of the world change by `births - deaths` |
 | Qualified people, per civilization, cumulative from the start | `Civ.qual_flows` (`QualFlows`): `initial`, `trained`, `entered`, `returned`, `died`, `retired`, `enlisted`, `moved_in`, `moved_out`, `seconded_out`, `seconded_in`, `seconded_lost` | for every qualification, at every moment: holders in the regions the civilization controls `= initial + trained - entered + returned - died - retired - enlisted + moved_in - moved_out - seconded_out + seconded_in - seconded_lost`; over the world `sum(moved_in) = sum(moved_out)` |
-| Roles, per region | `Region.quals`, `students`, `teachers`, `Program.enrolled` | `sum(quals) + students <= working-age residents`; `teachers[q] <= quals[q]`; `students = sum(enrolled)` of the programmes held there |
-| Service, per region and month | `Region.last.power` (`PowerLedger`) | `shaft_used <= shaft_made - shaft_to_generators + shaft_from_motors`; `elec_from_generators <= 0.9 x shaft_to_generators`; `shaft_from_motors <= 0.9 x elec_to_motors`; `elec_used + elec_to_motors + grid_out <= elec_made + elec_from_generators + grid_in`; per civilization `sum(grid_in) <= 0.92 x sum(grid_out)` |
+| Roles, per region | `Region.quals`, `students`, `teachers`, `Program.enrolled`; `Region.last.labor`; `Project.crew_on_site` | `sum(quals) + students <= working-age residents`; `teachers[q] <= quals[q]`; `students = sum(enrolled)` of the programmes held there; when the month's labour is given out, `food + facilities + projects + household + students + teachers <= working-age residents` (one person, one role); the site crews of the orders sited in the region `<=` the workers called up for projects there |
+| Service, per region and month | `Region.last.power` (`PowerLedger`) | `shaft_used + site_from_supply <= shaft_made - shaft_to_generators + shaft_from_motors`; `site_from_engines <= 5 x site_coal + 10 x site_fuel`; `elec_from_generators <= 0.9 x shaft_to_generators`; `shaft_from_motors <= 0.9 x elec_to_motors`; `elec_used + elec_to_motors + grid_out <= elec_made + elec_from_generators + grid_in`; per civilization `sum(grid_in) <= 0.92 x sum(grid_out)` |
 | Compute, per civilization and month | `Civ.compute_supply`, `Civ.compute_used` | `compute_used(month) <= compute_supply(month - 1)` |
 | Work, per region and month | `Region.last.labor.projects`, `Region.last.project_work_done` | `project_work_done <= workers called up` |
 | Research, per civilization and month | `Civ.research_cap`, `Civ.research_used` | `research_used[class] <= research_cap[class]`; `sum(research_cap) <= people in research posts` |
@@ -57,7 +57,8 @@ These are referee-side diagnostics and are never part of a seat's observation.
 
 Goods leave through: eating (`consumed`, one ration per resident and soldier);
 spoilage (`lost`); recipe inputs, upkeep of works and formations, field chemicals and
-fuel, fuel of power stations, course materials, and the bills of projects -
+fuel, fuel of power stations, coal and fuel burned by the engines of construction
+sites, course materials, and the bills of projects -
 construction, surveys, settlers' stores, equipment of recruits, reforms, foundings,
 jump trials - (`consumed`, never refunded); carriage from outlying regions (`lost`);
 deliveries and tribute (`traded_out`); and the stores of a polity that ceases to
@@ -114,21 +115,32 @@ identities after every such change.
 | Generator halls | same | spare shaft work of the region, at nine tenths | `shaft_to_generators`, `elec_from_generators` | `electricity_is_conserved...` |
 | Motors | same | spare electricity of the region, at nine tenths | `elec_to_motors`, `shaft_from_motors` | monthly audits |
 | Grid | same | the surplus that linked regions offer after their own users, at 92% | `grid_out`, `grid_in` | `electricity_is_conserved...` |
+| Site engines | `sim/projects.rs`, `draw_site_power` | coal (5 units a tonne) and then refined fuel (10 units a tonne) taken from stock in whole tonnes, for the site power an order's work of the month needs beyond what the region set aside for its sites; all of it is used on the site | `site_from_engines`, `site_coal`, `site_fuel`; coal and fuel `consumed` | `site_engines_burn_real_coal_then_fuel_and_local_power_is_used_first`, monthly audits |
 | Compute | recipes of computing centres | filled posts and electricity; what is made this month serves next month | `compute_supply`, `compute_used` | `compute_used_never_exceeds_what_was_installed_the_month_before` |
 
 Service is rationed. Each works asks for the service of the posts it has filled, and
 receives the same share of what it asked for as every other works in the region
 (compute: in the nation). The rate of a works is then bounded once more by what is
 left in the account, so the sum drawn can never exceed what exists, to the unit.
+Construction sites ask for shaft work with the works and are rationed with them; their
+share is set aside before any works draws, and a site draws from it only for the work
+it does (`site_from_supply`). What a site does not draw is used by nobody.
 
 ## 6. Sources of work
 
 | Source | Where | What backs it | Ledger | Tests |
 | --- | --- | --- | --- | --- |
-| Project work | `sim/economy.rs` (call-up), `sim/projects.rs` (acceptance) | one worker-month for each worker called up in the project's region that month; the call-up is bounded by the mobilization the practices allow; unrest reduces it | `labor.projects`, `project_work_done` | `project_work_comes_only_from_called_up_workers_and_research_only_from_staffed_posts`, monthly audits |
+| Project work | `sim/economy.rs` (call-up), `sim/projects.rs` (acceptance) | one worker-month for each worker called up in the project's region that month, the members of site crews included (each works only on the order that holds them); the call-up, crews first, is bounded by the mobilization the practices allow; unrest reduces it | `labor.projects`, `project_work_done`, `Project.crew_on_site` | `project_work_comes_only_from_called_up_workers_and_research_only_from_staffed_posts`, `a_site_crew_holds_no_other_post_and_returns_when_the_order_ends`, monthly audits |
 | Research work | `sim/economy.rs` | one researcher-month for each person in a research post, reduced by condition, missing service or inputs, and unrest | `research_cap`, `research_used` | same, `compute_used_never_exceeds...` |
 
 A government that controls no region has no labour, no researchers and no service.
+
+A site crew is not a source of anything: it is people holding a role. Its members are
+qualified residents who are not teaching; while reserved they are in no post of the
+region's works (the works are staffed from who is left), they are counted under
+`labor.projects` and `qual_employed`, and the order's time, goods, work and power are
+all still needed. Minimum durations and first-of-kind surcharges only ever slow an
+order; nothing is credited for them.
 
 ## 7. Leaks found, and how each was closed
 
@@ -198,7 +210,10 @@ Engine (`crates/bts-engine/src/tests.rs`), scripted, no policy:
   close of every month; asserts that every channel of both ledgers moved.
 - One test per source or leak, named in the tables above.
 - `the_audit_notices_goods_people_and_qualifications_from_nothing`: cooks the books
-  in fifteen ways and requires the audit to name each.
+  in nineteen ways and requires the audit to name each.
+- `tests/construction.rs` (slice C): every month of every construction test is
+  audited; the scripted match above also builds works with site crews, on the
+  regions' own shaft work and on site engines.
 - `ledger_fields_default_when_a_save_does_not_have_them`.
 
 All-AI (`crates/bts-ai/tests/conservation.rs`; the engine cannot depend on the
@@ -206,10 +221,10 @@ policy crate):
 
 - `all_ai_matches_balance_every_month_for_three_hundred_months`: three worlds, 300
   months each.
-- `all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment`: two
+- `all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment`: three
   whole campaigns of 2,880 months, which between them include settlement, recruitment,
-  war, regions changing hands, an elimination, trade, mining, a shared grid and
-  compute.
+  war, regions changing hands, an elimination, trade, mining, a shared grid, compute,
+  site crews, and site power from the regions' shaft work and from site engines.
 
 Granularity in all of them: every month, plus one check per round for what the seats'
 decisions themselves changed.

@@ -189,6 +189,58 @@ Engine:
   changes who is served first; the crew returns to posts on completion and
   cancellation.
 
+Implemented; the rule as the engine applies it, with the table of terms by class, is
+section 6 of `docs/units-and-scale.md`, and the tests are in
+`crates/bts-engine/src/tests/construction.rs`. Where the implementation goes beyond
+or differs from the list above:
+
+- The terms of every facility are one table, `content.rs` `build_terms`. Within the
+  guideline: hospitals, colleges, laboratories, insulation works and the technical
+  institute are civil works (builders only, no site power), because they can be built
+  before any engine exists and the institute is where mechanics come from; site power
+  starts at 5 units for the first industrial works; electrical works run 9-15 months.
+- Substitutes that keep every chain open: artisans for builders below the nuclear
+  class; smiths and artisans for mechanics at works that can precede the technical
+  institute; technicians for electricians below the nuclear class (and mechanics at
+  generator halls and hydroelectric works); technicians for orbital crews at the first
+  station only. The launch complex needs no orbital crews and the jump testbed no jump
+  engineers. The walk that proves it (`no_site_crew_needs_people_who_cannot_exist_yet`)
+  also follows goods: the technical institute needs components, so machine shops must
+  be buildable without mechanics.
+- Crew share is the least over the groups of a crew (a missing group stops the site),
+  applied to the month's full share of the work, so the last worker-month of an order
+  is never rounded away.
+- Other project labour is called up after the qualified posts of the region's works
+  are filled and before their general posts, and may be qualified people whom no
+  qualified post took (builders first). Under slice B only builders and unqualified
+  people could be called up, which left a fully schooled region unable to build.
+- Site power is drawn when the work is done, not when the order is open: the region
+  sets the sites' share of its shaft work aside (`RegionMonth.site_power_free`) and
+  each order draws for the work it actually does, so an order that waits for goods
+  burns no coal. `PowerLedger` gains `site_from_supply`, `site_from_engines`,
+  `site_coal`, `site_fuel`; the audit checks `shaft_used + site_from_supply` against
+  supply and the engines against the coal and fuel burned. Site engines need no
+  technology. Sites are not fed from the grid: a region uses its own shaft work and,
+  through motors, its own spare electricity.
+- A crew that is short because the region's call-up is used up also reports "Little
+  labour can be called up" (`Project.crew_capped`). Crew vacancies attract qualified
+  people without a post from the seat's other regions, as vacant posts do.
+- The minimum months scale with the scenario's pace, like the work.
+- `manage_project` gained `position` (no new action variant; the server needed no
+  edit). `ProjectView` also states `goods_bp`, `min_months` and `queue_position`.
+- The estimate of months left uses last month's pace, never faster than the minimum
+  months allow; an order not yet served is estimated at its minimum months, and one
+  that stood still has no estimate.
+- The audit also checks that site crews are among the workers called up and that the
+  month's labour gives nobody two roles; the all-AI audit covers a third campaign, in
+  which a war moves borders.
+- Native policy (the full pass is slice F): it orders only what the region's
+  qualified residents, call-up and power (or coal and fuel in store) can serve, prefers
+  regions that can crew a site, trains the people its orders are short of and builds
+  their venue first, pauses an order that holds part of a crew while another part is
+  missing and resumes it when the region can crew it. It does not yet move people to
+  a thinly peopled test node whose call-up cannot hold a deployment node's crew.
+
 ## Slice D - production methods and economies of scale
 
 Methods:

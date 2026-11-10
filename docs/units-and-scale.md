@@ -183,27 +183,109 @@ each receives the same share of what it asked, so a works that is half crewed an
 half supplied runs at a quarter. A region's own motors draw on its spare electricity
 before the rest is offered to the grid. Compute made in one month serves the next.
 
-Construction of industrial-era works draws site power in the same unit. A site with
-no local supply runs site engines on coal (5 units per kt) or fuel (10 units per kt).
+Construction of industrial-era works draws site power in the same unit: shaft work,
+asked of the region alongside its works and rationed with them. What the region
+cannot give is made by site engines out of the common stock, burning coal first
+(5 units per kt, the conversion of the first steam engines) and then refined fuel
+(10 units per kt), in whole tonnes. Site engines need no works and no crew of their
+own; they are what an industrial-era site brings with it (section 6).
 
 ## 6. Construction
 
-A build order of `n` levels needs, all stated in the quote before ordering:
+Every region the seat governs quotes, for every facility the seat knows of, the true
+price of one more level (`OwnRegion.construction_sites`). An order of `n` levels is
+charged exactly `n` times the quote, and the test
+`the_order_charged_is_the_quote_times_the_levels` holds the engine to it:
 
-- goods: `n x` the level's material bill, committed from stock as available;
-- work: `n x` the level's work in worker-months (half as much again for the first of
-  its kind anywhere in the civilization);
-- a qualified site crew of `n x` the level's crew, reserved from the region's
-  qualified residents for as long as the order is active (they hold no other post and
-  are returned when it completes or is cancelled);
-- site power of `n x` the level's draw each month while work proceeds;
-- time: the level's minimum months (half as long again for the first of its kind);
-  work beyond `total / minimum months` in a month is wasted and not accepted.
+- **goods**: `n x` the level's bill, committed from stock as it becomes available and
+  never refunded;
+- **work**: `n x` the level's work in worker-months, half as much again for the first
+  installation of its kind anywhere under the seat (it is also the prototype);
+- **a qualified site crew** of `n x` the level's crew. A crew is one or more groups;
+  each group is a head count and the qualifications accepted for it, in order of
+  preference (builders, or artisans doing a builder's work);
+- **site power** of `n x` the level's draw in a month of full work;
+- **time**: the level's minimum months, half as long again (rounded up) for the first
+  of its kind, and the same for any `n` (the levels are built side by side). The order
+  accepts `ceil(work / months)` worker-months a month and no more, so with everything
+  at hand it takes exactly its minimum months. The scenario's pace multiplier scales
+  the minimum months with the work.
 
-Monthly progress is the least of: accepted work this month; work the called-up labour
-of the region can supply; the share of the crew on site; the share of site power
-delivered; the share of goods committed. A shortage of any of them slows or stops the
-order and is named as a blocker. Nothing completes without all of them.
+How each is supplied, every month:
+
+- **Crews** are reserved first, region by region and order by order in the region's
+  queue, from qualified residents who are not teaching. An order holds its crew for as
+  long as it is open and not paused, whether or not its goods have arrived: that is the
+  cost of leaving an order open. A person on a crew holds no other post that month
+  (the works of the region are staffed from who is left), is one of the workers called
+  up for projects, counts against the mobilization the practices allow, and supplies
+  one worker-month to that order and no other. The crew goes back to its posts when
+  the order completes, is paused, is cancelled or loses its site. Qualified people
+  without any post elsewhere move toward a site that is short of them, a quarter of
+  the shortfall a month, while the region's call-up has room for them.
+- **Other labour** is called up after the qualified posts of the region's works are
+  filled and before their general posts: people without a qualification first, then
+  qualified people whom no qualified post took (builders before the others), within
+  what is left of the call-up. It is shared by the region's orders in queue order.
+- **Site power** is asked for by every open order that has crew on site and goods to
+  work with, in proportion to its crew, as part of the region's shaft demand. The
+  sites' share is set aside from the region's shaft work (under a shortage they are
+  rationed exactly like the works); a site then draws what the work it actually does
+  that month needs, first from that share and then from site engines burning coal
+  and then fuel (section 5). An order that stands still burns nothing.
+
+Progress of an order in a month, with `full = ceil(work / months)`:
+
+    accepted  = min(work left, full)
+    by goods  = work x (least share committed of any good) - work done
+    by crew   = full x (least share present of any group of the crew)
+    by labour = crew on site + the region's other called-up workers still free
+    before power = min(accepted, by goods, by crew, by labour)
+    progress  = before power x (site power delivered / site power asked)
+
+where the site power asked is `draw x before power / full`. The crew share is the
+least over the groups, so a group that is missing altogether stops the site. An order
+is complete only when its work is done and every good is fully committed. Whatever
+held it back is named: "Waiting for <good>", "Site crew short: 1,000 of 2,000
+builders" (one line for each group that is short, naming the qualification asked for
+first), "Site power short: 50% delivered", "Little labour can be called up in
+<region>" (also when it is the call-up, not the people, that a crew is short of).
+
+Construction terms by class, per level, at standard pace (the full list is printed by
+`print_unit_tables`, section 4):
+
+| Class | Site crew | Site power a month | Minimum months |
+| --- | --- | --- | --- |
+| Subsistence and simple: fields, pastures, fishing grounds, granaries, camps, workshops, kilns, healers' lodges, teaching lodges, makers' circles, sacred precincts | none | 0 | 2 (precinct 3) |
+| Civil works and early industry: irrigation, mines, furnaces, mills, press, instrument makers, insulation works, roads, harbour, waterworks, sewers, hospital, offices, barracks, school, college, technical institute, archive, laboratory | 500-1,000 builders (artisans accepted) | 0 | 3-6 |
+| Industrial: oil wells, machine shops, parts works, wire works, steelworks, chemical works, steam and diesel stations, water treatment, research institute, railway (millwrights: mechanics, or smiths or artisans); pharmaceutical works, refinery, motor depot (mechanics or technicians) | 1,000-2,000 builders (artisans accepted) and 500-1,000 millwrights | 5-20 | 6-12 |
+| Electrical and computing: generator hall, grid, hydroelectric works, computing centre, computer works, synthetic fuel, high-purity materials, electronics cells, advanced research centre, automated experiment hall | 1,000-3,000 builders (artisans accepted); 500-1,000 mechanics or technicians (millwrights at hydroelectric works, none at generator halls and the grid); 500-2,000 electricians (technicians accepted; mechanics too at generator halls and hydroelectric works) | 10-30 | 9-15 |
+| Nuclear, orbital and jump: high-energy laboratory, fission, fusion, launch complex, orbital station, orbital yard, orbital power receiver, interferometer, jump testbed, jump assembly line, jump deployment node | 2,000-6,000 builders, 2,000-4,000 technicians, 2,000-4,000 electricians (not at the interferometer), 1,000-4,000 scientists (high-energy laboratory, fission, fusion, launch complex, station, interferometer, testbed), 3,000-4,000 mechanics (launch complex, orbital yard, assembly line); 2,000-6,000 orbital crews at the orbital works, the testbed and the nodes; 2,000-4,000 jump engineers at the assembly line and the nodes | 100-400 | 24-48 |
+
+No crew needs people who cannot exist yet (tested for every facility by walking the
+content's own requirements with that facility withheld): artisans stand in for
+builders below the last class; smiths and artisans stand in for mechanics at every
+works that can precede the technical institute, and the institute itself needs only
+builders; the launch complex needs no orbital crews, because their course follows from
+what is investigated there, and the first station accepts technicians in their place;
+the jump testbed needs no jump engineers, for the same reason.
+
+The preparations of the jump programme are orders of the same kind, sited at the
+capital: a loaded round trip holds 4,000 jump engineers and 4,000 orbital crews and
+draws 2,000 units a month for four months; the deployment exercise 6,000 of each and
+1,500 units for six months; a replacement 2,000 of each and 500 units for three
+months. Surveys, settlement, resettlement, recruitment, reforms and the stages of a
+movement need labour and goods as before, and no crew.
+
+Queues are per region. `OwnRegion.construction_queue` lists every project sited in
+the region in the order in which crews, labour and site power are given out: by
+priority (0 first), then by place in the queue, which is the order in which the
+orders were given until the seat moves one. `manage_project` with `position` moves
+an order to that 0-based place among its region's orders; the region's orders then
+take over, in their new order, the priorities and places they held between them, so
+nothing changes for the orders of other regions. Each entry states the crew needed
+and on site, the share of site power delivered, the share of goods committed, what
+the order is waiting for and an estimate of the months left at last month's pace.
 
 ## 7. Economies of scale
 
