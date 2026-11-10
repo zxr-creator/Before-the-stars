@@ -36,7 +36,19 @@ function Dev() {
       .catch((e: Error) => setErr(String(e.message)));
   }, [src]);
 
-  const obs = src === 'live' || src === 'file' ? live : fixture;
+  const base = src === 'live' || src === 'file' ? live : fixture;
+  // ?build=1 queues a few building projects in the viewer's largest regions, so the
+  // construction markers and the development card can be judged on saved fixtures.
+  const obs = useMemo(() => {
+    if (!base || q.get('build') !== '1') return base;
+    const own = base.regions.filter((r) => r.own).sort((a, b) => (b.own?.population ?? 0) - (a.own?.population ?? 0)).slice(0, 4);
+    const projects = own.flatMap((r, i) => (r.own?.facilities ?? []).slice(0, i === 0 ? 3 : 1).map((f, j) => ({
+      id: 9000 + i * 10 + j, kind: 'build', title: 'Build ' + f.name, region: r.id, target: f.kind, levels: 1 + ((i + j) % 3),
+      work_needed: 1000, work_done: 180 + 230 * ((i + j) % 4), inputs_needed: [], inputs_committed: [], priority: 5, paused: i === 3,
+      started_month: base.month - 6, last_progress: 40, blockers: [], eta_months_low: 6, eta_months_high: 14,
+    })));
+    return { ...base, projects: [...base.projects, ...projects] };
+  }, [base]);
   (window as unknown as { __devObs?: Observation | null }).__devObs = obs;
 
   useEffect(() => {
