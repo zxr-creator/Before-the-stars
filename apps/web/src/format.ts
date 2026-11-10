@@ -4,6 +4,8 @@ import type {
   ControllerKind, Deposit, Epistemic, Good, Intent, KnowledgeState, LaborCategory, MomentCategory,
   Month, Phase, PracticeState, Qual, ResearchClass, Role, SeatStatus, SettlementKind, Terrain, Visibility,
 } from './protocol';
+import type { ComponentChildren } from 'preact';
+import { isZh, t, tc } from './i18n';
 
 export const GOOD_LABEL: Record<Good, string> = {
   food: 'Food', materials: 'Timber, stone and clay', tools: 'Tools', copper_ore: 'Copper ore', iron_ore: 'Iron ore',
@@ -84,17 +86,94 @@ const nf0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const nf2 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
 
+// --- localization helpers ---------------------------------------------------------
+// English source strings are the dictionary keys; see ./i18n. The helpers below keep
+// the English output byte-for-byte as before and add natural Chinese forms.
+
+/** A label used mid-sentence: lower-cased in English, simply translated in Chinese. */
+export function lc(label: string): string {
+  return isZh() ? t(label) : label.toLowerCase();
+}
+
+/**
+ * Counted phrase with whole-string keys: tn(n, '{n} receipt', '{n} receipts').
+ * English picks by number; Chinese has no plural and always uses the `many` key.
+ * `{n}` is filled with the grouped number unless `vars.n` is given.
+ */
+export function tn(n: number, one: string, many: string, vars?: Record<string, string | number>): string {
+  const v = { n: int(n), ...(vars ?? {}) };
+  return t(isZh() || n !== 1 ? many : one, v);
+}
+
+/**
+ * Translate a sentence whose placeholders are elements (links, bold numbers):
+ * tx('{n} of {total} regions', { n: <b>3</b>, total: 9 }) → an array of children.
+ */
+export function tx(text: string, vars: Record<string, ComponentChildren>): ComponentChildren[] {
+  const src = t(text);
+  const out: ComponentChildren[] = [];
+  const rx = /\{#?([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = rx.exec(src))) {
+    if (m.index > last) out.push(src.slice(last, m.index));
+    out.push(m[1] in vars ? vars[m[1]] : m[0]);
+    last = m.index + m[0].length;
+  }
+  if (last < src.length) out.push(src.slice(last));
+  return out;
+}
+
+/** Join a short list for display: "a, b, c" / "甲、乙、丙". */
+export function joinList(parts: string[]): string {
+  return parts.join(isZh() ? '、' : ', ');
+}
+
+/** Translate a list of server-supplied strings (blockers, summaries, evidence). */
+export function tcAll(items: readonly string[] | null | undefined): string[] {
+  return (items ?? []).map((x) => tc(x));
+}
+
+/**
+ * A server term whose English word is ambiguous ("Civic" the lineage trait and "Civic" the
+ * facility category): looks up "Civic (trait)" first, then the plain word.
+ */
+export function tcAs(text: string, kind: string): string {
+  if (!isZh()) return text;
+  const key = `${text} (${kind})`;
+  const hit = tc(key);
+  return hit === key ? tc(text) : hit;
+}
+
+/** Translate the server text inside requirement and check lists (for <Checklist>). */
+export function tcChecks<T extends { text?: string; label?: string; detail?: string }>(items: readonly T[] | null | undefined): T[] {
+  return (items ?? []).map((it) => {
+    const out = { ...it };
+    if (typeof it.text === 'string') out.text = tc(it.text);
+    if (typeof it.label === 'string') out.label = tc(it.label);
+    if (typeof it.detail === 'string') out.detail = tc(it.detail);
+    return out;
+  });
+}
+
 /** Plain integer with thousands separators. */
 export function int(n: number): string {
   return nf0.format(n);
 }
 
-/** Compact number: 1,240 / 12.4k / 3.1M. */
+/** Compact number: 1,240 / 12.4k / 3.1M — in Chinese 1,240 / 1.24万 / 310万 / 1.2亿. */
 export function compact(n: number): string {
   const a = Math.abs(n);
-  if (a >= 1e9) return nf1.format(n / 1e9) + 'B';
-  if (a >= 1e6) return nf1.format(n / 1e6) + 'M';
-  if (a >= 1e4) return nf1.format(n / 1e3) + 'k';
+  if (isZh()) {
+    if (a >= 1e8) return t('{n} yi', { n: nf2.format(n / 1e8) });
+    if (a >= 1e7) return t('{n} wan', { n: nf0.format(n / 1e4) });
+    if (a >= 1e5) return t('{n} wan', { n: nf1.format(n / 1e4) });
+    if (a >= 1e4) return t('{n} wan', { n: nf2.format(n / 1e4) });
+  } else {
+    if (a >= 1e9) return nf1.format(n / 1e9) + 'B';
+    if (a >= 1e6) return nf1.format(n / 1e6) + 'M';
+    if (a >= 1e4) return nf1.format(n / 1e3) + 'k';
+  }
   if (a >= 100 || Number.isInteger(n)) return nf0.format(n);
   if (a >= 10) return nf1.format(n);
   return nf2.format(n);
@@ -121,42 +200,52 @@ export function yearOf(month: Month): number {
   return Math.floor(month / 12) + 1;
 }
 
-/** "Year 4" */
+/** "Year 4" / "第4年" */
 export function fmtYear(month: Month): string {
-  return 'Year ' + yearOf(month);
+  return t('Year {y}', { y: yearOf(month) });
 }
 
-/** "Year 4, month 7" */
+/** "Year 4, month 7" / "第4年7月" */
 export function fmtDate(month: Month): string {
-  return `Year ${yearOf(month)}, month ${(month % 12) + 1}`;
+  return t('Year {y}, month {m}', { y: yearOf(month), m: (month % 12) + 1 });
 }
 
-/** "Y4·m7" for tight spaces. */
+/** "Y4·m7" for tight spaces / "4年7月". */
 export function fmtDateShort(month: Month): string {
-  return `Y${yearOf(month)}·m${(month % 12) + 1}`;
+  return t('Y{y}·m{m}', { y: yearOf(month), m: (month % 12) + 1 });
 }
 
-/** Duration in months as "8 months" / "2 years 3 months". */
+/** Duration in months as "8 months" / "2 years 3 months"; "8个月" / "2年3个月". */
 export function fmtMonths(m: number): string {
-  if (m < 24) return `${m} month${m === 1 ? '' : 's'}`;
+  if (m < 24) return tn(m, '{n} month', '{n} months', { n: m });
   const y = Math.floor(m / 12);
   const r = m % 12;
-  return r ? `${y} years ${r} months` : `${y} years`;
+  return r ? t('{y} years {m} months', { y, m: r }) : t('{y} years', { y });
 }
 
-/** An honest range: "≈ 1,200–1,800". Collapses when both ends match. */
+/** An honest range: "≈ 1,200–1,800" / "约 1,200–1,800". Collapses when both ends match. */
 export function range(lo: number, hi: number): string {
-  if (lo === hi) return '≈ ' + compact(lo);
-  return `≈ ${compact(lo)}–${compact(hi)}`;
+  if (lo === hi) return t('≈ {n}', { n: compact(lo) });
+  return t('≈ {lo}–{hi}', { lo: compact(lo), hi: compact(hi) });
 }
 
+/** "per month" suffix for a rate: "12/month" / "每月 12". */
+export function perMonth(value: string | number): string {
+  return t('{n}/month', { n: value });
+}
+
+/** Enum-like wire keys for display: "alliance_proposal" → "Alliance proposal" (then translated). */
 export function titleCase(s: string): string {
-  const t = s.replace(/_/g, ' ');
-  return t.charAt(0).toUpperCase() + t.slice(1);
+  const x = s.replace(/_/g, ' ');
+  const titled = x.charAt(0).toUpperCase() + x.slice(1);
+  return isZh() ? t(titled) : titled;
 }
 
+/** "3 regions" — Chinese looks up the whole phrase ("{n} regions") and ignores number. */
 export function plural(n: number, one: string, many?: string): string {
-  return `${int(n)} ${n === 1 ? one : many ?? one + 's'}`;
+  const word = many ?? one + 's';
+  if (isZh()) return t(`{n} ${word}`, { n: int(n) });
+  return `${int(n)} ${n === 1 ? one : word}`;
 }
 
 /** Deterministic 32-bit hash for stable procedural detail. */

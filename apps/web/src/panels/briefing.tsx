@@ -2,7 +2,8 @@
 import { useState } from 'preact/hooks';
 import type { BriefingItem, Observation, Receipt } from '../protocol';
 import { NEGOTIATION_WINDOWS } from '../protocol';
-import { fmtYear, titleCase } from '../format';
+import { fmtYear, titleCase, tn } from '../format';
+import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { Badge, Btn, Empty, Section, cx } from '../ui';
 import { openPanel, selectRegion, useApp } from '../store';
@@ -30,7 +31,7 @@ function openItem(item: BriefingItem): void {
 function whereLabel(item: BriefingItem): string {
   const target = PANEL_ALIAS[item.panel];
   if (target) return titleCase(target === 'people' ? 'people & education' : target);
-  return item.region !== null ? 'Map' : '';
+  return item.region !== null ? t('Map') : '';
 }
 
 const ACTION_LABEL: Record<string, string> = {
@@ -45,25 +46,29 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 export function actionLabel(action: string): string {
-  return ACTION_LABEL[action] ?? titleCase(action.replace(/[:_]/g, ' '));
+  // "Withdraw" also labels withdrawing an offer; leaving the match needs its own Chinese wording.
+  if (action === 'forfeit' && isZh()) return t('Withdraw (forfeit the match)');
+  const label = ACTION_LABEL[action];
+  return label ? t(label) : titleCase(action.replace(/[:_]/g, ' '));
 }
 
 function phaseAdvice(obs: Observation): { title: string; text: string; panel?: PanelKey } {
   const contacted = obs.others.filter((o) => o.contacted && o.status === 'active');
-  if (obs.phase === 'finished') return { title: 'The match has ended', text: 'The record is closed. The chronicle keeps the whole history.', panel: 'chronicle' };
+  if (obs.phase === 'finished') return { title: t('The match has ended'), text: t('The record is closed. The chronicle keeps the whole history.'), panel: 'chronicle' };
   if (obs.phase === 'contact') {
     return contacted.length
-      ? { title: 'Contact selection', text: `Choose up to three of ${contacted.length} known counterpart${contacted.length === 1 ? '' : 's'} for this round. A channel opens only where the choice is mutual.`, panel: 'diplomacy' }
-      : { title: 'Contact selection', text: 'No other civilization has been met yet, so there is nobody to choose. Orders for the year can be given at any time.' };
+      ? { title: t('Contact selection'), text: tn(contacted.length, 'Choose up to three of {n} known counterpart for this round. A channel opens only where the choice is mutual.', 'Choose up to three of {n} known counterparts for this round. A channel opens only where the choice is mutual.'), panel: 'diplomacy' }
+      : { title: t('Contact selection'), text: t('No other civilization has been met yet, so there is nobody to choose. Orders for the year can be given at any time.') };
   }
   if (obs.phase === 'negotiate') {
     const open = obs.diplomacy.channels.filter((c) => c.open).length;
-    return { title: `Negotiation window ${obs.window} of ${NEGOTIATION_WINDOWS}`, text: open ? `${open} channel${open === 1 ? ' is' : 's are'} open. One envelope per counterpart in each window.` : 'No channel is open this round. You can go straight to planning.', panel: open ? 'diplomacy' : undefined };
+    return { title: t('Negotiation window {n} of {total}', { n: obs.window, total: NEGOTIATION_WINDOWS }), text: open ? tn(open, '{n} channel is open. One envelope per counterpart in each window.', '{n} channels are open. One envelope per counterpart in each window.') : t('No channel is open this round. You can go straight to planning.'), panel: open ? 'diplomacy' : undefined };
   }
-  return { title: 'Planning', text: 'Settle projects, labour and orders. Ending the round resolves twelve months.' };
+  return { title: t('Planning'), text: t('Settle projects, labour and orders. Ending the round resolves twelve months.') };
 }
 
 export function BriefingPanel() {
+  useLocale();
   const s = useApp();
   const obs = s.obs!;
   const [more, setMore] = useState(false);
@@ -76,46 +81,46 @@ export function BriefingPanel() {
 
   return (
     <div class="panel briefing">
-      <p class="panel-lede">{fmtYear(obs.month)} · what changed, and what needs a decision.</p>
+      <p class="panel-lede">{t('{year} · what changed, and what needs a decision.', { year: fmtYear(obs.month) })}</p>
 
       <div class="phase-card">
         <div>
           <b>{advice.title}</b>
           <p>{advice.text}</p>
         </div>
-        {advice.panel ? <Btn small onClick={() => openPanel(advice.panel!)}>Open</Btn> : null}
+        {advice.panel ? <Btn small onClick={() => openPanel(advice.panel!)}>{t('Open')}</Btn> : null}
       </div>
 
-      <Section title="Developments" aside={items.length ? <small class="muted">{items.length} in all</small> : null}>
-        {items.length === 0 ? <Empty>Nothing new was reported this round. {obs.round === 1 ? 'Give your first orders: a study, a workshop, a teaching programme.' : ''}</Empty> : null}
+      <Section title={t('Developments')} aside={items.length ? <small class="muted">{t('{n} in all', { n: items.length })}</small> : null}>
+        {items.length === 0 ? <Empty>{obs.round === 1 ? t('Nothing new was reported this round. Give your first orders: a study, a workshop, a teaching programme.') : t('Nothing new was reported this round.')}</Empty> : null}
         <ul class="brief-list">
           {lead.map((it) => <BriefRow item={it} />)}
           {more ? rest.map((it) => <BriefRow item={it} />) : null}
         </ul>
         {rest.length ? (
           <button type="button" class="more-btn" aria-expanded={more} data-testid="briefing-more" onClick={() => setMore(!more)}>
-            <Icon name={more ? 'up' : 'down'} size={12} /> {more ? 'Show fewer' : `${rest.length} more report${rest.length === 1 ? '' : 's'}`}
+            <Icon name={more ? 'up' : 'down'} size={12} /> {more ? t('Show fewer') : tn(rest.length, '{n} more report', '{n} more reports')}
           </button>
         ) : null}
       </Section>
 
-      <Section title="Under way">
+      <Section title={t('Under way')}>
         <div class="underway">
           <button type="button" class="underway-item" onClick={() => openPanel('projects')}>
-            <b>{obs.projects.length}</b><span>project{obs.projects.length === 1 ? '' : 's'}{stalled ? <em> · {stalled} blocked</em> : running !== obs.projects.length ? <em> · {obs.projects.length - running} paused</em> : null}</span>
+            <b>{obs.projects.length}</b><span>{tn(obs.projects.length, 'project', 'projects')}{stalled ? <em> · {t('{n} blocked', { n: stalled })}</em> : running !== obs.projects.length ? <em> · {t('{n} paused', { n: obs.projects.length - running })}</em> : null}</span>
           </button>
           <button type="button" class="underway-item" onClick={() => openPanel('people')}>
-            <b>{obs.programs.length}</b><span>teaching programme{obs.programs.length === 1 ? '' : 's'}</span>
+            <b>{obs.programs.length}</b><span>{tn(obs.programs.length, 'teaching programme', 'teaching programmes')}</span>
           </button>
           <button type="button" class="underway-item" onClick={() => openPanel('knowledge', { kind: 'knowledge-view', view: 'frontier' })}>
-            <b>{obs.knowledge.leads.length}</b><span>lead{obs.knowledge.leads.length === 1 ? '' : 's'} to follow</span>
+            <b>{obs.knowledge.leads.length}</b><span>{tn(obs.knowledge.leads.length, 'lead to follow', 'leads to follow')}</span>
           </button>
         </div>
       </Section>
 
-      <ReceiptSection title="Orders this round" empty="No orders given yet this round." receipts={obs.receipts.filter((r) => r.round >= obs.round)} testid="receipts" />
+      <ReceiptSection title={t('Orders this round')} empty={t('No orders given yet this round.')} receipts={obs.receipts.filter((r) => r.round >= obs.round)} testid="receipts" />
       {obs.receipts.some((r) => r.round < obs.round) ? (
-        <ReceiptSection title="Orders last round" empty="" receipts={obs.receipts.filter((r) => r.round < obs.round)} testid="receipts-last" note="Includes anything a steward ordered on your behalf at the end of planning." />
+        <ReceiptSection title={t('Orders last round')} empty="" receipts={obs.receipts.filter((r) => r.round < obs.round)} testid="receipts-last" note={t('Includes anything a steward ordered on your behalf at the end of planning.')} />
       ) : null}
     </div>
   );
@@ -123,7 +128,7 @@ export function BriefingPanel() {
 
 function ReceiptSection({ title, empty, receipts, testid, note }: { title: string; empty: string; receipts: Receipt[]; testid: string; note?: string }) {
   return (
-    <Section title={title} aside={<small class="muted">{receipts.length} receipt{receipts.length === 1 ? '' : 's'}</small>}>
+    <Section title={title} aside={<small class="muted">{tn(receipts.length, '{n} receipt', '{n} receipts')}</small>}>
       {note ? <p class="muted">{note}</p> : null}
       {receipts.length === 0 ? <Empty>{empty}</Empty> : (
         <ul class="receipt-list" data-testid={testid}>
@@ -132,7 +137,7 @@ function ReceiptSection({ title, empty, receipts, testid, note }: { title: strin
             return (
               <li class={cx('receipt', ok ? 'is-ok' : 'is-bad')}>
                 <span class="receipt-mark"><Icon name={ok ? 'check' : 'cross'} size={12} /></span>
-                <span class="receipt-body"><b>{actionLabel(r.action)}</b> <Badge tone={ok ? 'ok' : 'bad'}>{titleCase(r.status)}</Badge><br /><span class="receipt-reason">{r.reason}</span></span>
+                <span class="receipt-body"><b>{actionLabel(r.action)}</b> <Badge tone={ok ? 'ok' : 'bad'}>{titleCase(r.status)}</Badge><br /><span class="receipt-reason">{tc(r.reason)}</span></span>
               </li>
             );
           })}
@@ -148,11 +153,11 @@ function BriefRow({ item }: { item: BriefingItem }) {
   return (
     <li>
       <button type="button" class={cx('brief', 'brief-' + sev.tone)} onClick={() => openItem(item)} data-testid="briefing-item">
-        <span class="brief-icon" title={sev.label}><Icon name={sev.icon} size={16} /></span>
+        <span class="brief-icon" title={t(sev.label)}><Icon name={sev.icon} size={16} /></span>
         <span class="brief-body">
-          <span class="brief-kicker">{sev.label}</span>
-          <b class="brief-title">{item.title}</b>
-          <span class="brief-detail">{item.detail}</span>
+          <span class="brief-kicker">{t(sev.label)}</span>
+          <b class="brief-title">{tc(item.title)}</b>
+          <span class="brief-detail">{tc(item.detail)}</span>
         </span>
         {where ? <span class="brief-go">{where} <Icon name="right" size={11} /></span> : null}
       </button>

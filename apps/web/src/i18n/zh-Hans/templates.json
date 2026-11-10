@@ -1,0 +1,1058 @@
+[
+ {
+  "en": "Understand: {name}",
+  "zh": "掌握：{name}"
+ },
+ {
+  "en": "Enacted: {name}",
+  "zh": "已颁行：{name}"
+ },
+ {
+  "en": "Established: {name}",
+  "zh": "已确立：{name}"
+ },
+ {
+  "en": "A working {name}",
+  "zh": "拥有正常运转的{name}"
+ },
+ {
+  "en": "Population of at least {#n}",
+  "zh": "人口不少于 {n}"
+ },
+ {
+  "en": "Govern at least {#n} regions",
+  "zh": "治理至少 {n} 个地区"
+ },
+ {
+  "en": "At least {#n} {name}",
+  "zh": "至少 {n} 名{name}"
+ },
+ {
+  "en": "{a} — or — {b}",
+  "zh": "{a}，或者{b}"
+ },
+ {
+  "en": "{a} — or — {b} — or — {c}",
+  "zh": "{a}，或者{b}，或者{c}"
+ },
+ {
+  "en": "{a} — or — {b} — or — {c} — or — {d}",
+  "zh": "{a}，或者{b}，或者{c}，或者{d}"
+ },
+ {
+  "en": "{a} — or — {b} — or — {c} — or — {d} — or — {e}",
+  "zh": "{a}，或者{b}，或者{c}，或者{d}，或者{e}"
+ },
+ {
+  "en": "{a} and Understand: {b}",
+  "zh": "{a}，并且掌握：{b}"
+ },
+ {
+  "en": "{a} and Enacted: {b}",
+  "zh": "{a}，并且已颁行：{b}"
+ },
+ {
+  "en": "{a} and Established: {b}",
+  "zh": "{a}，并且已确立：{b}"
+ },
+ {
+  "en": "{a} and A working {b}",
+  "zh": "{a}，并且拥有正常运转的{b}"
+ },
+ {
+  "en": "{a} and Population of at least {#n}",
+  "zh": "{a}，并且人口不少于 {n}"
+ },
+ {
+  "en": "{a} and Govern at least {#n} regions",
+  "zh": "{a}，并且治理至少 {n} 个地区"
+ },
+ {
+  "en": "{a} and At least {#n} {b}",
+  "zh": "{a}，并且至少有 {n} 名{b}"
+ },
+ {
+  "en": "{a} and Contact with another people",
+  "zh": "{a}，并且与其他族群有接触"
+ },
+ {
+  "en": "Requires: {name}",
+  "zh": "需要：{name}"
+ },
+ {
+  "en": "timber, stone and clay, {rest}",
+  "zh": "木石与黏土、{rest}"
+ },
+ {
+  "en": "{a}, timber, stone and clay, {b}",
+  "zh": "{a}、木石与黏土、{b}"
+ },
+ {
+  "en": "{a}, timber, stone and clay",
+  "zh": "{a}、木石与黏土"
+ },
+ {
+  "en": "{a}, {b}, {c}, {d}",
+  "zh": "{a}、{b}、{c}、{d}"
+ },
+ {
+  "en": "{a}, {b}, {c}",
+  "zh": "{a}、{b}、{c}"
+ },
+ {
+  "en": "{a}, {b}",
+  "zh": "{a}、{b}"
+ },
+ {
+  "en": "Short of {list}",
+  "zh": "缺少{list}"
+ },
+ {
+  "en": "A known deposit of {name}",
+  "zh": "已探明的{name}矿藏"
+ },
+ {
+  "en": "Beside a {name}",
+  "zh": "紧邻{name}"
+ },
+ {
+  "en": "Stores {#n} food",
+  "zh": "可储存 {n} 单位粮食"
+ },
+ {
+  "en": "Water and sanitation for {#n} residents",
+  "zh": "为 {n} 名居民提供供水与卫生"
+ },
+ {
+  "en": "Care for {#n} residents",
+  "zh": "可照护 {n} 名居民"
+ },
+ {
+  "en": "{#n} apprenticeship places",
+  "zh": "{n} 个学徒名额"
+ },
+ {
+  "en": "{#n} school places",
+  "zh": "{n} 个学校名额"
+ },
+ {
+  "en": "{#n} college places",
+  "zh": "{n} 个学院名额"
+ },
+ {
+  "en": "{#n} technical training places",
+  "zh": "{n} 个技术培训名额"
+ },
+ {
+  "en": "Administers {#n} more regions",
+  "zh": "可多管理 {n} 个地区"
+ },
+ {
+  "en": "Waters {#n} levels of fields",
+  "zh": "可灌溉 {n} 级农田"
+ },
+ {
+  "en": "Converts up to {#n} shaft power to electricity",
+  "zh": "可将至多 {n} 轴动力转换为电力"
+ },
+ {
+  "en": "Transport grade {#n}",
+  "zh": "运输等级 {n}"
+ },
+ {
+  "en": "Trains {#n} soldiers at a time",
+  "zh": "可同时训练 {n} 名士兵"
+ },
+ {
+  "en": "Delivers {#n} shaft power",
+  "zh": "提供 {n} 轴动力"
+ },
+ {
+  "en": "Delivers {#n} electricity",
+  "zh": "提供 {n} 电力"
+ },
+ {
+  "en": "Delivers {#n} compute",
+  "zh": "提供 {n} 算力"
+ },
+ {
+  "en": "Up to {#n} {name} per month",
+  "zh": "每月至多 {n} 点{name}"
+ },
+ {
+  "en": "Larger {name}",
+  "zh": "更大规模的{name}"
+ },
+ {
+  "en": "Course: {name}",
+  "zh": "课程：{name}"
+ },
+ {
+  "en": "Formations: {name}",
+  "zh": "军制：{name}"
+ },
+ {
+  "en": "{recipe} ({facility})",
+  "zh": "{recipe}（{facility}）"
+ },
+ {
+  "en": "An open question in {name}",
+  "zh": "“{name}”领域的一个未解问题"
+ },
+ {
+  "en": "Exploratory study of {name}",
+  "zh": "对“{name}”的探索性研究"
+ },
+ {
+  "en": "Reports from {name}",
+  "zh": "来自{name}的见闻"
+ },
+ {
+  "en": "Practice: {name}",
+  "zh": "实践：{name}"
+ },
+ {
+  "en": "Taught by {name}",
+  "zh": "由{name}传授"
+ },
+ {
+  "en": "Described by {name}",
+  "zh": "由{name}介绍"
+ },
+ {
+  "en": "{#n} people; food access {#f}%, water {#w}%",
+  "zh": "{n} 人；粮食满足率 {f}%，供水 {w}%"
+ },
+ {
+  "en": "{#n} months of food in store",
+  "zh": "存粮可支撑 {n} 个月"
+ },
+ {
+  "en": "{#n} regions governed; administration can carry {#m}",
+  "zh": "治理 {n} 个地区；行政可承载 {m} 个"
+ },
+ {
+  "en": "{#n} known deposits under our control",
+  "zh": "控制着 {n} 处已知矿藏"
+ },
+ {
+  "en": "{#n} methods understood",
+  "zh": "已掌握 {n} 项技术"
+ },
+ {
+  "en": "{#n} of {#m} regions on the map",
+  "zh": "{m} 个地区中已有 {n} 个上了地图"
+ },
+ {
+  "en": "{#n} people are camped at {name}",
+  "zh": "{n} 人在 {name} 扎营"
+ },
+ {
+  "en": "{#n} known question(s) could be investigated.",
+  "zh": "有 {n} 个已知课题可以研究。"
+ },
+ {
+  "en": "{#n} lead(s) await follow-up",
+  "zh": "{n} 条线索等待跟进"
+ },
+ {
+  "en": "{#n} practice(s) could be enacted",
+  "zh": "有 {n} 项制度可以颁行"
+ },
+ {
+  "en": "{#n} proposal(s) await your answer",
+  "zh": "{n} 份提案等待你的答复"
+ },
+ {
+  "en": "{name} completed 96 months of global governance, 24 months of fleet-wide jump capability and two qualifying trials",
+  "zh": "{name}完成了 96 个月的全球治理、24 个月的全舰队跃迁能力和两次合格的试航"
+ },
+ {
+  "en": "{name} cannot be built yet: a known requirement is unmet",
+  "zh": "{name}还不能建造：有一项已知条件尚未满足"
+ },
+ {
+  "en": "{region} has no suitable site for {name}",
+  "zh": "{region} 没有适合建造{name}的场地"
+ },
+ {
+  "en": "{region} can support at most {#n} level(s) of {name} at present",
+  "zh": "{region} 目前至多能容纳 {n} 级{name}"
+ },
+ {
+  "en": "at most {#n} more people would currently serve",
+  "zh": "目前至多还有 {n} 人愿意服役"
+ },
+ {
+  "en": "the venue in {region} has {#n} free places",
+  "zh": "{region} 的教学场所还有 {n} 个空余名额"
+ },
+ {
+  "en": "unknown controller '{name}'",
+  "zh": "未知的控制者“{name}”"
+ },
+ {
+  "en": "Build {name} ×{#n} in {place}",
+  "zh": "在 {place} 建造{name} ×{n}"
+ },
+ {
+  "en": "Build {name} in {place}",
+  "zh": "在 {place} 建造{name}"
+ },
+ {
+  "en": "Investigate: {name}",
+  "zh": "研究：{name}"
+ },
+ {
+  "en": "Survey {name}",
+  "zh": "勘察 {name}"
+ },
+ {
+  "en": "Settle {name} with {#n} people",
+  "zh": "派 {n} 人拓殖 {name}"
+ },
+ {
+  "en": "Exploratory study: {name}",
+  "zh": "探索性研究：{name}"
+ },
+ {
+  "en": "Move {#n} people from {a} to {b}",
+  "zh": "将 {n} 人从 {a} 迁往 {b}"
+ },
+ {
+  "en": "Raise {#n} {role} ({region})",
+  "zh": "征募{role} {n} 人（{region}）"
+ },
+ {
+  "en": "Reform: {name}",
+  "zh": "改革：{name}"
+ },
+ {
+  "en": "Needs a working {name}",
+  "zh": "需要一座运转中的{name}"
+ },
+ {
+  "en": "Waiting for {name}",
+  "zh": "等待{name}"
+ },
+ {
+  "en": "Not enough {name} capacity",
+  "zh": "{name}能力不足"
+ },
+ {
+  "en": "Little labour can be called up in {name}",
+  "zh": "{name} 几乎征调不到劳力"
+ },
+ {
+  "en": "Classes stalled for lack of {name}",
+  "zh": "因缺少{name}而停课"
+ },
+ {
+  "en": "Abandoned: {title}",
+  "zh": "已放弃：{title}"
+ },
+ {
+  "en": "Work stopped because {why}. Inputs already used are not recovered.",
+  "zh": "工程已停止：{why}。已经用掉的投入无法收回。"
+ },
+ {
+  "en": "First {name}",
+  "zh": "首次建成{name}"
+ },
+ {
+  "en": "{civ} completed its first {name} at {region}. {desc}",
+  "zh": "{civ}在 {region} 建成了第一处{name}。{desc}"
+ },
+ {
+  "en": "Construction accepted in month {#n}",
+  "zh": "第{n}月验收完工"
+ },
+ {
+  "en": "Site: {name}",
+  "zh": "地点：{name}"
+ },
+ {
+  "en": "Completed: {title}",
+  "zh": "已完成：{title}"
+ },
+ {
+  "en": "{name} is ready for staff.",
+  "zh": "{name}已可配备人员。"
+ },
+ {
+  "en": "Understood: {name}",
+  "zh": "已掌握：{name}"
+ },
+ {
+  "en": "Investigators can now reproduce the method. {capability}. This rests on the anomaly this world actually exhibits, not on established physics.",
+  "zh": "研究者现在能够复现这项技术。{capability}。它依据的是这个世界确实存在的异常现象，而不是已确立的物理学。"
+ },
+ {
+  "en": "Investigators can now reproduce the method. {capability}. It remains an engineering extrapolation with declared limits.",
+  "zh": "研究者现在能够复现这项技术。{capability}。它仍是一项工程外推，其局限已经言明。"
+ },
+ {
+  "en": "Investigators can now reproduce the method. {capability}.",
+  "zh": "研究者现在能够复现这项技术。{capability}。"
+ },
+ {
+  "en": "Work completed in month {#n}",
+  "zh": "第{n}月完成研究"
+ },
+ {
+  "en": "Field: {name}",
+  "zh": "领域：{name}"
+ },
+ {
+  "en": "Lead resolved: {name}",
+  "zh": "线索已查明：{name}"
+ },
+ {
+  "en": "Survey returned from {name}",
+  "zh": "勘察队已从 {name} 返回"
+ },
+ {
+  "en": "Settlers turned back from {name}",
+  "zh": "拓殖者从 {name} 折返"
+ },
+ {
+  "en": "Settlement at {name}",
+  "zh": "在 {name} 建立聚落"
+ },
+ {
+  "en": "{#n} people from {a} established a lasting camp at {b}. The polity now holds {#m} regions.",
+  "zh": "来自 {a} 的 {n} 人在 {b} 建起了长久的营地。本政体现辖 {m} 个地区。"
+ },
+ {
+  "en": "Arrival recorded in month {#n}",
+  "zh": "第{n}月记录抵达"
+ },
+ {
+  "en": "{#n} settlers",
+  "zh": "{n} 名拓殖者"
+ },
+ {
+  "en": "Settled {name}",
+  "zh": "已拓殖 {name}"
+ },
+ {
+  "en": "{#n} people arrived with their stores.",
+  "zh": "{n} 人带着给养抵达。"
+ },
+ {
+  "en": "Study of {name} produced {#n} lead(s)",
+  "zh": "对“{name}”的研究带来了 {n} 条线索"
+ },
+ {
+  "en": "Study of {name} found nothing new",
+  "zh": "对“{name}”的研究没有新发现"
+ },
+ {
+  "en": "{#n} people resettled",
+  "zh": "{n} 人已迁居"
+ },
+ {
+  "en": "They arrived in {name}.",
+  "zh": "他们已抵达 {name}。"
+ },
+ {
+  "en": "Raised: {name}",
+  "zh": "已组建：{name}"
+ },
+ {
+  "en": "{#n} recruits begin {#m} months of training.",
+  "zh": "{n} 名新兵开始为期 {m} 个月的训练。"
+ },
+ {
+  "en": "First graduates: {name}",
+  "zh": "首批毕业生：{name}"
+ },
+ {
+  "en": "{#n} learners at {region} completed {course} and qualified as {qual}. Their skills are usable from next month.",
+  "zh": "{region} 的 {n} 名学员修完了“{course}”，取得{qual}资质。他们的技能从下月起可以投入使用。"
+ },
+ {
+  "en": "Cohort verified in month {#n}",
+  "zh": "第{n}月核验该期学员"
+ },
+ {
+  "en": "{#n} graduates",
+  "zh": "{n} 名毕业生"
+ },
+ {
+  "en": "{#n} new {qual}",
+  "zh": "新增 {n} 名{qual}"
+ },
+ {
+  "en": "A cohort of {course} graduated at {region}.",
+  "zh": "一期“{course}”学员在 {region} 毕业。"
+ },
+ {
+  "en": "First contact with {name}",
+  "zh": "与{name}首次接触"
+ },
+ {
+  "en": "Parties from both peoples met and exchanged signs. What {name} can make, wants and knows is still mostly rumour.",
+  "zh": "双方的队伍相遇，并交换了信物。{name}能造什么、想要什么、懂得什么，大多仍是传闻。"
+ },
+ {
+  "en": "Contact recorded in month {#n}",
+  "zh": "第{n}月记录接触"
+ },
+ {
+  "en": "First contact: {name}",
+  "zh": "首次接触：{name}"
+ },
+ {
+  "en": "{#n} new lead",
+  "zh": "{n} 条新线索"
+ },
+ {
+  "en": "{#n} new leads",
+  "zh": "{n} 条新线索"
+ },
+ {
+  "en": "A method takes shape: {name}",
+  "zh": "一项技术渐具雏形：{name}"
+ },
+ {
+  "en": "Laboratory, archive and reproducible methods all functioning in month {#n}",
+  "zh": "第{n}月，实验室、档案馆和可复现的方法均已运转"
+ },
+ {
+  "en": "World outline compiled in month {#n}",
+  "zh": "第{n}月编成世界轮廓图"
+ },
+ {
+  "en": "Anomaly reproduced in month {#n}",
+  "zh": "第{n}月重现异常"
+ },
+ {
+  "en": "A tradition forms at {name}",
+  "zh": "{name} 形成了一项传统"
+ },
+ {
+  "en": "Gatherings at {region} settled on a shared practice: {belief}. It is a local tradition, not yet a founded religion.",
+  "zh": "{region} 的集会确立了一种共同的修持：{belief}。这是一项本地传统，还不是创立的宗教。"
+ },
+ {
+  "en": "Recorded in month {#n}",
+  "zh": "记录于第{n}月"
+ },
+ {
+  "en": "{religion} is founded",
+  "zh": "“{religion}”创立"
+ },
+ {
+  "en": "At {place} the movement declared its obligations, practices and rites. They are now fixed; its followers and organizations will keep changing.",
+  "zh": "信仰运动在 {place} 宣告了它的誓约、修持和仪礼。这些从此固定下来；它的信众和组织还会不断变化。"
+ },
+ {
+  "en": "Founded in month {#n}",
+  "zh": "创立于第{n}月"
+ },
+ {
+  "en": "{#n} founding adherents",
+  "zh": "{n} 名创教信众"
+ },
+ {
+  "en": "{religion} founded among the {who}",
+  "zh": "“{religion}”在{who}创立"
+ },
+ {
+  "en": "Travellers report that a religion called {religion} has been founded at {place}.",
+  "zh": "据旅人说，一个名为“{religion}”的宗教已在 {place} 创立。"
+ },
+ {
+  "en": "Reported in month {#n}",
+  "zh": "第{n}月获报"
+ },
+ {
+  "en": "New practice recognized: {names}",
+  "zh": "认识到新的制度：{names}"
+ },
+ {
+  "en": "{name} takes root",
+  "zh": "“{name}”扎下了根"
+ },
+ {
+  "en": "Enough people now take part for this to be an ordinary part of life. {effect}",
+  "zh": "参与的人已经够多，这已成为日常生活的一部分。{effect}"
+ },
+ {
+  "en": "Participation passed a quarter of the population in month {#n}",
+  "zh": "第{n}月参与者超过人口的四分之一"
+ },
+ {
+  "en": "Gatherings at {name}",
+  "zh": "{name} 的集会"
+ },
+ {
+  "en": "People at {region} have begun to meet regularly for remembrance and shared rites. Nobody has founded a religion; the government may support the gatherings, leave them alone, or ignore them.",
+  "zh": "{region} 的人们开始定期聚会，追思先人、共行仪礼。还没有人创立宗教；政府可以扶持这些集会，可以听之任之，也可以不予理会。"
+ },
+ {
+  "en": "First recorded in month {#n}",
+  "zh": "最早记录于第{n}月"
+ },
+ {
+  "en": "A movement is gathering at {name}",
+  "zh": "{name} 正在兴起一场信仰运动"
+ },
+ {
+  "en": "The movement at {region} now has a recognized founder and trained organizers. It can be formally founded while a founding opportunity remains.",
+  "zh": "{region} 的信仰运动现已有了公认的创始人和训练有素的组织者。只要还有创教机会，就可以正式创立。"
+ },
+ {
+  "en": "{name} folk",
+  "zh": "{name} 族"
+ },
+ {
+  "en": "The first camps of {name}",
+  "zh": "{name} 最初的营地"
+ },
+ {
+  "en": "Region {#n}",
+  "zh": "地区 {n}"
+ },
+ {
+  "en": "Month {#n}: ended by war ({a} against {b})",
+  "zh": "第{n}月：因战争终止（{a}进攻{b}）"
+ },
+ {
+  "en": "Month {#n}: attacked us",
+  "zh": "第{n}月：进攻我方"
+ },
+ {
+  "en": "Month {#n}: attacked us in breach of a signed commitment",
+  "zh": "第{n}月：违背已签署的承诺进攻我方"
+ },
+ {
+  "en": "War against {name}",
+  "zh": "对{name}开战"
+ },
+ {
+  "en": "{a} opened hostilities against {b}. {reason}",
+  "zh": "{a}对{b}开启战端。{reason}"
+ },
+ {
+  "en": "{a} opened hostilities against {b}. ",
+  "zh": "{a}对{b}开启战端。"
+ },
+ {
+  "en": "Hostilities began in month {#n}",
+  "zh": "第{n}月开战"
+ },
+ {
+  "en": "{name} attacks",
+  "zh": "{name}来袭"
+ },
+ {
+  "en": "Forces of {a} crossed into our territory. {b} is at war.",
+  "zh": "{a}的部队越境进入我方领土。{b}进入战争状态。"
+ },
+ {
+  "en": "{name} has attacked",
+  "zh": "{name}发动了进攻"
+ },
+ {
+  "en": "War between {a} and {b}",
+  "zh": "{a}与{b}爆发战争"
+ },
+ {
+  "en": "Reports say {a} has attacked {b}.",
+  "zh": "据报{a}进攻了{b}。"
+ },
+ {
+  "en": "{name} cannot reach its objective",
+  "zh": "{name}无法抵达目标"
+ },
+ {
+  "en": "Fighting at {name}",
+  "zh": "{name} 发生战斗"
+ },
+ {
+  "en": "Our forces lost {#a}; the defenders are estimated to have lost {#b}.",
+  "zh": "我军损失 {a} 人；守军估计损失 {b} 人。"
+ },
+ {
+  "en": "We lost {#a} defending; attackers are estimated to have lost {#b}.",
+  "zh": "我方防守损失 {a} 人；进攻方估计损失 {b} 人。"
+ },
+ {
+  "en": "{name} occupied",
+  "zh": "占领 {name}"
+ },
+ {
+  "en": "After five months of control, {civ} administers {region}. Its people, debts and damaged works come with it; cooperation does not.",
+  "zh": "控制五个月之后，{civ}开始管理 {region}。当地的人口、债务和受损的设施一并归其所有；民众的合作却不会随之而来。"
+ },
+ {
+  "en": "Control established in month {#n}",
+  "zh": "第{n}月确立控制"
+ },
+ {
+  "en": "{name} lost",
+  "zh": "{name} 失守"
+ },
+ {
+  "en": "{a} no longer controls {region}. {b} holds it.",
+  "zh": "{a}已不再控制 {region}。它现由{b}掌握。"
+ },
+ {
+  "en": "Control lost in month {#n}",
+  "zh": "第{n}月失去控制"
+ },
+ {
+  "en": "{name} has fallen",
+  "zh": "{name} 陷落"
+ },
+ {
+  "en": "{name} now controls it.",
+  "zh": "它现由{name}控制。"
+ },
+ {
+  "en": "{name} is now governed as ours",
+  "zh": "{name} 现已纳入我方治理"
+ },
+ {
+  "en": "Month {#n}: {name} ceased to govern",
+  "zh": "第{n}月：{name}不再执政"
+ },
+ {
+  "en": "{name} no longer governs",
+  "zh": "{name}不再执政"
+ },
+ {
+  "en": "{name} holds no land and no effective government remains. Its people, property and debts continue under other authorities.",
+  "zh": "{name}已无寸土，也没有有效的政府。它的人民、财产和债务在其他权威之下延续。"
+ },
+ {
+  "en": "The end of {name}",
+  "zh": "{name}的终结"
+ },
+ {
+  "en": "{#n}st {adj} {role}",
+  "zh": "{adj}第{n}{role}"
+ },
+ {
+  "en": "{#n}nd {adj} {role}",
+  "zh": "{adj}第{n}{role}"
+ },
+ {
+  "en": "{#n}rd {adj} {role}",
+  "zh": "{adj}第{n}{role}"
+ },
+ {
+  "en": "{#n}th {adj} {role}",
+  "zh": "{adj}第{n}{role}"
+ },
+ {
+  "en": "{name} delivers {#n} {good}",
+  "zh": "{name}交付 {n} 单位{good}"
+ },
+ {
+  "en": "{name} delivers {#n} {good} each month for {#m} months",
+  "zh": "{name}每月交付 {n} 单位{good}，为期 {m} 个月"
+ },
+ {
+  "en": "{name} teaches: {tech}",
+  "zh": "{name}传授：{tech}"
+ },
+ {
+  "en": "{name} describes its practice: {practice}",
+  "zh": "{name}介绍其制度：{practice}"
+ },
+ {
+  "en": "{name} shares its maps and surveys",
+  "zh": "{name}分享其地图和勘察记录"
+ },
+ {
+  "en": "Neither party attacks the other for {#n} months",
+  "zh": "{n} 个月内双方互不进攻"
+ },
+ {
+  "en": "Each answers attacks on the other for {#n} months",
+  "zh": "{n} 个月内，一方遭到进攻，另一方即予回应"
+ },
+ {
+  "en": "{name} accepts the other party as highest authority and remits {#n}% of output",
+  "zh": "{name}承认对方为最高权威，并上缴 {n}% 的产出"
+ },
+ {
+  "en": "{name} cedes {region}",
+  "zh": "{name}割让 {region}"
+ },
+ {
+  "en": "Peace with {name}",
+  "zh": "与{name}媾和"
+ },
+ {
+  "en": "{a} and {b} signed an end to their war.",
+  "zh": "{a}与{b}签约结束了战争。"
+ },
+ {
+  "en": "Signed in month {#n}",
+  "zh": "签署于第{n}月"
+ },
+ {
+  "en": "{name} accepts our authority",
+  "zh": "{name}接受我方权威"
+ },
+ {
+  "en": "By charter, {a} keeps its local government and answers to {b} as highest authority. The arrangement holds only while both actually honour it.",
+  "zh": "根据宪章，{a}保留其地方政府，并以{b}为最高权威。只有双方都切实遵守，这一安排才能维持。"
+ },
+ {
+  "en": "Charter signed in month {#n}",
+  "zh": "宪章签署于第{n}月"
+ },
+ {
+  "en": "We accept the authority of {name}",
+  "zh": "我方接受{name}的权威"
+ },
+ {
+  "en": "{a} keeps its local government but answers to {b}. Leaving the charter remains possible, at a price.",
+  "zh": "{a}保留其地方政府，但听命于{b}。退出宪章仍有可能，只是要付出代价。"
+ },
+ {
+  "en": "Month {#n}: signed by both parties",
+  "zh": "第{n}月：双方签署"
+ },
+ {
+  "en": "Treaty signed with {name}",
+  "zh": "与{name}签署条约"
+ },
+ {
+  "en": "Month {#n}: repudiated by {name}",
+  "zh": "第{n}月：被{name}废弃"
+ },
+ {
+  "en": "Month {#n}: repudiated a signed treaty",
+  "zh": "第{n}月：废弃了一份已签署的条约"
+ },
+ {
+  "en": "{name} has repudiated a treaty",
+  "zh": "{name}废弃了一份条约"
+ },
+ {
+  "en": "Month {#n}: {name} delivered {#a} of {#b} {good}",
+  "zh": "第{n}月：{name}交付了 {a}/{b} 单位{good}"
+ },
+ {
+  "en": "Short delivery from {name}",
+  "zh": "{name}交付不足"
+ },
+ {
+  "en": "{#a} of {#b} {good} arrived.",
+  "zh": "应到 {b} 单位{good}，实到 {a} 单位。"
+ },
+ {
+  "en": "Month {#n}: all obligations settled",
+  "zh": "第{n}月：全部义务已结清"
+ },
+ {
+  "en": "We need {a} and can pay in {b}.",
+  "zh": "我们需要{a}，可以用{b}支付。"
+ },
+ {
+  "en": "We will teach what we know of {name} for a single delivery.",
+  "zh": "只需一次交付，我们就传授所知的“{name}”。"
+ },
+ {
+  "en": "If you understand {name}, we will pay for instruction.",
+  "zh": "如果你们掌握“{name}”，我们愿意付费求教。"
+ },
+ {
+  "en": "All {#n} inhabited regions answer to this government",
+  "zh": "全部 {n} 个有人居住的地区均听命于本政府"
+ },
+ {
+  "en": "{#a} of {#b} inhabited regions answer to another authority",
+  "zh": "{b} 个有人居住的地区中有 {a} 个听命于其他权威"
+ },
+ {
+  "en": "{#n} regions are occupied or contested",
+  "zh": "{n} 个地区被占领或处于争夺之中"
+ },
+ {
+  "en": "{#n} regions are occupied or contested; a war is in progress",
+  "zh": "{n} 个地区被占领或处于争夺之中；战争正在进行"
+ },
+ {
+  "en": "{#n} regions fall short",
+  "zh": "{n} 个地区不达标"
+ },
+ {
+  "en": "Stability {#n}",
+  "zh": "稳定度 {n}"
+ },
+ {
+  "en": "{#n} operational; series manufacture verified",
+  "zh": "{n} 台可用；批量制造已验证"
+ },
+ {
+  "en": "{#n} operational; series manufacture not verified",
+  "zh": "{n} 台可用；批量制造尚未验证"
+ },
+ {
+  "en": "{#n} of 2 lines staffed",
+  "zh": "2 条总装线中有 {n} 条配齐人员"
+ },
+ {
+  "en": "{#n} of 3 nodes operating",
+  "zh": "3 个节点中有 {n} 个在运行"
+ },
+ {
+  "en": "Completed in month {#n}",
+  "zh": "完成于第{n}月"
+ },
+ {
+  "en": "Verified in month {#n}",
+  "zh": "验证于第{n}月"
+ },
+ {
+  "en": "{#a} jump engineers (36 needed), {#b} orbital crew (36 needed)",
+  "zh": "跃迁工程师 {a} 名（需 36 名），轨道乘组 {b} 名（需 36 名）"
+ },
+ {
+  "en": "{#a} spares (240 needed), {#b} fuel (200 needed)",
+  "zh": "备件 {a}（需 240），燃料 {b}（需 200）"
+ },
+ {
+  "en": "Loaded jump round trip, month {#n}",
+  "zh": "载荷跃迁往返，第{n}月"
+ },
+ {
+  "en": "An assembly of {name} carried a standard load out and back under fleet control. It is qualifying trial {#n} of the current window.",
+  "zh": "{name}的一台装置在舰队管制下运载标准载荷完成了往返。这是当前窗口内的第 {n} 次合格试航。"
+ },
+ {
+  "en": "An assembly of {name} carried a standard load out and back. It is a technical success; because it did not occur under effective global governance it does not count toward acceptance.",
+  "zh": "{name}的一台装置运载标准载荷完成了往返。这是一次技术上的成功；但由于并非在有效的全球治理之下完成，它不计入验收。"
+ },
+ {
+  "en": "Assembly #{#a} returned in month {#n}",
+  "zh": "{a} 号装置于第{n}月返回"
+ },
+ {
+  "en": "{name} reports a jump flight",
+  "zh": "{name}宣称完成跃迁飞行"
+ },
+ {
+  "en": "{name} announced a loaded faster-than-light round trip. The claim has not been independently verified.",
+  "zh": "{name}宣布完成了一次载荷超光速往返。这一说法尚未得到独立核实。"
+ },
+ {
+  "en": "Announced in month {#n}",
+  "zh": "第{n}月宣布"
+ },
+ {
+  "en": "Exercise closed in month {#n}",
+  "zh": "演练于第{n}月结束"
+ },
+ {
+  "en": "{#a} of 3 nodes were operating and {#b} assemblies were available.",
+  "zh": "3 个节点中有 {a} 个在运行，可用装置 {b} 台。"
+ },
+ {
+  "en": "Hand-over verified in month {#n}",
+  "zh": "交接验证于第{n}月"
+ },
+ {
+  "en": "Every inhabited region now answers to {name}, and food, water and order hold everywhere. The count of continuous governance months starts now.",
+  "zh": "所有有人居住的地区如今都听命于{name}，各地的粮食、供水和秩序均告稳定。连续治理月数从现在开始计算。"
+ },
+ {
+  "en": "All governance conditions first met in month {#n}",
+  "zh": "第{n}月首次满足全部治理条件"
+ },
+ {
+  "en": "After {#n} months the continuous count has returned to zero. See the objectives panel for the failed condition.",
+  "zh": "连续 {n} 个月之后，计数已经归零。未达成的条件见目标面板。"
+ },
+ {
+  "en": "After {#n} months the continuous count has returned to zero.",
+  "zh": "连续 {n} 个月之后，计数已经归零。"
+ },
+ {
+  "en": "In month {#n}, {name} met every condition: one government for the inhabited world, and a jump-capable service it can build, crew, supply and replace.",
+  "zh": "第{n}月，{name}满足了全部条件：有人居住的世界归于一个政府，并拥有一支造得出、配得齐乘组、供得上、换得了的跃迁部队。"
+ },
+ {
+  "en": "Complete victory settled in month {#n}",
+  "zh": "完全胜利于第{n}月确定"
+ },
+ {
+  "en": "Jump assembly {#n} accepted",
+  "zh": "第 {n} 台跃迁装置通过验收"
+ },
+ {
+  "en": "The line at {name} delivered a standard jump assembly after two years of continuous work.",
+  "zh": "{name} 的总装线经过两年不间断的工作，交付了一台标准跃迁装置。"
+ },
+ {
+  "en": "Assembly #{#a} accepted in month {#n}",
+  "zh": "{a} 号装置于第{n}月通过验收"
+ },
+ {
+  "en": "For two full years {name} has eaten well and kept more than six months of food in store. People can be spared from subsistence for craft, records and teaching.",
+  "zh": "整整两年，{name}吃得饱，还存有六个月以上的粮食。可以让一部分人从谋生中抽身，去从事手艺、记录和教学。"
+ },
+ {
+  "en": "Stores above six months since month {#n}",
+  "zh": "自第{n}月起存粮超过六个月"
+ },
+ {
+  "en": "Hunger in Year {#n}",
+  "zh": "第{n}年的饥荒"
+ },
+ {
+  "en": "Deliveries have fallen short of need for four months. Health and work are suffering across {name}.",
+  "zh": "粮食供应已连续四个月不敷所需。{name}各地的健康和劳作都受到影响。"
+ },
+ {
+  "en": "Food access below 80% since month {#n}",
+  "zh": "自第{n}月起粮食满足率低于 80%"
+ },
+ {
+  "en": "{name} numbers a thousand",
+  "zh": "{name}人口过千"
+ },
+ {
+  "en": "{name} numbers five thousand",
+  "zh": "{name}人口达到五千"
+ },
+ {
+  "en": "{name} numbers twenty thousand",
+  "zh": "{name}人口达到两万"
+ },
+ {
+  "en": "{name} numbers a hundred thousand",
+  "zh": "{name}人口达到十万"
+ },
+ {
+  "en": "Counted population {#p} in month {#n}",
+  "zh": "第{n}月清点人口 {p}"
+ },
+ {
+  "en": "Year {#n}",
+  "zh": "第{n}年"
+ },
+ {
+  "en": "# Chronicle of {name}",
+  "zh": "# {name}编年史"
+ },
+ {
+  "en": "Chronicle of {name}",
+  "zh": "{name}编年史"
+ },
+ {
+  "en": "Match {id} — recorded through month {#m} (year {#y}).",
+  "zh": "对局 {id} — 记录至第{m}月（第{y}年）。"
+ },
+ {
+  "en": "## Year {#y} — {title}",
+  "zh": "## 第{y}年 — {title}"
+ }
+]
