@@ -369,7 +369,10 @@ pub fn step(w: &mut World) {
         let (_, def_mix, def_people) = side_power(w, &def_side, [0; 3], 10_000);
         let (pa, _, _) = side_power(w, &att_side, def_mix, 10_000);
         let (pd, _, _) = side_power(w, &def_side, att_mix, terrain_bp);
-        if pd > 0 && def_people > 0 {
+        let contested = pd > 0 && def_people > 0;
+        // defenders outmatched three to one cannot keep control, though they still fight
+        let overwhelmed = contested && pa >= pd * 3;
+        if contested {
             // simultaneous losses from the same month-start state
             // losses follow the power actually brought against a side; a handful of raiders
             // cannot bleed an army, and nobody loses more than three tenths in a month
@@ -398,7 +401,9 @@ pub fn step(w: &mut World) {
             let rname = w.regions[ri].name.clone();
             brief(w, lead, "warning", format!("Fighting at {rname}"), format!("Our forces lost {la}; the defenders are estimated to have lost {}.", ld + militia_lost), Some(ri as RegionId), "military");
             brief(w, ctrl, "danger", format!("Fighting at {rname}"), format!("We lost {} defending; attackers are estimated to have lost {la}.", ld + militia_lost), Some(ri as RegionId), "military");
-            w.regions[ri].capture = None;
+            if !overwhelmed {
+                w.regions[ri].capture = None;
+            }
             // broken formations withdraw or dissolve
             for &ai in attackers.iter().chain(defenders.iter()) {
                 let broken = w.armies[ai].morale_bp < 3000 || w.armies[ai].count() * 10 < w.armies[ai].initial * 3;
@@ -417,8 +422,14 @@ pub fn step(w: &mut World) {
                     }
                 }
             }
-        } else {
-            // undefended: the attacker must hold the region for five consecutive months
+        }
+        if !contested || overwhelmed {
+            // the attacker must hold the region for five consecutive months
+            let still_there = w.armies.iter().any(|a| a.region as usize == ri && a.owner == lead && a.count() > 0);
+            if !still_there {
+                w.regions[ri].capture = None;
+                continue;
+            }
             let progress = match w.regions[ri].capture {
                 Some((s, n)) if s == lead => n + 1,
                 _ => 1,

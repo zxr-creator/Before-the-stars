@@ -339,7 +339,9 @@ fn offer_value(ai: &NativeAi, obs: &Observation, offer: &OfferView) -> i64 {
             Clause::Practice { from, .. } => v += if *from == me { -5 } else { 15 },
             Clause::Maps { from } => v += if *from == me { -10 } else { 15 },
             Clause::NonAggression { .. } => {
-                v += if ai.memory.war_target == Some(other) { -200 } else if theirs > mine { 60 } else { 25 };
+                // once the final objective is known, the stronger side has no use for a long truce
+                let ambitious = obs.objectives.victory.is_some() && ai.difficulty != Difficulty::Easy && mine > theirs;
+                v += if ai.memory.war_target == Some(other) || ambitious { -200 } else if theirs > mine { 60 } else { 25 };
             }
             Clause::DefensivePact { .. } => v += if trust >= 60 { 30 } else { -20 },
             Clause::Peace => {
@@ -437,9 +439,10 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
             }
             // a pact with a stronger neighbour is worth asking for
             let pact = obs.diplomacy.treaties.iter().any(|t| t.status == "active" && t.parties.contains(&s) && t.clauses.iter().any(|c| matches!(c, Clause::NonAggression { .. })));
-            if !pact && borders(obs, s) && ai.memory.war_target != Some(s) && (theirs >= mine || ai.difficulty == Difficulty::Easy) {
+            let ambitious = obs.objectives.victory.is_some() && ai.difficulty != Difficulty::Easy;
+            if !pact && !ambitious && borders(obs, s) && ai.memory.war_target != Some(s) && (theirs >= mine || ai.difficulty == Difficulty::Easy) {
                 ai.memory.last_offer_round[s as usize] = obs.round;
-                out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::NonAggression { months: 240 }], text: Some("Neither of us gains from fighting over this border.".into()) });
+                out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::NonAggression { months: 120 }], text: Some("Neither of us gains from fighting over this border.".into()) });
                 continue;
             }
             // buy what we cannot make, paying with what we hold in plenty
