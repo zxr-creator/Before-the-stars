@@ -5,6 +5,7 @@
 //! few [`Effects`] the transport must act on (write an autosave, start agent
 //! workers, stop the process).
 
+use crate::portable::{self, Reason, Refusal};
 use crate::session::{AgentConfig, Session};
 use crate::turn;
 use bts_engine::MatchConfig;
@@ -94,6 +95,8 @@ pub struct Request<'a> {
 pub enum Body {
     Json,
     Markdown,
+    /// A save file: the bytes are in [`Reply::data`], and `body` is empty.
+    Binary,
 }
 
 /// What the transport must do after a request, beyond sending the reply.
@@ -113,18 +116,36 @@ pub struct Reply {
     pub status: u16,
     pub kind: Body,
     pub body: String,
+    /// The reply when `kind` is [`Body::Binary`]; empty otherwise.
+    pub data: Vec<u8>,
     pub effects: Effects,
 }
 
 impl Reply {
     fn json(body: String) -> Reply {
-        Reply { status: 200, kind: Body::Json, body, effects: Effects::default() }
+        Reply { status: 200, kind: Body::Json, body, data: Vec::new(), effects: Effects::default() }
     }
     fn of<T: Serialize>(value: &T) -> Reply {
         Reply::json(serde_json::to_string(value).expect("reply serializes"))
     }
     fn error(status: u16, code: &str, message: &str) -> Reply {
-        Reply { status, kind: Body::Json, body: serde_json::json!({ "error": code, "message": message }).to_string(), effects: Effects::default() }
+        Reply { status, kind: Body::Json, body: serde_json::json!({ "error": code, "message": message }).to_string(), data: Vec::new(), effects: Effects::default() }
+    }
+    fn binary(data: Vec<u8>) -> Reply {
+        Reply { status: 200, kind: Body::Binary, body: String::new(), data, effects: Effects::default() }
+    }
+    /// A save file that was not loaded: `INVALID_SAVE` with the specific reason beside it.
+    fn refused(refusal: &Refusal) -> Reply {
+        let body = serde_json::json!({ "error": "INVALID_SAVE", "reason": refusal.reason.code(), "message": refusal.message }).to_string();
+        Reply { status: 400, kind: Body::Json, body, data: Vec::new(), effects: Effects::default() }
+    }
+    /// The reply as bytes, whatever its kind.
+    pub fn into_bytes(self) -> Vec<u8> {
+        if self.kind == Body::Binary {
+            self.data
+        } else {
+            self.body.into_bytes()
+        }
     }
     fn with(mut self, effects: Effects) -> Reply {
         self.effects = effects;
@@ -300,6 +321,51 @@ pub struct MatchSummary {
     pub steward_domains: Vec<String>,
 }
 
+/// What a save file is, read without loading it: the answer of `POST /api/savefile/describe`.
+#[derive(Clone, Debug, Serialize)]
+pub struct Description {
+    /// Whether importing this file would succeed on this referee.
+    pub loadable: bool,
+    /// Why not: a [`Reason`] code. Absent when loadable.
+    pub reason: Option<&'static str>,
+    pub message: Option<String>,
+    /// Bare session text (a save from before the container, or the server's autosave) rather than a container.
+    pub legacy: bool,
+    /// Size of the file as given.
+    pub bytes: usize,
+    /// The file's own description, when it could be read (it can be even when the file is not loadable).
+    pub header: Option<portable::Header>,
+    /// A file name to offer when this save is written out.
+    pub file_name: Option<String>,
+    /// What this build runs, to show beside the file's versions.
+    pub game: &'static str,
+    pub build: portable::Versions,
+}
+
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let hex = |b: Option<&u8>| b.and_then(|b| (*b as char).to_digit(16)).map(|d| d as u8);
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match (bytes[i], hex(bytes.get(i + 1)), hex(bytes.get(i + 2))) {
+            (b'%', Some(hi), Some(lo)) => {
+                out.push(hi * 16 + lo);
+                i += 3;
+            }
+            (b'+', _, _) => {
+                out.push(b' ');
+                i += 1;
+            }
+            (b, _, _) => {
+                out.push(b);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 fn query(target: &str) -> (&str, HashMap<String, String>) {
     let (path, q) = target.split_once('?').unwrap_or((target, ""));
     let mut map = HashMap::new();
@@ -345,6 +411,14 @@ fn no_match() -> Failure {
     (404, "NO_MATCH", "no match is running".into())
 }
 
+fn not_portable() -> Failure {
+    (403, "UNAUTHORIZED", "a session can be exported only when no seat is external and tokens are not required".into())
+}
+
+fn leak() -> Failure {
+    (500, "INTERNAL", "the save would contain an API key; nothing was exported".into())
+}
+
 fn unauthorized() -> Failure {
     (403, "UNAUTHORIZED", "unknown seat or token".into())
 }
@@ -362,11 +436,13 @@ pub struct Host<A: AgentSlot = NoAgents> {
     pub(crate) turn_cache: turn::Cache,
     /// The round a deferred playback step has started and will finish.
     stepping: Option<u32>,
+    /// How large a save file this referee will read (see [`portable::Limits`]).
+    pub limits: portable::Limits,
 }
 
 impl<A: AgentSlot> Host<A> {
     pub fn new(cfg: Config) -> Host<A> {
-        Host { cfg, session: None, generation: 0, agents: Vec::new(), autoplay_until: u32::MAX, turn_cache: turn::Cache::default(), stepping: None }
+        Host { cfg, session: None, generation: 0, agents: Vec::new(), autoplay_until: u32::MAX, turn_cache: turn::Cache::default(), stepping: None, limits: portable::Limits::default() }
     }
 
     // ---- who is at the table ------------------------------------------------------
@@ -409,6 +485,13 @@ impl<A: AgentSlot> Host<A> {
     /// world, so it never leaves a referee that has an external seat or requires tokens.
     fn session_portable(&self) -> bool {
         !self.cfg.require_tokens && self.session.as_ref().is_some_and(|s| (0..s.m.seats()).all(|i| s.m.controller(i as SeatId) != ControllerKind::External || self.has_agent(i)))
+    }
+
+    /// The same rule for a session that is not the running one (a named save on disk):
+    /// it may leave as a file only if it holds no external seat, other than an LLM
+    /// agent seat this referee itself would play.
+    fn text_portable(&self, s: &Session) -> bool {
+        !self.cfg.require_tokens && (0..s.m.seats()).all(|i| s.m.controller(i as SeatId) != ControllerKind::External || s.agent_cfgs[i].as_ref().is_some_and(|c| A::new(c).is_some()))
     }
 
     /// Whether agent workers may move the match now.
@@ -517,14 +600,167 @@ impl<A: AgentSlot> Host<A> {
     /// Replace the match with a saved one. The save is read, checked and rehearsed
     /// on a scratch copy first; on any error the current match is left exactly as it was.
     pub fn install_text(&mut self, text: &str) -> Result<(), String> {
-        Session::rehearse(text)?;
-        let s = Session::load(text)?;
-        if let Some(i) = (0..s.m.seats()).find(|&i| s.agent_cfgs[i].as_ref().is_some_and(|c| A::new(c).is_none())) {
-            return Err(format!("seat {} of this save is an LLM agent seat, which needs the server-backed game; this referee has no agent workers", i + 1));
+        self.install_checked(text).map_err(|r| r.message)
+    }
+
+    /// A seat of this session that this referee cannot run, if any.
+    fn unrunnable_seat(s: &Session) -> Option<Refusal> {
+        let i = (0..s.m.seats()).find(|&i| s.agent_cfgs[i].as_ref().is_some_and(|c| A::new(c).is_none()))?;
+        Some(Refusal::new(Reason::NeedsServer, format!("seat {} of this save is an LLM agent seat, which needs the server-backed game; this referee has no agent workers", i + 1)))
+    }
+
+    fn install_checked(&mut self, text: &str) -> Result<(), Refusal> {
+        Session::rehearse(text).map_err(|e| Refusal::new(Reason::Unplayable, e))?;
+        let s = Session::load(text).map_err(|e| Refusal::new(Reason::Unplayable, e))?;
+        if let Some(refusal) = Self::unrunnable_seat(&s) {
+            return Err(refusal);
         }
         let cfgs = s.agent_cfgs.clone();
         self.install(s, cfgs);
         Ok(())
+    }
+
+    // ---- save files -----------------------------------------------------------------
+
+    /// The running match as a save file, for the transport's own storage. Not a
+    /// request: no permission rule applies (compare [`Host::session_text`]).
+    pub fn container(&self, meta: portable::Meta) -> Option<Vec<u8>> {
+        self.session.as_ref().map(|s| portable::pack(s, &s.save(), meta))
+    }
+
+    /// The running match as a save file for whoever asked: refused when the session
+    /// may not leave this referee (an external seat, or required tokens).
+    pub fn export_file(&self, meta: portable::Meta) -> Result<Vec<u8>, Failure> {
+        let s = self.session.as_ref().ok_or_else(no_match)?;
+        if !self.session_portable() {
+            return Err(not_portable());
+        }
+        let text = s.save();
+        if s.leaks_credential(&text) {
+            return Err(leak());
+        }
+        Ok(portable::pack(s, &text, meta))
+    }
+
+    /// A stored session (a named save's text) as a save file for whoever asked,
+    /// under the same rule as [`Host::export_file`], applied to the stored match.
+    pub fn export_text(&self, text: &str, meta: portable::Meta) -> Result<Vec<u8>, Failure> {
+        let s = Session::load(text).map_err(|e| (400, "INVALID_SAVE", e))?;
+        if !self.text_portable(&s) {
+            return Err(not_portable());
+        }
+        Ok(portable::pack(&s, text, meta))
+    }
+
+    /// Whether the session a header describes may leave this referee as a file, by the
+    /// rule of [`Host::export_file`]. For save files this referee wrote itself.
+    pub fn header_portable(&self, header: &portable::Header) -> bool {
+        !self.cfg.require_tokens && header.seats.iter().all(|s| s.controller != ControllerKind::External || s.agent.as_deref().is_some_and(|p| A::provider(p).is_some()))
+    }
+
+    /// Read a save file as far as its session text: a container is checked in full
+    /// (structure, versions, bounded unpacking, checksum); bare session text, as the
+    /// server's older saves are, is accepted within the same size limit. The header
+    /// comes back even with a refusal when it could be read.
+    #[allow(clippy::type_complexity)]
+    fn read_file(&self, bytes: &[u8]) -> Result<(portable::Header, String, bool), (Option<portable::Header>, Refusal)> {
+        let not_a_save = || (None, Refusal::new(Reason::NotASave, "this is not a Before the Stars save file"));
+        let braces = bytes.iter().find(|b| !b.is_ascii_whitespace()).is_some_and(|b| *b == b'{');
+        if portable::is_container(bytes) || !braces {
+            let (header, payload) = portable::read_header(bytes, &self.limits).map_err(|r| (None, r))?;
+            let checked = portable::compatible(&header).and_then(|()| portable::unpack(&header, payload, &self.limits));
+            return match checked {
+                Ok(text) => Ok((header, text, false)),
+                Err(r) => Err((Some(header), r)),
+            };
+        }
+        let cap = self.limits.max_unpacked.min(self.limits.max_file);
+        if bytes.len() > cap {
+            return Err((None, Refusal::new(Reason::TooLarge, format!("the file is {} bytes; this game reads saves up to {cap} bytes", bytes.len()))));
+        }
+        let text = std::str::from_utf8(bytes).map_err(|_| not_a_save())?;
+        if !text.trim_start().starts_with("{\"format\":\"bts-save/") {
+            return Err(not_a_save());
+        }
+        let session = Session::load(text).map_err(|e| (None, Refusal::new(Reason::Unplayable, format!("the save text cannot be read: {e}"))))?;
+        Ok((portable::describe_text(&session, text), text.to_string(), true))
+    }
+
+    /// Say what a save file is without loading it. With `rehearse`, the session is
+    /// also played for a round on a scratch copy, exactly as an import would, so
+    /// `loadable` is the answer an import would give. The running match is not touched.
+    pub fn describe_file(&self, bytes: &[u8], rehearse: bool) -> Description {
+        let (header, legacy, refusal) = match self.read_file(bytes) {
+            Err((header, refusal)) => (header, false, Some(refusal)),
+            Ok((header, text, legacy)) => {
+                let refusal = match Session::load(&text) {
+                    Err(e) => Some(Refusal::new(Reason::Unplayable, e)),
+                    Ok(s) => Self::unrunnable_seat(&s).or_else(|| if rehearse { Session::rehearse(&text).err().map(|e| Refusal::new(Reason::Unplayable, e)) } else { None }),
+                };
+                (Some(header), legacy, refusal)
+            }
+        };
+        Description {
+            loadable: refusal.is_none(),
+            reason: refusal.as_ref().map(|r| r.reason.code()),
+            message: refusal.map(|r| r.message),
+            legacy,
+            bytes: bytes.len(),
+            file_name: header.as_ref().map(portable::file_name),
+            header,
+            game: env!("CARGO_PKG_VERSION"),
+            build: portable::Versions::current(),
+        }
+    }
+
+    /// Replace the match with the one in a save file (a container, or bare session
+    /// text). Every check of [`portable::open`] runs, then the parse and the
+    /// rehearsal; on any refusal the current match is left exactly as it was.
+    pub fn install_file(&mut self, bytes: &[u8]) -> Result<portable::Header, Refusal> {
+        let (header, text, _) = self.read_file(bytes).map_err(|(_, refusal)| refusal)?;
+        self.install_checked(&text)?;
+        Ok(header)
+    }
+
+    /// The save-file routes, which carry bytes rather than text. `None` for any other request.
+    fn save_file_routes(&mut self, method: &str, target: &str, body: &[u8]) -> Option<Reply> {
+        let (path, q) = query(target);
+        let result = match (method, path) {
+            ("GET", "/api/savefile") => {
+                let name = q.get("name").map(|n| percent_decode(n)).unwrap_or_default();
+                let meta = portable::Meta {
+                    kind: q.get("kind").and_then(|k| portable::Kind::parse(k)).unwrap_or(portable::Kind::Manual),
+                    name: &name,
+                    created_ms: q.get("created").and_then(|c| c.parse().ok()).unwrap_or(0),
+                };
+                self.export_file(meta).map(Reply::binary)
+            }
+            ("POST", "/api/savefile/describe") => Ok(Reply::of(&self.describe_file(body, q.get("rehearse").map(String::as_str) != Some("0")))),
+            // the same save under another name: a pure rewrite of the header, for stores that keep files
+            ("POST", "/api/savefile/rename") => Ok(match portable::rename(body, &q.get("name").map(|n| percent_decode(n)).unwrap_or_default(), &self.limits) {
+                Ok(file) => Reply::binary(file),
+                Err(refusal) => Reply::refused(&refusal),
+            }),
+            ("POST", "/api/savefile/import") => Ok(match self.install_file(body) {
+                Ok(_) => self.summary_reply(true).with(Effects { changed: true, installed: true, ..Default::default() }),
+                Err(refusal) => Reply::refused(&refusal),
+            }),
+            _ => return None,
+        };
+        Some(result.unwrap_or_else(|(status, code, message)| Reply::error(status, code, &message)))
+    }
+
+    /// Answer one request whose body is bytes. This is what a transport calls: the
+    /// save-file routes take and return binary, everything else is text and goes to
+    /// [`Host::handle`].
+    pub fn handle_bytes(&mut self, method: &str, target: &str, body: &[u8], entropy: u64) -> Reply {
+        if let Some(reply) = self.save_file_routes(method, target, body) {
+            return reply;
+        }
+        match std::str::from_utf8(body) {
+            Ok(body) => self.handle(&Request { method, target, body, entropy }),
+            Err(_) => Reply::error(400, "INVALID_SCHEMA", "the request is not valid UTF-8"),
+        }
     }
 
     // ---- deferred playback ----------------------------------------------------------
@@ -562,6 +798,9 @@ impl<A: AgentSlot> Host<A> {
     /// Answer one request. Unknown paths get 404, so a transport can serve its own
     /// endpoints (static files, named saves on disk) before asking here.
     pub fn handle(&mut self, req: &Request) -> Reply {
+        if let Some(reply) = self.save_file_routes(req.method, req.target, req.body.as_bytes()) {
+            return reply;
+        }
         let (path, q) = query(req.target);
         let arg = |k: &str| q.get(k).map(String::as_str);
         let result = match (req.method, path) {
@@ -608,13 +847,20 @@ impl<A: AgentSlot> Host<A> {
                     if arg("format") == Some("json") {
                         Reply::of(&obs.chronicle)
                     } else {
-                        Reply { status: 200, kind: Body::Markdown, body: chronicle_markdown(&obs), effects: Effects::default() }
+                        Reply { status: 200, kind: Body::Markdown, body: chronicle_markdown(&obs), data: Vec::new(), effects: Effects::default() }
                     }
                 })
             }
             ("GET", "/api/session/export") => match &self.session {
-                Some(s) if self.session_portable() => Ok(Reply::json(s.save())),
-                Some(_) => Err((403, "UNAUTHORIZED", "a session can be exported only when no seat is external and tokens are not required".into())),
+                Some(s) if self.session_portable() => {
+                    let text = s.save();
+                    if s.leaks_credential(&text) {
+                        Err(leak())
+                    } else {
+                        Ok(Reply::json(text))
+                    }
+                }
+                Some(_) => Err(not_portable()),
                 None => Err(no_match()),
             },
             ("POST", "/api/session/import") => match self.install_text(req.body) {
