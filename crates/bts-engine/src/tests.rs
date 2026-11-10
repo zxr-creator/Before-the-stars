@@ -1457,6 +1457,38 @@ fn learners_and_instructors_never_outnumber_the_people_who_exist() {
 }
 
 #[test]
+fn learners_die_with_everybody_else() {
+    let mut m = Match::new(cfg("learner-deaths"), 1);
+    let capital = m.world.civs[0].capital;
+    let home = capital as usize;
+    put_works(&mut m.world.regions[home], "lodge", 4);
+    let r = m.act(0, vec![Action::StartProgram { region: capital, course: "E002".into(), seats: 12_000 }]);
+    assert_eq!(r[0].status, "accepted", "{}", r[0].reason);
+    crate::sim::step_month(&mut m.world);
+    let enrolled = m.world.civs[0].programs[0].enrolled;
+    assert!(enrolled >= 8_000, "{:?}", m.world.civs[0].programs[0].blockers);
+    // six ordinary months of a twelve-month course: nobody graduates, a few learners die
+    let mut expected = enrolled;
+    for _ in 0..6 {
+        let working = m.world.regions[home].working();
+        let deaths_before = m.world.civs[0].flows.deaths;
+        let before: u32 = m.world.regions[home].blocks.iter().map(|b| b.working()).sum();
+        crate::sim::step_month(&mut m.world);
+        assert!(m.world.civs[0].flows.deaths > deaths_before);
+        // the cohort loses the share of itself that the working-age population lost to death
+        // (ageing happens once a year and is not in these six months)
+        let after: u32 = m.world.regions[home].blocks.iter().map(|b| b.working()).sum();
+        let working_deaths = before - after;
+        expected -= (expected as u64 * working_deaths as u64 / working as u64) as u32;
+    }
+    let p = &m.world.civs[0].programs[0];
+    assert_eq!(p.graduates, 0);
+    assert!(p.enrolled < enrolled, "learners are not immune to death");
+    assert_eq!(p.enrolled, expected);
+    assert_eq!(m.world.regions[home].students, p.enrolled);
+}
+
+#[test]
 fn copy_houses_make_media_only_from_a_staffed_precinct_and_real_material() {
     let c = content();
     let mut m = Match::new(cfg("copy-houses"), 1);
