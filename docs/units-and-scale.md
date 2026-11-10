@@ -1,0 +1,231 @@
+# Units and scale
+
+This chapter fixes what one unit of everything in the rules engine means and the
+magnitudes that follow. It is the reference for `crates/bts-engine`; when a number in
+the engine disagrees with this chapter, one of the two is a bug. All numeric values
+remain provisional calibration; the *units* are not provisional.
+
+Ruleset `bts-rules/2.0.0` is the first that follows this chapter. Saves written by
+earlier rulesets counted people and posts differently and are refused on load with a
+versioned error; they cannot be migrated exactly.
+
+## 1. Why the scale changed
+
+The endgame is an interstellar programme. A society that can run one independently
+needs millions of industrial workers, hundreds of thousands of engineers and the
+schools that replace them. The earlier model began with about 240 people per seat and
+ended with tens of thousands, so a "launch complex" had thirty staff and the jump
+programme asked for thirty-six engineers.
+
+Population in this model is demographic, not a counter: births come from women of
+child-bearing age nine months earlier, people age one year at a time, and nobody is
+created by a building. Over the 240-year campaign (2,880 monthly steps) a well-fed
+population can grow by a factor of a few hundred at most. The size of the end state is
+therefore decided by the size of the start. A nation that can carry an independent
+space programme (tens of millions) at the end requires peoples of a few hundred
+thousand at the start. That is also a defensible reading of the opening: a region here
+is state-sized, and a state-sized landscape of foragers and first cultivators holds
+10^5 people, not 10^2.
+
+The scale chosen:
+
+- a seat starts with **236,000-248,000 people** in one home region;
+- a strong late civilization holds **30-150 million** in 10-40 regions; a marginal
+  one a few million;
+- one **facility level** is an establishment (or a district of like establishments)
+  employing **thousands** of people, the same grain as a building level in the grand
+  strategy games the interface is modelled on;
+- goods are counted in **kilotonnes** (bulk) or **thousand standard lots**
+  (manufactures), which is the natural size of what a level makes in a month.
+
+The campaign compresses roughly ten thousand years of technical history into 240
+years of demographic time. Demographic, educational and construction rates are real
+monthly rates; what is compressed is the waiting between discoveries.
+
+## 2. The units
+
+Integer arithmetic only. "Base unit" is what one integer step of the stored value
+means; "display unit" is 1,000 base units and is what quantities are quoted in below
+and what a client should normally show.
+
+| Quantity | Base unit (integer 1) | Display unit (1,000) | Notes |
+| --- | --- | --- | --- |
+| Time | 1 month | - | 12 months per decision round; horizon 2,880 months |
+| Population | 1 person | - | 81 annual age cells per block; `u32` per cell |
+| Post / job | 1 full-time worker for the month | - | one person holds one post; students, teachers and soldiers hold none |
+| Project work | 1 worker-month | 1,000 worker-months | a called-up labourer supplies 1 per month |
+| Research work | 1 researcher-month | 1,000 researcher-months | supplied only by staffed research posts |
+| Food | 1 ration: one person's food for one month, 50 kg grain-equivalent | 1,000 rations = 50 t | every resident and soldier eats 1 ration a month |
+| Bulk goods | 1 tonne | 1 kt | timber/stone/clay, ores, coal, crude, rare minerals, copper, structural metal, components, conductors, insulation, fuel, chemicals, substrate |
+| Manufactured lots | 1 standard lot | 1,000 lots | see the lot table below |
+| Shaft / electric service | 0.1 MWh delivered in the month | 100 MWh in the month (about 0.14 MW continuous) | cannot be stored; consumed where and when it is made, or shared over a grid with loss |
+| Compute service | index | one standard machine-hall-month | cannot be stored; capacity installed last month serves this month |
+| Ratios | basis point | - | 10,000 = 1.0 |
+
+Standard lots and their mass equivalents (used by the mass-balance test: no recipe
+may put out more mass than it takes in, extraction and food excepted):
+
+| Good | One lot is | Mass |
+| --- | --- | --- |
+| Tools | a working set of hand or machine tools for one post-year | 0.25 t |
+| Spare parts | a maintenance kit | 0.25 t |
+| Electronic devices | a device lot | 0.05 t |
+| Computing hardware | a rack | 0.5 t |
+| Record media | a set of volumes, plates or media | 0.15 t |
+| Instruments | an instrument set | 0.4 t |
+| Medicine and bioproducts | a lot of treatment courses | 0.04 t |
+
+Food converts at 0.05 t per ration wherever a recipe consumes it.
+
+## 3. People
+
+| Quantity | Value |
+| --- | --- |
+| Starting population per seat | 236,000-248,000, young pyramid |
+| Working age | 15-64; 92% of them are available for posts, study or service |
+| Food per person-month | 1 ration (50 kg grain-equivalent; 0.6 t a year) |
+| Births | at most 0.030 a month per reproductive equivalent, lagged nine months, cut by thin stores, crowding and schooling |
+| Sustained growth actually seen in all-AI matches | 1.5-2.5% a year while land and water last |
+| Natural water of a home region | at least 2.6 million residents |
+
+Settlement class of a region (descriptive only; no rule keys on it):
+
+| Class | Residents |
+| --- | --- |
+| Wilderness | 0 |
+| Camp | under 150,000 |
+| Village | 150,000 to under 1 million |
+| Town | 1 to under 4 million |
+| City | 4 to under 12 million |
+| Metropolis | 12 million or more |
+
+Other person-scaled constants: a settling party is 20,000-400,000 people; a formation
+is 1,000-5,000,000 soldiers; home-defence militia is one working adult in forty, at
+most 500,000; a barracks level trains 200,000 at once; a region counts as urban for
+cultural drift at 2 million residents; a founding cohort without an instructor is at
+most 4,000 learners.
+
+## 4. Posts and facility levels
+
+A level's crew is stated in people. General posts can be filled by anyone; qualified
+posts only by holders of the listed qualifications (in order of preference).
+Reference magnitudes by era (the full table is printed by
+`cargo test -p bts-engine --release print_unit_tables -- --ignored --nocapture`):
+
+| Era | Example level | Crew (general + qualified) | Output per level-month | Per worker-month |
+| --- | --- | --- | --- | --- |
+| Subsistence | Fields, hand cultivation | 10,000 | 30,000 rations | 3.0 rations (150 kg) |
+| Subsistence | Timber and quarry camps | 8,000 | 16 kt materials | 2.0 t |
+| Craft | Workshops, stone tools | 4,000 + 2,000 | 5,000 tool lots | 0.8 lots (0.2 t) |
+| Craft | Shallow mines | 12,000 | 18 kt ore | 1.5 t |
+| Classical | Bloomery | 4,000 + 2,000 | 4 kt iron | 0.67 t |
+| Industrial | Steelworks | 12,000 + 4,000 | 30 kt steel | 1.9 t (22 t a year) |
+| Industrial | Machine shops | 6,000 + 4,000 | 10 kt components | 1.0 t |
+| Industrial | Mechanized fields | 10,000 | 140,000-200,000 rations | 14-20 rations (0.7-1.0 t) |
+| Electrical | Electronics cells, integrated | 4,000 + 4,000 | 20,000 device lots | 2.5 lots |
+| Space | Launch complex | see section 8 | services | - |
+
+Per-worker output in the early and industrial eras is at or below the historical
+record for the corresponding technique (a nineteenth-century steelworker made 50-100 t
+a year; here 22 t). That is deliberate: a level's crew includes its carters,
+storemen and clerks, and the campaign's population is small for its technology.
+
+Education: class sizes are people per instructor and did not change. A venue level
+offers thousands of places (lodge 16,000; school 40,000; college 30,000; technical
+institute 32,000), so one level of lodges at class size 8 occupies 2,000 instructors.
+
+Research: one staffed research post supplies one researcher-month. Technology work
+ranges from 18,000 researcher-months (first crafts) to 3.4 million (jump
+engineering), before the scenario pace multiplier.
+
+## 5. Energy
+
+One display unit of shaft or electric service is 100 MWh delivered within the month.
+
+| Source (one level) | Fuel per month | Service per month | Implied conversion |
+| --- | --- | --- | --- |
+| Water or wind mills | - | 20 (2 GWh) | site-limited |
+| Steam engines | 12 kt coal | 60 (6 GWh) | about 6% of the coal's heat |
+| Compound engines | 10 kt coal | 70 | about 9% |
+| Steam turbines | 8 kt coal | 80 | about 12% |
+| Diesel | 6 kt fuel | 60-90 | 9-13% |
+| Hydroelectric works | - | 90 electric | site-limited |
+| Fission plant | 1 kt rare minerals (ore) | see content | - |
+| Fusion plant | 1 kt chemicals (fuel feedstock) | see content | - |
+
+Generator halls convert shaft work to electricity at nine tenths; a grid shares
+surplus between linked regions at 92%; motors return electricity to shafts at nine
+tenths. Only industrial, research and programme use is modelled; household
+consumption is not, so national totals are far below a modern economy's.
+
+Construction of industrial-era works draws site power in the same unit. A site with
+no local supply runs site engines on coal (5 units per kt) or fuel (10 units per kt).
+
+## 6. Construction
+
+A build order of `n` levels needs, all stated in the quote before ordering:
+
+- goods: `n x` the level's material bill, committed from stock as available;
+- work: `n x` the level's work in worker-months (half as much again for the first of
+  its kind anywhere in the civilization);
+- a qualified site crew of `n x` the level's crew, reserved from the region's
+  qualified residents for as long as the order is active (they hold no other post and
+  are returned when it completes or is cancelled);
+- site power of `n x` the level's draw each month while work proceeds;
+- time: the level's minimum months (half as long again for the first of its kind);
+  work beyond `total / minimum months` in a month is wasted and not accepted.
+
+Monthly progress is the least of: accepted work this month; work the called-up labour
+of the region can supply; the share of the crew on site; the share of site power
+delivered; the share of goods committed. A shortage of any of them slows or stops the
+order and is named as a blocker. Nothing completes without all of them.
+
+## 7. Economies of scale
+
+Every saving below is a reduction of overhead or loss. None raises the goods a recipe
+puts out per unit of input or per level; a level's recipe output is a hard ceiling.
+
+| Effect | Saving | Cap | Limited by | Downside of concentration |
+| --- | --- | --- | --- | --- |
+| Shared support posts | general posts of an industrial or extractive facility fall 2% per level beyond the first | 20% of general posts | condition at least 75%; regional freight capacity | idle when freight is congested |
+| Maintenance pooling | spares and tools upkeep of co-located works | 15% of that upkeep | repair-works levels (one serves twelve facility levels); freight capacity | the shop needs its own qualified crew and inputs |
+| Integrated chains | output used as input by works in the same region pays no carriage loss | the carriage loss itself | the quantity actually used locally that month | a single region carries the whole chain |
+| Power grid | surplus electricity shared between linked regions | 92% delivered | grid links; generating surplus | - |
+| Freight congestion (penalty) | when industrial load exceeds the region's freight capacity the savings above shrink in proportion and up to 20% more of exported output is lost | - | transport grade (track, roads, depot, harbour) | - |
+
+Concentration also carries the risks the rules already had: one region's loss or
+occupation takes the whole chain, and its supply line can be cut.
+
+## 8. The space and jump base
+
+See `docs/design/35-industrial-base-plan-v1.1.md` for the facility table and the
+acceptance checks. The principle: an independent programme needs, each separately
+checked and each consuming real things,
+
+- industrial: the capital works themselves and a year's flight hardware delivered by
+  own output or contracted imports;
+- scientific: frontier research capacity and the understood prerequisites;
+- educational: jump engineers and orbital crews for every post with reliefs, and
+  pipelines that replace them;
+- logistical: freight links, fuel and spares for a year, electric supply at every
+  site, launch and recovery sites.
+
+There is no population threshold anywhere in these checks. A small civilization can
+substitute contracted imports for output, seconded experts for graduates and a
+partner's launch or orbital-yard service for its own, each for payment and each ending
+when the treaty does.
+
+## 9. Overflow and precision
+
+- Age cells are `u32`: a single region would need more than four billion people of
+  one age to overflow.
+- Stocks and flows are `i64` base units. The largest stock seen in all-AI matches is
+  of order 10^10; products with basis points use `i128` (`util::muldiv`, `ratio_bp`).
+- Per-person coefficients are stored per thousand people and divided last, so a
+  coefficient such as 3.3 rations per cultivator is exact.
+- Births, deaths and migration carry their remainders, so splitting a population
+  never rounds the same expectation twice.
+
+## 10. Known gaps in calibration
+
+Listed in `docs/implementation-status.md` under "Known calibration gaps".
