@@ -1,0 +1,10 @@
+# Repo-local toolchain (Rust, Node, browsers) installed by scripts/bootstrap.sh
+.toolchain/
+target/
+node_modules/
+apps/web/dist/
+saves/
+.DS_Store
+*.log
+apps/web/screenshots/
+apps/web/.vite/

@@ -1,0 +1,1382 @@
+[
+ {
+  "id": "T001",
+  "name": "Composite stone and bone tools",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "",
+  "requirements": "Workable stone, bone/wood, skilled production time",
+  "capability": "Cutting and working; wear and material differences expose problems"
+ },
+ {
+  "id": "T002",
+  "name": "Controlled fire and heat treatment",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "",
+  "requirements": "Fuel, safe hearths, fire-tending labor",
+  "capability": "Cooking, drying, heat treatment; inadequate temperature creates clues"
+ },
+ {
+  "id": "T003",
+  "name": "Ecological observation and combined hunting/fishing",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T001",
+  "requirements": "Seasonal observation, tools, teaching, supplies",
+  "capability": "Bounded gathering/hunting improvement; migration and depletion motivate investigation"
+ },
+ {
+  "id": "T004",
+  "name": "Fibers, ropes, nets, and weaving",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T001",
+  "requirements": "Fiber preparation, manual labor, drying space",
+  "capability": "Cordage, nets, containers, clothing; strength and durability problems"
+ },
+ {
+  "id": "T005",
+  "name": "Cultivation and seed selection",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T003 & T001",
+  "requirements": "Suitable plants, land, water, full-season observations",
+  "capability": "Cultivation and repeatable selection; seasonal/output variation supplies evidence"
+ },
+ {
+  "id": "T006",
+  "name": "Husbandry and breeding",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T003 & T004",
+  "requirements": "Suitable species, feed, space, care",
+  "capability": "Animal products and potential traction; disease and feed competition constrain scale"
+ },
+ {
+  "id": "T007",
+  "name": "Drying, storage, and preservation",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T002 & T004",
+  "requirements": "Stores, containers, fuel or salt, pest maintenance",
+  "capability": "Seasonal food stocks; spoilage and allocation failures expose improvements"
+ },
+ {
+  "id": "T008",
+  "name": "Kiln-fired pottery",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T002",
+  "requirements": "Suitable clay/minerals, kiln, fuel, trial batches",
+  "capability": "Heat-resistant vessels and building material; glazing and temperature control"
+ },
+ {
+  "id": "T009",
+  "name": "Counting and recording marks",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T001 & T003",
+  "requirements": "Real exchange/allocation tasks, marking media, teaching",
+  "capability": "External memory and quantity correspondence; not automatically full writing"
+ },
+ {
+  "id": "T010",
+  "name": "Seasonal calendars",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T009 & T003",
+  "requirements": "Continuous observation, stable records, comparison",
+  "capability": "Timing sowing/migration; errors motivate astronomy and measurement"
+ },
+ {
+  "id": "T011",
+  "name": "Land improvement and water diversion",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T005 & T008",
+  "requirements": "Water, land rights, civil labor, maintenance obligations",
+  "capability": "Fields, irrigation, drainage; upstream disputes and silt remain real"
+ },
+ {
+  "id": "T012",
+  "name": "Woodworking and structural joints",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T001 & T004",
+  "requirements": "Timber, tools, craftspeople, load trials",
+  "capability": "Housing, bridges, machine components; investigable structural failures"
+ },
+ {
+  "id": "T013",
+  "name": "Hulls and coastal navigation",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T012 & T004",
+  "requirements": "Timber or equivalent hull material, crew, supplies, accessible water",
+  "capability": "Freight and contact; weather and route risk generate experience"
+ },
+ {
+  "id": "T014",
+  "name": "Mineral identification and concentration",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T001 & T002",
+  "requirements": "Accessible minerals, samples, fuel, craftspeople",
+  "capability": "Identify usable ores; exploration changes knowledge, not deposit quantities"
+ },
+ {
+  "id": "T015",
+  "name": "Early copper smelting",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T014 & T008",
+  "requirements": "Copper ore, furnace charge, reducing fuel, labor",
+  "capability": "Metal objects; ore and furnace temperature limit actual output"
+ },
+ {
+  "id": "T016",
+  "name": "Length, volume, and weighing standards",
+  "label": "established",
+  "group": "A",
+  "group_title": "Subsistence, communities, and early craft",
+  "prereq": "T009 & T012",
+  "requirements": "Standards, checking personnel, storage, recalibration",
+  "capability": "Comparable physical quantities; inconsistent standards motivate coordination"
+ },
+ {
+  "id": "T020",
+  "name": "Animal traction and agricultural tools",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T005 & T006 & T012",
+  "requirements": "Suitable animals, implements, feed, land",
+  "capability": "More cultivated area per worker; water, soil, and seasons remain limiting"
+ },
+ {
+  "id": "T021",
+  "name": "Water lifting and distribution",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "(T011 | T024) & T012 & T016",
+  "requirements": "Irrigation or settlement wells/channels, lifting equipment, maintenance, durable organization",
+  "capability": "Farm or residential needs motivate lifting; net supply and head are measurable"
+ },
+ {
+  "id": "T022",
+  "name": "Alloy casting",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T015 & T016",
+  "requirements": "Alloy constituents, molds, furnace control, mixture experience",
+  "capability": "Castings and tools; different alloys require actual distinct resources"
+ },
+ {
+  "id": "T023",
+  "name": "Iron smelting and forging",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T014 & T008 & T016",
+  "requirements": "Iron ore, fuel, lining, smiths",
+  "capability": "Iron tools, structures, weapons; fuel and maintenance limit scale"
+ },
+ {
+  "id": "T024",
+  "name": "Masonry and load-bearing structures",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T008 & T012 & T016",
+  "requirements": "Stone/brick, binders, construction, maintenance",
+  "capability": "Durable buildings, stores, public facilities; trials accumulate evidence"
+ },
+ {
+  "id": "T025",
+  "name": "Reproducible writing",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T009 & T016",
+  "requirements": "Durable media, actual writers, language teaching",
+  "capability": "Intergenerational records and complex orders; not universal literacy"
+ },
+ {
+  "id": "T026",
+  "name": "Arithmetic and accounting tools",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T025 & T016",
+  "requirements": "Real accounting tasks, recorders, review time",
+  "capability": "Income, inventory, quantity calculations; money and financial rights need institutions"
+ },
+ {
+  "id": "T027",
+  "name": "Roads and staged transport",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T012 & T016",
+  "requirements": "Passage rights, roads/bridges, vehicles, supplies, maintenance",
+  "capability": "Land capacity and predictable trips; geographic costs persist"
+ },
+ {
+  "id": "T028",
+  "name": "Sailing and navigational positioning",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T013 & T010 & T026",
+  "requirements": "Rigging, crew, observations, maritime supply",
+  "capability": "Wider routes; unexplored waters retain uncertainty and risk"
+ },
+ {
+  "id": "T029",
+  "name": "Waterwheels and wind machinery",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T012 & T016",
+  "requirements": "Water/wind, transmission materials, seasonal upkeep",
+  "capability": "Nonhuman power; geographic and output variation motivate alternatives/storage"
+ },
+ {
+  "id": "T030",
+  "name": "Recording media and teaching-text reproduction",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T025 & T004",
+  "requirements": "Paper, tablets, or other media; copyists, storage",
+  "capability": "More known texts; manual copying remains costly and slow"
+ },
+ {
+  "id": "T031",
+  "name": "Glass and glaze processes",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T008 & T014",
+  "requirements": "Suitable feedstock, heat, crucibles, trial firings",
+  "capability": "Candidate transparent/chemical vessels; vessel glass is not optical glass"
+ },
+ {
+  "id": "T032",
+  "name": "Medicinal observation and trauma care",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T003 & T007 & T001",
+  "requirements": "Identifiable materials, clean tools, carers, records",
+  "capability": "Empirical care; benefits and side effects need comparison, not assumed traditional efficacy"
+ },
+ {
+  "id": "T033",
+  "name": "Drinking water, waste removal, and settlement hygiene",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "(T011 | T021) & T024",
+  "requirements": "Water sources, channels, disposal space, cleaning labor",
+  "capability": "Can develop from farm or settlement waterworks; not permanent immunity after construction"
+ },
+ {
+  "id": "T034",
+  "name": "Mechanical timekeeping",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "(T029 | T012) & T026 & T023",
+  "requirements": "Gears, machining, real drive/storage such as weights, escapement, calibrators, stable site",
+  "capability": "Time comparison and regulation; friction/material limits, no mandatory waterwheel/windmill"
+ },
+ {
+  "id": "T035",
+  "name": "Mechanical projection and stored-energy components",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T012 & T004 & T016",
+  "requirements": "Elastic/counterweight parts, manufacture, trials, training",
+  "capability": "Projectile and engineering equipment; specific recipes, not national combat bonuses"
+ },
+ {
+  "id": "T036",
+  "name": "Propellants and controlled combustion",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T014 & T008 & T040",
+  "requirements": "Qualified ingredients, controlled preparation, isolated trials, batch inspection",
+  "capability": "Verified combustion/propulsion materials; actual inputs, losses, accidents"
+ },
+ {
+  "id": "T037",
+  "name": "Barrel weapons and proof testing",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T036 & (T022 | T023) & T045",
+  "requirements": "Qualified barrels, propellants, inspection space, assembly, training",
+  "capability": "Period-appropriate firearms; scale and unit use follow warfare rules"
+ },
+ {
+  "id": "T038",
+  "name": "Aerodynamics and powered flight",
+  "label": "established",
+  "group": "B",
+  "group_title": "Specialized society, records, transport, and equipment",
+  "prereq": "T051 & T050 & (T091 | T101)",
+  "requirements": "Wings, power, controls, flight tests, ground support",
+  "capability": "Powered aircraft and mission equipment; military aircraft are not mandatory for every space route"
+ },
+ {
+  "id": "T040",
+  "name": "Quantitative measurement and calibration",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T016 & T026",
+  "requirements": "Comparable standards, instruments, records, repeated calibration",
+  "capability": "Error bounds and cross-location checking; one reading is not truth"
+ },
+ {
+  "id": "T041",
+  "name": "Precision optics and reflective devices",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "(T031 | T023) & T040",
+  "requirements": "Optical-quality materials, grinding/polishing, checking, stable supports",
+  "capability": "Microscopic/astronomical instruments; glass and reflective routes pay distinct costs"
+ },
+ {
+  "id": "T042",
+  "name": "Pressure, fluids, and vacuum equipment",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T021 & T040",
+  "requirements": "Seals, pumps, vessels, pressure/leak measurement",
+  "capability": "Fluid trials; leaks, corrosion, strength remain constraints"
+ },
+ {
+  "id": "T043",
+  "name": "Chemical separation and quantitative analysis",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "(T031 | (T008 & T023)) & T040",
+  "requirements": "Glass or qualified ceramic/metal vessels, separators, samples, protection",
+  "capability": "Composition and purity checks; substitutes differ in corrosion, transparency, heat, contamination"
+ },
+ {
+  "id": "T044",
+  "name": "Precision transmission and machining gauges",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T034 & T023 & T040",
+  "requirements": "Turning/grinding, gauges, skilled labor, adjustment",
+  "capability": "Reproducible mechanisms; precision comes from manufacturing, not era labels"
+ },
+ {
+  "id": "T045",
+  "name": "Controlled comparisons and repeated trials",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T025 & T040",
+  "requirements": "Control samples, separate records, staff, repeated inputs",
+  "capability": "Excludes some confounders; early farm/craft use is not a modern national research system"
+ },
+ {
+  "id": "T046",
+  "name": "Anatomy, physiology, and clinical records",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T032 & T025 & T045",
+  "requirements": "Lawful samples, care/testing facilities, investigators",
+  "capability": "More checkable medical explanations; law and culture affect participation/sampling"
+ },
+ {
+  "id": "T047",
+  "name": "Algebra, geometry, and astronomical models",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T026 & T010 & T040",
+  "requirements": "Calculators/measurers, texts, continuing observation",
+  "capability": "Computable predictions; model error creates questions"
+ },
+ {
+  "id": "T048",
+  "name": "Scaled printing and inexpensive records",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T030 & T016",
+  "requirements": "Manual relief/plate or precision printing equipment, suitable marking material and media, distribution, operators; precision mechanical implementation also needs T044 & T043",
+  "capability": "Lower real copying costs; no universal clockwork prerequisite; readers and delivery remain necessary"
+ },
+ {
+  "id": "T049",
+  "name": "Reproducible scientific methods",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T045 & T047 & T040",
+  "requirements": "Effective review, retained data, measurement, sustained research organization",
+  "capability": "Systematic scientific agenda; several cultural institutions can organize it"
+ },
+ {
+  "id": "T050",
+  "name": "Material strength and failure analysis",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T023 & T045 & T040",
+  "requirements": "Samples, load equipment, records, qualified analysis",
+  "capability": "Reliable design evidence; failed specimens consume real materials"
+ },
+ {
+  "id": "T051",
+  "name": "Mechanics and continuous-quantity calculation",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T047 & T050 & T049",
+  "requirements": "Measurement, mathematical training, verified motion experiments",
+  "capability": "Mechanical, ballistic, orbital calculation; no free engine"
+ },
+ {
+  "id": "T052",
+  "name": "Thermodynamics and energy accounting",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T042 & T043 & T049",
+  "requirements": "Temperature/pressure measurement, heat, instruments, experimental teams",
+  "capability": "Heat-engine/loss analysis; efficiency labels cannot exceed available fuel"
+ },
+ {
+  "id": "T053",
+  "name": "Microorganisms and infection mechanisms",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T041 & T046 & T049",
+  "requirements": "Microscopy, samples, clean work, care research",
+  "capability": "Causal and disinfection evidence; treatments need separate verification"
+ },
+ {
+  "id": "T054",
+  "name": "Electromagnetic phenomena and measurement",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T043 & T040 & T049",
+  "requirements": "Conductors, magnetic materials, experimental power sources, instruments",
+  "capability": "Repeatable electromagnetic effects; not a free grid"
+ },
+ {
+  "id": "T055",
+  "name": "Probability, statistics, and error analysis",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T026 & T045 & T049",
+  "requirements": "Records, sufficient samples, reviewers, computation",
+  "capability": "Uncertainty estimation and quality checks; correlated samples are not independent"
+ },
+ {
+  "id": "T056",
+  "name": "Soils, nutrition, and agricultural experiments",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T005 & T043 & T045",
+  "requirements": "Trial plots, water, samples, multi-season records",
+  "capability": "Input responses and improvements; no instant removal of land constraints"
+ },
+ {
+  "id": "T057",
+  "name": "Quantum phenomena and testable models",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T041 & T054 & T055 & T049",
+  "requirements": "Spectral/electromagnetic experiments, mathematics, repeatable measurements, independent checks",
+  "capability": "Test microscopic phenomena; no FTL communication or free compute"
+ },
+ {
+  "id": "T058",
+  "name": "Statistical physics and condensed matter",
+  "label": "established",
+  "group": "C",
+  "group_title": "Measurement, experiments, and teachable science",
+  "prereq": "T057 & T052 & T050 & T043",
+  "requirements": "Temperature control, samples, composition checks, computation, measurement",
+  "capability": "Transport, phase transitions, electronic properties; devices still require manufacture/verification"
+ },
+ {
+  "id": "T060",
+  "name": "Coking, steel, and furnace control",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T023 & T050 & T052",
+  "requirements": "Ore, coke or verified substitute, furnaces, transport",
+  "capability": "Structural materials at scale; actual fuel/environmental costs"
+ },
+ {
+  "id": "T061",
+  "name": "Standardized machine tools",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T044 & T050",
+  "requirements": "Precision tools, power, frames, gauges, machinists",
+  "capability": "Reproducible equipment machining; one prototype is not national capacity"
+ },
+ {
+  "id": "T062",
+  "name": "Textile machinery and powered production",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T029 & T061 & T004",
+  "requirements": "Fiber, power, maintenance, workers, product demand",
+  "capability": "Textile lines; expansion requires actual buyers or uses"
+ },
+ {
+  "id": "T063",
+  "name": "Mechanical drainage and deep extraction",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T042 & T061 & T050",
+  "requirements": "Pumps, supports, power, miners, safety services",
+  "capability": "Harder deposits become extractable; grade, accidents, and transport still constrain"
+ },
+ {
+  "id": "T064",
+  "name": "Industrial chemistry and process control",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T043 & T052 & T061",
+  "requirements": "Feedstock, reactors, energy, protection, process personnel",
+  "capability": "Bulk separation, reaction, cleaning products; waste needs a destination"
+ },
+ {
+  "id": "T065",
+  "name": "Vocational teaching and training equipment",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T030 & T061 & T045",
+  "requirements": "Qualified instructors, workstations, materials, student provision",
+  "capability": "Repeatable training tasks; access and qualification rights remain institutional"
+ },
+ {
+  "id": "T066",
+  "name": "Interchangeable parts and tolerances",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T061 & T040 & T055",
+  "requirements": "Independent gauges, machining, sampling, supplier coordination",
+  "capability": "Repair and scale; claimed specifications are not measured acceptance"
+ },
+ {
+  "id": "T067",
+  "name": "High-pressure vessels and seals",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T060 & T052 & T066",
+  "requirements": "Quality steel, seals, nondestructive inspection, proof tests",
+  "capability": "Safer high-pressure equipment; pressure cannot increase without bound"
+ },
+ {
+  "id": "T068",
+  "name": "Rail and heavy transport",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T027 & T060 & T066 & (T080 | T091 | T101)",
+  "requirements": "Rights of way, track, powered vehicles, maintenance, dispatch",
+  "capability": "Bulk logistics; military/civilian users share one capacity"
+ },
+ {
+  "id": "T069",
+  "name": "Urban water treatment and sanitation",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T033 & T053 & T064",
+  "requirements": "Pipes, treatment, repairs, chemicals, operators",
+  "capability": "More reliable services; continuing costs and coverage are recorded"
+ },
+ {
+  "id": "T070",
+  "name": "Vaccination and pharmaceutical manufacture",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T046 & T053 & T064",
+  "requirements": "Disease-specific evidence, production checks, medical staff, distribution",
+  "capability": "Reduces corresponding hazards, not one immunity tag for every disease"
+ },
+ {
+  "id": "T071",
+  "name": "Scaled quality and reliability engineering",
+  "label": "established",
+  "group": "D",
+  "group_title": "Industrial foundations and material conditions for scale",
+  "prereq": "T066 & T065 & T055",
+  "requirements": "Independent checks, maintenance data, training, responsibility records",
+  "capability": "Multi-factory cooperation and reliability; distorted sampling leaves real defects"
+ },
+ {
+  "id": "T080",
+  "name": "Practical steam power",
+  "label": "established",
+  "group": "E",
+  "group_title": "Steam and thermal traditions",
+  "prereq": "T042 & T052 & T061",
+  "requirements": "Boilers, water, fuel, machining, operators, repair",
+  "capability": "Steady mechanical work; supply, heat losses, and accidents constrain operation"
+ },
+ {
+  "id": "T081",
+  "name": "High-pressure compound engines",
+  "label": "established",
+  "group": "E",
+  "group_title": "Steam and thermal traditions",
+  "prereq": "T080 & T067",
+  "requirements": "Qualified pressure materials, tests, condensation, staff",
+  "capability": "Bounded efficiency/power-density gains; neither requires nor permits pure steam to the endpoint"
+ },
+ {
+  "id": "T082",
+  "name": "Governors and mechanical feedback",
+  "label": "established",
+  "group": "E",
+  "group_title": "Steam and thermal traditions",
+  "prereq": "T080 & T044",
+  "requirements": "Transmission, sensing elements, load tests, maintenance",
+  "capability": "Local speed regulation, not general AI"
+ },
+ {
+  "id": "T083",
+  "name": "Steam turbines and turbine manufacture",
+  "label": "established",
+  "group": "E",
+  "group_title": "Steam and thermal traditions",
+  "prereq": "T081 & T066",
+  "requirements": "Blade materials, precision machining, balancing, heat",
+  "capability": "High-throughput conversion; compatible with generators and later heat sources"
+ },
+ {
+  "id": "T084",
+  "name": "District heat and industrial steam networks",
+  "label": "established",
+  "group": "E",
+  "group_title": "Steam and thermal traditions",
+  "prereq": "T081 & T027",
+  "requirements": "Pipes, insulation, water, routes, operating organization",
+  "capability": "Shared heat; transport losses and centralized failures have costs"
+ },
+ {
+  "id": "T085",
+  "name": "Waste-heat recovery and process integration",
+  "label": "established",
+  "group": "E",
+  "group_title": "Steam and thermal traditions",
+  "prereq": "T052 & T064 & T066",
+  "requirements": "Exchangers, measurement, maintenance, temperature-matched demand",
+  "capability": "Simple recovery can precede combined cycles; particular cycles need their engines/turbines; no double-counted energy"
+ },
+ {
+  "id": "T086",
+  "name": "High-parameter steam cycles",
+  "label": "established",
+  "group": "E",
+  "group_title": "Steam and thermal traditions",
+  "prereq": "T067 & T083 & T100",
+  "requirements": "High-temperature materials, water treatment, electric monitoring, safety",
+  "capability": "Better thermal-electric equipment; already crosses into electricity/materials"
+ },
+ {
+  "id": "T087",
+  "name": "Thermal storage and multi-source heat networks",
+  "label": "established",
+  "group": "E",
+  "group_title": "Steam and thermal traditions",
+  "prereq": "T085 & T050 & T064",
+  "requirements": "Storage medium, insulation, exchange, controls, useful heat demand",
+  "capability": "Integrates multiple energy sources; temperature, losses, charge limits remain; no mandatory electrochemical battery"
+ },
+ {
+  "id": "T090",
+  "name": "Fuel refining and composition checks",
+  "label": "established",
+  "group": "F",
+  "group_title": "Diesel, chemistry, and mobile industry",
+  "prereq": "T064 & (T014 | T063) & T055",
+  "requirements": "Surface/shallow feedstock, deep extraction, or verified substitute; refining, inspection, logistics",
+  "capability": "Specified liquid fuels; no universal deep-mine prerequisite; actual resources remain finite"
+ },
+ {
+  "id": "T091",
+  "name": "Internal combustion and combustion control",
+  "label": "established",
+  "group": "F",
+  "group_title": "Diesel, chemistry, and mobile industry",
+  "prereq": "T090 & T066 & T052",
+  "requirements": "Fuel, compression/ignition components, cooling, lubrication",
+  "capability": "Dense mobile power; actual operation produces faults and emissions"
+ },
+ {
+  "id": "T092",
+  "name": "Heavy diesel power",
+  "label": "established",
+  "group": "F",
+  "group_title": "Diesel, chemistry, and mobile industry",
+  "prereq": "T091 & T067",
+  "requirements": "High-pressure injection, machining, fuel quality, repair networks",
+  "capability": "Heavy machinery and ships; no free military advantage"
+ },
+ {
+  "id": "T093",
+  "name": "Polymers and chemical materials",
+  "label": "established",
+  "group": "F",
+  "group_title": "Diesel, chemistry, and mobile industry",
+  "prereq": "T064 & T050",
+  "requirements": "Suitable fossil/biological feedstock, reactors, verification, treatment",
+  "capability": "Seals, insulation, engineering materials; not all polymers require refining; use-specific performance"
+ },
+ {
+  "id": "T094",
+  "name": "Mobile logistics and mechanized work",
+  "label": "established",
+  "group": "F",
+  "group_title": "Diesel, chemistry, and mobile industry",
+  "prereq": "T091 & T027 & T071",
+  "requirements": "Vehicles, repair, roads, fuel, dispatch",
+  "capability": "Transport and mobile operations; military/civilian demand shares the network"
+ },
+ {
+  "id": "T095",
+  "name": "Manufactured agricultural inputs",
+  "label": "established",
+  "group": "F",
+  "group_title": "Diesel, chemistry, and mobile industry",
+  "prereq": "T064 & T056 & T055",
+  "requirements": "Relevant nutrient minerals or gas/hydrogen sources, reactors, energy, field trials, delivery",
+  "capability": "Conditional fertilizer/other inputs; separate product acceptance; no mandatory polymer/refinery route or proportional yield bonus"
+ },
+ {
+  "id": "T096",
+  "name": "Synthetic fuels and carbon-cycle processes",
+  "label": "established",
+  "group": "F",
+  "group_title": "Diesel, chemistry, and mobile industry",
+  "prereq": "T090 & T103 & T064",
+  "requirements": "Electricity, hydrogen/carbon sources, catalysts, actual energy",
+  "capability": "Replaces some natural fuels; not free or automatically zero-emission"
+ },
+ {
+  "id": "T097",
+  "name": "Modular mobile industry",
+  "label": "established",
+  "group": "F",
+  "group_title": "Diesel, chemistry, and mobile industry",
+  "prereq": "T094 & T071 & T102",
+  "requirements": "Movable equipment, power, supplies, qualified teams",
+  "capability": "Deployed construction/repair; moved equipment cannot also run fully at its original plant"
+ },
+ {
+  "id": "T100",
+  "name": "Generation and electromechanical conversion",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T054 & T066 & (T029 | T080 | T083 | T091)",
+  "requirements": "Qualified mechanical input, transmission/governing, conductors, magnets, generators, maintenance",
+  "capability": "Water/wind, reciprocating steam, turbines, or combustion can drive generators; installed capacity is not energy generated"
+ },
+ {
+  "id": "T101",
+  "name": "Motors and electric drives",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T100 & T054 & T061",
+  "requirements": "Power, wiring, manufacture, operation",
+  "capability": "Electrical mechanical work; grids and machines need separate maintenance"
+ },
+ {
+  "id": "T102",
+  "name": "Grids, protection, and dispatch",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T100 & T055 & T066",
+  "requirements": "Lines, conversion, protective devices, operators",
+  "capability": "Network supply; islands, broken lines, and priorities affect service"
+ },
+ {
+  "id": "T103",
+  "name": "Electrochemistry and high-purity materials",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T054 & T064 & T100",
+  "requirements": "Local/network supply meeting load/stability needs, feedstock, reaction/purification, checks",
+  "capability": "Electrolysis, refining, purification; real energy costs, no mandatory large grid"
+ },
+ {
+  "id": "T104",
+  "name": "Wireless communication and vacuum electronics",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T054 & T042 & T100",
+  "requirements": "Power, vacuum devices or suitable detectors, tuning, maintenance",
+  "capability": "Wireless information and amplification; communication gives no instant world truth"
+ },
+ {
+  "id": "T105",
+  "name": "Batteries and storage management",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T103 & T050",
+  "requirements": "Active materials, separation, thermal management, lifetime tests",
+  "capability": "Time-shifted energy; losses, capacity, degradation accounted separately"
+ },
+ {
+  "id": "T106",
+  "name": "Semiconductors and integrated manufacture",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T103 & T041 & T055 & T058",
+  "requirements": "Pure materials, patterning, clean facilities, yield control",
+  "capability": "Devices and integration; theory does not replace manufacturing equipment"
+ },
+ {
+  "id": "T107",
+  "name": "Power electronics and precision control",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T106 & T102 & T055",
+  "requirements": "Sensors, devices, calibration, control staff, power",
+  "capability": "Motor/grid/experiment control; actuators and safety tests remain necessary"
+ },
+ {
+  "id": "T108",
+  "name": "Cryogenics and superconducting engineering",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T052 & T058 & T067 & T054",
+  "requirements": "Refrigeration, insulation, low-temperature materials, electromagnetic measurement, continuous power",
+  "capability": "Qualified cold/superconducting components; actual critical conditions, no assumed room-temperature superconductivity"
+ },
+ {
+  "id": "T109",
+  "name": "Lasers and optoelectronic metrology",
+  "label": "established",
+  "group": "G",
+  "group_title": "Electricity, electronics, and distributed control",
+  "prereq": "T057 & T041 & T103 & T107",
+  "requirements": "Optical media, pumping, detection, calibration, control, safety",
+  "capability": "Controlled light and precision measurement; real power, bandwidth, noise limits"
+ },
+ {
+  "id": "T110",
+  "name": "Formal algorithms and executable procedures",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T026 & T055 & T049",
+  "requirements": "Mathematical training, records, checkable tasks",
+  "capability": "Programs/algorithms; paper descriptions provide no compute"
+ },
+ {
+  "id": "T111",
+  "name": "Programmable computers",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T110 & T066 & (T104 | T106)",
+  "requirements": "Logic, storage, power, cooling, engineers",
+  "capability": "Digital computation; mechanical computing can precede/assist, not equal advanced chips"
+ },
+ {
+  "id": "T112",
+  "name": "Digital communication networks",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T111 & T104",
+  "requirements": "Nodes, protocol equipment, bandwidth, power, operation",
+  "capability": "Remote data exchange; latency, capacity, permissions constrain cooperation"
+ },
+ {
+  "id": "T113",
+  "name": "Databases and traceable records",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T111 & T048",
+  "requirements": "Storage, collection, labeling, maintenance, provenance checks",
+  "capability": "Searchable data; names do not remove duplication, bias, or missing records"
+ },
+ {
+  "id": "T114",
+  "name": "Numerical control and industrial robots",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T111 & T107 & T071",
+  "requirements": "Actuators, sensors, workstations, maintenance, safety",
+  "capability": "Specific automated tasks; uncovered work still needs people"
+ },
+ {
+  "id": "T115",
+  "name": "Software verification and safety engineering",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T110 & T111 & T055",
+  "requirements": "Testing, independent review, fault records, qualified staff",
+  "capability": "Bounded system reliability; explicit cost and coverage"
+ },
+ {
+  "id": "T116",
+  "name": "Statistical learning and application models",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T111 & T113 & T055",
+  "requirements": "Training/inference compute, data rights, talent, use-case validation",
+  "capability": "Bounded prediction/generation, not a universal scientific solution"
+ },
+ {
+  "id": "T117",
+  "name": "Accelerators and compute clusters",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T111 & T106 & T102",
+  "requirements": "Chips, interconnects, power, cooling, maintenance, scheduling; verified continuity/recovery; T105 optional for battery-backed designs",
+  "capability": "More real task throughput, not AI points; T116 required only for learning workloads"
+ },
+ {
+  "id": "T118",
+  "name": "Automated experiments and instrument orchestration",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T114 & T116 & T115",
+  "requirements": "Robotic facilities, samples, calibration, human oversight",
+  "capability": "More paid physical experiments; software retries create no free evidence"
+ },
+ {
+  "id": "T119",
+  "name": "Medical implants and assistive devices",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T070 & T106 & T114",
+  "requirements": "Medical support, qualified materials, power, follow-up, repair",
+  "capability": "Specific sensory/motor/medical support, not universal intelligence gains"
+ },
+ {
+  "id": "T120",
+  "name": "High-bandwidth neural interfaces",
+  "label": "extrapolated",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T119 & T116",
+  "requirements": "Long-term safety, individual fitting, clinicians, data protection",
+  "capability": "Closer bounded-task cooperation; no assumed mind reading, uploading, or free knowledge infusion"
+ },
+ {
+  "id": "T121",
+  "name": "Engineering digital models and validation",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T113 & T115 & T050",
+  "requirements": "Calibration data, compute, real-equipment comparison, engineers; T114 when actual robotic control is deployed",
+  "capability": "Design/maintenance predictions; manual observations are allowed; mismatch still needs physical tests"
+ },
+ {
+  "id": "T122",
+  "name": "Validated high-autonomy general agents",
+  "label": "extrapolated",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T116 & T115 & T118 & T117",
+  "requirements": "Sustained compute, independent tests, fault isolation, takeover",
+  "capability": "Complex authorized tasks; calling a system general proves neither safety nor capability"
+ },
+ {
+  "id": "T123",
+  "name": "Critical-infrastructure cybersecurity",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T112 & T115 & T107",
+  "requirements": "Segmentation, identity, recovery equipment, maintenance, response",
+  "capability": "Bounded access/recovery, not complete immunity"
+ },
+ {
+  "id": "T124",
+  "name": "Auditable administrative computing",
+  "label": "established",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T113 & T115 & T123",
+  "requirements": "Actual administrative data/rules, independent review, appeals",
+  "capability": "Assists or executes authorized procedures; no automatic taxation or sovereignty"
+ },
+ {
+  "id": "T125",
+  "name": "High-autonomy governance infrastructure",
+  "label": "extrapolated",
+  "group": "H",
+  "group_title": "Computing, cyber infrastructure, and high autonomy",
+  "prereq": "T122 & T124 & T123",
+  "requirements": "Redundant compute, execution interfaces, external audits, support, takeover",
+  "capability": "Broader technical administrative scope; political/cultural rules decide highest authority"
+ },
+ {
+  "id": "T130",
+  "name": "Ecology and material-cycle accounting",
+  "label": "established",
+  "group": "I",
+  "group_title": "Biology, ecology, and life support",
+  "prereq": "T056 & T053 & T055",
+  "requirements": "Long records, field plots, measurement, researchers",
+  "capability": "Tracks water, nutrients, waste; an ecological label cannot create net resources"
+ },
+ {
+  "id": "T131",
+  "name": "Molecular analysis and bioengineering foundations",
+  "label": "established",
+  "group": "I",
+  "group_title": "Biology, ecology, and life support",
+  "prereq": "T053 & T103 & T041",
+  "requirements": "Reagents, instruments, samples, clean facilities, training",
+  "capability": "Molecular measurements and bounded intervention; results need replication"
+ },
+ {
+  "id": "T132",
+  "name": "Controlled biological manufacture",
+  "label": "established",
+  "group": "I",
+  "group_title": "Biology, ecology, and life support",
+  "prereq": "T131 & T064 & T071",
+  "requirements": "Bioreactors, feedstock, sterility, batch checks, maintenance",
+  "capability": "Specific foods/materials/drugs with distinct recipes"
+ },
+ {
+  "id": "T133",
+  "name": "Environmental restoration and agricultural cycles",
+  "label": "established",
+  "group": "I",
+  "group_title": "Biology, ecology, and life support",
+  "prereq": "T130 & T132 & T095",
+  "requirements": "Field works, water/land, nutrients, maintenance",
+  "capability": "Modeled pollution treatment and recovery; time and material destinations remain real"
+ },
+ {
+  "id": "T134",
+  "name": "Biological data and verifiable design",
+  "label": "established",
+  "group": "I",
+  "group_title": "Biology, ecology, and life support",
+  "prereq": "T131 & T113 & T115",
+  "requirements": "Data rights, compute, experiments, error checks",
+  "capability": "Bounded biological predictions; computation cannot replace samples or long observation"
+ },
+ {
+  "id": "T135",
+  "name": "High-closure ecological life support",
+  "label": "extrapolated",
+  "group": "I",
+  "group_title": "Biology, ecology, and life support",
+  "prereq": "T130 & T132 & T069 & T121",
+  "requirements": "Food/water/air cycles, buffer stocks, independent monitoring, maintenance",
+  "capability": "Less external supply; no absolute closure or ecological perpetual motion"
+ },
+ {
+  "id": "T136",
+  "name": "Reliable regenerative and augmented medicine",
+  "label": "extrapolated",
+  "group": "I",
+  "group_title": "Biology, ecology, and life support",
+  "prereq": "T134 & T119",
+  "requirements": "Long safety validation, medical provision, materials, clinical teams",
+  "capability": "Health extension or recovery for validated uses, not immortal population"
+ },
+ {
+  "id": "T137",
+  "name": "Adaptive closed habitats",
+  "label": "extrapolated",
+  "group": "I",
+  "group_title": "Biology, ecology, and life support",
+  "prereq": "T135 & T107 & T121",
+  "requirements": "Structure, life support, energy, maintainers, isolation",
+  "capability": "Longer difficult-environment residence; failures still need supplies and people"
+ },
+ {
+  "id": "T140",
+  "name": "Controlled rocket propulsion",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T052 & T064 & T067 & T107",
+  "requirements": "Propellant, test stands, hot structures, controls, safety",
+  "capability": "Testable thrust; payload and accidents follow actual performance"
+ },
+ {
+  "id": "T141",
+  "name": "Orbital calculation and navigation control",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T047 & T051 & T111 & T107",
+  "requirements": "Observations, computation, tracking, communication, control engineering",
+  "capability": "Plans/measures trajectories; successful calculation does not grant orbital position"
+ },
+ {
+  "id": "T142",
+  "name": "Repeatable orbital transport",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T140 & T141 & T071",
+  "requirements": "Launch facilities, vehicles, tests, supplies, ground crews",
+  "capability": "Paid delivery of real payloads; every trip has inputs and risk"
+ },
+ {
+  "id": "T143",
+  "name": "Vacuum, radiation, and space materials",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T050 & T103 & T106",
+  "requirements": "Environmental tests, qualified materials, inspectors, manufacturers",
+  "capability": "Equipment qualified for specific conditions, not unlimited heat/pressure resistance"
+ },
+ {
+  "id": "T144",
+  "name": "Spaceflight life support",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T069 & T070 & T143",
+  "requirements": "Air, water, food, environmental controls, stocks, medical care, repair",
+  "capability": "Finite-duration crewed operation; ground/orbital people share one population ledger"
+ },
+ {
+  "id": "T145",
+  "name": "Scaled orbital construction and manufacture",
+  "label": "extrapolated",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T142 & T143 & T114",
+  "requirements": "Real transport, machines, power, stations, maintenance",
+  "capability": "Orbital industry and deployment; factories receive no free terrestrial inputs"
+ },
+ {
+  "id": "T146",
+  "name": "Nuclear processes and particle measurement",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T049 & T054 & T043 & T104",
+  "requirements": "Sources/detectors, shielding, precision, investigators",
+  "capability": "Nuclear evidence; discovery does not jump directly to mass-produced reactors"
+ },
+ {
+  "id": "T147",
+  "name": "Fission power and nuclear safeguards",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T146 & T143 & T102 & T083",
+  "requirements": "Qualified fuel, reactors, cooling, shielding, safeguards",
+  "capability": "Sustained dense power; heat conversion, waste, maintenance remain"
+ },
+ {
+  "id": "T148",
+  "name": "High-temperature plasma experiments",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T146 & T107 & T143 & T057",
+  "requirements": "Energy, confinement, vacuum, diagnostics, trials",
+  "capability": "Verified plasma conditions; superconducting magnets not universally mandatory; not net power"
+ },
+ {
+  "id": "T149",
+  "name": "Maintainable net-power fusion",
+  "label": "extrapolated",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T148 & T121 & T143 & (T108 | T109)",
+  "requirements": "Specific confinement, material lifetime, fuel cycle, heat rejection, repair, net-energy audit",
+  "capability": "Magnetic/laser extrapolations separately tested; cryogenics or lasers alone prove no reactor"
+ },
+ {
+  "id": "T150",
+  "name": "Orbital energy collection and delivery",
+  "label": "extrapolated",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T145 & T102 & T107 & T143",
+  "requirements": "Large arrays, delivery, receivers, positions, maintenance",
+  "capability": "Candidate space power; losses and interruptions at every stage"
+ },
+ {
+  "id": "T151",
+  "name": "Large-baseline precision optical interferometry",
+  "label": "extrapolated",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T145 & T041 & T115 & T109",
+  "requirements": "Multiple instruments, laser metrology, time references, calibration, computation, communication",
+  "capability": "High-precision spatial measurement; ordinary wireless is not error-free metrology"
+ },
+ {
+  "id": "T152",
+  "name": "Fault-tolerant space control",
+  "label": "established",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T143 & T115 & T123",
+  "requirements": "Independent redundancy, radiation tests, takeover, spares",
+  "capability": "Auditable mission control; copied defects are not independent redundancy"
+ },
+ {
+  "id": "T153",
+  "name": "Sustained orbital deployment and relief systems",
+  "label": "extrapolated",
+  "group": "J",
+  "group_title": "Orbital, high-energy, and reliable deployment",
+  "prereq": "T144 & T145 & T152",
+  "requirements": "Transport, replacement crews, supplies, repair, real command",
+  "capability": "Extended operation and rotation; closed ecology optional, imported supply must actually arrive"
+ },
+ {
+  "id": "T160",
+  "name": "Relativity and spacetime models",
+  "label": "established",
+  "group": "K",
+  "group_title": "Minimal fictional boundary and FTL engineering",
+  "prereq": "T051 & T054 & T055",
+  "requirements": "Theory training, comparable observations, computation, independent checks",
+  "capability": "Test relativity; no prerequisite orbital industry/AI, no FTL capability"
+ },
+ {
+  "id": "T161",
+  "name": "Extreme vacuum and field-state experiments",
+  "label": "extrapolated",
+  "group": "K",
+  "group_title": "Minimal fictional boundary and FTL engineering",
+  "prereq": "T146 & T151 & T143 & T107",
+  "requirements": "Vacuum, field control, diagnostics, shielding, advanced teams",
+  "capability": "More demanding environments; real research does not establish the next fictional node"
+ },
+ {
+  "id": "T162",
+  "name": "Repeatable spacetime anomaly",
+  "label": "fictional",
+  "group": "K",
+  "group_title": "Minimal fictional boundary and FTL engineering",
+  "prereq": "T160 & T161",
+  "requirements": "Versioned trigger conditions, samples, experiments, independent replication",
+  "capability": "Discovers the assumed phenomenon; random narrative cannot declare success"
+ },
+ {
+  "id": "T163",
+  "name": "Testable jump-interface theory",
+  "label": "fictional",
+  "group": "K",
+  "group_title": "Minimal fictional boundary and FTL engineering",
+  "prereq": "T162 & T115",
+  "requirements": "Anomaly evidence, computable predictions, error exclusion, repeated tests",
+  "capability": "The game's single FTL interface/conditions, not established real theory"
+ },
+ {
+  "id": "T164",
+  "name": "High-throughput jump prototype",
+  "label": "fictional",
+  "group": "K",
+  "group_title": "Minimal fictional boundary and FTL engineering",
+  "prereq": "T163 & T145 & T152 & (T147 | T149 | T150)",
+  "requirements": "Interface components, greater energy/heat rejection, manufacture, control",
+  "capability": "More energy/redundancy tolerates wider engineering error; fuel type alone cannot win"
+ },
+ {
+  "id": "T165",
+  "name": "High-precision jump prototype",
+  "label": "fictional",
+  "group": "K",
+  "group_title": "Minimal fictional boundary and FTL engineering",
+  "prereq": "T163 & T145 & T151 & T152 & T107 & (T147 | T150)",
+  "requirements": "Stricter materials, calibration, controls, vibration isolation; substantial real energy",
+  "capability": "Precision reduces some throughput requirements; precision failures undermine the benefit"
+ },
+ {
+  "id": "T166",
+  "name": "Repeated loaded jumps and recovery",
+  "label": "fictional",
+  "group": "K",
+  "group_title": "Minimal fictional boundary and FTL engineering",
+  "prereq": "(T164 | T165) & T153",
+  "requirements": "Two independent component sets, payload, route, crew, measurement, verified recovery",
+  "capability": "Real loaded round-trip evidence; two trials and continuity windows timed separately"
+ },
+ {
+  "id": "T167",
+  "name": "Fleet-wide FTL engineering standards",
+  "label": "fictional",
+  "group": "K",
+  "group_title": "Minimal fictional boundary and FTL engineering",
+  "prereq": "T166 & T071 & T065",
+  "requirements": "Independent manufacture, fleet interfaces, deployment, training, maintenance, replacements",
+  "capability": "Sustained mission systems beyond prototypes; no automatic global integration or victory"
+ }
+]
