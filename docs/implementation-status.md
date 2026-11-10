@@ -63,5 +63,17 @@ means the mechanism exists in a simpler form with the same strategic feedback;
   technologies arrive some twenty rounds later than under slice B, because the
   installations their investigation needs take three to five years each to build
   (`docs/calibration/`).
+- Production methods can be chosen by region since ruleset 2.0 slice D (`set_policy`
+  / `method`), fields included, and works that stand together share support posts,
+  repair works and carriage within the region's freight capacity
+  (`docs/units-and-scale.md` sections 4 and 7). The client does not yet show or set
+  a method, nor show `OwnRegion.infrastructure` (freight load and capacity, the
+  savings, congestion loss); the fields' catalog entry now carries recipe views,
+  which the client's production screens were not written for. The new method names,
+  the field-method notes and the receipt reason "unknown facility or method" are
+  English strings without translations. The native opponents do not yet move works
+  out of a region congested at the top transport grade; in all-AI matches about a
+  quarter of capitals end above it, losing up to 7% of what they send
+  (`docs/calibration/`).
 - The economy ledger's own estimates (marked as such in the interface) agreed with the
   referee's totals to within about 25% in 41 of 57 comparisons; the rest diverge more.

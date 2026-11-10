@@ -76,7 +76,7 @@ ready, running native controllers itself. After the plan phase it resolves
 | `propose_treaty` | negotiate | Counted envelope carrying structured `clauses` |
 | `sign_treaty` | negotiate (counted) or plan | Signs exactly the registered version |
 | `decline_offer`, `withdraw_offer`, `break_treaty` | any | Protected operations; no envelope |
-| `set_policy` | any | Food reserve, labour weights, mobilization share, enable a facility, rename, move capital |
+| `set_policy` | any | Food reserve, labour weights, mobilization share, enable a facility, rename, move capital, and the production method of a facility in a region (`{"kind": "method", "region": 12, "facility": "steelworks", "method": "electric"}`; `"method": null` returns the choice to the works; the keys are those of `catalog.facilities[].recipes`) |
 | `start_project` | any | `build`, `research`, `survey`, `settle`, `study`, `resettle`, `recruit`, `religion`, `ftl_trial`, `ftl_deployment`, `ftl_replacement` |
 | `manage_project` | any | `pause`, `resume`, `cancel`, and priority 0–9 (lower first) |
 | `investigate` | any | Follow up a lead |

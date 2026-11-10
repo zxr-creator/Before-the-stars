@@ -283,6 +283,84 @@ Economies of scale (see the table in the units chapter; implement exactly those)
   goods delivered never exceed goods made; method choice changes real inputs,
   outputs, posts and services.
 
+Implemented; the rules as the engine applies them are sections 4 ("Production
+methods") and 7 of `docs/units-and-scale.md`, and the tests are in
+`crates/bts-engine/src/tests/methods.rs` and `crates/bts-ai/tests/methods_policy.rs`.
+Where the implementation goes beyond or differs from the list above:
+
+- The method of every works is decided once a month, at the start of
+  `economy::step`, from the stock the month opens with (`choose_recipe`). Before, the
+  recipe was picked separately when service was asked for and when goods were made,
+  from whatever stock was left at that point, and the two could differ.
+- The new methods are listed after the plain ones, so the automatic choice (first
+  known method whose inputs are in store) never moves to them unless the plain method
+  has nothing to work with. Mechanized workings draw shaft work, not fuel as a good:
+  an extraction recipe takes no goods (the mass-balance test holds it to that), and
+  the fuel is burned by whatever station turns the shaft. Electric steelmaking needs
+  electrochemistry (T103), programmed machining numerical control (T114), mechanized
+  workings deep extraction and mechanized work (T063 and T094).
+- Fields carry no recipe, so their methods are a table of their own
+  (`economy::FIELD_METHODS`) shown in the catalog as recipe views. There are six, not
+  five: mechanized farming without chemicals (9,000 rations per thousand cultivators)
+  and with them (14,000) were one label with two yields, and are now `mechanized` and
+  `intensive`. A choice is a ceiling and a list of permitted inputs, not an order to
+  stand still: fields held at a method whose inputs are short are worked by the next
+  permitted method down and report the shortage, because fields that stood still
+  would starve the seat. Fields now report a shortage of chemicals or fuel also when
+  left to themselves. `available` and the right to choose `traction` both need herds
+  somewhere under the seat. Pasture and fishing have no methods.
+- The month of chemicals and of fuel that must be in store counts only the fields
+  that may draw it, so fields held below an input free it for other users (and for
+  the site engines, whose reserve `fields_fuel_month` follows the same count).
+- `Facility.field_run` records how a region's fields were worked; a region that
+  changes controller has its method choices cleared, and a method the viewing seat
+  has not discovered is never named in `method`, `active_method` or `runs`.
+- Freight capacities are 10 / 24 / 60 / 150, not 120 at the top grade: see
+  "Calibration" in section 7 of the units chapter for the measured loads.
+- Maintenance pooling does not cover the repair works themselves, nor upkeep in
+  goods other than spares and tools, nor works that do not load freight; it is
+  proportional to the rate the repair works ran at the month before.
+- Integrated chains count the inputs of power stations too (coal burned where it is
+  mined never left the region), not upkeep, project bills or field inputs.
+- The hard ceiling is enforced where goods are made (the last tonnes of a deposit can
+  no longer round above what the workings raise at their rate) and audited every
+  month: `Region.last.infra` (`InfraMonth`) records what each region's works made,
+  delivered, took locally and were spared, and `ledger::violations` checks it against
+  the methods, levels and rates of the works and against the civilization's books.
+- `InfraView` also states `chain_loss_saved`. Its rates are those of the coming
+  month (computed from the works as they stand), its quantities last month's.
+- `PolicySetting::Method` is a new variant of `set_policy`; no new action, and the
+  server needed no edit.
+- Native policy (the full pass is slice F): it orders the next transport work
+  (roads, harbour, railway, motor depot) for any region, the capital included, whose
+  freight load is within two levels of capacity, and prefers regions with freight to
+  spare for new works; it switches a plant that stands nearly still for want of an
+  input to another known method that makes the same good from what is in store, and
+  gives the choice back when that method is starved in turn or the method the works
+  would rather run has three months of inputs again; it holds its fields at
+  the best method that burns no fuel while works or open orders go without fuel and
+  the food store stands at the seat's reserve target, and lifts the hold when a year
+  of the fields' burning is in store, or at once when the store falls more than a
+  month below the target. (Holding the fields whenever a construction site lacked
+  power, with only three months of food required, was tried: the lower yields thinned
+  the stores and the thirty-two seats of the eval set ended with 15% fewer people.)
+  It undoes only choices it made itself (`Memory.methods_set`), so a steward leaves a
+  player's choices alone. It does not yet move works out of a region that is
+  congested at the top transport grade, and it still builds diesel stations that
+  burn the fuel its sites are waiting for.
+- All-native results against slice C (`docs/calibration/slice-d-*.txt`; thirty-two
+  seats of the eval set at year 240): 19 seats completed the graph (22), 30 hold 130
+  technologies or more (30), mean 134.4 (135.6), 1,454 million people in all (1,469
+  million). The hard seats are stronger (98 million people and 28 regions each
+  against 68 million and 21; all eight complete the graph, as before) and take more
+  from their neighbours: four seats are conquered (none), and in one of the eight
+  worlds the hard seat completes the victory contract, in month 2,764. The weakest
+  seat ends at 85 technologies (111). In the riverland world the two strongest seats
+  end at 138 and 134 technologies (138 and 138), the easy seat at 121 (117), and the
+  hard seat is stuck at 51 as it was under slice C; food stays at 100% throughout.
+  These outcomes move by this much between any two variants of the policy: every
+  change to it reshuffles the wars.
+
 ## Slice E - the space and jump base; cooperation
 
 Facility recalibration (crew in people per level; inputs per level-month in display

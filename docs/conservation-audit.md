@@ -1,4 +1,4 @@
-# Conservation audit (ruleset 2.0, slices B and C)
+# Conservation audit (ruleset 2.0, slices B to D)
 
 Nothing in the rules engine enters the world from nothing. This chapter lists every
 place where goods, people, qualified people, service (shaft, electric, compute) or
@@ -22,6 +22,7 @@ Units are those of `docs/units-and-scale.md`. File references are to
 | Work, per region and month | `Region.last.labor.projects`, `Region.last.project_work_done` | `project_work_done <= workers called up` |
 | Research, per civilization and month | `Civ.research_cap`, `Civ.research_used` | `research_used[class] <= research_cap[class]`; `sum(research_cap) <= people in research posts` |
 | Deposits | `DepositState.remaining`, `drawn`, `delivered` | `remaining + drawn` is constant; `delivered <= drawn`; ore booked as `produced` in a month `=` what the deposits `delivered` in it |
+| Regional output and carriage, per region and month | `Region.last.infra` (`InfraMonth`): `made`, `delivered`, `used`, `exempt`, `chain_saved` by good; `capacity`, `load`, `infra_bp`, `maint_bp`, `congestion_bp` | for every good: `made <= sum over the region's works of (output of the method run x levels x rate)`; `exempt <= used`; `exempt <= delivered <= made`; `maint_bp <= 1,500`; `congestion_bp = (10,000 - infra_bp) x 2,000 / 10,000 <= 2,000`; `infra_bp = 10,000` exactly when `load <= capacity`; over the regions of one civilization `sum(made) <= produced` and `sum(made - delivered) <= lost` |
 
 Stock changes only through `Civ::add` (production), `Civ::take` (use), `Civ::lose`
 (spoilage, carriage loss, abandoned stores) and `World::transfer`
@@ -47,7 +48,7 @@ These are referee-side diagnostics and are never part of a seat's observation.
 | --- | --- | --- | --- | --- |
 | Starting stores: 900,000 rations, 90 kt materials, 45,000 tool lots per seat | `worldgen.rs` | the declared initial endowment | opening stock | `starting_stocks_and_qualifications_are_the_declared_endowment` |
 | Food: forage, fields, pasture, fishing | `sim/economy.rs` section 1 and 3 | workers actually assigned x yield; workers bounded by what grows wild and by levels of fields, pasture and fishing grounds, which the site bounds; a method that needs chemicals or fuel is used only when a full month's draw is in store, and the draw is taken first | `produced[Food]`; chemicals and fuel `consumed` | `a_level_employs_thousands_and_yields_per_thousand_workers`, `field_methods_are_used_only_when_their_inputs_are_delivered`, monthly audits |
-| Recipes of works | `sim/economy.rs` section 4 | filled posts, inputs taken from month-start stock, service actually available, condition; outputs never exceed `recipe x level`; mass out <= mass in | `produced` gross; inputs and upkeep `consumed`; carriage `lost` | `no_recipe_puts_out_more_mass_than_it_takes_in`, `carriage_loss_and_spoilage_are_booked_as_lost`, `industrial_scale_reduces_general_posts_but_does_not_multiply_goods`, monthly audits |
+| Recipes of works | `sim/economy.rs` section 4 | filled posts, inputs taken from month-start stock, service actually available, condition; the method each works runs is fixed once a month, so its posts, service and goods belong to one recipe; outputs never exceed `recipe x level x rate`; mass out <= mass in for every method | `produced` gross; inputs and upkeep `consumed`; carriage and congestion `lost`; `InfraMonth.made` per region | `no_recipe_puts_out_more_mass_than_it_takes_in`, `the_new_methods_trade_one_real_thing_for_another`, `choosing_a_method_changes_the_inputs_outputs_service_and_posts_of_a_works`, `carriage_loss_and_spoilage_are_booked_as_lost`, `industrial_scale_reduces_general_posts_but_does_not_multiply_goods`, `shared_support_saves_posts_only_and_shrinks_when_freight_is_congested`, monthly audits |
 | Ore, coal, crude, rare minerals | same; recipes with `depletes` | the deposit: every tonne raised is drawn from it, shallow workings draw two | `produced[ore]` = deposit `delivered` <= `drawn` | `extraction_draws_from_the_deposit_at_least_what_it_delivers`, monthly audits |
 | Timber, stone, clay (camps); fired brick (kilns) | same; works flagged `extractive` | labour on the site: forest levels bound camps; kilns dig their clay where they stand | `produced[Materials]` | `no_recipe_puts_out_more_mass_than_it_takes_in` (the list of extractive works is asserted) |
 | Household craft: 0.3 t of materials per idle adult-month | `sim/economy.rs` | adults of working age with no post that month; stops when stores are at twice their target | `produced[Materials]` | `household_craft_is_bounded_by_idle_adults` |
@@ -63,6 +64,17 @@ construction, surveys, settlers' stores, equipment of recruits, reforms, foundin
 jump trials - (`consumed`, never refunded); carriage from outlying regions (`lost`);
 deliveries and tribute (`traded_out`); and the stores of a polity that ceases to
 govern (`lost`).
+
+Economies of scale (units chapter, section 7) are not a source of anything, and the
+audit holds them to that. Shared support posts change how many general posts a works
+needs and nothing else. Maintenance pooling makes the works take less upkeep out of
+stock (`consumed` falls; nothing is produced). Integrated chains and congestion only
+decide how much of what a region made is booked as `lost` on its way to the common
+stock: the exempt quantity is bounded by what the region's own recipes took that
+month and by what it made, and what is delivered never exceeds what was made. The
+choice of a production method changes which recipe runs; every recipe passes the
+mass balance, and none of the methods added with slice D yields more per unit of
+material than the method it replaces.
 
 ## 3. Sources of people
 
@@ -215,6 +227,16 @@ Engine (`crates/bts-engine/src/tests.rs`), scripted, no policy:
   audited; the scripted match above also builds works with site crews, on the
   regions' own shaft work and on site engines.
 - `ledger_fields_default_when_a_save_does_not_have_them`.
+- `tests/methods.rs` (slice D): every month of every method and scale test is
+  audited. `the_audit_notices_savings_that_make_or_deliver_more_than_the_works_did`
+  cooks a region's account in seven ways (more made than the works' methods, levels
+  and rates allow; more delivered than made; more exempt than used on the spot; a
+  saving or a congestion loss beyond its cap; regional output or carriage loss
+  beyond what the civilization booked) and requires the audit to name each.
+  `maintenance_pooling_cuts_upkeep_by_at_most_fifteen_percent_and_only_while_the_shop_runs`,
+  `output_used_in_the_same_region_pays_no_carriage_and_nothing_else_is_spared` and
+  `a_congested_region_loses_more_in_carriage_until_transport_is_added` state each
+  rule to the unit.
 
 All-AI (`crates/bts-ai/tests/conservation.rs`; the engine cannot depend on the
 policy crate):
@@ -225,6 +247,10 @@ policy crate):
   whole campaigns of 2,880 months (one ends some months early, won), which between them include settlement, recruitment,
   war, regions changing hands, an elimination, trade, mining, a shared grid, compute,
   site crews, and site power from the regions' shaft work and from site engines.
+  Every campaign is also required to have had pooled maintenance and output exempt
+  from carriage under the audit (5,600-7,800 pooled region-months in each), and the
+  three between them congested freight (137, 4 and 2,095 region-months: seats that
+  build their transport in time hardly see it).
 
 Granularity in all of them: every month, plus one check per round for what the seats'
 decisions themselves changed.

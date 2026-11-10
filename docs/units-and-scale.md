@@ -149,6 +149,94 @@ record for the corresponding technique (a nineteenth-century steelworker made 50
 a year; here 22 t). That is deliberate: a level's crew includes its carters,
 storemen and clerks, and the campaign's population is small for its technology.
 
+### Production methods
+
+A facility that has more than one recipe has that many production methods, and the
+seat chooses one per region and facility: `set_policy` with
+`{"kind": "method", "region": r, "facility": "steelworks", "method": "electric"}`;
+`"method": null` returns the choice to the works. The catalog lists, for every
+facility type, the methods the seat has at least discovered (`FacilityType.recipes`),
+each with its true inputs, outputs and services per level-month, its general posts
+and its qualified posts per level (`general_posts`, `skilled_posts`), and whether its
+requirement is met (`available`). `FacilityType.jobs` remains the crew of the base
+method. A region's `FacilityView` states the method chosen (`method`) and the one
+that ran last month (`active_method`).
+
+- **Automatic** (no choice made; the default, and what every works does until the
+  seat says otherwise): the first method in the facility's list whose requirement the
+  seat meets and whose inputs are in store (a twentieth of one level-month of each),
+  and failing that the first it meets the requirement of, so that the shortage is
+  reported. Methods that trade one scarce thing for another are listed last, so the
+  works never switch to them of their own accord unless the plain method has nothing
+  to work with.
+- **Chosen**: the method runs whether or not its inputs are in store, and a works
+  that is short stands still and names what it is short of; it does not switch.
+- The method of every works is fixed once a month, from the stock the month opens
+  with, before anything is taken: its posts (general posts x the method's share,
+  the facility's qualified posts plus the method's own), the service it asks for and
+  the goods it takes and makes all belong to that one method.
+- A method that does not exist, one the seat has not discovered, one whose
+  requirement it does not meet, and a facility the region does not have are all
+  refused with the same error as a facility that does not exist
+  (`NOT_VISIBLE_OR_UNKNOWN`, "unknown facility or method"). A region that changes
+  hands forgets the choices of its old government.
+
+Facilities with a choice of method: workshops (stone, copper, iron tools), copper,
+iron, coal and rare-mineral mines (shallow, drained deep, mechanized), steelworks
+(coke, electric), machine shops (precision, numerically controlled), wire works,
+chemical works, insulation works, electronics cells, computing centres, the press,
+instrument makers, pharmaceutical works, steam and diesel stations, the advanced
+research centre, and fields.
+
+The methods added with ruleset 2.0 slice D, per level-month (display units), beside
+the method they are an alternative to:
+
+| Works | Method (key), requires | Goods in | Goods out | Service | General posts | Qualified posts |
+| --- | --- | --- | --- | --- | --- | --- |
+| Steelworks | Coke steel (`steel`) | 40 iron ore, 20 coal | 30 metal | 10 shaft | 12,000 | 4,000 smiths (mechanics) |
+| Steelworks | Electric steelmaking (`electric`), electrochemistry | 40 iron ore, 4 coal | 30 metal | 150 electric | 8,400 | 4,000 smiths (mechanics), 1,000 electricians (technicians) |
+| Machine shops | Precision machining (`components`) | 12.5 metal, 1 tools | 10 components | 30 shaft | 6,000 | 4,000 mechanics (artisans, smiths) |
+| Machine shops | Numerically controlled machining (`nc`), numerical control and robots | 12.5 metal, 0.8 tools | 10 components | 40 electric, 20 compute | 3,600 | 4,000 mechanics, 500 programmers (technicians), 500 technicians (electricians) |
+| Copper, iron, coal mines | Drained deep workings (`deep`) | - | 36 ore raised, 36 drawn | 10 shaft | 12,000 | - |
+| Copper, iron, coal mines | Mechanized workings (`mechanized`), deep extraction and mechanized work | - | 36 ore raised, 36 drawn | 40 shaft | 6,000 | 1,000 mechanics (technicians) |
+| Rare-mineral workings | Mechanized workings (`mechanized`) | - | 12 raised, 12 drawn | 30 shaft (deep: 8) | 5,000 (deep: 10,000) | 1,000 mechanics (technicians) |
+
+None of them makes more from the same material: the steel per tonne of ore, the
+components per tonne of metal and the ore per tonne drawn from the deposit are those
+of the plain method (tested). What they change is which scarce thing is spent.
+Electric steel saves 16 kt of coal a level-month for 150 units of electricity, which
+turbines and generator halls make from 16.7 kt of coal: it frees coal only where the
+electricity comes from water or a reactor. Mechanized workings and programmed
+machining exchange hands for shaft work, electricity, compute and people who must be
+trained.
+
+Fields have no recipe; their methods are the ways of working the land, and the
+catalog shows them in the same form (`fields`, six entries, yield as outputs,
+chemicals and fuel as inputs):
+
+| Method (key) | Requires | Rations per level-month | Chemicals | Fuel |
+| --- | --- | --- | --- | --- |
+| Hand cultivation (`hand`) | - | 30,000 (33,000 with seasonal calendars; a tenth more with soil science) | - | - |
+| Animal traction (`traction`) | animal traction; herds somewhere under the seat | 46,000 (50,600 with soil science) | - | - |
+| Manufactured inputs (`inputs`) | manufactured agricultural inputs | 72,000 | 0.1 kt | - |
+| Mechanized farming (`mechanized`) | mechanized work | 90,000 | - | 0.1 kt |
+| Mechanized farming with manufactured inputs (`intensive`) | both | 140,000 | 0.1 kt | 0.1 kt |
+| Restorative mechanized farming (`restorative`) | both, and restoration and agricultural cycles | 200,000 | 0.1 kt | 0.1 kt |
+
+Yields are before irrigation (a quarter more), husbandry, tools, condition and unrest.
+Left alone, a region's fields are worked by the best method the seat knows whose
+month of inputs is in store, as before. A choice is a ceiling: the fields are worked
+by the best method that is not above the chosen one, draws nothing the chosen one
+does not draw, and has its inputs in store - so fields held at animal traction burn
+no fuel and spread no chemicals, and fields held at `mechanized` fall back to animals
+when fuel is short, not to chemicals. The all-or-nothing rule (conservation audit,
+section 2) is unchanged, but counts only the fields that may draw the input:
+chemicals are used when the store holds a month for every field not held below them,
+and likewise fuel (with the motor boats). When the land is worked below the best
+method the seat allows because an input is short, the fields report it ("Short of
+refined fuel"). Pasture and fishing keep their single line of improvement with
+knowledge; they have no methods to choose.
+
 Education: class sizes are people per instructor and did not change. A venue level
 offers thousands of places (lodge 16,000; school 40,000; college 30,000; technical
 institute 32,000), so one level of lodges at class size 8 occupies 2,000 instructors.
@@ -293,17 +381,108 @@ the order is waiting for and an estimate of the months left at last month's pace
 
 Every saving below is a reduction of overhead or loss. None raises the goods a recipe
 puts out per unit of input or per level; a level's recipe output is a hard ceiling.
+All of it is per region and per month, in integers (`sim/economy.rs`).
 
 | Effect | Saving | Cap | Limited by | Downside of concentration |
 | --- | --- | --- | --- | --- |
 | Shared support posts | general posts of an industrial or extractive facility fall 2% per level beyond the first | 20% of general posts | condition at least 75%; regional freight capacity | idle when freight is congested |
-| Maintenance pooling | spares and tools upkeep of co-located works | 15% of that upkeep | repair-works levels (one serves twelve facility levels); freight capacity | the shop needs its own qualified crew and inputs |
+| Maintenance pooling | spares and tools upkeep of co-located works | 15% of that upkeep | repair-works levels (one serves twelve facility levels) and their own running; freight capacity | the shop needs its own qualified crew and inputs |
 | Integrated chains | output used as input by works in the same region pays no carriage loss | the carriage loss itself | the quantity actually used locally that month | a single region carries the whole chain |
 | Power grid | surplus electricity shared between linked regions | 92% delivered | grid links; generating surplus | - |
 | Freight congestion (penalty) | when industrial load exceeds the region's freight capacity the savings above shrink in proportion and up to 20% more of exported output is lost | - | transport grade (track, roads, depot, harbour) | - |
 
 Concentration also carries the risks the rules already had: one region's loss or
 occupation takes the whole chain, and its supply line can be cut.
+
+**Freight.** A region's transport grade (0-3: the sum of its roads 1, harbour 1,
+railway 2 and motor depot 3, at most 3) gives it a freight capacity in facility
+levels:
+
+| Transport grade | 0 | 1 | 2 | 3 |
+| --- | --- | --- | --- | --- |
+| Freight capacity (levels) | 10 | 24 | 60 | 150 |
+
+Its load is the sum of the levels of its enabled works whose labour category is
+industry or extraction, or that are power sources (generator halls and the grid
+included). Fields, pastures, fishing grounds, granaries, irrigation, civic works,
+teaching venues, research works and the transport works themselves do not load
+freight. The share served is
+
+    infra_bp = 10,000                      while load <= capacity
+             = capacity x 10,000 / load    beyond it
+
+**Shared support posts.** A works of industry or extraction with general posts and a
+recipe, enabled and in condition of at least 75%, needs
+`min(2,000, 200 x (levels - 1)) x infra_bp / 10,000` basis points fewer general posts
+(rounded up to whole posts, after the method's own share of them). Qualified posts,
+inputs, services and output are untouched: the same works with and without the
+saving take and make exactly the same goods (tested).
+
+**Maintenance pooling.** A region with enabled levels of parts and repair works saves
+the other works that load its freight
+
+    maint_bp = min(1,500, 1,500 x shop levels x 12 / load)
+               x infra_bp / 10,000 x (the shop's rate last month) / 10,000
+
+of their upkeep in spares and tools: each such upkeep line is
+`ceil(amount x levels x (10,000 - maint_bp) / 10,000)`, so never less than 85% of the
+full amount, and less is taken from stock - nothing is made. Upkeep in other goods
+(coal, fuel, electronics, hardware, media ...) and the upkeep of works that do not
+load freight (roads, hospitals, schools) is not pooled. A shop that was not staffed,
+supplied or powered last month pools nothing this month; an idled shop pools nothing.
+
+**Integrated chains.** For each region and each good, the output of the region's
+recipes this month up to the quantity of that good which the region's own recipes
+(power stations included) took as inputs this month is exempt from carriage loss: it
+never left. Only the remainder pays. Inputs are taken from the stock the month opens
+with and output reaches the stock at the month's close, so the exemption is counted
+on what the works actually took, not on what they asked for. It cannot exceed the
+carriage loss itself, and it changes nothing in what is made.
+
+**Congestion.** When load exceeds capacity, the output a region sends to the common
+stock (all that is not exempt; food is not carried in this model and pays nothing)
+loses a further
+
+    congestion_bp = (10,000 - infra_bp) x 2,000 / 10,000      (at most 2,000)
+
+on top of the region's link loss, the capital included (which otherwise pays no
+carriage). What reaches the stock of a good from a region is
+
+    delivered = exempt + (made - exempt) x max(0, link_bp - congestion_bp) / 10,000
+
+and `made - delivered` is booked as lost (`Flows.lost`), like carriage loss.
+
+**Hard ceiling.** A works makes `recipe output x levels x rate` of each good and no
+more (for a mine, less by the ore's quality); nothing above adds to it. The engine
+bounds each works' output by that figure explicitly, and the conservation audit
+re-derives it every month from the method each works ran, its levels and its rate
+(`ledger::violations`: output made in a region `<=` the ceiling of its works,
+delivered `<=` made, exempt `<=` used locally and `<=` made, each saving within its
+cap, and the regions' output and carriage loss within what the civilization booked as
+produced and lost).
+
+**What the seat sees.** `OwnRegion.infrastructure` (`InfraView`): `freight_capacity`,
+`freight_load`, `infra_bp`, `support_saving_cap_bp` (2,000 scaled by `infra_bp`),
+`maintenance_saving_bp`, `congestion_loss_bp` - all as they apply in the coming month
+with the works as they stand - and `chain_exempt` and `chain_loss_saved`, last
+month's quantities by good. `FacilityView.scale_saving_bp` is the support saving of
+that works as it applies in the coming month.
+
+**Calibration.** The capacities were set against all-native campaigns
+(`cargo test -p bts-ai --release --test freight_survey -- --ignored --nocapture`;
+eight worlds, thirty-two seats). Without any limit a capital carries a median of 9
+levels at year 60 (largest 14), 45 at year 120 (81), 111 at year 180 (164) and 125 at
+year 240 (largest tenth 168 and above, largest 237); over all regions with any load
+the median is 3, 5, 8 and 10 at those dates, three quarters carry no more than 9, 12,
+20 and 23. The first three grades are as planned. The
+top grade was planned at 120 and is 150: with 120, nineteen capitals of twenty-nine
+stood above the top capacity at year 240 with nothing more to build (median loss
+2.5%, largest 10.4%); with 150 the usual late capital is served (median load 118),
+no region is over capacity at years 60 and 120, three capitals are at year 180, and
+at year 240 eight capitals of twenty-eight are above the top grade (by 2 to 84
+levels, losing 0.3% to 7.2% of what they send). Until then each grade is outgrown in turn and
+the next one relieves it: the native policy orders the next transport work for any
+region, its capital included, whose load is within two levels of capacity.
 
 ## 8. The space and jump base
 
