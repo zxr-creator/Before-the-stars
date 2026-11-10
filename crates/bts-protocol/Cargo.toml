@@ -1,0 +1,9 @@
+[package]
+name = "bts-protocol"
+description = "Seat-facing observation and action contracts shared by humans, native AI and external agents"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true

@@ -1,0 +1,10 @@
+[package]
+name = "bts-ai"
+description = "Native non-LLM opponents. Depends only on the public protocol: it sees observations and emits actions."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+bts-protocol = { path = "../bts-protocol" }
+serde.workspace = true

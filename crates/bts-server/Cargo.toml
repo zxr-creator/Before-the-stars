@@ -1,0 +1,18 @@
+[package]
+name = "bts-server"
+description = "Local authoritative referee: HTTP API, web client host, headless runner and agent CLI"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "bts"
+path = "src/main.rs"
+
+[dependencies]
+bts-protocol = { path = "../bts-protocol" }
+bts-engine = { path = "../bts-engine" }
+bts-ai = { path = "../bts-ai" }
+serde.workspace = true
+serde_json.workspace = true
+tiny_http = "0.12"
