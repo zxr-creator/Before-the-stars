@@ -3,13 +3,14 @@
 import { useState } from 'preact/hooks';
 import type { FacilityView, Observation, OwnRegion, RegionView, SurveyView } from './protocol';
 import {
-  DEPOSIT_LABEL, GOOD_SHORT, QUAL_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, fmtDate, int, joinList, lc, milli, pct,
-  range, tcAll, tx,
+  DEPOSIT_LABEL, GOOD_SHORT, QUAL_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, computeQty, energy, fmtDate, int, joinList,
+  lc, pct, people, peopleNum, range, rations, tcAll, tonnes, tx,
 } from './format';
 import { t, tc, useLocale } from './i18n';
 import { Icon } from './icons';
 import { ActionNote, Badge, Btn, EpistemicTag, Est, KV, Meter, SeatDot, Section, cx, toneOfBp } from './ui';
 import { act, civColor, civName, openPanel, selectRegion, useApp } from './store';
+import { openWorks } from './economy/Construction';
 
 /** Standing order of a formation, as sent on the wire. */
 const ORDER_LABEL: Record<string, string> = { hold: 'hold', move: 'move', attack: 'attack' };
@@ -59,7 +60,7 @@ export function Inspector() {
               {armiesHere.map((a) => (
                 <li>{tx('{name} — {n} soldiers, order: {order}', {
                   name: <button type="button" class="linklike" onClick={() => openPanel('military')}>{tc(a.name)}</button>,
-                  n: int(a.soldiers.reduce((n, x) => n + x[1], 0)),
+                  n: peopleNum(a.soldiers.reduce((n, x) => n + x[1], 0)),
                   order: a.order in ORDER_LABEL ? t(ORDER_LABEL[a.order]) : a.order,
                 })}</li>
               ))}
@@ -81,6 +82,7 @@ export function Inspector() {
             {mine ? (
               <>
                 <Btn small icon="hammer" testid="qa-build" onClick={() => openPanel('projects', { kind: 'build', region: r.id })}>{t('Build here')}</Btn>
+                <Btn small nav icon="layers" testid="qa-works" onClick={() => openWorks(r.id)}>{t('Regional works')}</Btn>
                 <Btn small icon="people" testid="qa-program" onClick={() => openPanel('people', { kind: 'program', region: r.id })}>{t('Open programme')}</Btn>
                 <Btn small icon="flag" testid="qa-settle-from" onClick={() => openPanel('projects', { kind: 'settle', from: r.id })}>{t('Settle from here')}</Btn>
                 <Btn small icon="military" testid="qa-recruit" onClick={() => openPanel('military', { kind: 'recruit', region: r.id })}>{t('Recruit here')}</Btn>
@@ -114,12 +116,12 @@ function OwnDetails({ obs, r, own }: { obs: Observation; r: RegionView; own: Own
   const anyPower = power.shaft_supply || power.shaft_demand || power.elec_supply || power.elec_demand || power.compute_supply || power.compute_demand;
   return (
     <>
-      <Section title={t('People')} aside={<b>{int(own.population)} <small class="muted">{t('people')}</small></b>}>
+      <Section title={t('People')} aside={<b title={t('{n} people', { n: int(own.population) })}>{peopleNum(own.population)} <small class="muted">{t('people')}</small></b>}>
         <AgeBar children={own.children} working={own.working_age} elders={own.elders} />
         {own.occupied_since !== null ? <p class="note is-warn"><Icon name="warn" size={12} /> {t('Under occupation since {date}.', { date: fmtDate(own.occupied_since) })}</p> : null}
         <div class="mini-meters">
           <MiniMeter label={t('Food access')} bp={own.food_fulfillment_bp} />
-          <MiniMeter label={t('Water access')} bp={own.water_fulfillment_bp} sub={t('capacity {n} people', { n: int(own.water_capacity) })} />
+          <MiniMeter label={t('Water access')} bp={own.water_fulfillment_bp} sub={t('capacity {n} people', { n: peopleNum(own.water_capacity) })} />
           <MiniMeter label={t('Health pressure')} bp={own.health_pressure_bp} invert />
           <MiniMeter label={t('Unrest')} bp={own.unrest_bp} invert />
         </div>
@@ -129,7 +131,7 @@ function OwnDetails({ obs, r, own }: { obs: Observation; r: RegionView; own: Own
               <li>
                 <span class="block-bar" style={{ width: Math.max(4, (b.count / total) * 100) + '%' }} />
                 <span class="block-text">{tc(b.lineage)}{b.religion ? <small class="muted"> · {tc(b.religion)}</small> : <small class="muted"> · {t('no religion')}</small>}</span>
-                <span class="num">{int(b.count)}</span>
+                <span class="num">{peopleNum(b.count)}</span>
               </li>
             ))}
           </ul>
@@ -137,13 +139,13 @@ function OwnDetails({ obs, r, own }: { obs: Observation; r: RegionView; own: Own
         {own.quals.length ? (
           <p class="quals-line">
             {own.quals.filter((q) => q.count > 0).map((q, i) => (
-              <span>{i ? ' · ' : ''}<b>{int(q.count)}</b> {lc(QUAL_LABEL[q.qual])}</span>
+              <span>{i ? ' · ' : ''}<b>{peopleNum(q.count)}</b> {lc(QUAL_LABEL[q.qual])}</span>
             ))}
           </p>
         ) : null}
       </Section>
 
-      <Section title={t('Works')} aside={<small class="muted">{t('{n} kinds', { n: own.facilities.length })}</small>}>
+      <Section title={t('Works')} aside={<button type="button" class="linklike" data-testid="inspector-works" onClick={() => openWorks(r.id)}>{t('{n} kinds', { n: own.facilities.length })} · {t('manage')} <Icon name="right" size={10} /></button>}>
         {own.facilities.length ? (
           <ul class="fac-list">
             {own.facilities.map((f) => <FacilityRow regionId={r.id} f={f} />)}
@@ -160,8 +162,8 @@ function OwnDetails({ obs, r, own }: { obs: Observation; r: RegionView; own: Own
               return (
                 <li>
                   <span class="cap-name">{venueName ? tc(venueName) : v.venue}</span>
-                  <Meter value={v.reserved} max={Math.max(1, v.capacity)} tone="accent" height={6} label={t('{n} of {total} places booked', { n: v.reserved, total: v.capacity })} />
-                  <span class="cap-val">{int(v.reserved)} <small>{t('booked')}</small> / {int(v.capacity)}</span>
+                  <Meter value={v.reserved} max={Math.max(1, v.capacity)} tone="accent" height={6} label={t('{n} of {total} places booked', { n: peopleNum(v.reserved), total: peopleNum(v.capacity) })} />
+                  <span class="cap-val">{peopleNum(v.reserved)} <small>{t('booked')}</small> / {peopleNum(v.capacity)}</span>
                 </li>
               );
             })}
@@ -171,13 +173,13 @@ function OwnDetails({ obs, r, own }: { obs: Observation; r: RegionView; own: Own
 
       <Section title={t('Links and power')}>
         <dl class="kvs">
-          <KV k={t('Transport')}>{t('Level {n}', { n: own.transport_level })}</KV>
+          <KV k={t('Transport')} title={t('Transport grade 0–3 sets how many levels of industry, extraction and power the region’s freight can serve')}>{t('Grade {n} of 3', { n: own.transport_level })}{own.infrastructure ? <small class={own.infrastructure.freight_load > own.infrastructure.freight_capacity ? 'neg' : 'muted'}> · {t('freight {load} of {cap} levels', { load: own.infrastructure.freight_load, cap: own.infrastructure.freight_capacity })}</small> : null}</KV>
           <KV k={t('Link efficiency')} title={t('Share of goods that arrive when moved to or from the capital network')}>{pct(own.link_efficiency_bp)}</KV>
           {anyPower ? (
             <>
-              {power.shaft_supply || power.shaft_demand ? <KV k={t('Shaft power')}>{t('{used} used of {total} units', { used: milli(power.shaft_demand), total: milli(power.shaft_supply) })}</KV> : null}
-              {power.elec_supply || power.elec_demand ? <KV k={t('Electricity')}>{t('{used} used of {total} units', { used: milli(power.elec_demand), total: milli(power.elec_supply) })}</KV> : null}
-              {power.compute_supply || power.compute_demand ? <KV k={t('Computation')}>{t('{used} used of {total} units', { used: milli(power.compute_demand), total: milli(power.compute_supply) })}</KV> : null}
+              {power.shaft_supply || power.shaft_demand ? <KV k={t('Shaft power')}>{t('{used} asked of {total}', { used: energy(power.shaft_demand), total: energy(power.shaft_supply) })}</KV> : null}
+              {power.elec_supply || power.elec_demand ? <KV k={t('Electricity')}>{t('{used} asked of {total}', { used: energy(power.elec_demand), total: energy(power.elec_supply) })}</KV> : null}
+              {power.compute_supply || power.compute_demand ? <KV k={t('Computation')}>{t('{used} asked of {total}', { used: computeQty(power.compute_demand), total: computeQty(power.compute_supply) })}</KV> : null}
             </>
           ) : <KV k={t('Power')}><span class="muted">{t('None installed')}</span></KV>}
         </dl>
@@ -200,7 +202,7 @@ function FacilityRow({ regionId, f }: { regionId: number; f: FacilityView }) {
         <span class="fac-level" title={t('Built levels of the most this site can carry at present')}>{tx('level {n}{max}', { n: <b>{f.level}</b>, max: <small> / {f.max_level}</small> })}</span>
       </div>
       <div class="fac-meta">
-        <span title={t('Posts filled of posts needed')}>{f.staff_needed ? <>{tx('staff {n}/{total}', { n: <b>{int(f.staffed)}</b>, total: int(f.staff_needed) })}</> : <span class="muted">{t('no posts')}</span>}</span>
+        <span title={t('Posts filled of posts needed')}>{f.staff_needed ? <>{tx('staff {n}/{total}', { n: <b>{peopleNum(f.staffed)}</b>, total: peopleNum(f.staff_needed) })}</> : <span class="muted">{t('no posts')}</span>}</span>
         <span class="fac-util" title={t('Achieved share of full output last month')}>
           <Meter value={f.utilization_bp} max={10000} tone={f.enabled ? toneOfBp(f.utilization_bp, 8000, 4000) : 'muted'} label={t('Utilisation {pct}', { pct: pct(f.utilization_bp) })} height={6} />
           <small>{f.enabled ? pct(f.utilization_bp) : t('idle')}</small>
@@ -260,10 +262,10 @@ export function SurveyBlock({ survey }: { survey: SurveyView | null }) {
       <dl class="kvs kvs-2">
         <KV k={t('Arable land')}>{int(survey.arable)} <small>{t('sites')}</small></KV>
         <KV k={t('Pasture')}>{int(survey.pasture)} <small>{t('sites')}</small></KV>
-        <KV k={t('Wild food')}>{int(survey.wild_food)} <small>{t('/month')}</small></KV>
+        <KV k={t('Wild food')}>{rations(survey.wild_food * 1000)} <small>{t('/month')}</small></KV>
         <KV k={t('Fishery')}>{int(survey.fishery)} <small>{t('grounds')}</small></KV>
         <KV k={t('Forest')}>{int(survey.forest)} <small>{t('stands')}</small></KV>
-        <KV k={t('Water')}>{int(survey.water)} <small>{t('people served')}</small></KV>
+        <KV k={t('Water')}>{peopleNum(survey.water)} <small>{t('people served')}</small></KV>
         <KV k={t('Hydro sites')}>{int(survey.hydro)}</KV>
       </dl>
       <p class="sub-label">{t('Deposits')}</p>
@@ -272,7 +274,7 @@ export function SurveyBlock({ survey }: { survey: SurveyView | null }) {
           {survey.deposits.map((d) => (
             <li>
               <span class="dep-name">{t(DEPOSIT_LABEL[d.kind])}</span>
-              <span class={cx('dep-val', d.epistemic !== 'verified' && 'est')}>{d.epistemic !== 'verified' ? t('≈ {n}', { n: milli(d.remaining) }) : milli(d.remaining)} <small>{t('units left')}</small> · {t('quality {pct}', { pct: pct(d.quality_bp) })}</span>
+              <span class={cx('dep-val', d.epistemic !== 'verified' && 'est')}>{d.epistemic !== 'verified' ? t('≈ {n}', { n: tonnes(d.remaining) }) : tonnes(d.remaining)} <small>{t('in the ground')}</small> · {t('quality {pct}', { pct: pct(d.quality_bp) })}</span>
               <EpistemicTag kind={d.epistemic} />
             </li>
           ))}
@@ -288,15 +290,15 @@ export function AgeBar({ children, working, elders }: { children: number; workin
   const seg = (n: number) => ((n / total) * 100).toFixed(1) + '%';
   return (
     <div class="agebar-wrap">
-      <div class="agebar" role="img" aria-label={t('{children} children, {working} of working age, {elders} elders', { children, working, elders })}>
+      <div class="agebar" role="img" aria-label={t('{children} children, {working} of working age, {elders} elders', { children: peopleNum(children), working: peopleNum(working), elders: peopleNum(elders) })}>
         <span class="age-children" style={{ width: seg(children) }} />
         <span class="age-working" style={{ width: seg(working) }} />
         <span class="age-elders" style={{ width: seg(elders) }} />
       </div>
       <div class="agebar-legend">
-        <span><i class="key age-children" /> {t('{n} children', { n: int(children) })}</span>
-        <span><i class="key age-working" /> {t('{n} working age', { n: int(working) })}</span>
-        <span><i class="key age-elders" /> {t('{n} elders', { n: int(elders) })}</span>
+        <span><i class="key age-children" /> {t('{n} children', { n: peopleNum(children) })}</span>
+        <span><i class="key age-working" /> {t('{n} working age', { n: peopleNum(working) })}</span>
+        <span><i class="key age-elders" /> {t('{n} elders', { n: peopleNum(elders) })}</span>
       </div>
     </div>
   );

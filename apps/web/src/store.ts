@@ -11,7 +11,7 @@ import type {
   Action, AgentLogEntry, MatchSummary, MomentCategory, NewMatchRequest, Observation, Receipt, RegionId, SeatId,
   SpectatorView,
 } from './protocol';
-import { setUnits, yearOf } from './format';
+import { fmtYear, setUnits, yearOf, type HistDate } from './format';
 import { t, tc } from './i18n';
 
 export type PanelKey =
@@ -60,7 +60,7 @@ export type Intent =
   | { kind: 'moment'; id: number };
 
 /** Full-screen overlays above the map: the two trees, the almanac and the economy ledger. */
-export type OverlayKey = 'tech' | 'civics' | 'almanac' | 'ledger';
+export type OverlayKey = 'tech' | 'civics' | 'almanac' | 'ledger' | 'works';
 
 /** A major moment announced across the top of the map (never modal). */
 export interface BannerItem {
@@ -715,7 +715,7 @@ function applyObservation(summary: MatchSummary, obs: Observation): void {
       toast({
         tone: 'moment',
         title: tc(c.title),
-        detail: t('{year} · added to the chronicle', { year: t('Year {n}', { n: yearOf(c.month) }) }),
+        detail: t('{year} · added to the chronicle', { year: fmtYear(c.month, (c as { date?: HistDate | null }).date ?? (c.month === obs.month ? obs.date : null)) }),
         action: { label: t('View'), run: () => openPanel('chronicle', { kind: 'moment', id: c.id }) },
       }, 9000);
     }

@@ -5,7 +5,8 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Observation, RegionId, RegionView } from '../protocol';
-import { SETTLEMENT_LABEL, int } from '../format';
+import { SETTLEMENT_LABEL, int, people } from '../format';
+import { isReadOnly } from '../store';
 import { t, tc } from '../i18n';
 import { SECTORS, SECTOR_COLOR, SECTOR_LABEL, landUse, type Building, type LandUse } from './landuse';
 import { drawChip, type ChipSpec } from './sites';
@@ -85,7 +86,11 @@ export function DevelopmentCard({ obs, selected, building, categories, onSelect,
   if (row) {
     const { r, use } = row;
     const max = Math.max(1, ...SECTORS.map((s) => use.sectors[s]));
-    const projects = obs.projects.filter((p) => p.kind === 'build' && p.region === r.id);
+    // The region's own construction queue, in the order it is served, when the referee sends it.
+    const regionQueue = (r.own?.construction_queue ?? []).filter((e) => e.kind === 'build').slice().sort((x, y) => x.position - y.position);
+    const projects = regionQueue.length
+      ? regionQueue.map((e) => ({ target: e.facility, title: e.title, levels: e.levels, paused: e.paused, work_needed: 10000, work_done: e.progress_bp, waiting: e.waiting_for.length > 0 }))
+      : obs.projects.filter((p) => p.kind === 'build' && p.region === r.id).map((p) => ({ ...p, waiting: p.blockers.length > 0 }));
     const queued = projects.length ? [] : (r.own?.construction_sites ?? []).filter((s) => s.queued_levels > 0);
     const nameOf = (kind: string): string =>
       tc(obs.catalog.facilities.find((f) => f.kind === kind)?.name ?? r.own?.facilities.find((f) => f.kind === kind)?.name ?? kind.replace(/_/g, ' '));
@@ -93,7 +98,7 @@ export function DevelopmentCard({ obs, selected, building, categories, onSelect,
       <aside class={'map-province-plan' + (compact ? ' is-compact' : '')} data-testid="province-plan">
         <small>{t('Regional development')}</small>
         <h3>{tc(r.name)}</h3>
-        <p>{t(SETTLEMENT_LABEL[r.settlement])} · {t('{n} people', { n: int(r.own?.population ?? 0) })} · {t('{n} built levels', { n: int(use.total) })}</p>
+        <p>{t(SETTLEMENT_LABEL[r.settlement])} · {people(r.own?.population ?? 0)} · {t('{n} built levels', { n: int(use.total) })}</p>
         <SectorBar use={use} />
         <ul class="dev-sectors" data-testid="province-sectors">
           {SECTORS.map((s) => (
@@ -112,7 +117,7 @@ export function DevelopmentCard({ obs, selected, building, categories, onSelect,
               {projects.slice(0, 5).map((p) => (
                 <li>
                   <span>{p.target ? nameOf(p.target) : tc(p.title)} <b>+{p.levels ?? 1}</b></span>
-                  <em>{p.paused ? t('paused') : p.work_needed > 0 ? Math.floor((p.work_done / p.work_needed) * 100) + '%' : ''}</em>
+                  <em class={p.waiting && !p.paused ? 'is-waiting' : undefined} title={p.waiting && !p.paused ? t('Waiting') : undefined}>{p.paused ? t('paused') : (p.waiting ? '⚠ ' : '') + (p.work_needed > 0 ? Math.floor((p.work_done / p.work_needed) * 100) + '%' : '')}</em>
                 </li>
               ))}
               {projects.length > 5 ? <li class="dev-more">{t('and {n} more', { n: projects.length - 5 })}</li> : null}
@@ -121,7 +126,7 @@ export function DevelopmentCard({ obs, selected, building, categories, onSelect,
             <ul>{queued.slice(0, 5).map((q) => <li><span>{nameOf(q.kind)} <b>+{q.queued_levels}</b></span></li>)}</ul>
           ) : <p class="dev-note">{t('Nothing is being built here.')}</p>}
         </div>
-        {onBuild ? <button type="button" class="btn btn-primary" data-testid="province-build" onClick={() => onBuild(r.id)}>{t('Plan buildings')}</button> : null}
+        {onBuild && r.own ? <button type="button" class="btn btn-primary" data-testid="province-build" onClick={() => onBuild(r.id)}>{isReadOnly() ? t('View regional works') : t('Plan buildings')}</button> : null}
         {rows.length > 1 ? <button type="button" class="dev-link" data-testid="province-all" onClick={() => onSelect(null)}>{t('All governed regions')}</button> : null}
       </aside>
     );

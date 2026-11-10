@@ -29,7 +29,7 @@ import { MilitaryPanel } from './panels/military';
 import { ObjectivesPanel } from './panels/objectives';
 import { ChronicleSheet, ChronicleTab } from './panels/chronicle';
 import { GameMenu } from './menu';
-import { yearOf } from './format';
+import { fmtYear, yearOf } from './format';
 import { t, tc, useLocale } from './i18n';
 import { MomentBanner, NotifyColumn, RoundDock } from './theme/hud';
 import { BrandMark } from './theme/brand';
@@ -38,6 +38,7 @@ import { OverlayFrame, StatePlate } from './theme/overlay';
 import { Title } from './theme/title';
 import { TechTree, CivicsTree } from './trees';
 import { Almanac } from './tutorial/almanac';
+import { RegionalWorks, openWorks } from './economy/Construction';
 import { TutorialLayer } from './tutorial';
 import { ObserverConsole } from './observer';
 import { Playback } from './observer/controls';
@@ -89,6 +90,7 @@ const OVERLAYS: { key: OverlayKey; icon: string; label: string; title: string; h
   { key: 'tech', icon: 'techtree', label: 'Tech', title: 'Technology tree', hotkey: 'T' },
   { key: 'civics', icon: 'civics', label: 'Civics', title: 'Civics tree', hotkey: 'C' },
   { key: 'ledger', icon: 'layers', label: 'Ledger', title: 'Economy ledger', hotkey: 'L' },
+  { key: 'works', icon: 'hammer', label: 'Works', title: 'Regional works', hotkey: 'B' },
   { key: 'almanac', icon: 'almanac', label: 'Almanac', title: 'Almanac', hotkey: '?' },
 ];
 // i18n-end
@@ -166,8 +168,8 @@ export function App() {
         const idx = e.key === '0' ? 9 : Number(e.key) - 1;
         togglePanel(PANEL_ORDER[idx]);
         e.preventDefault();
-      } else if (k === 't' || k === 'c' || k === 'l') {
-        toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : 'ledger');
+      } else if (k === 't' || k === 'c' || k === 'l' || k === 'b') {
+        toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : k === 'b' ? 'works' : 'ledger');
         e.preventDefault();
       } else if (k === 'h') {
         togglePanel('chronicle');
@@ -240,7 +242,7 @@ export function App() {
           <MapView
             obs={obs}
             selected={s.selectedRegion}
-            onBuild={s.mode === 'observe' ? undefined : () => openPanel('economy')}
+            onBuild={(id) => openWorks(id)}
             onSelect={(id) => selectRegion(id)}
             pick={s.pick ? { prompt: s.pick.prompt, targets: s.pick.targets, onPick: s.pick.onPick, onCancel: cancelPick } : null}
             marked={s.marked}
@@ -292,7 +294,7 @@ export function App() {
                 ? <Emblem seat={winner} color={s.summary.seats?.find((x) => x.seat === winner)?.color ?? obs.civ.color} name={s.summary.seats?.find((x) => x.seat === winner)?.name ?? ''} size={64} />
                 : <BrandMark size={64} />}
             </div>
-            <p class="eyebrow">{t('{year} · the match has ended', { year: t('Year {n}', { n: yearOf(obs.outcome.finished_month) }) })}</p>
+            <p class="eyebrow">{t('{year} · the match has ended', { year: fmtYear(obs.outcome.finished_month, obs.outcome.finished_month === obs.month ? obs.date : null) })}</p>
             <h2>{winner === null ? t('No civilization prevailed') : t('{name} prevails', { name: winner === obs.seat ? tc(obs.civ.name) : civName(obs, winner) })}</h2>
             <p class="result-reason">{tc(obs.outcome.reason)}</p>
             <dl class="kvs">
@@ -318,6 +320,10 @@ function Overlay({ state }: { state: AppState }) {
   if (state.overlay === 'tech') return <TechTree />;
   if (state.overlay === 'civics') return <CivicsTree />;
   if (state.overlay === 'almanac') return <Almanac />;
+  if (state.overlay === 'works' && state.obs) {
+    const arg = state.overlayArg !== null ? Number(state.overlayArg) : null;
+    return <RegionalWorks obs={state.obs} region={arg !== null && Number.isFinite(arg) ? arg : null} onClose={closeOverlay} />;
+  }
   if (EconomyLedger && state.obs) {
     return <section class="fs-overlay fs-bare" role="dialog" aria-label={t('Economy ledger')} data-testid="overlay-ledger"><EconomyLedger obs={state.obs} onClose={closeOverlay} /></section>;
   }

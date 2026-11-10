@@ -1,9 +1,9 @@
 // Economy: stores and flows, how labour is spent, standing policy, works by
 // region, power and research capacity.
-import { Construction } from '../economy/Construction';
+import { WorksLauncher, openWorks } from '../economy/Construction';
 import { useState } from 'preact/hooks';
 import type { LaborSummary, Observation, RegionView } from '../protocol';
-import { GOOD_LABEL, GOOD_SHORT, LABOR_LABEL, RESEARCH_LABEL, int, joinList, lc, milli, milliSigned, pct, tx } from '../format';
+import { GOOD_LABEL, GOOD_SHORT, LABOR_LABEL, RESEARCH_LABEL, computeQty, energy, int, joinList, lc, pct, peopleNum, qty, qtySigned, researchMonths, tx } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { ActionNote, Btn, Empty, Meter, RegionLink, Section, Stepper, cx, toneOfBp } from '../ui';
@@ -27,17 +27,17 @@ export function LaborBar({ labor }: { labor: LaborSummary }) {
   if (sum === 0) return <Empty>{t('Labour is tallied at the end of each round; no record yet.')}</Empty>;
   return (
     <div class="labor">
-      <div class="labor-bar" role="img" aria-label={joinList(parts.map((p) => `${t(p.label)} ${p.n}`))}>
+      <div class="labor-bar" role="img" aria-label={joinList(parts.map((p) => `${t(p.label)} ${peopleNum(p.n)}`))}>
         {parts.filter((p) => p.n > 0).map((p) => (
-          <span class={cx('labor-seg', p.cls)} style={{ width: ((p.n / total) * 100).toFixed(2) + '%' }} title={t('{label}: {n} people', { label: t(p.label), n: int(p.n) })} />
+          <span class={cx('labor-seg', p.cls)} style={{ width: ((p.n / total) * 100).toFixed(2) + '%' }} title={t('{label}: {n} people', { label: t(p.label), n: peopleNum(p.n) })} />
         ))}
       </div>
       <ul class="labor-legend">
         {parts.map((p) => (
-          <li class={p.n === 0 ? 'is-zero' : undefined}><i class={cx('key', p.cls)} /> {t(p.label)} <b>{int(p.n)}</b></li>
+          <li class={p.n === 0 ? 'is-zero' : undefined}><i class={cx('key', p.cls)} /> {t(p.label)} <b title={int(p.n)}>{peopleNum(p.n)}</b></li>
         ))}
       </ul>
-      <p class="muted small">{t('{n} people of working age, as counted last month.', { n: int(labor.working_age) })}</p>
+      <p class="muted small">{t('{n} people of working age, as counted last month.', { n: peopleNum(labor.working_age) })}</p>
     </div>
   );
 }
@@ -61,9 +61,9 @@ export function EconomyPanel() {
     };
   }, { shaft_supply: 0, shaft_demand: 0, elec_supply: 0, elec_demand: 0, compute_supply: 0, compute_demand: 0 });
   const powerLines = [
-    { label: 'Shaft power', supply: power.shaft_supply, demand: power.shaft_demand },
-    { label: 'Electricity', supply: power.elec_supply, demand: power.elec_demand },
-    { label: 'Computation', supply: power.compute_supply, demand: power.compute_demand },
+    { label: 'Shaft power', supply: power.shaft_supply, demand: power.shaft_demand, fmt: energy },
+    { label: 'Electricity', supply: power.elec_supply, demand: power.elec_demand, fmt: energy },
+    { label: 'Computation', supply: power.compute_supply, demand: power.compute_demand, fmt: computeQty },
   ].filter((l) => l.supply || l.demand);
   const food = civ.goods.find((g) => g.good === 'food');
   const perMonth = food && food.consumed > 0 ? food.consumed / obs.months_per_round : 0;
@@ -74,25 +74,27 @@ export function EconomyPanel() {
     <div class="panel economy">
       <p class="panel-lede">{t('Which missing input, post or service is holding useful output back?')}</p>
 
-      <Construction obs={obs} />
+      <WorksLauncher obs={obs} region={s.selectedRegion} />
 
-      <Section title={t('Stores and flows')} aside={<small class="muted">{t('units · totals over last round')}</small>}>
+      <Section title={t('Stores and flows')} aside={<small class="muted">{t('each good in its own unit · totals over last round')}</small>}>
         <table class="table goods-table" data-testid="goods-table">
           <thead>
-            <tr><th>{t('Good')}</th><th class="num">{t('In store')}</th><th class="num">{t('Made')}</th><th class="num">{t('Used')}</th><th class="num">{t('Traded')}</th><th class="num">{t('Net')}</th></tr>
+            <tr><th>{t('Good')}</th><th class="num">{t('In store')}</th><th class="num">{t('Made')}</th><th class="num">{t('Used')}</th><th class="num" title={t('Spoiled, lost in carriage to the common stock, or abandoned')}>{t('Lost')}</th><th class="num">{t('Traded')}</th><th class="num">{t('Net')}</th></tr>
           </thead>
           <tbody>
             {active.map((g) => {
               const traded = g.traded_in - g.traded_out;
-              const net = g.produced - g.consumed + traded;
+              const lost = g.lost ?? 0;
+              const net = g.produced - g.consumed - lost + traded;
               return (
                 <tr>
-                  <th scope="row">{t(GOOD_LABEL[g.good])}{g.capacity !== null ? <small class="muted cap" title={t('Storage capacity')}> {t('cap. {n}', { n: milli(g.capacity) })}</small> : null}</th>
-                  <td class="num"><b>{milli(g.stock)}</b></td>
-                  <td class="num">{milli(g.produced)}</td>
-                  <td class="num">{milli(g.consumed)}</td>
-                  <td class="num">{traded === 0 ? <span class="muted">–</span> : milliSigned(traded)}</td>
-                  <td class={cx('num', net < 0 ? 'neg' : net > 0 ? 'pos' : 'muted')}>{net === 0 ? '0' : <>{net < 0 ? <Icon name="down" size={10} /> : <Icon name="up" size={10} />}{milliSigned(net)}</>}</td>
+                  <th scope="row">{t(GOOD_LABEL[g.good])}{g.capacity !== null ? <small class="muted cap" title={t('Storage capacity')}> {t('cap. {n}', { n: qty(g.good, g.capacity) })}</small> : null}</th>
+                  <td class="num"><b>{qty(g.good, g.stock)}</b></td>
+                  <td class="num">{qty(g.good, g.produced)}</td>
+                  <td class="num">{qty(g.good, g.consumed)}</td>
+                  <td class="num">{lost === 0 ? <span class="muted">–</span> : qty(g.good, lost)}</td>
+                  <td class="num">{traded === 0 ? <span class="muted">–</span> : qtySigned(g.good, traded)}</td>
+                  <td class={cx('num', net < 0 ? 'neg' : net > 0 ? 'pos' : 'muted')}>{net === 0 ? '0' : <>{net < 0 ? <Icon name="down" size={10} /> : <Icon name="up" size={10} />}{qtySigned(g.good, net)}</>}</td>
                 </tr>
               );
             })}
@@ -154,22 +156,22 @@ export function EconomyPanel() {
             {powerLines.map((l) => (
               <li>
                 <span class="cap-name">{t(l.label)}</span>
-                <Meter value={l.demand} max={Math.max(l.supply, l.demand, 1)} tone={l.demand > l.supply ? 'bad' : 'ok'} mark={l.demand > l.supply ? l.supply / l.demand : undefined} label={t('{label}: demand {demand} of supply {supply}', { label: t(l.label), demand: milli(l.demand), supply: milli(l.supply) })} />
-                <span class={cx('cap-val', l.demand > l.supply && 'neg')}>{milli(l.demand)} <small>{t('demand')}</small> / {milli(l.supply)} <small>{t('supply')}</small></span>
+                <Meter value={l.demand} max={Math.max(l.supply, l.demand, 1)} tone={l.demand > l.supply ? 'bad' : 'ok'} mark={l.demand > l.supply ? l.supply / l.demand : undefined} label={t('{label}: demand {demand} of supply {supply}', { label: t(l.label), demand: l.fmt(l.demand), supply: l.fmt(l.supply) })} />
+                <span class={cx('cap-val', l.demand > l.supply && 'neg')}>{l.fmt(l.demand)} <small>{t('demand')}</small> / {l.fmt(l.supply)} <small>{t('supply')}</small></span>
               </li>
             ))}
           </ul>
         )}
       </Section>
 
-      <Section title={t('Research capacity')} aside={<small class="muted">{t('work units per month')}</small>}>
+      <Section title={t('Research capacity')} aside={<small class="muted">{t('researcher-months a month')}</small>}>
         {civ.research.length === 0 ? <Empty>{t('No one is yet free to investigate. Research staff come from qualified people working in a makers’ circle or institute.')}</Empty> : (
           <ul class="cap-list">
             {civ.research.map((l) => (
               <li>
                 <span class="cap-name">{t(RESEARCH_LABEL[l.class])}</span>
-                <Meter value={l.used} max={Math.max(l.capacity, 1)} tone={l.used === 0 && l.capacity > 0 ? 'warn' : 'accent'} label={t('{label}: {used} used of {capacity}', { label: t(RESEARCH_LABEL[l.class]), used: milli(l.used), capacity: milli(l.capacity) })} />
-                <span class="cap-val">{milli(l.used)} <small>{t('used')}</small> / {milli(l.capacity)}</span>
+                <Meter value={l.used} max={Math.max(l.capacity, 1)} tone={l.used === 0 && l.capacity > 0 ? 'warn' : 'accent'} label={t('{label}: {used} used of {capacity}', { label: t(RESEARCH_LABEL[l.class]), used: researchMonths(l.used), capacity: researchMonths(l.capacity) })} />
+                <span class="cap-val">{researchMonths(l.used)} <small>{t('used')}</small> / {researchMonths(l.capacity)}</span>
               </li>
             ))}
           </ul>
@@ -190,7 +192,8 @@ function RegionWorks({ r, open }: { r: RegionView; open: boolean }) {
         <button type="button" class="rw-toggle" aria-expanded={isOpen} onClick={() => setOpen(!isOpen)}>
           <Icon name={isOpen ? 'down' : 'right'} size={12} /> <b>{r.name}</b>
         </button>
-        <span class="muted small">{t('{n} people · {works} works', { n: int(own.population), works: own.facilities.length })}{blocked ? <span class="warn-text"> · {t('{n} held back', { n: blocked })}</span> : null}</span>
+        <span class="muted small">{t('{n} people · {works} works', { n: peopleNum(own.population), works: own.facilities.length })} · {t('{n} levels', { n: own.facilities.reduce((a, f) => a + f.level, 0) })}{blocked ? <span class="warn-text"> · {t('{n} held back', { n: blocked })}</span> : null}</span>
+        <button type="button" class="linklike" data-testid={`economy-works-${r.id}`} onClick={() => openWorks(r.id)}>{t('manage')}</button>
         <RegionLink id={r.id}>{t('map')}</RegionLink>
       </div>
       {isOpen ? (
@@ -206,7 +209,7 @@ function RegionWorks({ r, open }: { r: RegionView; open: boolean }) {
                     <tr class={!f.enabled ? 'is-off' : undefined}>
                       <th scope="row">{tc(f.name)}{!f.enabled ? <small class="muted"> {t('(idle)')}</small> : null}</th>
                       <td class="num">{f.level}<small class="muted">/{f.max_level}</small></td>
-                      <td class="num">{f.staff_needed ? <>{int(f.staffed)}<small class="muted">/{int(f.staff_needed)}</small></> : <span class="muted">–</span>}</td>
+                      <td class="num">{f.staff_needed ? <>{peopleNum(f.staffed)}<small class="muted">/{peopleNum(f.staff_needed)}</small></> : <span class="muted">–</span>}</td>
                       <td class="util-cell"><Meter value={f.utilization_bp} max={10000} tone={f.enabled ? toneOfBp(f.utilization_bp, 8000, 4000) : 'muted'} height={6} label={t('Utilisation {pct}', { pct: pct(f.utilization_bp) })} /> <small>{pct(f.utilization_bp)}</small></td>
                     </tr>
                     {blockers.length || missing.length ? <tr class="blocker-row"><td colSpan={4}>{blockers.slice(0, 3).map((b) => <span class="blocker"><Icon name="warn" size={11} /> {tc(b)}</span>)}{missing.length ? <span class="blocker">{t('Short of {goods}', { goods: joinList(missing.map((g) => lc(GOOD_SHORT[g]))) })}</span> : null}</td></tr> : null}

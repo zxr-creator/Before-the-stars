@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { FacilityType, Observation, ProjectView, RegionId, RegionView } from '../protocol';
 import {
-  GOOD_SHORT, QUAL_LABEL, RESEARCH_LABEL, TERRAIN_LABEL, fmtDate, int, joinList, lc, milli, tcAll, tcChecks, titleCase, tn, tx,
+  GOOD_SHORT, QUAL_LABEL, RESEARCH_LABEL, TERRAIN_LABEL, computeQty, energy, fmtDate, int, joinList, lc, peopleNum, people, qty,
+  researchMonths, tcAll, tcChecks, titleCase, tn, tx, workMonths,
 } from '../format';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
@@ -12,6 +13,8 @@ import {
   Stepper, Why, cx, work,
 } from '../ui';
 import { act, consumeIntent, startPick, cancelPick, useApp } from '../store';
+import { QuoteBlock, openWorks } from '../economy/Construction';
+import { blocking, checks, quoteFor } from '../economy/works';
 
 type NewKind = 'build' | 'survey' | 'settle' | 'study' | 'resettle';
 const NEW_KINDS: { key: NewKind; label: string; hint: string }[] = [
@@ -37,6 +40,10 @@ function kindLabel(kind: string): string {
 }
 
 interface Preset { region?: RegionId; from?: RegionId; to?: RegionId }
+
+/** People a sending region must keep (bts-engine actions.rs: SETTLE_KEEP, RESETTLE_KEEP). */
+const SETTLE_KEEP = 80000;
+const RESETTLE_KEEP = 50000;
 
 export function ProjectsPanel() {
   useLocale();
@@ -112,10 +119,10 @@ export function ProjectCard({ p, compact }: { p: ProjectView; compact?: boolean 
       </div>
       <div class="progress-line">
         <Meter value={frac} tone={p.paused ? 'muted' : blocked ? 'warn' : 'accent'} label={t('{pct}% of the work done', { pct: Math.round(frac * 100) })} />
-        <span class="progress-num"><b>{work(p.work_done)}</b> / {work(p.work_needed)} <small>{t('work')}</small></span>
+        <span class="progress-num"><b>{work(p.work_done)}</b> / {workMonths(p.work_needed)}</span>
       </div>
       <div class="project-meta">
-        <span title={t('Work done in the last month resolved')}>{p.last_progress > 0 ? <>+{work(p.last_progress)} <small>{t('last month')}</small></> : <span class="muted">{t('no progress last month')}</span>}</span>
+        <span title={t('Work done in the last month resolved')}>{p.last_progress > 0 ? <>+{workMonths(p.last_progress)} <small>{t('last month')}</small></> : <span class="muted">{t('no progress last month')}</span>}</span>
         <span>
           {p.eta_months_low !== null && p.eta_months_high !== null
             ? <Est kind="forecast" title={t('Forecast from recent progress; not a guarantee')}>{p.eta_months_low === p.eta_months_high ? t('≈ {n} months left', { n: p.eta_months_low }) : t('≈ {lo}–{hi} months left', { lo: p.eta_months_low, hi: p.eta_months_high })}</Est>
@@ -129,10 +136,10 @@ export function ProjectCard({ p, compact }: { p: ProjectView; compact?: boolean 
             const got = p.inputs_committed.find((c) => c.good === need.good)?.amount ?? 0;
             const full = got >= need.amount;
             return (
-              <li class={full ? 'is-full' : undefined} title={t('{good}: {got} delivered of {need} needed', { good: t(GOOD_SHORT[need.good]), got: milli(got), need: milli(need.amount) })}>
+              <li class={full ? 'is-full' : undefined} title={t('{good}: {got} delivered of {need} needed', { good: t(GOOD_SHORT[need.good]), got: qty(need.good, got), need: qty(need.good, need.amount) })}>
                 <span class="input-name">{t(GOOD_SHORT[need.good])}</span>
                 <Meter value={got} max={Math.max(1, need.amount)} tone={full ? 'ok' : 'gold'} height={5} />
-                <span class="input-num">{milli(got)}/{milli(need.amount)}</span>
+                <span class="input-num">{qty(need.good, got)} / {qty(need.good, need.amount)}</span>
               </li>
             );
           })}
@@ -198,10 +205,10 @@ export function siteCapacity(fac: FacilityType, r: RegionView): { levels: number
 
 function recipeServices(rc: FacilityType['recipes'][number]): string {
   const parts: string[] = [];
-  if (rc.out_shaft) parts.push(t('{n} shaft power', { n: milli(rc.out_shaft) }));
-  if (rc.out_elec) parts.push(t('{n} electricity', { n: milli(rc.out_elec) }));
-  if (rc.out_compute) parts.push(t('{n} computation', { n: milli(rc.out_compute) }));
-  if (rc.research) parts.push(t('{n} {kind} work', { n: milli(rc.research[1]), kind: lc(RESEARCH_LABEL[rc.research[0]]) }));
+  if (rc.out_shaft) parts.push(t('{n} shaft power', { n: energy(rc.out_shaft) }));
+  if (rc.out_elec) parts.push(t('{n} electricity', { n: energy(rc.out_elec) }));
+  if (rc.out_compute) parts.push(t('{n} computation', { n: computeQty(rc.out_compute) }));
+  if (rc.research) parts.push(t('{n} of {kind}', { n: researchMonths(rc.research[1]), kind: lc(RESEARCH_LABEL[rc.research[0]]) }));
   return parts.join(' · ');
 }
 
@@ -245,13 +252,18 @@ function BuildForm({ obs, preset, onDone }: { obs: Observation; preset: Preset; 
   }
   const fac = obs.catalog.facilities.find((f) => f.kind === kind) ?? null;
   const existing = fac ? r.own!.facilities.find((f) => f.kind === fac.kind) : undefined;
-  const pending = fac ? obs.projects.filter((p) => p.kind === 'build' && p.region === r.id && p.target === fac.kind).reduce((n, p) => n + (p.levels ?? 1), 0) : 0;
+  // One source of truth for the price and the site: the referee's quote for this region.
+  const one = fac ? quoteFor(r, fac.kind, 1) : null;
+  const pending = one?.queued ?? 0;
   const site = fac ? siteCapacity(fac, r) : null;
-  const cap = r.own!.construction_sites?.find(x => x.kind === fac?.kind)?.max_level ?? (existing ? existing.max_level : site?.levels ?? null);
-  const room = cap !== null ? Math.max(0, cap - (existing?.level ?? 0) - pending) : null;
+  const cap = one ? one.cap : existing ? existing.max_level : site?.levels ?? null;
+  const room = one ? one.room : cap !== null ? Math.max(0, cap - (existing?.level ?? 0) - pending) : null;
   const why = !fac ? t('Choose what to build') : !fac.available ? (unmet(fac.requirements) ?? t('A known requirement is unmet')) : room === 0 ? (cap === 0 ? t('{region} has no suitable site: {site}', { region: r.name, site: isZh() ? tc(fac.site) : fac.site.toLowerCase() }) : t('{region} cannot carry more levels of this at present', { region: r.name })) : null;
   const maxLevels = Math.max(1, Math.min(20, room ?? 20));
   const lv = Math.min(levels, maxLevels);
+  const quote = fac ? quoteFor(r, fac.kind, lv) : null;
+  const waits = fac ? checks(obs, r, fac, quote).filter((c) => c.tone === 'warn').length : 0;
+  void blocking;
 
   const submit = async () => {
     if (!fac) return;
@@ -261,7 +273,7 @@ function BuildForm({ obs, preset, onDone }: { obs: Observation; preset: Preset; 
 
   return (
     <div class="form">
-      <Field label={t('Region')} hint={`${t(TERRAIN_LABEL[r.terrain])}${r.coastal ? t(', coast') : ''}${r.river ? t(', river') : ''} · ${t('{n} people', { n: int(r.own!.population) })}`}>
+      <Field label={t('Region')} hint={`${t(TERRAIN_LABEL[r.terrain])}${r.coastal ? t(', coast') : ''}${r.river ? t(', river') : ''} · ${people(r.own!.population)}`}>
         <Select value={r.id} options={regionOptions(regions)} onChange={(v) => setRegion(v)} label={t('Region to build in')} testid="build-region" />
       </Field>
       <div class="field">
@@ -295,9 +307,7 @@ function BuildForm({ obs, preset, onDone }: { obs: Observation; preset: Preset; 
               : site?.basis
                 ? tn(cap, ' · {region} can carry {n} level ({basis})', ' · {region} can carry {n} levels ({basis})', { n: cap, region: r.name, basis: site.basis })
                 : tn(cap, ' · {region} can carry {n} level', ' · {region} can carry {n} levels', { n: cap, region: r.name })}</small> : null}</dd></div>
-            <div class="kv"><dt>{t('Cost per level')}</dt><dd><GoodsList items={fac.cost} empty={t('no stores')} /></dd></div>
-            <div class="kv"><dt>{t('Work per level')}</dt><dd>{tx('{n} work', { n: <b>{work(r.own!.construction_sites?.find(x => x.kind === fac.kind)?.work_per_level ?? fac.work)}</b> })}</dd></div>
-            <div class="kv"><dt>{t('Posts per level')}</dt><dd>{fac.jobs.length ? fac.jobs.map((j, i) => <span>{i ? ' · ' : ''}<b>{j.count}</b> {j.qual ? lc(QUAL_LABEL[j.qual]) : t('general labour')}</span>) : <span class="muted">{t('none')}</span>}</dd></div>
+            <div class="kv"><dt>{t('Posts per level')}</dt><dd>{fac.jobs.length ? fac.jobs.map((j, i) => <span>{i ? ' · ' : ''}<b>{peopleNum(j.count)}</b> {j.qual ? lc(QUAL_LABEL[j.qual]) : t('general labour')}</span>) : <span class="muted">{t('none')}</span>}</dd></div>
             {fac.upkeep.length ? <div class="kv"><dt>{t('Upkeep')}</dt><dd><GoodsList items={fac.upkeep} per={t('per level each month')} empty={t('none')} /></dd></div> : null}
             {fac.provides.length ? <div class="kv"><dt>{t('Provides')}</dt><dd>{tcAll(fac.provides).join(' · ')}</dd></div> : null}
           </dl>
@@ -308,7 +318,7 @@ function BuildForm({ obs, preset, onDone }: { obs: Observation; preset: Preset; 
                 <div class={cx('recipe', !rc.available && 'is-locked')}>
                   <span class="recipe-name">{!rc.available ? <Icon name="lock" size={11} title={t('Not yet workable')} /> : null}{tc(rc.name)}</span>
                   <span class="recipe-flow"><GoodsList items={rc.inputs} empty={t('labour only')} /> <Icon name="right" size={10} /> {rc.outputs.length || !recipeServices(rc) ? <GoodsList items={rc.outputs} empty={t('services')} /> : null}{recipeServices(rc) ? <span>{rc.outputs.length ? ' · ' : ''}{recipeServices(rc)}</span> : null} <small class="muted">{t('per level each month')}</small></span>
-                  {rc.shaft || rc.elec || rc.compute ? <small class="muted">{t('needs {list}', { list: joinList([rc.shaft ? t('{n} shaft power', { n: milli(rc.shaft) }) : '', rc.elec ? t('{n} electricity', { n: milli(rc.elec) }) : '', rc.compute ? t('{n} computation', { n: milli(rc.compute) }) : ''].filter(Boolean)) })}</small> : null}
+                  {rc.shaft || rc.elec || rc.compute ? <small class="muted">{t('needs {list}', { list: joinList([rc.shaft ? t('{n} shaft power', { n: energy(rc.shaft) }) : '', rc.elec ? t('{n} electricity', { n: energy(rc.elec) }) : '', rc.compute ? t('{n} computation', { n: computeQty(rc.compute) }) : ''].filter(Boolean)) })}</small> : null}
                   {rc.note ? <small class="muted">{tc(rc.note)}</small> : null}
                 </div>
               ))}
@@ -320,11 +330,10 @@ function BuildForm({ obs, preset, onDone }: { obs: Observation; preset: Preset; 
             <Field label={t('Levels')}><Stepper value={lv} min={1} max={maxLevels} label={t('Levels')} onChange={setLevels} testid="build-levels" /></Field>
             <PriorityField value={priority} onChange={setPriority} />
           </div>
-          <p class="total-line">{tx('Total: {goods} · {work} work {note}', {
-            goods: <GoodsList items={fac.cost.map((c) => ({ good: c.good, amount: c.amount * lv }))} empty={t('no stores')} />,
-            work: <b>{work(fac.work * lv)}</b>,
-            note: <small class="muted">{t('(a first-of-its-kind build takes half as long again)')}</small>,
-          })}</p>
+          <p class="sub-label">{tn(lv, 'The referee’s price for {n} level', 'The referee’s price for {n} levels', { n: lv })}</p>
+          <QuoteBlock obs={obs} r={r} fac={fac} q={quote} testid="build-quote" />
+          {waits ? <p class="note is-warn">{t('The order can be placed; it will wait for what is marked above.')}</p> : null}
+          <button type="button" class="linklike" data-testid="build-open-works" onClick={() => { openWorks(r.id); onDone(); }}>{t('Plan this region in Regional works')} <Icon name="right" size={10} /></button>
         </div>
       ) : <p class="muted small">{t('Choose a kind of works to see its cost, posts and requirements.')}</p>}
 
@@ -393,7 +402,10 @@ function SettleForm({ obs, preset, onDone }: { obs: Observation; preset: Preset;
   const fromGuess = preset.from ?? (preset.to !== undefined ? regions.find((r) => r.neighbors.some((n) => n.region === preset.to))?.id : undefined) ?? regions.find((r) => targetsOf(r).length)?.id ?? regions[0]?.id;
   const [from, setFrom] = useState<RegionId | undefined>(fromGuess);
   const [to, setTo] = useState<RegionId | undefined>(preset.to);
-  const [people, setPeople] = useState(40);
+  const lim = obs.units?.limits;
+  const minSettlers = lim?.settlers_min ?? 20000;
+  const maxSettlers = lim?.settlers_max ?? 400000;
+  const [settlers, setSettlers] = useState(Math.max(minSettlers, Math.min(maxSettlers, 40000)));
   const [priority, setPriority] = useState(5);
   useEffect(() => {
     if (preset.from !== undefined) setFrom(preset.from);
@@ -403,17 +415,18 @@ function SettleForm({ obs, preset, onDone }: { obs: Observation; preset: Preset;
   const fr = byId.get(from) ?? regions[0];
   const targets = targetsOf(fr);
   const toId = to !== undefined && targets.some((tg) => tg.r.id === to) ? to : targets[0]?.r.id;
-  const spare = Math.max(0, fr.own!.population - 80);
-  const why = toId === undefined ? t('No unclaimed land we have seen borders {region}', { region: fr.name }) : people < 20 || people > 400 ? t('A settling party is 20 to 400 people') : people > spare ? t('{region} can spare at most {n} people', { region: fr.name, n: int(spare) }) : null;
+  // The referee keeps 80,000 people in the sending region (bts-engine actions.rs SETTLE_KEEP).
+  const spare = Math.max(0, fr.own!.population - SETTLE_KEEP);
+  const why = toId === undefined ? t('No unclaimed land we have seen borders {region}', { region: fr.name }) : settlers < minSettlers || settlers > maxSettlers ? t('A settling party is {min} to {max} people', { min: int(minSettlers), max: int(maxSettlers) }) : settlers > spare ? t('{region} can spare at most {n} people', { region: fr.name, n: int(spare) }) : null;
   const submit = async () => {
     if (toId === undefined) return;
-    const rec = await act({ kind: 'start_project', spec: { kind: 'settle', from: fr.id, to: toId, people }, priority }, 'new-settle');
+    const rec = await act({ kind: 'start_project', spec: { kind: 'settle', from: fr.id, to: toId, people: settlers }, priority }, 'new-settle');
     if (accepted(rec)) onDone();
   };
   return (
     <div class="form">
       <p class="form-intro">{t('Real settlers leave with real stores and found a camp in unclaimed land that borders the sending region. The party is provisioned with food, tools and materials before it leaves.')}</p>
-      <Field label={t('From')} hint={t('{n} people live there; at least 80 must remain.', { n: int(fr.own!.population) })}>
+      <Field label={t('From')} hint={t('{n} people live there; at least {keep} must remain.', { n: peopleNum(fr.own!.population), keep: peopleNum(SETTLE_KEEP) })}>
         <Select value={fr.id} options={regionOptions(regions)} onChange={(v) => { setFrom(v); setTo(undefined); }} label={t('Sending region')} testid="settle-from" />
       </Field>
       <Field label={t('To')} hint={targets.length ? undefined : t('Survey or explore the neighbouring land first.')}>
@@ -425,7 +438,7 @@ function SettleForm({ obs, preset, onDone }: { obs: Observation; preset: Preset;
         ) : <span class="muted">{t('No unclaimed neighbouring land is known.')}</span>}
       </Field>
       <div class="form-row">
-        <Field label={t('Settlers')}><NumInput value={people} min={20} max={400} step={10} unit={t('people')} label={t('Settlers')} onChange={setPeople} testid="settle-people" /></Field>
+        <Field label={t('Settlers')}><NumInput value={settlers} min={minSettlers} max={maxSettlers} step={10000} width={110} unit={t('people')} label={t('Settlers')} onChange={setSettlers} testid="settle-people" /></Field>
         <PriorityField value={priority} onChange={setPriority} />
       </div>
       <div class="form-actions">
@@ -443,27 +456,28 @@ function ResettleForm({ obs, preset, onDone }: { obs: Observation; preset: Prese
   const regions = ownRegions(obs);
   const [from, setFrom] = useState<RegionId | undefined>(preset.from ?? regions[0]?.id);
   const [to, setTo] = useState<RegionId | undefined>(regions.find((r) => r.id !== (preset.from ?? regions[0]?.id))?.id);
-  const [people, setPeople] = useState(20);
+  const [movers, setMovers] = useState(20000);
   const [priority, setPriority] = useState(5);
   if (regions.length < 2 || from === undefined) return <Empty>{regions.length === 1 ? t('Resettlement moves people between two regions we govern; we govern only one.') : t('Resettlement moves people between two regions we govern; we govern none.')}</Empty>;
   const fr = regions.find((r) => r.id === from) ?? regions[0];
   const others = regions.filter((r) => r.id !== fr.id);
   const toId = to !== undefined && others.some((r) => r.id === to) ? to : others[0].id;
-  const spare = Math.max(0, fr.own!.population - 50);
-  const why = people < 1 ? t('Choose how many people move') : people > spare ? t('{region} can spare at most {n} people', { region: fr.name, n: int(spare) }) : null;
+  // The referee keeps 50,000 people in the sending region (bts-engine actions.rs RESETTLE_KEEP).
+  const spare = Math.max(0, fr.own!.population - RESETTLE_KEEP);
+  const why = movers < 1 ? t('Choose how many people move') : movers > spare ? t('{region} can spare at most {n} people', { region: fr.name, n: int(spare) }) : null;
   const submit = async () => {
-    const rec = await act({ kind: 'start_project', spec: { kind: 'resettle', from: fr.id, to: toId, people }, priority }, 'new-resettle');
+    const rec = await act({ kind: 'start_project', spec: { kind: 'resettle', from: fr.id, to: toId, people: movers }, priority }, 'new-resettle');
     if (accepted(rec)) onDone();
   };
   return (
     <div class="form">
       <p class="form-intro">{t('Move households between governed regions. They travel with food for the journey.')}</p>
       <div class="form-row">
-        <Field label={t('From')} hint={t('{n} people', { n: int(fr.own!.population) })}><Select value={fr.id} options={regionOptions(regions)} onChange={(v) => setFrom(v)} label={t('From region')} /></Field>
+        <Field label={t('From')} hint={people(fr.own!.population)}><Select value={fr.id} options={regionOptions(regions)} onChange={(v) => setFrom(v)} label={t('From region')} /></Field>
         <Field label={t('To')}><Select value={toId} options={regionOptions(others)} onChange={(v) => setTo(v)} label={t('To region')} /></Field>
       </div>
       <div class="form-row">
-        <Field label={isZh() ? t('People (count)') : 'People'}><NumInput value={people} min={1} max={Math.max(1, spare)} step={10} unit={t('people')} label={t('People to move')} onChange={setPeople} /></Field>
+        <Field label={isZh() ? t('People (count)') : 'People'}><NumInput value={movers} min={1} max={Math.max(1, spare)} step={5000} width={110} unit={t('people')} label={t('People to move')} onChange={setMovers} /></Field>
         <PriorityField value={priority} onChange={setPriority} />
       </div>
       <div class="form-actions">
