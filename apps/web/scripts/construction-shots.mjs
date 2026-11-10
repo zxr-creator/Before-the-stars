@@ -36,5 +36,16 @@ for (const tab of tabs) {
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${OUT}${tag}-${tab}.png` });
 }
+// the ways in: the map's development mode, and the economy panel
+await page.click(tid('works-close'));
+await page.click(tid('map-mode-construction')).catch(() => {});
+await page.waitForTimeout(500);
+const first = await page.$(`${tid('province-list')} button`);
+if (first) { await first.click(); await page.waitForTimeout(600); }
+await page.screenshot({ path: `${OUT}${tag}-map-development.png` });
+await page.click(tid('rail-economy'));
+await page.waitForSelector(tid('panel-economy'));
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${OUT}${tag}-economy-panel.png` });
 console.log('shots', tag, 'errors:', errors.length ? errors : 'none');
 await browser.close();

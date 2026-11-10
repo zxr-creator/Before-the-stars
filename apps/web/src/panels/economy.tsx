@@ -3,7 +3,9 @@
 import { WorksLauncher, openWorks } from '../economy/Construction';
 import { useState } from 'preact/hooks';
 import type { LaborSummary, Observation, RegionView } from '../protocol';
-import { GOOD_LABEL, GOOD_SHORT, LABOR_LABEL, RESEARCH_LABEL, computeQty, energy, int, joinList, lc, pct, peopleNum, qty, qtySigned, researchMonths, tx } from '../format';
+import { GOOD_LABEL, GOOD_SHORT, LABOR_LABEL, RESEARCH_LABEL, compact, computeQty, energy, int, joinList, lc, pct, peopleNum, qty, qtySigned, researchMonths, tx, unitLabel } from '../format';
+
+const signedCompact = (n: number) => (n > 0 ? '+' : '−') + compact(Math.abs(n));
 import { t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { ActionNote, Btn, Empty, Meter, RegionLink, Section, Stepper, cx, toneOfBp } from '../ui';
@@ -76,7 +78,7 @@ export function EconomyPanel() {
 
       <WorksLauncher obs={obs} region={s.selectedRegion} />
 
-      <Section title={t('Stores and flows')} aside={<small class="muted">{t('each good in its own unit · totals over last round')}</small>}>
+      <Section title={t('Stores and flows')} aside={<small class="muted">{t('each good in its own unit (tonnes, rations or lots) · totals over last round')}</small>}>
         <table class="table goods-table" data-testid="goods-table">
           <thead>
             <tr><th>{t('Good')}</th><th class="num">{t('In store')}</th><th class="num">{t('Made')}</th><th class="num">{t('Used')}</th><th class="num" title={t('Spoiled, lost in carriage to the common stock, or abandoned')}>{t('Lost')}</th><th class="num">{t('Traded')}</th><th class="num">{t('Net')}</th></tr>
@@ -88,13 +90,13 @@ export function EconomyPanel() {
               const net = g.produced - g.consumed - lost + traded;
               return (
                 <tr>
-                  <th scope="row">{t(GOOD_LABEL[g.good])}{g.capacity !== null ? <small class="muted cap" title={t('Storage capacity')}> {t('cap. {n}', { n: qty(g.good, g.capacity) })}</small> : null}</th>
-                  <td class="num"><b>{qty(g.good, g.stock)}</b></td>
-                  <td class="num">{qty(g.good, g.produced)}</td>
-                  <td class="num">{qty(g.good, g.consumed)}</td>
-                  <td class="num">{lost === 0 ? <span class="muted">–</span> : qty(g.good, lost)}</td>
-                  <td class="num">{traded === 0 ? <span class="muted">–</span> : qtySigned(g.good, traded)}</td>
-                  <td class={cx('num', net < 0 ? 'neg' : net > 0 ? 'pos' : 'muted')}>{net === 0 ? '0' : <>{net < 0 ? <Icon name="down" size={10} /> : <Icon name="up" size={10} />}{qtySigned(g.good, net)}</>}</td>
+                  <th scope="row" title={t(GOOD_LABEL[g.good])}>{t(GOOD_SHORT[g.good])} <small class="muted goods-unit">{unitLabel(g.good)}</small>{g.capacity !== null ? <small class="muted cap" title={t('Storage capacity')}>{t('cap. {n}', { n: qty(g.good, g.capacity) })}</small> : null}</th>
+                  <td class="num" title={qty(g.good, g.stock)}><b>{compact(g.stock)}</b></td>
+                  <td class="num" title={qty(g.good, g.produced)}>{compact(g.produced)}</td>
+                  <td class="num" title={qty(g.good, g.consumed)}>{compact(g.consumed)}</td>
+                  <td class="num" title={lost ? qty(g.good, lost) : undefined}>{lost === 0 ? <span class="muted">–</span> : compact(lost)}</td>
+                  <td class="num" title={traded ? qtySigned(g.good, traded) : undefined}>{traded === 0 ? <span class="muted">–</span> : signedCompact(traded)}</td>
+                  <td class={cx('num', net < 0 ? 'neg' : net > 0 ? 'pos' : 'muted')} title={net ? qtySigned(g.good, net) : undefined}>{net === 0 ? '0' : <>{net < 0 ? <Icon name="down" size={10} /> : <Icon name="up" size={10} />}{signedCompact(net)}</>}</td>
                 </tr>
               );
             })}

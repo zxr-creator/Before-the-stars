@@ -215,5 +215,6 @@
   "Order +{n} level": "下单扩建 +{n} 级",
   "Order {n} level": "下单 {n} 级",
   "Construction waits ({n} orders): {reason}": "建设在等待（{n} 项订单）：{reason}",
-  "Construction waits: {reason}": "建设在等待：{reason}"
+  "Construction waits: {reason}": "建设在等待：{reason}",
+  "each good in its own unit (tonnes, rations or lots) · totals over last round": "各货物按其单位（吨、份口粮或批）· 上一回合合计"
 }
