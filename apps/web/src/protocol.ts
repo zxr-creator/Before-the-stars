@@ -222,6 +222,17 @@ export interface FacilityView {
   utilization_bp: number;
   runs: RecipeRun[];
   enabled: boolean;
+  /**
+   * The production method the seat chose for this facility in this region: the key of one of
+   * the facility type's recipes (`RecipeView.key`), set with `set_policy` / `method`. Absent or
+   * null while the choice is left to the works. (serde default)
+   */
+  method?: string | null;
+  /**
+   * The method the works actually ran last month, chosen or automatic; for fields, the method
+   * the land was worked by. (serde default)
+   */
+  active_method?: string | null;
 }
 
 export interface BlockView {
@@ -269,6 +280,8 @@ export interface OwnRegion {
   occupied_since: Month | null;
   /** Teaching places by venue and how many are booked by programmes. (serde default) */
   venues?: VenueSeats[];
+  /** The region's shared infrastructure and what it saves or costs its works. (serde default) */
+  infrastructure?: InfraView;
 }
 
 export interface ForeignRegion {
@@ -463,6 +476,16 @@ export interface RecipeView {
   research?: [ResearchClass, number] | null;
   note: string;
   available: boolean;
+  /**
+   * General posts one level needs under this method, in people, before the saving from shared
+   * support. (serde default)
+   */
+  general_posts?: number;
+  /**
+   * Qualified posts one level needs under this method, in people: the facility's own and those
+   * the method adds; `qual` is the qualification asked for first. (serde default)
+   */
+  skilled_posts?: JobSpec[];
 }
 
 export interface FacilityType {
@@ -754,7 +777,13 @@ export type PolicySetting =
   | { kind: 'mobilization'; bp: number }
   | { kind: 'facility'; region: RegionId; facility: string; enabled: boolean }
   | { kind: 'rename'; name: string }
-  | { kind: 'move_capital'; region: RegionId };
+  | { kind: 'move_capital'; region: RegionId }
+  /**
+   * Choose the production method of a facility in a region: the key of one of the facility
+   * type's recipes that is `available`. For fields the choice is a ceiling. `method` null or
+   * absent returns the choice to the works.
+   */
+  | { kind: 'method'; region: RegionId; facility: string; method?: string | null };
 
 export type Action =
   | { kind: 'select_contacts'; seats: SeatId[] }
@@ -1115,4 +1144,29 @@ export interface QueueEntry {
   waiting_for: string[];
   eta_months_low: number | null;
   eta_months_high: number | null;
+}
+
+/**
+ * A region's shared infrastructure and the economies of scale it carries (ruleset 2.0 slice D;
+ * docs/units-and-scale.md section 7). Every figure is a saving of overhead or a loss in
+ * carriage; none raises what a recipe puts out. Capacity, load and the rates are those that
+ * apply in the coming month with the works as they stand; the quantities are last month's.
+ */
+export interface InfraView {
+  /** Facility levels of industry, extraction and power the region's transport grade can serve. */
+  freight_capacity: number;
+  /** Enabled facility levels of industry, extraction and power in the region. */
+  freight_load: number;
+  /** Share of the load the transport can serve, basis points (10,000 within capacity). */
+  infra_bp: number;
+  /** The most shared support can save of a works' general posts here, basis points (2,000 scaled by `infra_bp`). */
+  support_saving_cap_bp: number;
+  /** Share of the spares and tools upkeep of the region's other industrial, extractive and power works that its repair works save, basis points (at most 1,500). */
+  maintenance_saving_bp: number;
+  /** Further share of the output sent to the common stock that congested freight loses, basis points (at most 2,000; the capital included). */
+  congestion_loss_bp: number;
+  /** Output of last month that paid no carriage loss because works of the same region took as much of that good as inputs: base units by good. */
+  chain_exempt: GoodQty[];
+  /** The carriage loss that exemption avoided last month, base units by good. */
+  chain_loss_saved: GoodQty[];
 }
