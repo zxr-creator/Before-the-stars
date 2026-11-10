@@ -71,6 +71,54 @@ Example batch:
 ]}
 ```
 
+## Observer matches
+
+A match with no `human` seat is an observer match. Nothing advances until asked:
+
+| Method and path | Body or query | Returns |
+| --- | --- | --- |
+| `GET /api/spectator` | | The whole world: every region, all four civilizations, armies and a merged event feed. Refused (403) when a human seat is playing or tokens are required |
+| `POST /api/advance` | `{rounds}` (0–20; 0 pauses) | Match summary. All-native matches settle at once; with model seats the call returns immediately and the match advances as the models answer |
+| `GET /api/agent-log` | `?seat=N` | What a model seat said it was doing each time it was consulted, with accepted and rejected orders and any error |
+| `GET /api/observation` | `?seat=N` | Any seat's own view, read-only |
+
+The spectator view is referee-level disclosure and is never available to a seat.
+
+## Model-driven seats
+
+A seat can be driven by a language model. In `POST /api/match`, use one of these
+`controllers` values, with optional per-seat `agent_options`:
+
+| Controller | How it runs | Credentials |
+| --- | --- | --- |
+| `claude-api` | Claude over the Messages API (default model `claude-opus-5-5`) | `ANTHROPIC_API_KEY` in the referee's environment, a profile from `ant auth login`, or `api_key` in `agent_options` |
+| `claude-code` | The local `claude` command in print mode, with no tools, in an empty temporary directory | That CLI's own login (a Claude subscription) |
+| `codex` | The local `codex exec` command, read-only sandbox, empty temporary directory | That CLI's own login |
+| `openai-api` | Any OpenAI-compatible chat-completions endpoint | `OPENAI_API_KEY`, or `api_key`; `base_url` selects the endpoint; `model` is required |
+
+```json
+{"controllers": ["human", "claude-api", "codex", "hard"],
+ "agent_options": {"1": {"model": "claude-opus-5-5", "consult_every": 5},
+                   "2": {"model": "your-codex-model", "consult_every": 10}}}
+```
+
+`agent_options` fields: `model`, `consult_every` (ask the model every N rounds; default
+1), `api_key`, `base_url`, `effort`. A key sent here is kept in memory only and is never
+written to a save.
+
+A model seat is an ordinary external seat. Each time it is consulted the referee renders
+that seat's own observation as a compact text briefing and asks for one JSON object:
+a short note, the domains to delegate to the steward, and up to 24 ordinary actions.
+Invalid actions are rejected individually and reported in the agent log. The model sees
+nothing but its seat's observation; the command-line tools are run without tools and
+outside the repository. A steward runs every domain until the model says otherwise, so
+a slow, failing or rarely consulted model never stalls its civilization: after three
+consecutive failures the seat is marked `stopped` and the steward carries on alone.
+
+Each seat in the match summary carries `agent: {provider, model, consult_every, state,
+last_note, calls, last_error, thinking_seconds}` (`state` is `idle`, `thinking`, `error`
+or `stopped`).
+
 ## Stewards
 
 A human or external seat may delegate any of `economy`, `research`, `education`,

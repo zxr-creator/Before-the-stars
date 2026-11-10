@@ -8,3 +8,4 @@ saves/
 *.log
 apps/web/screenshots/
 apps/web/.vite/
+dist/release/

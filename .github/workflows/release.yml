@@ -1,0 +1,105 @@
+# Builds installable packages on native runners.
+#   - push a tag like v0.2.0, or run the workflow by hand from the Actions tab
+#   - macOS: universal .dmg; Windows: .zip and a setup .exe (Inno Setup)
+# Packages are attached to the workflow run, and to a GitHub release for tags.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - name: Web client
+        working-directory: apps/web
+        run: |
+          npm ci --no-fund --no-audit
+          npx playwright install chromium
+          npm run build
+      - name: Tests
+        run: cargo test --release
+      - name: Package
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          OUT=dist/release
+          cargo build --release --target aarch64-apple-darwin -p bts-server
+          cargo build --release --target x86_64-apple-darwin -p bts-server
+          APP="$OUT/macos/Before the Stars.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          lipo -create -output "$APP/Contents/MacOS/before-the-stars" target/aarch64-apple-darwin/release/bts target/x86_64-apple-darwin/release/bts
+          sed "s/@VERSION@/$VERSION/g" packaging/macos/Info.plist > "$APP/Contents/Info.plist"
+          (cd apps/web && node scripts/render-icon.mjs "$GITHUB_WORKSPACE/packaging/icon.svg" "$GITHUB_WORKSPACE/$OUT/macos/icon-1024.png")
+          SET="$OUT/macos/AppIcon.iconset"; mkdir -p "$SET"
+          for s in 16 32 128 256 512; do
+            sips -z "$s" "$s" "$OUT/macos/icon-1024.png" --out "$SET/icon_${s}x${s}.png" >/dev/null
+            sips -z "$((s*2))" "$((s*2))" "$OUT/macos/icon-1024.png" --out "$SET/icon_${s}x${s}@2x.png" >/dev/null
+          done
+          iconutil -c icns "$SET" -o "$APP/Contents/Resources/AppIcon.icns"
+          rm -rf "$SET" "$OUT/macos/icon-1024.png"
+          codesign --force --deep -s - "$APP"
+          cp packaging/README-macos.txt "$OUT/macos/README.txt"
+          ln -s /Applications "$OUT/macos/Applications"
+          hdiutil create -quiet -volname "Before the Stars" -srcfolder "$OUT/macos" -ov -format UDZO "$OUT/Before-the-Stars-$VERSION-macos.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/release/*.dmg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Web client
+        working-directory: apps/web
+        run: |
+          npm ci --no-fund --no-audit
+          npm run build
+      - name: Tests
+        run: cargo test --release
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version = "(.*)"' | Select-Object -First 1).Matches.Groups[1].Value
+          cargo build --release -p bts-server
+          New-Item -ItemType Directory -Force dist/release/windows | Out-Null
+          Copy-Item target/release/bts.exe "dist/release/windows/Before the Stars.exe"
+          Copy-Item packaging/README-windows.txt dist/release/windows/README.txt
+          Compress-Archive -Path dist/release/windows/* -DestinationPath "dist/release/Before-the-Stars-$version-windows-x64.zip" -Force
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" packaging\windows\installer.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/release/*.zip
+            dist/release/*-setup.exe
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: packages/*

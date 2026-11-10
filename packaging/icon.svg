@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101b3a"/><stop offset="0.55" stop-color="#2b3f6e"/><stop offset="1" stop-color="#c9793f"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3f6b3a"/><stop offset="1" stop-color="#1f3a25"/>
+    </linearGradient>
+    <clipPath id="r"><rect x="64" y="64" width="896" height="896" rx="200"/></clipPath>
+  </defs>
+  <g clip-path="url(#r)">
+    <rect x="64" y="64" width="896" height="896" fill="url(#sky)"/>
+    <g fill="#f6e7c1">
+      <circle cx="250" cy="230" r="7"/><circle cx="770" cy="200" r="9"/><circle cx="640" cy="330" r="5"/>
+      <circle cx="360" cy="360" r="5"/><circle cx="840" cy="390" r="6"/><circle cx="180" cy="420" r="5"/>
+    </g>
+    <path d="M512 150 L545 300 L700 330 L545 360 L512 520 L479 360 L324 330 L479 300 Z" fill="#f4d98a" stroke="#fff3cf" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M64 700 Q260 600 430 670 T760 640 T960 690 V960 H64 Z" fill="url(#land)"/>
+    <path d="M64 780 Q300 720 520 770 T960 760 V960 H64 Z" fill="#17301f"/>
+    <g fill="#f1e3bd" stroke="#3a2a17" stroke-width="6" stroke-linejoin="round">
+      <path d="M380 760 L430 680 L480 760 Z"/><path d="M470 770 L540 660 L610 770 Z"/><path d="M600 765 L650 690 L700 765 Z"/>
+    </g>
+    <circle cx="540" cy="790" r="14" fill="#ffb347"/>
+  </g>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="none" stroke="#c9a24a" stroke-width="18"/>
+</svg>
