@@ -1,4 +1,4 @@
-//! Match host: owns the referee and the native controllers, and drives phases.
+//! The session: owns the match and the native controllers, and drives phases.
 //!
 //! Native controllers are called with their seat's observation only, exactly as
 //! an external agent would be over HTTP.
@@ -7,6 +7,32 @@ use bts_ai::{Difficulty, NativeAi};
 use bts_engine::{Match, MatchConfig};
 use bts_protocol::*;
 use serde::{Deserialize, Serialize};
+
+/// How an LLM agent seat is configured. The seat itself is an ordinary external seat;
+/// the worker that plays it lives in the server. The configuration is part of a save
+/// (without credentials) so a loaded match can resume with the same seats.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AgentConfig {
+    pub provider: String,
+    #[serde(default)]
+    pub model: String,
+    #[serde(default = "one")]
+    pub consult_every: u32,
+    /// Held in memory only; never written to a save.
+    #[serde(skip)]
+    pub api_key: Option<String>,
+    #[serde(default)]
+    pub base_url: Option<String>,
+    #[serde(default)]
+    pub effort: Option<String>,
+}
+
+fn one() -> u32 {
+    1
+}
+
+/// The save format this build writes and reads.
+pub const SAVE_FORMAT: &str = "bts-save/1";
 
 pub struct Session {
     pub m: Match,
@@ -18,7 +44,7 @@ pub struct Session {
     pub stewards: Vec<NativeAi>,
     pub advised_round: Vec<u32>,
     /// LLM agent configuration per seat (without credentials), kept so a loaded match can resume.
-    pub agent_cfgs: Vec<Option<crate::agents::AgentConfig>>,
+    pub agent_cfgs: Vec<Option<AgentConfig>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -32,7 +58,7 @@ struct SaveFile {
     #[serde(default)]
     stewards: Vec<NativeAi>,
     #[serde(default)]
-    agent_cfgs: Vec<Option<crate::agents::AgentConfig>>,
+    agent_cfgs: Vec<Option<AgentConfig>>,
 }
 
 fn mix(mut z: u64) -> u64 {
@@ -139,13 +165,69 @@ impl Session {
     }
 
     pub fn save(&self) -> String {
-        serde_json::to_string(&SaveFile { format: "bts-save/1".into(), world: self.m.save_json(), ais: self.ais.clone(), tokens: self.tokens.clone(), delegates: self.delegates.clone(), stewards: self.stewards.clone(), agent_cfgs: self.agent_cfgs.clone() }).expect("save serializes")
+        serde_json::to_string(&SaveFile { format: SAVE_FORMAT.into(), world: self.m.save_json(), ais: self.ais.clone(), tokens: self.tokens.clone(), delegates: self.delegates.clone(), stewards: self.stewards.clone(), agent_cfgs: self.agent_cfgs.clone() }).expect("save serializes")
     }
 
+    /// Prove that a save can be played, on a scratch copy: every seat's view is built
+    /// and one whole round is resolved (seats nobody in this process plays simply
+    /// pass). A save that parses but contradicts itself fails here and never reaches
+    /// the match in progress. Where panics unwind (the server) the failure is caught;
+    /// where they abort (WebAssembly) the transport rehearses in a separate instance.
+    pub fn rehearse(text: &str) -> Result<(), String> {
+        let run = || -> Result<(), String> {
+            let mut s = Session::load(text)?;
+            s.exercise();
+            Ok(())
+        };
+        match std::panic::catch_unwind(run) {
+            Ok(result) => result,
+            Err(panic) => {
+                let why = panic.downcast_ref::<String>().map(String::as_str).or_else(|| panic.downcast_ref::<&str>().copied()).unwrap_or("the rules engine failed on it");
+                Err(format!("the save cannot be played: {why}"))
+            }
+        }
+    }
+
+    fn exercise(&mut self) {
+        let look = |s: &Session| {
+            for seat in 0..s.m.seats() {
+                let _ = s.m.observe(seat as SeatId);
+            }
+            let _ = s.m.spectate();
+        };
+        look(self);
+        let round = self.m.round();
+        for _ in 0..32 {
+            if self.m.finished() || self.m.round() != round {
+                break;
+            }
+            for seat in self.m.waiting_on() {
+                if self.ais[seat as usize].is_none() && self.m.status(seat) != SeatStatus::Forfeited {
+                    self.m.set_ready(seat, true);
+                }
+            }
+            if !self.step() {
+                break;
+            }
+        }
+        look(self);
+    }
+
+    /// Read a save. Everything is parsed and checked before a session exists, so a
+    /// caller can refuse a bad save without disturbing the match it already has.
     pub fn load(s: &str) -> Result<Session, String> {
         let f: SaveFile = serde_json::from_str(s).map_err(|e| e.to_string())?;
+        if f.format != SAVE_FORMAT {
+            return Err(format!("unsupported save format '{}'", f.format.chars().take(40).collect::<String>()));
+        }
         let m = Match::load_json(&f.world)?;
         let n = m.seats();
+        if n == 0 || f.ais.len() != n || f.tokens.len() != n {
+            return Err("the save does not describe every seat of its match".into());
+        }
+        if (0..n).any(|i| Difficulty::from_controller(m.controller(i as SeatId)).is_some() && f.ais[i].is_none()) {
+            return Err("the save is missing a built-in controller for one of its seats".into());
+        }
         let mut delegates = f.delegates;
         delegates.resize(n, Vec::new());
         let mut stewards = f.stewards;

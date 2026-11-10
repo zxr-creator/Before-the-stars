@@ -106,6 +106,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bts-host"
+version = "0.3.0"
+dependencies = [
+ "bts-ai",
+ "bts-engine",
+ "bts-protocol",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bts-protocol"
 version = "0.3.0"
 dependencies = [
@@ -118,6 +129,7 @@ version = "0.3.0"
 dependencies = [
  "bts-ai",
  "bts-engine",
+ "bts-host",
  "bts-protocol",
  "include_dir",
  "muda",

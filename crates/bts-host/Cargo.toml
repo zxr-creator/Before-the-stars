@@ -1,0 +1,13 @@
+[package]
+name = "bts-host"
+description = "Transport-neutral match host: the session, the referee's request router and its permission rules, shared by the HTTP server and the browser build"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+bts-protocol = { path = "../bts-protocol" }
+bts-engine = { path = "../bts-engine" }
+bts-ai = { path = "../bts-ai" }
+serde.workspace = true
+serde_json.workspace = true

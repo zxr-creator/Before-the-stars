@@ -15,14 +15,12 @@
 mod agents;
 #[cfg(feature = "desktop")]
 mod desktop;
-mod host;
 mod providers;
-mod turn;
 
 use bts_engine::MatchConfig;
+use bts_host::{controller, Session};
 use bts_protocol::*;
-use host::Session;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -66,219 +64,6 @@ impl Args {
     }
 }
 
-fn controller(s: &str) -> Option<ControllerKind> {
-    Some(match s.trim().to_lowercase().as_str() {
-        "human" => ControllerKind::Human,
-        "external" | "agent" => ControllerKind::External,
-        "easy" | "native_easy" => ControllerKind::NativeEasy,
-        "medium" | "native_medium" => ControllerKind::NativeMedium,
-        "hard" | "native_hard" => ControllerKind::NativeHard,
-        _ => return None,
-    })
-}
-
-#[derive(Deserialize)]
-struct NewMatch {
-    #[serde(default)]
-    seed: Option<String>,
-    #[serde(default)]
-    regions: Option<u16>,
-    #[serde(default)]
-    horizon: Option<u32>,
-    #[serde(default)]
-    pace_bp: Option<u32>,
-    #[serde(default)]
-    controllers: Option<Vec<String>>,
-    #[serde(default)]
-    disclosed_objective: Option<bool>,
-    #[serde(default)]
-    public_seed: Option<bool>,
-    /// Per-seat options for LLM agent seats, keyed by seat number.
-    #[serde(default)]
-    agent_options: HashMap<String, AgentOptions>,
-}
-
-#[derive(Deserialize, Default, Clone)]
-struct AgentOptions {
-    #[serde(default)]
-    model: Option<String>,
-    #[serde(default)]
-    consult_every: Option<u32>,
-    #[serde(default)]
-    api_key: Option<String>,
-    #[serde(default)]
-    base_url: Option<String>,
-    #[serde(default)]
-    effort: Option<String>,
-}
-
-/// Agent seats named in a new-match request, by seat.
-fn agents_from(n: &NewMatch) -> Vec<Option<agents::AgentConfig>> {
-    let mut out = vec![None; 4];
-    if let Some(c) = &n.controllers {
-        for (i, name) in c.iter().enumerate().take(4) {
-            if let Some(p) = providers::Provider::parse(name.trim()) {
-                let o = n.agent_options.get(&i.to_string()).cloned().unwrap_or_default();
-                out[i] = Some(agents::AgentConfig {
-                    provider: p.key().to_string(),
-                    model: o.model.filter(|m| !m.trim().is_empty()).map(|m| m.trim().to_string()).unwrap_or_else(|| p.default_model().to_string()),
-                    consult_every: o.consult_every.unwrap_or(1).clamp(1, 60),
-                    api_key: o.api_key.filter(|k| !k.trim().is_empty()),
-                    base_url: o.base_url.filter(|k| !k.trim().is_empty()),
-                    effort: o.effort.filter(|k| !k.trim().is_empty()),
-                });
-            }
-        }
-    }
-    out
-}
-
-fn config_from(n: NewMatch) -> Result<MatchConfig, String> {
-    let mut cfg = MatchConfig::default();
-    if let Some(s) = n.seed {
-        if !s.trim().is_empty() {
-            cfg.seed = s.trim().chars().take(64).collect();
-        }
-    }
-    if let Some(r) = n.regions {
-        if ![24, 48, 72].contains(&r) {
-            return Err("regions must be 24, 48 or 72".into());
-        }
-        cfg.regions = r;
-    }
-    if let Some(h) = n.horizon {
-        if !(120..=6000).contains(&h) || h % 12 != 0 {
-            return Err("horizon must be a multiple of 12 between 120 and 6000 months".into());
-        }
-        cfg.horizon = h;
-    }
-    if let Some(p) = n.pace_bp {
-        cfg.pace_bp = p.clamp(1000, 30_000);
-    }
-    if let Some(c) = n.controllers {
-        if c.len() != 4 {
-            return Err("exactly four seats are required".into());
-        }
-        let mut kinds = Vec::new();
-        for s in &c {
-            // an LLM agent seat is an ordinary external seat driven by a worker in this process
-            let kind = if providers::Provider::parse(s.trim()).is_some() { Some(ControllerKind::External) } else { controller(s) };
-            kinds.push(kind.ok_or_else(|| format!("unknown controller '{s}'"))?);
-        }
-        cfg.controllers = kinds;
-    }
-    if let Some(d) = n.disclosed_objective {
-        cfg.disclosed_objective = d;
-    }
-    if let Some(p) = n.public_seed {
-        cfg.public_seed = p;
-    }
-    Ok(cfg)
-}
-
-#[derive(Serialize)]
-struct SeatSummary {
-    seat: SeatId,
-    name: String,
-    color: String,
-    controller: ControllerKind,
-    status: SeatStatus,
-    /// Domains this seat has delegated to a steward.
-    delegates: Vec<String>,
-    agent: Option<AgentSummary>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    token: Option<String>,
-}
-
-#[derive(Serialize)]
-struct AgentSummary {
-    provider: String,
-    model: String,
-    consult_every: u32,
-    state: String,
-    last_note: String,
-    calls: u32,
-    last_error: Option<String>,
-    thinking_seconds: Option<u64>,
-}
-
-#[derive(Serialize)]
-struct MatchSummary {
-    observer_allowed: bool,
-    /// Observer matches advance only up to this round until asked for more.
-    autoplay_until: u32,
-    app_mode: bool,
-    exists: bool,
-    match_id: String,
-    seed: String,
-    regions: u16,
-    round: u32,
-    month: Month,
-    months_per_round: u32,
-    horizon: Month,
-    phase: Phase,
-    window: u8,
-    finished: bool,
-    winner: Option<SeatId>,
-    disclosed_objective: bool,
-    waiting_on: Vec<SeatId>,
-    seats: Vec<SeatSummary>,
-    versions: Vec<String>,
-    steward_domains: Vec<String>,
-}
-
-fn summary(st: &agents::ServerState, with_tokens: bool) -> MatchSummary {
-    let s = st.session.as_ref().expect("summary needs a match");
-    let cfg = s.m.config();
-    MatchSummary {
-        observer_allowed: s.m.observer_allowed(),
-        autoplay_until: st.autoplay_until,
-        app_mode: st.app_mode,
-        exists: true,
-        match_id: s.m.match_id().to_string(),
-        seed: if cfg.public_seed { cfg.seed.clone() } else { "(sealed)".into() },
-        regions: cfg.regions,
-        round: s.m.round(),
-        month: s.m.month(),
-        months_per_round: cfg.months_per_round,
-        horizon: cfg.horizon,
-        phase: s.m.phase(),
-        window: s.m.window(),
-        finished: s.m.finished(),
-        winner: s.m.winner(),
-        disclosed_objective: cfg.disclosed_objective,
-        waiting_on: s.m.waiting_on(),
-        seats: (0..s.m.seats())
-            .map(|i| {
-                let seat = i as SeatId;
-                let obs_name = s.m.observe(seat);
-                let kind = s.m.controller(seat);
-                SeatSummary {
-                    seat,
-                    name: obs_name.civ.name,
-                    color: obs_name.civ.color,
-                    controller: kind,
-                    status: s.m.status(seat),
-                    delegates: s.delegates[i].clone(),
-                    agent: st.agents.get(i).and_then(|a| a.as_ref()).map(|a| AgentSummary {
-                        provider: a.cfg.provider.clone(),
-                        model: a.cfg.model.clone(),
-                        consult_every: a.cfg.consult_every,
-                        state: a.state.clone(),
-                        last_note: a.last_note.clone(),
-                        calls: a.calls,
-                        last_error: a.last_error.clone(),
-                        thinking_seconds: a.thinking_since.map(|t| t.elapsed().as_secs()),
-                    }),
-                    token: if with_tokens && matches!(kind, ControllerKind::Human | ControllerKind::External) { Some(s.tokens[i].clone()) } else { None },
-                }
-            })
-            .collect(),
-        steward_domains: bts_ai::NativeAi::steward_domains().iter().map(|d| d.to_string()).collect(),
-        versions: vec![bts_engine::content::RULESET_VERSION.into(), bts_engine::content::CONTENT_VERSION.into(), bts_engine::content::GENERATOR_VERSION.into(), PROTOCOL_VERSION.into(), bts_ai::POLICY_VERSION.into()],
-    }
-}
-
 fn json_response(status: u16, body: String) -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
     tiny_http::Response::from_string(body)
         .with_status_code(status)
@@ -290,15 +75,12 @@ fn err(status: u16, code: &str, msg: &str) -> tiny_http::Response<std::io::Curso
     json_response(status, serde_json::json!({ "error": code, "message": msg }).to_string())
 }
 
-fn query(url: &str) -> (String, HashMap<String, String>) {
-    let (path, q) = url.split_once('?').unwrap_or((url, ""));
-    let mut map = HashMap::new();
-    for pair in q.split('&') {
-        if let Some((k, v)) = pair.split_once('=') {
-            map.insert(k.to_string(), v.replace("%20", " "));
-        }
+/// Turn the shared host's reply into an HTTP response.
+fn respond(reply: bts_host::Reply) -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
+    match reply.kind {
+        bts_host::Body::Json => json_response(reply.status, reply.body),
+        bts_host::Body::Markdown => tiny_http::Response::from_string(reply.body).with_status_code(reply.status).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/markdown; charset=utf-8"[..]).unwrap()),
     }
-    (path.to_string(), map)
 }
 
 fn content_type(path: &Path) -> &'static str {
@@ -321,38 +103,8 @@ fn safe_name(s: &str) -> String {
 }
 
 #[derive(Deserialize)]
-struct ReadyBody {
-    seat: SeatId,
-    #[serde(default)]
-    token: String,
-    #[serde(default)]
-    through_round: bool,
-}
-
-#[derive(Deserialize)]
-struct DelegateBody {
-    seat: SeatId,
-    #[serde(default)]
-    token: String,
-    domains: Vec<String>,
-}
-
-#[derive(Deserialize)]
 struct SaveBody {
     name: String,
-}
-
-fn chronicle_markdown(obs: &Observation) -> String {
-    let mut out = format!("# Chronicle of {}\n\nMatch {} — recorded through month {} (year {}).\n\n", obs.civ.name, obs.match_id, obs.month, obs.month / 12 + 1);
-    out.push_str("Entries are this seat's own authorized record. Reported items are claims received, not verified facts.\n\n");
-    for e in &obs.chronicle {
-        out.push_str(&format!("## Year {} — {}\n\n*{}; {}*\n\n{}\n\n", e.month / 12 + 1, e.title, e.category.label(), e.epistemic.label().to_lowercase(), e.text));
-        for ev in &e.evidence {
-            out.push_str(&format!("- {ev}\n"));
-        }
-        out.push('\n');
-    }
-    out
 }
 
 static WEB: include_dir::Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../apps/web/dist");
@@ -386,27 +138,13 @@ fn open_browser(url: &str) {
     }
 }
 
-/// Install agent workers for a session (new or loaded) and reset playback.
-fn install(shared: &agents::Shared, st: &mut agents::ServerState, mut session: Session, cfgs: Vec<Option<agents::AgentConfig>>) {
-    st.generation += 1;
-    let n = session.m.seats();
-    st.agents = (0..n).map(|_| None).collect();
-    for (i, cfg) in cfgs.into_iter().enumerate().take(n) {
-        if let Some(cfg) = cfg {
-            if session.m.controller(i as SeatId) == ControllerKind::External {
-                // the steward runs everything until the model says otherwise
-                if session.delegates[i].is_empty() {
-                    session.set_delegates(i as SeatId, bts_ai::NativeAi::steward_domains().iter().map(|d| d.to_string()).collect());
-                }
-                session.agent_cfgs[i] = Some(cfg.clone());
-                st.agents[i] = Some(agents::AgentSeat::new(cfg));
-                agents::spawn(shared.clone(), i as SeatId, st.generation);
-            }
+/// Start a worker for every agent seat of the match the host has just installed.
+fn start_agents(shared: &agents::Shared, st: &agents::ServerState) {
+    for (i, a) in st.host.agents.iter().enumerate() {
+        if a.is_some() {
+            agents::spawn(shared.clone(), i as SeatId, st.host.generation);
         }
     }
-    // an observer match waits for the observer; a match with a human runs on the human's clock
-    st.autoplay_until = if session.m.observer_allowed() { session.m.round() } else { u32::MAX };
-    st.session = Some(session);
 }
 
 /// Sent once the referee is listening: the port, and the shared state when this process owns it.
@@ -465,16 +203,19 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
     if app_mode && ready.is_none() {
         println!("  close this window, or choose Quit in the game menu, to stop the game");
     }
-    let shared: agents::Shared = std::sync::Arc::new(std::sync::Mutex::new(agents::ServerState { session: None, generation: 0, agents: Vec::new(), autoplay_until: u32::MAX, app_mode, saves: saves.clone() }));
+    // every request below is answered by the shared host (bts-host), the same code the browser build runs
+    let host = bts_host::Host::new(bts_host::Config { require_tokens, app_mode, settle_inline: true });
+    let shared: agents::Shared = std::sync::Arc::new(std::sync::Mutex::new(agents::ServerState { host, saves: saves.clone() }));
     let autosave = saves.join("autosave.json");
     if autosave.exists() && !args.has("fresh") {
         if let Ok(text) = std::fs::read_to_string(&autosave) {
-            match Session::load(&text) {
-                Ok(s) => {
-                    println!("  resumed autosave: {} at round {}", s.m.match_id(), s.m.round());
-                    let cfgs = s.agent_cfgs.clone();
-                    let mut st = shared.lock().unwrap();
-                    install(&shared, &mut st, s, cfgs);
+            let mut st = shared.lock().unwrap();
+            match st.host.install_text(&text) {
+                Ok(()) => {
+                    if let Some(s) = &st.host.session {
+                        println!("  resumed autosave: {} at round {}", s.m.match_id(), s.m.round());
+                    }
+                    start_agents(&shared, &st);
                 }
                 Err(e) => println!("  autosave could not be loaded: {e}"),
             }
@@ -492,10 +233,10 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
         }
     }
 
-    let mut turn_cache = turn::Cache::default();
     let log_requests = std::env::var("BTS_LOG_REQUESTS").is_ok();
     for mut req in server.incoming_requests() {
-        let (path, q) = query(req.url());
+        let target = req.url().to_string();
+        let path = target.split_once('?').map(|(p, _)| p).unwrap_or(&target);
         let method = req.method().clone();
         let mut body = String::new();
         let _ = req.as_reader().read_to_string(&mut body);
@@ -504,143 +245,10 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
         }
         let mut guard = shared.lock().unwrap();
         let st = &mut *guard;
-        let auth = |s: &Session, seat: SeatId, token: &str| -> bool { (seat as usize) < s.m.seats() && (!require_tokens || s.tokens[seat as usize] == token) };
-        // a seat driven by a native controller or by an agent worker takes no orders from outside
-        let driven = |st: &agents::ServerState, seat: SeatId| -> bool {
-            st.session.as_ref().map(|s| s.ais[seat as usize].is_some()).unwrap_or(false) || st.agents.get(seat as usize).map(|a| a.is_some()).unwrap_or(false)
-        };
         let mut quit = false;
-        let response = match (method.as_str(), path.as_str()) {
-            ("GET", "/api/health") => json_response(200, "{\"ok\":true}".into()),
-            ("GET", "/api/match") => match &st.session {
-                Some(_) => json_response(200, serde_json::to_string(&summary(st, !require_tokens)).unwrap()),
-                None => json_response(200, serde_json::json!({ "exists": false, "app_mode": st.app_mode }).to_string()),
-            },
-            ("POST", "/api/match") => match serde_json::from_str::<NewMatch>(if body.trim().is_empty() { "{}" } else { &body }) {
-                Ok(n) => {
-                    let cfgs = agents_from(&n);
-                    match config_from(n) {
-                        Ok(cfg) => {
-                            let mut s = Session::new(cfg, entropy());
-                            let observer = s.m.observer_allowed();
-                            if !observer {
-                                s.drive();
-                            }
-                            install(&shared, st, s, cfgs);
-                            json_response(200, serde_json::to_string(&summary(st, true)).unwrap())
-                        }
-                        Err(e) => err(400, "INVALID_SCHEMA", &e),
-                    }
-                }
-                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
-            },
-            ("GET", "/api/turn") => {
-                let seat = q.get("seat").and_then(|x| x.parse().ok()).unwrap_or(0);
-                match turn::get(st, seat, q.get("token").map(String::as_str).unwrap_or(""), require_tokens) {
-                    Ok(v) => json_response(200, v.to_string()),
-                    Err((status, code, message)) => err(status, code, &message),
-                }
-            }
-            ("POST", "/api/turn") => match serde_json::from_str::<turn::Submission>(&body) {
-                Ok(b) => match turn::submit(st, &mut turn_cache, b, require_tokens) {
-                    Ok(v) => json_response(200, v.to_string()),
-                    Err((status, code, message)) => err(status, code, &message),
-                },
-                Err(_) => err(400, "INVALID_SCHEMA", "invalid request fields or action; use the public action reference"),
-            },
-            ("GET", "/api/observation") => match &st.session {
-                Some(s) => {
-                    let seat: SeatId = q.get("seat").and_then(|v| v.parse().ok()).unwrap_or(0);
-                    if !auth(s, seat, q.get("token").map(|x| x.as_str()).unwrap_or("")) {
-                        err(403, "UNAUTHORIZED", "unknown seat or token")
-                    } else if driven(st, seat) && (require_tokens || !s.m.observer_allowed()) {
-                        // another seat's view is open only to an observer of a match with no human in it
-                        err(403, "UNAUTHORIZED", "unknown seat or token")
-                    } else {
-                        json_response(200, serde_json::to_string(&s.m.observe(seat)).unwrap())
-                    }
-                }
-                None => err(404, "NO_MATCH", "no match is running"),
-            },
-            ("GET", "/api/spectator") => match &st.session {
-                Some(s) if s.m.observer_allowed() && !require_tokens => json_response(200, serde_json::to_string(&s.m.spectate()).unwrap()),
-                Some(_) => err(403, "UNAUTHORIZED", "the whole-world view is only available when no human seat is playing"),
-                None => err(404, "NO_MATCH", "no match is running"),
-            },
-            ("POST", "/api/advance") => {
-                let rounds = serde_json::from_str::<serde_json::Value>(&body).ok().and_then(|v| v["rounds"].as_u64()).unwrap_or(1).clamp(0, 20) as u32;
-                match &mut st.session {
-                    Some(s) if s.m.observer_allowed() && !require_tokens => {
-                        let has_agents = st.agents.iter().any(|a| a.is_some());
-                        let target = s.m.round().saturating_add(rounds);
-                        st.autoplay_until = if rounds == 0 { s.m.round() } else { target };
-                        if !has_agents {
-                            // all-native matches settle at once
-                            while !s.m.finished() && s.m.round() < target {
-                                if !s.step() {
-                                    break;
-                                }
-                            }
-                            st.autosave();
-                        }
-                        json_response(200, serde_json::to_string(&summary(st, false)).unwrap())
-                    }
-                    Some(_) => err(403, "UNAUTHORIZED", "only an observer match can be advanced this way"),
-                    None => err(404, "NO_MATCH", "no match is running"),
-                }
-            }
-            ("GET", "/api/agent-log") => {
-                let seat: usize = q.get("seat").and_then(|v| v.parse().ok()).unwrap_or(0);
-                let visible = st.session.as_ref().map(|s| s.m.observer_allowed() && !require_tokens).unwrap_or(false);
-                match st.agents.get(seat).and_then(|a| a.as_ref()) {
-                    Some(a) if visible => json_response(200, serde_json::json!({ "entries": a.log }).to_string()),
-                    Some(_) => err(403, "UNAUTHORIZED", "agent logs are only visible to an observer"),
-                    None => json_response(200, "{\"entries\":[]}".into()),
-                }
-            }
-            ("POST", "/api/actions") => match serde_json::from_str::<ActionBatch>(&body) {
-                Ok(batch) => match &st.session {
-                    None => err(404, "NO_MATCH", "no match is running"),
-                    Some(s) if !auth(s, batch.seat, &batch.token) || driven(st, batch.seat) => err(403, "UNAUTHORIZED", "unknown seat or token"),
-                    Some(_) if batch.actions.len() > MAX_ACTIONS_PER_BATCH => err(400, "RATE_LIMITED", "at most 32 actions per batch"),
-                    Some(_) => {
-                        let receipts = st.session.as_mut().unwrap().m.act(batch.seat, batch.actions);
-                        json_response(200, serde_json::json!({ "receipts": receipts }).to_string())
-                    }
-                },
-                Err(_) => err(400, "INVALID_SCHEMA", "invalid request fields or action; use the public action reference"),
-            },
-            ("POST", "/api/ready") => match serde_json::from_str::<ReadyBody>(&body) {
-                Ok(b) => match &st.session {
-                    None => err(404, "NO_MATCH", "no match is running"),
-                    Some(s) if !auth(s, b.seat, &b.token) || driven(st, b.seat) => err(403, "UNAUTHORIZED", "unknown seat or token"),
-                    Some(_) => {
-                        let s = st.session.as_mut().unwrap();
-                        let before = s.m.round();
-                        s.m.set_ready(b.seat, b.through_round);
-                        s.drive();
-                        if s.m.try_advance() {
-                            s.drive();
-                        }
-                        if s.m.round() != before || s.m.finished() {
-                            st.autosave();
-                        }
-                        json_response(200, serde_json::to_string(&summary(st, false)).unwrap())
-                    }
-                },
-                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
-            },
-            ("POST", "/api/delegate") => match serde_json::from_str::<DelegateBody>(&body) {
-                Ok(b) => match &st.session {
-                    None => err(404, "NO_MATCH", "no match is running"),
-                    Some(s) if !auth(s, b.seat, &b.token) || driven(st, b.seat) => err(403, "UNAUTHORIZED", "unknown seat or token"),
-                    Some(_) => {
-                        st.session.as_mut().unwrap().set_delegates(b.seat, b.domains);
-                        json_response(200, serde_json::to_string(&summary(st, false)).unwrap())
-                    }
-                },
-                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
-            },
+        // What needs this machine is answered here: named saves on disk and the client's
+        // files. Everything else is the referee's, in the shared host.
+        let response = match (method.as_str(), path) {
             ("GET", "/api/saves") => {
                 let mut names: Vec<String> = std::fs::read_dir(&saves)
                     .map(|d| d.filter_map(|e| e.ok()).filter_map(|e| e.file_name().to_str().and_then(|n| n.strip_suffix(".json")).map(|n| n.to_string())).collect())
@@ -648,11 +256,11 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
                 names.sort();
                 json_response(200, serde_json::json!({ "saves": names }).to_string())
             }
-            ("POST", "/api/save") => match (&st.session, serde_json::from_str::<SaveBody>(&body)) {
-                (Some(s), Ok(b)) => {
+            ("POST", "/api/save") => match (st.host.session_text(), serde_json::from_str::<SaveBody>(&body)) {
+                (Some(text), Ok(b)) => {
                     let _ = std::fs::create_dir_all(&saves);
                     let name = safe_name(&b.name);
-                    match std::fs::write(saves.join(format!("{name}.json")), s.save()) {
+                    match std::fs::write(saves.join(format!("{name}.json")), text) {
                         Ok(_) => json_response(200, serde_json::json!({ "saved": name }).to_string()),
                         Err(e) => err(500, "IO", &e.to_string()),
                     }
@@ -661,41 +269,15 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
                 (_, Err(e)) => err(400, "INVALID_SCHEMA", &e.to_string()),
             },
             ("POST", "/api/load") => match serde_json::from_str::<SaveBody>(&body) {
-                Ok(b) => match std::fs::read_to_string(saves.join(format!("{}.json", safe_name(&b.name)))).map_err(|e| e.to_string()).and_then(|t| Session::load(&t)) {
-                    Ok(s) => {
-                        let cfgs = s.agent_cfgs.clone();
-                        install(&shared, st, s, cfgs);
-                        json_response(200, serde_json::to_string(&summary(st, true)).unwrap())
+                Ok(b) => match std::fs::read_to_string(saves.join(format!("{}.json", safe_name(&b.name)))).map_err(|e| e.to_string()).and_then(|t| st.host.install_text(&t)) {
+                    Ok(()) => {
+                        start_agents(&shared, st);
+                        json_response(200, serde_json::to_string(&st.host.summary(true)).unwrap())
                     }
                     Err(e) => err(404, "NOT_FOUND", &e),
                 },
                 Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
             },
-            ("GET", "/api/export/chronicle") => match &st.session {
-                Some(s) => {
-                    let seat: SeatId = q.get("seat").and_then(|v| v.parse().ok()).unwrap_or(0);
-                    if !auth(s, seat, q.get("token").map(|x| x.as_str()).unwrap_or("")) || (driven(st, seat) && !s.m.observer_allowed()) {
-                        err(403, "UNAUTHORIZED", "unknown seat or token")
-                    } else {
-                        let obs = s.m.observe(seat);
-                        if q.get("format").map(|f| f == "json").unwrap_or(false) {
-                            json_response(200, serde_json::to_string(&obs.chronicle).unwrap())
-                        } else {
-                            tiny_http::Response::from_string(chronicle_markdown(&obs)).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/markdown; charset=utf-8"[..]).unwrap())
-                        }
-                    }
-                }
-                None => err(404, "NO_MATCH", "no match is running"),
-            },
-            ("POST", "/api/shutdown") => {
-                if st.app_mode {
-                    st.autosave();
-                    quit = true;
-                    json_response(200, "{\"ok\":true}".into())
-                } else {
-                    err(403, "UNAUTHORIZED", "this referee was not started as a packaged application")
-                }
-            }
             ("GET", p) if !p.starts_with("/api/") => {
                 let rel = p.trim_start_matches('/');
                 let rel = if rel.is_empty() || rel.contains("..") { "index.html" } else { rel };
@@ -714,7 +296,17 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
                     tiny_http::Response::from_string("The web client has not been built. Run scripts/build.sh, or use the HTTP API under /api.").with_status_code(404).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/plain; charset=utf-8"[..]).unwrap())
                 }
             }
-            _ => err(404, "NOT_FOUND", "no such endpoint"),
+            _ => {
+                let reply = st.host.handle(&bts_host::Request { method: method.as_str(), target: &target, body: &body, entropy: entropy() });
+                if reply.effects.installed {
+                    start_agents(&shared, st);
+                }
+                if reply.effects.autosave {
+                    st.autosave();
+                }
+                quit = reply.effects.quit;
+                respond(reply)
+            }
         };
         drop(guard);
         let _ = req.respond(response);

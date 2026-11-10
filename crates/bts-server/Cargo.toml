@@ -13,6 +13,7 @@ path = "src/main.rs"
 bts-protocol = { path = "../bts-protocol" }
 bts-engine = { path = "../bts-engine" }
 bts-ai = { path = "../bts-ai" }
+bts-host = { path = "../bts-host" }
 serde.workspace = true
 serde_json.workspace = true
 tiny_http = "0.12"

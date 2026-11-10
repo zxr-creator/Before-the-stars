@@ -8,33 +8,15 @@
 //! A built-in steward keeps the civilization running in the domains the model
 //! delegates, so a slow, failing or rarely consulted model does not stall it.
 
-use crate::host::Session;
 use crate::providers::{self, Provider};
+// the seat's configuration is part of a save, so it lives with the session in the shared host
+pub use bts_host::AgentConfig;
+use bts_host::{AgentProvider, AgentSlot, AgentSummary, Host};
 use bts_protocol::*;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AgentConfig {
-    pub provider: String,
-    #[serde(default)]
-    pub model: String,
-    #[serde(default = "one")]
-    pub consult_every: u32,
-    /// Held in memory only; never written to a save.
-    #[serde(skip)]
-    pub api_key: Option<String>,
-    #[serde(default)]
-    pub base_url: Option<String>,
-    #[serde(default)]
-    pub effort: Option<String>,
-}
-
-fn one() -> u32 {
-    1
-}
 
 #[derive(Clone, Debug, Serialize)]
 pub struct LogEntry {
@@ -69,30 +51,47 @@ impl AgentSeat {
     }
 }
 
+/// How the shared host sees an agent seat: which controller names this server can
+/// run, and what the match summary and the agent log show of one.
+impl AgentSlot for AgentSeat {
+    fn provider(name: &str) -> Option<AgentProvider> {
+        Provider::parse(name).map(|p| AgentProvider { key: p.key(), default_model: p.default_model() })
+    }
+    fn new(cfg: &AgentConfig) -> Option<AgentSeat> {
+        Some(AgentSeat::new(cfg.clone()))
+    }
+    fn summary(&self) -> AgentSummary {
+        AgentSummary {
+            provider: self.cfg.provider.clone(),
+            model: self.cfg.model.clone(),
+            consult_every: self.cfg.consult_every,
+            state: self.state.clone(),
+            last_note: self.last_note.clone(),
+            calls: self.calls,
+            last_error: self.last_error.clone(),
+            thinking_seconds: self.thinking_since.map(|t| t.elapsed().as_secs()),
+        }
+    }
+    fn log(&self) -> serde_json::Value {
+        serde_json::to_value(&self.log).unwrap_or_default()
+    }
+}
+
+/// What the server adds to the shared host: the agent seats' workers (their state is
+/// the host's slot type) and the directory that holds saves.
 pub struct ServerState {
-    pub session: Option<Session>,
-    /// Bumped whenever a match is created or loaded; stale workers stop when it changes.
-    pub generation: u64,
-    pub agents: Vec<Option<AgentSeat>>,
-    /// In an observer match nothing advances past this round until the observer asks.
-    pub autoplay_until: u32,
-    pub app_mode: bool,
+    /// The referee: the match, the agent slots, playback and every permission rule.
+    pub host: Host<AgentSeat>,
     pub saves: PathBuf,
 }
 
 pub type Shared = Arc<Mutex<ServerState>>;
 
 impl ServerState {
-    pub fn may_run(&self) -> bool {
-        match &self.session {
-            Some(s) => !s.m.observer_allowed() || s.m.round() < self.autoplay_until,
-            None => false,
-        }
-    }
     pub fn autosave(&self) {
-        if let Some(s) = &self.session {
+        if let Some(text) = self.host.session_text() {
             let _ = std::fs::create_dir_all(&self.saves);
-            let _ = std::fs::write(self.saves.join("autosave.json"), s.save());
+            let _ = std::fs::write(self.saves.join("autosave.json"), text);
         }
     }
 }
@@ -354,13 +353,13 @@ fn worker(shared: Shared, seat: SeatId, generation: u64) {
         let job = {
             let mut guard = shared.lock().unwrap();
             let st = &mut *guard;
-            if st.generation != generation {
+            if st.host.generation != generation {
                 return;
             }
-            let may_run = st.may_run();
-            let Some(session) = st.session.as_mut() else { return };
+            let may_run = st.host.may_run();
+            let Some(session) = st.host.session.as_mut() else { return };
             if session.m.finished() {
-                if let Some(a) = st.agents[si].as_mut() {
+                if let Some(a) = st.host.agents[si].as_mut() {
                     a.state = "idle".into();
                 }
                 return;
@@ -368,7 +367,7 @@ fn worker(shared: Shared, seat: SeatId, generation: u64) {
             if !may_run || !session.m.waiting_on().contains(&seat) {
                 continue;
             }
-            let Some(agent) = st.agents[si].as_mut() else { return };
+            let Some(agent) = st.host.agents[si].as_mut() else { return };
             let (round, phase, window) = (session.m.round(), session.m.phase(), session.m.window());
             let point = (round, phase, window);
             if agent.handled == point {
@@ -434,11 +433,11 @@ fn worker(shared: Shared, seat: SeatId, generation: u64) {
         // ---- apply, if the world is still where we left it -----------------------
         let mut guard = shared.lock().unwrap();
         let st = &mut *guard;
-        if st.generation != generation {
+        if st.host.generation != generation {
             return;
         }
-        let Some(session) = st.session.as_mut() else { return };
-        let Some(agent) = st.agents[si].as_mut() else { return };
+        let Some(session) = st.host.session.as_mut() else { return };
+        let Some(agent) = st.host.agents[si].as_mut() else { return };
         agent.thinking_since = None;
         agent.calls += 1;
         let still = (session.m.round(), session.m.phase(), session.m.window()) == point && session.m.waiting_on().contains(&seat);
@@ -506,6 +505,13 @@ mod tests {
         assert_eq!(p.invalid.len(), 2, "an unknown action and a forfeit are both refused");
         assert!(parse_reply("no json here").is_err());
         assert!(parse_reply("{not json}").is_err());
+    }
+
+    #[test]
+    fn every_agent_controller_the_host_names_is_a_provider_here() {
+        for name in bts_host::AGENT_CONTROLLERS {
+            assert_eq!(Provider::parse(name).map(|p| p.key()), Some(name), "{name} must be a provider this server can run");
+        }
     }
 
     #[test]

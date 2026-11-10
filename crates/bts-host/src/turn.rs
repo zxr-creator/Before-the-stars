@@ -1,13 +1,12 @@
 //! A complete seat-facing decision packet and retry-safe action/advance exchange.
 //! Uses the ordinary engine projector; never includes spectator or referee state.
-use crate::agents::ServerState;
+use crate::referee::{AgentSlot, Failure, Host};
 use bts_protocol::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::{HashMap, VecDeque};
 use std::hash::{Hash, Hasher};
 
-type Failure = (u16, &'static str, String);
 type Result<T> = std::result::Result<T, Failure>;
 
 #[derive(Default)]
@@ -34,19 +33,6 @@ pub struct Submission {
 #[derive(Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum Advance { #[default] None, Phase, Round }
-
-fn allowed(st: &ServerState, seat: SeatId, token: &str, require_tokens: bool, write: bool) -> Result<()> {
-    let s = st.session.as_ref().ok_or((404, "NO_MATCH", "no match is running".into()))?;
-    let idx = seat as usize;
-    if idx >= s.m.seats() || (require_tokens && s.tokens[idx] != token) {
-        return Err((403, "UNAUTHORIZED", "unknown seat or token".into()));
-    }
-    let driven = s.ais[idx].is_some() || st.agents.get(idx).is_some_and(|a| a.is_some());
-    if driven && (write || require_tokens || !s.m.observer_allowed()) {
-        return Err((403, "UNAUTHORIZED", "unknown seat or token".into()));
-    }
-    Ok(())
-}
 
 fn cursor(obs: &Observation) -> String {
     let mut h = std::collections::hash_map::DefaultHasher::new();
@@ -93,8 +79,8 @@ fn action_reference(obs: &Observation) -> Value {
     json!({"note":"Templates only: replace sample references with handles/IDs from your observation; availability and costs are authoritative there. Do not submit this entire example list. pause/resume/cancel manage projects/programs; role assault/maneuver/denial; priorities 0–9; lower is first. Signed treaty clauses are binding, message prose is not.", "examples":examples})
 }
 
-fn packet(st: &ServerState, seat: SeatId, receipts: Vec<Receipt>, submitted: bool, advanced: bool) -> Value {
-    let s = st.session.as_ref().unwrap();
+fn packet<A: AgentSlot>(host: &Host<A>, seat: SeatId, receipts: Vec<Receipt>, submitted: bool, advanced: bool) -> Value {
+    let s = host.session.as_ref().unwrap();
     let obs = s.m.observe(seat);
     json!({
         "cursor": cursor(&obs), "action_reference": action_reference(&obs), "observation": obs, "receipts": receipts,
@@ -106,30 +92,32 @@ fn packet(st: &ServerState, seat: SeatId, receipts: Vec<Receipt>, submitted: boo
     })
 }
 
-pub fn get(st: &ServerState, seat: SeatId, token: &str, require_tokens: bool) -> Result<Value> {
-    allowed(st, seat, token, require_tokens, false)?;
-    Ok(packet(st, seat, vec![], false, false))
+pub(crate) fn get<A: AgentSlot>(host: &Host<A>, seat: SeatId, token: &str) -> Result<Value> {
+    host.seat_access(seat, token, false)?;
+    Ok(packet(host, seat, vec![], false, false))
 }
 
-pub fn submit(st: &mut ServerState, cache: &mut Cache, b: Submission, require_tokens: bool) -> Result<Value> {
-    allowed(st, b.seat, &b.token, require_tokens, true)?;
+/// Apply one submission. The flag is false when the reply is the stored result of
+/// an earlier identical request and nothing was applied again.
+pub(crate) fn submit<A: AgentSlot>(host: &mut Host<A>, b: Submission) -> Result<(Value, bool)> {
+    host.seat_access(b.seat, &b.token, true)?;
     if b.request_id.is_empty() || b.request_id.len() > 80 || !b.request_id.bytes().all(|c| c.is_ascii_alphanumeric() || b"-_".contains(&c)) {
         return Err((400, "INVALID_SCHEMA", "request_id must contain 1–80 ASCII letters, digits, hyphens or underscores".into()));
     }
     if b.actions.len() > MAX_ACTIONS_PER_BATCH {
         return Err((400, "RATE_LIMITED", "at most 32 actions per submission".into()));
     }
-    let s = st.session.as_ref().unwrap();
-    let key = (format!("{}:{}", st.generation, s.m.match_id()), b.seat, b.request_id.clone());
+    let s = host.session.as_ref().unwrap();
+    let key = (format!("{}:{}", host.generation, s.m.match_id()), b.seat, b.request_id.clone());
     let fingerprint = serde_json::to_string(&b).unwrap();
-    if let Some((original, response, _)) = cache.entries.get(&key) {
+    if let Some((original, response, _)) = host.turn_cache.entries.get(&key) {
         if original != &fingerprint { return Err((409, "IDEMPOTENCY_CONFLICT", "request_id already used with a different submission".into())); }
-        return Ok(response.clone());
+        return Ok((response.clone(), false));
     }
     if cursor(&s.m.observe(b.seat)) != b.cursor {
         return Err((409, "STALE_TURN", "the decision packet changed; get_turn before submitting again".into()));
     }
-    let s = st.session.as_mut().unwrap();
+    let s = host.session.as_mut().unwrap();
     let before = s.m.round();
     let receipts = s.m.act(b.seat, b.actions);
     let accepted = receipts.iter().all(|r| matches!(r.status.as_str(), "accepted" | "applied"));
@@ -139,11 +127,10 @@ pub fn submit(st: &mut ServerState, cache: &mut Cache, b: Submission, require_to
         if s.m.try_advance() { s.drive(); }
     }
     let advanced = s.m.round() != before;
-    // Save every exchange, including within-round orders, rather than only ready.
-    st.autosave();
-    let response = packet(st, b.seat, receipts, true, advanced);
+    let response = packet(host, b.seat, receipts, true, advanced);
     let bytes = fingerprint.len() + response.to_string().len();
     if bytes <= 16 * 1024 * 1024 {
+        let cache = &mut host.turn_cache;
         cache.bytes += bytes;
         cache.order.push_back(key.clone());
         cache.entries.insert(key, (fingerprint, response.clone(), bytes));
@@ -153,57 +140,63 @@ pub fn submit(st: &mut ServerState, cache: &mut Cache, b: Submission, require_to
             }
         }
     }
-    Ok(response)
+    Ok((response, true))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::host::Session;
+    use crate::referee::{Config, NoAgents};
+    use crate::session::Session;
     use bts_engine::MatchConfig;
-    fn state() -> ServerState {
+    fn state() -> Host<NoAgents> {
         let cfg = MatchConfig { seed: "turn-packet".into(), regions: 24,
             controllers: vec![ControllerKind::External, ControllerKind::NativeEasy, ControllerKind::NativeEasy, ControllerKind::NativeEasy], ..Default::default() };
-        ServerState { session: Some(Session::new(cfg, 11)), generation: 0, agents: vec![], autoplay_until: 0, app_mode: false,
-            saves: std::env::temp_dir().join(format!("bts-turn-tests-{}", std::process::id())) }
+        let mut host = Host::new(Config { settle_inline: true, ..Default::default() });
+        host.install(Session::new(cfg, 11), vec![None; 4]);
+        host
     }
-    fn order(st: &ServerState, id: &str) -> Submission {
-        Submission { seat: 0, token: String::new(), request_id: id.into(), cursor: get(st, 0, "", false).unwrap()["cursor"].as_str().unwrap().into(),
+    fn order(st: &Host<NoAgents>, id: &str) -> Submission {
+        Submission { seat: 0, token: String::new(), request_id: id.into(), cursor: get(st, 0, "").unwrap()["cursor"].as_str().unwrap().into(),
             actions: vec![Action::SetPolicy { setting: PolicySetting::Rename { name: "New identity".into() } }], advance: Advance::None }
     }
     #[test]
     fn retry_never_reapplies_and_changed_payload_conflicts() {
-        let mut st = state(); let mut cache = Cache::default(); let b = order(&st, "retry");
+        let mut st = state(); let b = order(&st, "retry");
         let text = serde_json::to_string(&b).unwrap();
-        let a = submit(&mut st, &mut cache, b, false).unwrap();
+        let (a, fresh) = submit(&mut st, b).unwrap();
+        assert!(fresh);
         let hash = st.session.as_ref().unwrap().m.state_hash();
-        let b = submit(&mut st, &mut cache, serde_json::from_str(&text).unwrap(), false).unwrap();
+        let (b, fresh) = submit(&mut st, serde_json::from_str(&text).unwrap()).unwrap();
+        assert!(!fresh, "a retry is answered from the stored result");
         assert_eq!(a, b); assert_eq!(hash, st.session.as_ref().unwrap().m.state_hash());
         let mut changed: Submission = serde_json::from_str(&text).unwrap(); changed.advance = Advance::Round;
-        assert_eq!(submit(&mut st, &mut cache, changed, false).unwrap_err().1, "IDEMPOTENCY_CONFLICT");
+        assert_eq!(submit(&mut st, changed).unwrap_err().1, "IDEMPOTENCY_CONFLICT");
     }
     #[test]
     fn stale_packet_changes_nothing_and_rejections_do_not_advance() {
-        let mut st = state(); let mut cache = Cache::default(); let mut b = order(&st, "mixed");
+        let mut st = state(); let mut b = order(&st, "mixed");
         b.actions.push(Action::StartProject { spec: ProjectSpec::Build { region: 65535, facility: "unknown".into(), levels: 1 }, priority: Some(5) }); b.advance = Advance::Round;
         let before = st.session.as_ref().unwrap().m.round();
-        let response = submit(&mut st, &mut cache, b, false).unwrap();
+        let (response, _) = submit(&mut st, b).unwrap();
         assert_eq!(before, st.session.as_ref().unwrap().m.round());
         assert_eq!(response["receipts"][0]["status"], "accepted");
         assert_eq!(response["receipts"][1]["status"], "rejected");
         let mut stale = order(&st, "stale"); stale.cursor = "outdated".into();
         let hash = st.session.as_ref().unwrap().m.state_hash();
-        assert_eq!(submit(&mut st, &mut cache, stale, false).unwrap_err().1, "STALE_TURN");
+        assert_eq!(submit(&mut st, stale).unwrap_err().1, "STALE_TURN");
         assert_eq!(hash, st.session.as_ref().unwrap().m.state_hash());
     }
     #[test]
     fn packets_enforce_seat_permissions_and_never_include_spectator_state() {
-        let st = state();
-        assert_eq!(get(&st, 0, "bad-token", true).unwrap_err().0, 403);
-        assert_eq!(get(&st, 1, "", true).unwrap_err().0, 403);
-        assert_eq!(get(&st, 255, "", false).unwrap_err().0, 403);
-        let token = &st.session.as_ref().unwrap().tokens[0];
-        let p = get(&st, 0, token, true).unwrap();
+        let mut st = state();
+        assert_eq!(get(&st, 255, "").unwrap_err().0, 403);
+        assert_eq!(get(&st, 1, "").unwrap_err().0, 403, "a native seat's packet is closed while an external seat plays");
+        st.cfg.require_tokens = true;
+        assert_eq!(get(&st, 0, "bad-token").unwrap_err().0, 403);
+        assert_eq!(get(&st, 1, "").unwrap_err().0, 403);
+        let token = st.session.as_ref().unwrap().tokens[0].clone();
+        let p = get(&st, 0, &token).unwrap();
         assert_eq!(p["observation"]["seat"], 0);
         assert!(p.get("spectator").is_none());
         assert!(p.get("seed").is_none());
@@ -211,9 +204,9 @@ mod tests {
     }
     #[test]
     fn one_submission_can_finish_a_round_and_return_the_next_observation() {
-        let mut st = state(); let mut cache = Cache::default(); let mut b = order(&st, "round");
+        let mut st = state(); let mut b = order(&st, "round");
         let before = st.session.as_ref().unwrap().m.round(); b.advance = Advance::Round;
-        let result = submit(&mut st, &mut cache, b, false).unwrap();
+        let (result, _) = submit(&mut st, b).unwrap();
         assert_eq!(result["observation"]["round"], before + 1);
         assert_eq!(result["round_advanced"], true);
     }

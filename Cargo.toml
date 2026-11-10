@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/bts-protocol", "crates/bts-engine", "crates/bts-ai", "crates/bts-server"]
+members = ["crates/bts-protocol", "crates/bts-engine", "crates/bts-ai", "crates/bts-host", "crates/bts-server"]
 
 [workspace.package]
 version = "0.3.0"
