@@ -1,0 +1,109 @@
+// Standalone harness for the atlas map: /dev/map.html
+// Query: ?src=fixture|live&seed=11&n=48&mode=terrain&zoom=1.6&sel=ID&pick=1&insets=1&focus=ID&bare=1
+import { render } from 'preact';
+import { useEffect, useMemo, useState } from 'preact/hooks';
+import type { Observation } from '../src/protocol';
+import { MapView, type MapMode, type MapPick } from '../src/map/MapView';
+import { makeFixture } from './map-fixture';
+
+const q = new URLSearchParams(location.search);
+const num = (k: string, d: number) => (q.has(k) ? Number(q.get(k)) : d);
+
+function Dev() {
+  const [src, setSrc] = useState(q.get('src') ?? 'fixture');
+  const [live, setLive] = useState<Observation | null>(null);
+  const [err, setErr] = useState('');
+  const [mode, setMode] = useState<MapMode>((q.get('mode') as MapMode) ?? 'political');
+  const [selected, setSelected] = useState<number | null>(q.has('sel') ? num('sel', 0) : null);
+  const [picking, setPicking] = useState(q.get('pick') === '1');
+  const [insetsOn, setInsetsOn] = useState(q.get('insets') === '1');
+  const [focus, setFocus] = useState<{ region: number; nonce: number } | null>(null);
+  const [log, setLog] = useState('');
+  const fixture = useMemo(() => makeFixture(num('seed', 11), num('n', 48)), []);
+
+  useEffect(() => {
+    if (src !== 'live') return;
+    // Read-only: the harness never posts to the referee.
+    fetch(`/api/observation?seat=${num('seat', 0)}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then((o: Observation) => setLive(o))
+      .catch((e: Error) => setErr(String(e.message)));
+  }, [src]);
+
+  const obs = src === 'live' ? live : fixture;
+
+  useEffect(() => {
+    if (!obs) return;
+    const z = num('zoom', 0);
+    const f = q.has('focus') ? num('focus', 0) : null;
+    const t = setTimeout(() => {
+      if (f != null) setFocus({ region: f, nonce: 1 });
+      if (z > 0) {
+        const btn = document.querySelector<HTMLButtonElement>(z > 1 ? '[data-testid="map-zoom-in"]' : '[data-testid="map-zoom-out"]');
+        const steps = Math.round(Math.abs(Math.log(z) / Math.log(1.35)));
+        for (let i = 0; i < steps; i++) btn?.click();
+      }
+    }, 60);
+    return () => clearTimeout(t);
+  }, [obs]);
+
+  const pick: MapPick | null = useMemo(() => {
+    if (!picking || !obs) return null;
+    const mine = new Set(obs.regions.filter((r) => r.owner === obs.seat).map((r) => r.id));
+    const targets = obs.regions
+      .filter((r) => !mine.has(r.id) && r.neighbors.some((n) => mine.has(n.region)))
+      .map((r) => r.id);
+    return {
+      prompt: 'Choose a neighbouring region for the survey party',
+      targets,
+      onPick: (id) => { setLog('picked ' + id); setPicking(false); },
+      onCancel: () => { setLog('cancelled'); setPicking(false); },
+    };
+  }, [picking, obs]);
+
+  const insets = useMemo(
+    () => (insetsOn ? { left: 56, right: 340, top: 52, bottom: 40 } : { left: 0, right: 0, top: 0, bottom: 0 }),
+    [insetsOn],
+  );
+  const marked = useMemo(() => (q.has('mark') ? [num('mark', 0)] : []), []);
+
+  if (!obs) return <div style={{ padding: 20, fontFamily: 'sans-serif' }}>{err ? 'Could not load live observation: ' + err : 'Loading…'}</div>;
+  const bare = q.get('bare') === '1';
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <MapView
+        obs={obs}
+        selected={selected}
+        onSelect={(id) => { setSelected(id); setLog('select ' + id); }}
+        pick={pick}
+        marked={marked}
+        focus={focus}
+        insets={insets}
+        mode={mode}
+        onModeChange={setMode}
+      />
+      {insetsOn && (
+        <>
+          <div style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 52, background: 'rgba(60,45,25,.82)' }} />
+          <div style={{ position: 'absolute', left: 0, top: 52, bottom: 0, width: 56, background: 'rgba(60,45,25,.7)' }} />
+          <div style={{ position: 'absolute', right: 0, top: 52, bottom: 0, width: 340, background: 'rgba(247,241,225,.96)', borderLeft: '1px solid #8a7d6a' }} />
+          <div style={{ position: 'absolute', left: 56, right: 340, bottom: 0, height: 40, background: 'rgba(60,45,25,.5)' }} />
+        </>
+      )}
+      {!bare && (
+        <div
+          data-testid="dev-bar"
+          style={{ position: 'absolute', top: insetsOn ? 60 : 8, left: insetsOn ? 64 : 8, display: 'flex', gap: 6, font: '12px sans-serif', background: 'rgba(247,241,225,.9)', padding: '4px 6px', border: '1px solid #8a7d6a', borderRadius: 4 }}
+        >
+          <button onClick={() => setSrc(src === 'live' ? 'fixture' : 'live')}>{src === 'live' ? 'Use fixture' : 'Use live seat 0'}</button>
+          <button data-testid="dev-pick" onClick={() => setPicking(!picking)}>{picking ? 'End pick' : 'Pick mode'}</button>
+          <button data-testid="dev-insets" onClick={() => setInsetsOn(!insetsOn)}>Insets</button>
+          <button onClick={() => selected != null && setFocus({ region: selected, nonce: Date.now() })}>Focus selected</button>
+          <span data-testid="dev-log">{log} · {obs.regions.length} regions known · draw {window.__atlas?.lastDrawMs().toFixed(1)} ms</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+render(<Dev />, document.getElementById('app')!);

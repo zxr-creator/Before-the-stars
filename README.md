@@ -11,6 +11,12 @@ This repository contains the v1.0 design documentation (`docs/`) and a playable
 implementation of it: an authoritative Rust rules engine with native non-LLM opponents,
 a local server, and a TypeScript browser client.
 
+![The atlas and round briefing late in a match](docs/screenshots/atlas-and-briefing.png)
+
+| Chronicle | Known graph | Setup |
+| --- | --- | --- |
+| ![Historic Moments timeline](docs/screenshots/chronicle.png) | ![Known technology graph](docs/screenshots/knowledge-graph.png) | ![New match](docs/screenshots/setup.png) |
+
 ## Play
 
 Requirements: macOS or Linux with `bash`, `curl` and `git`. Everything else is
@@ -94,6 +100,16 @@ target/release/bts inspect --seat 1 --rounds 120   # one seat's own view, for tu
 cargo test --release                       # release-gate properties
 ```
 
+The browser client has its own end-to-end check. With a referee running on port 7979
+(`scripts/run.sh --port 7979 --fresh`):
+
+```bash
+cd apps/web
+npx playwright install chromium      # once; the browser is stored under .toolchain/
+node scripts/smoke.mjs               # plays through every panel and flow, fails on any page error
+node scripts/lategame-shots.mjs      # 170 delegated rounds against the AI, then screenshots
+```
+
 External agents (Claude Code, Codex, scripts) play through the same HTTP API as the
 browser, or through the `bts observe | act | ready` commands. They receive only their
 seat's observation. See [docs/agent-api.md](docs/agent-api.md).
@@ -138,13 +154,21 @@ In short:
   private actors, prices and money are folded into labour, goods and callable-labour
   limits; factions are reported but act through stability rather than as separate
   ledgers; there is one access class per region.
+- Verified by tests and scripts, not by a human playthrough to the end: the client has
+  been driven by automated browser runs (every panel, hot-seat diplomacy, a late-game
+  state against the AI), but wars, religion founding and the jump programme have not
+  been played by hand in the browser.
 - Not built: the 3D atlas tier (the flat atlas tier is complete), a Mac shell, MCP
   adapter, multi-match server rooms, generated SDKs, and post-match counterfactual replay.
 
-Numbers are provisional calibration, as the design states. In all-AI matches the native
-opponents typically complete the full technology and practice graphs between year 160
-and year 200 and then contest the world; none has yet completed global integration
-inside the horizon, which the design treats as a legitimate unresolved outcome.
+Numbers are provisional calibration, as the design states, tuned only through all-AI
+matches. In those matches the stronger native opponents typically reach the scientific
+method between year 45 and year 75 and complete the full technology and practice
+graphs between year 160 and year 200. Once the final objective is revealed they fight:
+the leader usually conquers or subordinates one or two rivals and can end holding most
+of the world. No native opponent has yet completed 96 months of global governance
+inside the 240-round horizon, so all-AI matches end unresolved, which the design treats
+as a legitimate outcome. The complete-victory rules themselves are covered by tests.
 
 ## Design documentation
 

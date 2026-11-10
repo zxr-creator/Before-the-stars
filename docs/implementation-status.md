@@ -32,5 +32,8 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 
 - All numeric parameters are first-pass values tuned only through all-AI matches.
 - Late-game supply chains (fuel, spares, compute) are fragile for the native opponents.
-- In all-AI matches wars are usually indecisive and no seat has completed global
-  integration within the horizon.
+- In all-AI matches the leader conquers or subordinates rivals after the objective is
+  revealed, but no seat has completed global integration within the horizon.
+- The browser client was verified by automated runs; religion founding, battles and the
+  jump programme screens were built from the protocol types and have not been exercised
+  by hand.

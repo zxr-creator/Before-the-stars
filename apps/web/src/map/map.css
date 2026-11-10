@@ -1,0 +1,300 @@
+/* Atlas map: canvas stage plus small atlas-card controls. Tokens fall back to
+   the shared palette when the app stylesheet has not defined them. */
+.map-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--paper, #efe6cf);
+  color: var(--ink, #2b2620);
+  font-family: var(--sans, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+  font-size: 12.5px;
+  line-height: 1.35;
+  user-select: none;
+  -webkit-user-select: none;
+  --mi-l: 0px;
+  --mi-r: 0px;
+  --mi-t: 0px;
+  --mi-b: 0px;
+}
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.map-view.has-hover .map-canvas { cursor: pointer; }
+.map-view.is-picking .map-canvas { cursor: crosshair; }
+.map-view.is-dragging .map-canvas { cursor: grabbing; }
+.map-canvas:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent-2, #2f5d6e);
+}
+
+/* --- compass ------------------------------------------------------------------- */
+.map-compass-wrap {
+  position: absolute;
+  top: calc(var(--mi-t) + 14px);
+  right: calc(var(--mi-r) + 16px);
+  color: var(--ink-2, #5a5044);
+  opacity: 0.55;
+  pointer-events: none;
+  font-family: var(--serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif);
+}
+.map-compass { display: block; }
+
+/* --- controls ------------------------------------------------------------------ */
+.map-controls {
+  position: absolute;
+  left: calc(var(--mi-l) + 14px);
+  bottom: calc(var(--mi-b) + 14px);
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+  max-width: calc(100% - var(--mi-l) - var(--mi-r) - 28px);
+}
+.map-controls > * { pointer-events: auto; }
+
+.map-zoom {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ink-3, #8a7d6a);
+  border-radius: 4px;
+  background: var(--paper-3, #f7f1e1);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 2px 6px rgba(60, 40, 10, 0.18);
+  overflow: hidden;
+}
+.map-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink, #2b2620);
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.map-zoom .map-btn {
+  width: 30px;
+  height: 28px;
+  border-bottom: 1px solid var(--line, #cbbd9c);
+}
+.map-zoom .map-btn:last-child { border-bottom: 0; }
+.map-btn:hover { background: var(--paper-2, #e6dabd); }
+.map-btn:focus-visible,
+.map-mode:focus-visible {
+  outline: 2px solid var(--accent-2, #2f5d6e);
+  outline-offset: -2px;
+}
+
+.map-modebox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.map-modes {
+  display: flex;
+  border: 1px solid var(--ink-3, #8a7d6a);
+  border-radius: 4px;
+  background: var(--paper-3, #f7f1e1);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 2px 6px rgba(60, 40, 10, 0.18);
+  overflow: hidden;
+}
+.map-mode {
+  appearance: none;
+  border: 0;
+  border-right: 1px solid var(--line, #cbbd9c);
+  background: transparent;
+  color: var(--ink-2, #5a5044);
+  font: inherit;
+  font-family: var(--serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 5px 11px 6px;
+  height: 28px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+.map-mode:last-child { border-right: 0; }
+.map-mode:hover { background: var(--paper-2, #e6dabd); color: var(--ink, #2b2620); }
+.map-mode.is-on {
+  color: var(--ink, #2b2620);
+  background: var(--paper-2, #e6dabd);
+  font-weight: 700;
+}
+/* Colour-independent cue for the active mode: an inked underline. */
+.map-mode.is-on:not(.map-legend-toggle)::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 3px;
+  height: 2px;
+  background: var(--accent, #9c3d2a);
+}
+.map-legend-toggle { padding: 0 9px; }
+
+.map-legend {
+  border: 1px solid var(--ink-3, #8a7d6a);
+  border-radius: 4px;
+  background: var(--paper-3, #f7f1e1);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+  box-shadow: 0 2px 8px rgba(60, 40, 10, 0.18);
+  padding: 7px 10px 8px;
+  max-width: 250px;
+  min-width: 168px;
+}
+.map-legend-head {
+  font-family: var(--serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  font-size: 12.5px;
+  color: var(--ink-2, #5a5044);
+  border-bottom: 1px solid var(--line, #cbbd9c);
+  padding-bottom: 4px;
+  margin-bottom: 5px;
+}
+.map-legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+.map-legend-list li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 16px;
+}
+.map-view[data-mode="terrain"] .map-legend-list { grid-template-columns: auto auto; column-gap: 14px; }
+.map-legend-list em { color: var(--ink-3, #8a7d6a); font-style: italic; }
+.map-legend-note { color: var(--ink-2, #5a5044); font-size: 11.5px; }
+.map-chip {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid var(--ink, #2b2620);
+  margin-right: 6px;
+  flex: none;
+  vertical-align: -1px;
+}
+.map-legend-list .map-chip { margin-right: 0; }
+.map-chip-sq { border-radius: 2px; width: 16px; }
+.map-swatch { flex: none; display: block; }
+.map-ramp { gap: 0 !important; border: 1px solid var(--ink-2, #5a5044); height: 12px; min-height: 12px !important; }
+.map-ramp span { flex: 1; height: 100%; border-right: 1px solid rgba(43, 38, 32, 0.25); }
+.map-ramp span:last-child { border-right: 0; }
+.map-ramp-ends { justify-content: space-between; font-size: 11px; color: var(--ink-2, #5a5044); min-height: 0 !important; }
+
+/* --- pick banner ---------------------------------------------------------------- */
+.map-pick {
+  position: absolute;
+  top: calc(var(--mi-t) + 14px);
+  left: calc(var(--mi-l) + (100% - var(--mi-l) - var(--mi-r)) / 2);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - var(--mi-l) - var(--mi-r) - 180px);
+  padding: 7px 8px 7px 12px;
+  border: 1px solid var(--accent, #9c3d2a);
+  border-left-width: 4px;
+  border-radius: 4px;
+  background: var(--paper-3, #f7f1e1);
+  box-shadow: 0 3px 12px rgba(60, 40, 10, 0.25);
+  font-size: 13px;
+  color: var(--ink, #2b2620);
+}
+.map-pick svg { color: var(--accent, #9c3d2a); flex: none; }
+.map-pick-text { font-family: var(--serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif); font-size: 14px; }
+.map-pick-cancel {
+  border: 1px solid var(--ink-3, #8a7d6a);
+  border-radius: 3px;
+  padding: 3px 8px;
+  background: var(--paper, #efe6cf);
+  white-space: nowrap;
+}
+.map-pick-cancel kbd {
+  font: 10.5px/1 var(--sans, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+  border: 1px solid var(--line, #cbbd9c);
+  border-radius: 3px;
+  padding: 2px 4px;
+  color: var(--ink-2, #5a5044);
+  background: var(--paper-3, #f7f1e1);
+}
+
+/* --- tooltip -------------------------------------------------------------------- */
+.map-tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  pointer-events: none;
+  visibility: hidden;
+  max-width: 270px;
+  min-width: 150px;
+  border: 1px solid var(--ink-2, #5a5044);
+  border-radius: 3px;
+  background: var(--paper-3, #f7f1e1);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 4px 14px rgba(50, 35, 10, 0.28);
+  padding: 7px 10px 8px;
+}
+.map-tip.is-on { visibility: visible; }
+.map-view.is-dragging .map-tip { visibility: hidden; }
+.map-tip-title {
+  font-family: var(--serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif);
+  font-size: 15.5px;
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+.map-tip-sub { color: var(--ink-2, #5a5044); font-size: 12px; margin-bottom: 4px; }
+.map-tip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 3px;
+  margin-top: 3px;
+  border-top: 1px dotted var(--line, #cbbd9c);
+  font-variant-numeric: tabular-nums;
+}
+.map-tip-block { display: block; }
+.map-tip-muted { color: var(--ink-3, #8a7d6a); }
+.map-tip-row.map-tip-muted { font-style: italic; color: var(--ink-2, #5a5044); }
+.map-tip-warn { color: var(--bad, #a23b2c); font-weight: 600; }
+.map-tip-ok { color: var(--ok, #4d7a3a); font-weight: 600; }
+.map-tip-gold { color: #7d5f1c; font-weight: 600; }
+.map-tip-vis {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-2, #5a5044);
+  white-space: nowrap;
+}
+.map-tip-vis-remembered { font-style: italic; }
+/* Estimates never look like verified facts. */
+.map-est {
+  border-bottom: 1px dotted currentColor;
+  font-style: italic;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .map-btn, .map-mode { transition: background-color 90ms ease; }
+}
+@media (max-width: 1300px) {
+  .map-compass-wrap { display: none; }
+}
