@@ -318,9 +318,11 @@ async function partA(browser) {
         await openPanel('people');
         await page.click(tid('open-programme'));
         await page.click(tid(`course-${course}`));
-        await page.fill(tid('program-seats'), '4');
+        await page.fill(tid('program-seats'), '4000'); // places are people (ruleset 2.0)
         if (course === 'E001') await shot('20-open-programme');
-        const r = (await clickAndSettle(tid('program-submit'))).receipts[0];
+        // Lodge places are counted in people now (16,000 a level); the form refuses, with its reason, when none are free.
+        const full = await page.$eval(tid('program-submit'), (b) => (b.disabled ? b.title : ''));
+        const r = full ? { status: 'blocked', reason: full } : (await clickAndSettle(tid('program-submit'))).receipts[0];
         note(`round ${round}: open programme ${course} -> ${r.status}: ${r.reason}`);
         if (r.status === 'accepted') done.programmes.add(course);
         else await page.click('.subnav .linklike');
@@ -349,7 +351,7 @@ async function partA(browser) {
       if (await selectRegion(target.r.id)) {
         await page.click(tid('qa-settle-to'));
         await page.waitForSelector(tid('settle-people'));
-        await page.fill(tid('settle-people'), '30');
+        await page.fill(tid('settle-people'), '30000'); // a settling party is 20,000-400,000 people
         await shot('21-new-project-settle');
         const r = (await clickAndSettle(tid('settle-submit'))).receipts[0];
         note(`round ${round}: settle ${target.r.name} -> ${r.status}: ${r.reason}`);
@@ -365,7 +367,7 @@ async function partA(browser) {
       await page.click(tid('recruit-open'));
       await page.waitForSelector(tid('recruit-form'));
       await page.click(tid('role-denial'));
-      await page.fill(tid('recruit-soldiers'), '10');
+      await page.fill(tid('recruit-soldiers'), '10000'); // a formation is 1,000-5,000,000 soldiers
       if (round === 6) await shot('22-recruit-form');
       // The form itself refuses a formation larger than the number of people who would serve.
       const blocked = await page.$eval(tid('recruit-submit'), (b) => (b.disabled ? b.title : ''));

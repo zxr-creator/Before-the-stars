@@ -12,6 +12,10 @@
 // A. A person plays: start a match from the title screen, select the capital on the
 //    map, order a building, end rounds; the year advances and the building progresses.
 //    The observer-only calls are refused for that match, through the page's own API.
+// W. Regional works: stewards run the seat until the capital has a works with a choice of
+//    production method; then, in the regional works view, a new work and a two-level
+//    expansion are ordered and charged exactly the referee's quote, and a method change
+//    is recorded and run the next round. (Part C checks the view is read-only when watching.)
 // B. Saves: a named save, the session text out and back in, and a refused import that
 //    leaves the match alone.
 // S. Saves that last (docs/saves.md): the match comes back after a reload, at the same
@@ -240,6 +244,123 @@ async function partA() {
 }
 
 // =====================================================================================
+// --- W. regional works: build, expand, change a production method ------------------------
+/** Every term of a build order equals the referee's quote for one level times the levels. */
+function checkCharged(p, site, n) {
+  const want = (site.cost_per_level ?? []).map((g) => `${g.good}:${g.amount * n}`).sort().join(',');
+  const got = p.inputs_needed.map((g) => `${g.good}:${g.amount}`).sort().join(',');
+  assert(got === want, `goods charged ${got} = quote x ${n} (${want})`);
+  assert(p.work_needed === site.work_per_level * n, `work charged ${p.work_needed} = ${site.work_per_level} x ${n}`);
+  assert((p.crew ?? []).map((c) => c.needed).join(',') === (site.crew_per_level ?? []).map((c) => c.count * n).join(','), 'site crew charged = quote x levels');
+  assert((p.site_power ?? 0) === (site.site_power_per_level ?? 0) * n, 'site power charged = quote x levels');
+  assert((p.min_months ?? site.min_months) === site.min_months, 'minimum months as quoted');
+  return `${got || 'no goods'}, ${p.work_needed} worker-months, crew ${(p.crew ?? []).map((c) => c.needed).join('+') || 'none'}, ${p.min_months} months`;
+}
+
+async function endRoundInPage() {
+  const year = await yearShown();
+  if (await page.$(tid('overlay-works'))) await page.click(tid('works-close'));
+  await closePanel();
+  await page.click(tid('end-round'));
+  await page.waitForFunction((y) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) > y, year, { timeout: 60000 });
+  await clearToasts();
+}
+
+/** Click an order button and return the project it created (polling the page's API). */
+async function orderAndFind(selector) {
+  const before = new Set((await api('observation', 0)).projects.map((p) => p.id));
+  await page.click(selector);
+  for (let i = 0; i < 50; i++) {
+    const o = await api('observation', 0);
+    const p = o.projects.find((x) => !before.has(x.id));
+    if (p) return { obs: o, project: p };
+    await page.waitForTimeout(100);
+  }
+  throw new Error(`no order was created by ${selector}`);
+}
+
+async function partW(obs) {
+  log('W: regional works — build, expand, change a production method');
+  const capital = obs.civ.capital;
+  const ownCap = (o) => o.regions.find((r) => r.id === capital)?.own;
+  const withChoice = (o) => {
+    const own = ownCap(o);
+    const fs = o.catalog.facilities.filter((f) => f.recipes.filter((r) => r.available).length > 1 && own?.facilities.some((x) => x.kind === f.kind && x.level > 0 && x.enabled));
+    return fs.find((f) => f.kind !== 'fields') ?? fs[0] ?? null;
+  };
+  // A works with a choice of method needs some knowledge: let the stewards run the seat for a while.
+  const m = await api('match');
+  await api('delegate', 0, m.steward_domains ?? ['economy', 'research', 'education', 'culture', 'expansion', 'military']);
+  let stewarded = 0;
+  while (stewarded < 16 && !withChoice(obs)) {
+    await endRoundInPage();
+    stewarded++;
+    obs = await api('observation', 0);
+  }
+  await api('delegate', 0, []);
+  const choice = withChoice(obs);
+  assert(choice, `after ${stewarded} stewarded rounds the capital has a works with a choice of production method`);
+  note(`stewards ran the seat for ${stewarded} rounds; ${choice.kind} offers ${choice.recipes.filter((r) => r.available).map((r) => r.key).join(', ')}`);
+
+  await closePanel();
+  await page.click(tid('rail-works'));
+  await page.waitForSelector(tid('overlay-works'));
+  await page.click(tid(`works-region-${capital}`));
+  await shot('05a-works-overview');
+
+  // a new work, at the quoted price
+  await page.click(tid('works-tab-build'));
+  let own = ownCap(obs);
+  let built = null;
+  for (const f of obs.catalog.facilities) {
+    const site = own.construction_sites?.find((s) => s.kind === f.kind);
+    if (!f.available || !site || own.facilities.some((x) => x.kind === f.kind) || site.max_level - site.queued_levels < 1) continue;
+    if (!(await page.$(tid(`build-card-${f.kind}`)))) continue;
+    await page.click(tid(`build-card-${f.kind}`));
+    await page.waitForSelector(tid(`quote-${f.kind}`));
+    if (await page.isDisabled(tid(`order-${f.kind}`))) continue;
+    assert(Number(await page.getAttribute(tid(`quote-${f.kind}`), 'data-work')) === site.work_per_level, 'the quote shown is the referee’s');
+    await shot('05b-works-build-quote');
+    const r = await orderAndFind(tid(`order-${f.kind}`));
+    built = f.kind;
+    note(`built ${f.kind} from the regional works view: charged ${checkCharged(r.project, site, 1)}`);
+    obs = r.obs;
+    break;
+  }
+  assert(built, 'a new work was ordered from the regional works view at the quoted price');
+
+  // expand an existing work by two levels
+  await page.click(tid('works-tab-works'));
+  own = ownCap(obs);
+  const grow = own.facilities.find((f) => { const s = own.construction_sites?.find((x) => x.kind === f.kind); return s && f.kind !== built && s.max_level - f.level - s.queued_levels >= 2 && obs.catalog.facilities.find((c) => c.kind === f.kind)?.available; });
+  assert(grow, 'a work with room for two more levels');
+  const growSite = own.construction_sites.find((x) => x.kind === grow.kind);
+  await page.click(tid(`work-row-${grow.kind}`));
+  await page.click(tid(`expand-levels-${grow.kind}-inc`));
+  await page.waitForFunction(([k, w]) => Number(document.querySelector(`[data-testid="quote-${k}"]`)?.getAttribute('data-work')) === w, [grow.kind, growSite.work_per_level * 2]);
+  const r2 = await orderAndFind(tid(`expand-order-${grow.kind}`));
+  note(`expanded ${grow.kind} by two levels: charged ${checkCharged(r2.project, growSite, 2)}`);
+  obs = r2.obs;
+
+  // change a production method; the next round runs it
+  const fv = ownCap(obs).facilities.find((x) => x.kind === choice.kind);
+  const next = choice.recipes.find((r) => r.available && r.key !== fv.active_method);
+  await page.click(tid(`work-row-${choice.kind}`));
+  await page.waitForSelector(tid(`methods-${choice.kind}`));
+  await page.click(tid(`choose-${choice.kind}-${next.key}`));
+  await page.waitForFunction(([k, key]) => document.querySelector(`[data-testid="method-${k}-${key}"]`)?.classList.contains('is-chosen'), [choice.kind, next.key], { timeout: 10000 });
+  obs = await api('observation', 0);
+  assert(ownCap(obs).facilities.find((x) => x.kind === choice.kind).method === next.key, `the referee recorded ${next.key}`);
+  await page.locator(tid(`methods-${choice.kind}`)).scrollIntoViewIfNeeded();
+  await shot('05c-works-method-chosen');
+  await endRoundInPage();
+  obs = await api('observation', 0);
+  const ran = ownCap(obs).facilities.find((x) => x.kind === choice.kind);
+  assert(ran.active_method === next.key, `the next round ran ${next.key} (ran ${ran.active_method})`);
+  note(`method: ${choice.kind} ${fv.active_method} -> ${next.key}; next round ran ${ran.active_method} (${(ran.runs ?? []).map((x) => `${x.rate_bp / 100}%${x.blockers.length ? ', ' + x.blockers.join('; ') : ''}`).join(' | ')})`);
+  return obs;
+}
+
 async function partB(obs) {
   log('B: saves without a server');
   const round = obs.round;
@@ -970,6 +1091,14 @@ async function partC() {
   assert(own.seat === seat && own.regions.length <= 48, "the perspective is that seat's own observation");
   assert((await refused('actions', seat, [{ kind: 'forfeit' }]))?.status === 403, 'watching a civilization does not let the page command it');
   await shot('13-perspective');
+  // its regional works can be looked at, but no control in them gives an order
+  await page.click(tid('rail-works'));
+  await page.waitForSelector(tid('overlay-works'));
+  await page.click(tid('works-tab-build'));
+  const orderButtons = await page.$$('[data-testid^="order-"], [data-testid^="choose-"], [data-testid^="queue-up-"], [data-testid^="expand-order-"]');
+  for (const b of orderButtons) assert(await b.isDisabled(), 'every order control in the regional works view is disabled while watching');
+  await page.click(tid('works-close'));
+  note(`perspective: the regional works view opened read-only (${orderButtons.length} order controls, all disabled)`);
   await page.click(tid('observer-world'));
   await page.waitForSelector(tid('observer-console'));
   note(`perspective: viewed ${name} (seat ${seat + 1}) read-only, then returned to the world view`);
@@ -1126,7 +1255,8 @@ try {
   page = await context.newPage();
   watch(page);
   log('site:', BASE);
-  const obs = await partA();
+  let obs = await partA();
+  obs = await partW(obs);
   await partB(obs);
   await partS(obs);
   if (process.env.PAGES_ONLY !== 'S') {
