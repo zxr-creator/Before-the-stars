@@ -1,0 +1,49 @@
+{
+  "protocol_version": "0.2",
+  "match_id": "m_a83",
+  "seat_id": "s_c52",
+  "observation_id": "o_e91",
+  "round": 8,
+  "phase": "plan",
+  "negotiation_window": 0,
+  "idempotency_key": "batch_round8_plan_v1",
+  "actions": [
+    {
+      "action_id": "a_001",
+      "kind": "set_budget",
+      "department": "research",
+      "monthly_cap": "100000",
+      "priority": 1
+    },
+    {
+      "action_id": "a_002",
+      "kind": "start_project",
+      "template_ref": "t_g02",
+      "site_ref": "r_b12",
+      "monthly_cash_cap": "60000",
+      "priority": 1
+    },
+    {
+      "action_id": "a_003",
+      "kind": "investigate",
+      "lead_ref": "l_q04",
+      "method": "experiment",
+      "site_ref": "r_b12",
+      "cash_cap": "12000"
+    },
+    {
+      "action_id": "a_004",
+      "kind": "set_agenda",
+      "allocations": [
+        {
+          "objective_ref": "g_a01",
+          "priority_share_bp": 6000
+        },
+        {
+          "objective_ref": "g_a02",
+          "priority_share_bp": 4000
+        }
+      ]
+    }
+  ]
+}

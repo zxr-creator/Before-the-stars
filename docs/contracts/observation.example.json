@@ -1,0 +1,425 @@
+{
+  "protocol_version": "0.2",
+  "ruleset_version": "prototype-0.2",
+  "content_version": "prototype-0.2",
+  "generator_version": "prototype-0.2",
+  "match_id": "m_a83",
+  "seat_id": "s_c52",
+  "observation_id": "o_e91",
+  "month": 96,
+  "round": 8,
+  "phase": "plan",
+  "negotiation_window": 0,
+  "knowledge_version": 17,
+  "public_rules_ref": "u_f02",
+  "treasury": {
+    "available_cash": "1200000",
+    "reserved_cash": "0",
+    "unit": "milli_credit"
+  },
+  "inventories": [
+    {
+      "product_ref": "p_a01",
+      "location_ref": "r_b12",
+      "category": "food",
+      "unit": "kg",
+      "available": "80000",
+      "reserved": "10000"
+    },
+    {
+      "product_ref": "p_a02",
+      "location_ref": "r_b12",
+      "category": "precision_goods",
+      "unit": "instrument_set",
+      "available": "12",
+      "reserved": "0"
+    }
+  ],
+  "culture_population_reports": [
+    {
+      "scope_ref": "c_d04",
+      "as_of_month": 96,
+      "coverage": "registered",
+      "total": {
+        "kind": "exact",
+        "value": "30000",
+        "unit": "people"
+      },
+      "profiles": [
+        {
+          "culture_ref": "c_p21",
+          "population": {
+            "kind": "exact",
+            "value": "18000",
+            "unit": "people"
+          },
+          "share_bp": 6000
+        },
+        {
+          "culture_ref": "c_p22",
+          "population": {
+            "kind": "exact",
+            "value": "12000",
+            "unit": "people"
+          },
+          "share_bp": 4000
+        }
+      ]
+    }
+  ],
+  "factions": [
+    {
+      "faction_ref": "f_e01",
+      "name": "Workshop Federation",
+      "known_demands": [
+        "Research projects must pay for instrument maintenance and apprentice wages."
+      ],
+      "known_powers": [
+        "Holds operating rights over most local precision workshops."
+      ],
+      "support_report_refs": [
+        "v_a81"
+      ]
+    }
+  ],
+  "projects": [],
+  "known_technologies": [
+    {
+      "knowledge_ref": "k_m01",
+      "name": "Sealed Pressure Equipment",
+      "state": "adopted",
+      "known_requirements": [
+        {
+          "kind": "facility",
+          "description": "A maintained pressure-equipment workshop",
+          "satisfied": true
+        }
+      ],
+      "project_template_refs": [],
+      "evidence_refs": [
+        "e_h11"
+      ]
+    },
+    {
+      "knowledge_ref": "k_m02",
+      "name": "Precision Measuring Instruments",
+      "state": "understood",
+      "known_requirements": [
+        {
+          "kind": "input",
+          "description": "Transparent materials of known quality or reflective components",
+          "satisfied": true
+        },
+        {
+          "kind": "population",
+          "description": "Trained instrument makers",
+          "satisfied": true
+        }
+      ],
+      "project_template_refs": [
+        "t_g02"
+      ],
+      "evidence_refs": [
+        "e_h12"
+      ]
+    }
+  ],
+  "known_cultural_practices": [
+    {
+      "practice_ref": "c_k03",
+      "name": "Public Experimental Records",
+      "state": "trial",
+      "known_requirements": [
+        {
+          "kind": "population",
+          "description": "Literate researchers and artisans able to participate consistently",
+          "satisfied": true
+        },
+        {
+          "kind": "institution",
+          "description": "An institution and funding to maintain public records",
+          "satisfied": null
+        }
+      ],
+      "known_effects": [
+        "Improves transmission of reviewable knowledge when participants and record-keeping institutions are present"
+      ],
+      "evidence_refs": [
+        "e_h13"
+      ]
+    }
+  ],
+  "leads": [
+    {
+      "lead_id": "l_q04",
+      "summary": "Existing instruments show unexplained systematic deviations in long-distance observations.",
+      "allowed_methods": [
+        "experiment",
+        "audit"
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "report_id": "v_a81",
+      "subject_ref": "f_e01",
+      "metric": "support_for_public_research_bp",
+      "estimate": {
+        "kind": "range",
+        "lower": "4500",
+        "upper": "6500",
+        "unit": "basis_points"
+      },
+      "source_ref": "s_v12",
+      "as_of_month": 95,
+      "received_month": 96,
+      "evidence_refs": [
+        "e_h14"
+      ]
+    }
+  ],
+  "visible_entities": [
+    {
+      "entity_ref": "c_d04",
+      "entity_type": "civilization",
+      "label": "Our civilization",
+      "attributes": [
+        {
+          "key": "controlled_by_seat",
+          "value": "s_c52"
+        }
+      ],
+      "related_refs": [
+        "r_b12"
+      ]
+    },
+    {
+      "entity_ref": "r_b12",
+      "entity_type": "region",
+      "label": "Estuary Region",
+      "attributes": [],
+      "related_refs": [
+        "t_g02",
+        "p_a01",
+        "p_a02"
+      ]
+    },
+    {
+      "entity_ref": "t_g02",
+      "entity_type": "project_template",
+      "label": "Precision Measurement Prototype Project",
+      "attributes": [
+        {
+          "key": "project_class",
+          "value": "research"
+        },
+        {
+          "key": "department",
+          "value": "research"
+        },
+        {
+          "key": "fixed_output",
+          "value": "One validated measurement prototype and the associated process capability"
+        }
+      ],
+      "related_refs": [
+        "k_m02"
+      ]
+    },
+    {
+      "entity_ref": "c_p21",
+      "entity_type": "culture_profile",
+      "label": "Workshop Tradition",
+      "attributes": [],
+      "related_refs": []
+    },
+    {
+      "entity_ref": "c_p22",
+      "entity_type": "culture_profile",
+      "label": "Public Experimentation Culture",
+      "attributes": [],
+      "related_refs": [
+        "c_k03"
+      ]
+    }
+  ],
+  "available_actions": [
+    "sign_treaty",
+    "break_treaty",
+    "set_budget",
+    "start_project",
+    "manage_project",
+    "investigate",
+    "set_production",
+    "set_policy",
+    "propose_reform",
+    "market_order",
+    "allocate_compute",
+    "military_order",
+    "set_agenda"
+  ],
+  "world_commitment": "0000000000000000000000000000000000000000000000000000000000000000",
+  "cultural_profiles": [
+    {
+      "culture_ref": "c_p21",
+      "revision": 2,
+      "name": "Workshop Tradition",
+      "as_of_month": 96,
+      "attributes": {
+        "openness": {
+          "kind": "range",
+          "lower": "3500",
+          "upper": "4500",
+          "unit": "basis_points"
+        },
+        "revisability": {
+          "kind": "range",
+          "lower": "4500",
+          "upper": "5500",
+          "unit": "basis_points"
+        },
+        "exploration": {
+          "kind": "range",
+          "lower": "2000",
+          "upper": "3000",
+          "unit": "basis_points"
+        },
+        "cultivation": {
+          "kind": "range",
+          "lower": "6000",
+          "upper": "7000",
+          "unit": "basis_points"
+        },
+        "exchange": {
+          "kind": "range",
+          "lower": "4500",
+          "upper": "5500",
+          "unit": "basis_points"
+        },
+        "martial": {
+          "kind": "range",
+          "lower": "3000",
+          "upper": "4000",
+          "unit": "basis_points"
+        }
+      },
+      "traditions": [],
+      "evidence_refs": [
+        "e_h13"
+      ]
+    },
+    {
+      "culture_ref": "c_p22",
+      "revision": 2,
+      "name": "Public Experimentation Culture",
+      "as_of_month": 96,
+      "attributes": {
+        "openness": {
+          "kind": "range",
+          "lower": "6000",
+          "upper": "7000",
+          "unit": "basis_points"
+        },
+        "revisability": {
+          "kind": "range",
+          "lower": "6500",
+          "upper": "7500",
+          "unit": "basis_points"
+        },
+        "exploration": {
+          "kind": "range",
+          "lower": "4000",
+          "upper": "5000",
+          "unit": "basis_points"
+        },
+        "cultivation": {
+          "kind": "range",
+          "lower": "3000",
+          "upper": "4000",
+          "unit": "basis_points"
+        },
+        "exchange": {
+          "kind": "range",
+          "lower": "5500",
+          "upper": "6500",
+          "unit": "basis_points"
+        },
+        "martial": {
+          "kind": "range",
+          "lower": "2500",
+          "upper": "3500",
+          "unit": "basis_points"
+        }
+      },
+      "traditions": [],
+      "evidence_refs": [
+        "e_h13"
+      ]
+    }
+  ],
+  "known_religions": [],
+  "religion_population_reports": [
+    {
+      "scope_ref": "c_d04",
+      "as_of_month": 96,
+      "coverage": "registered",
+      "total": {
+        "kind": "exact",
+        "value": "30000",
+        "unit": "people"
+      },
+      "affiliations": [
+        {
+          "religion_ref": null,
+          "population": {
+            "kind": "exact",
+            "value": "30000",
+            "unit": "people"
+          },
+          "share_bp": 10000
+        }
+      ]
+    }
+  ],
+  "known_objectives": [
+    {
+      "objective_ref": "g_a01",
+      "label": "Stabilize residents' food supply",
+      "status": "active",
+      "known_requirements": [],
+      "metrics": [
+        {
+          "label": "Registered available public food inventory",
+          "estimate": {
+            "kind": "exact",
+            "value": "80000",
+            "unit": "kg"
+          },
+          "as_of_month": 96
+        }
+      ],
+      "evidence_refs": []
+    },
+    {
+      "objective_ref": "g_a02",
+      "label": "Reduce workshop downtime",
+      "status": "active",
+      "known_requirements": [],
+      "metrics": [
+        {
+          "label": "Downtime months awaiting verification",
+          "estimate": {
+            "kind": "unknown",
+            "unit": "months"
+          },
+          "as_of_month": 96
+        }
+      ],
+      "evidence_refs": []
+    }
+  ],
+  "active_objective_refs": [
+    "g_a01",
+    "g_a02"
+  ]
+}

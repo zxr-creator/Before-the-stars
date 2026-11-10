@@ -1,0 +1,2778 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://before-the-stars.invalid/contracts/agent-v0.2.schema.json",
+  "title": "Before the Stars public agent protocol 0.2",
+  "description": "Draft wire contract. Domain legality, references, budgets and information visibility require authoritative validation. The .invalid identifier is not a deployed service.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Observation"
+    },
+    {
+      "$ref": "#/$defs/CommandBatch"
+    },
+    {
+      "$ref": "#/$defs/QueryRequest"
+    },
+    {
+      "$ref": "#/$defs/QueryResponse"
+    },
+    {
+      "$ref": "#/$defs/Receipt"
+    },
+    {
+      "$ref": "#/$defs/ExecutionResult"
+    }
+  ],
+  "$defs": {
+    "Ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "Amount": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 39
+    },
+    "BasisPoints": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "Estimate": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "exact"
+            },
+            "value": {
+              "$ref": "#/$defs/Amount"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "required": [
+            "kind",
+            "value",
+            "unit"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "range"
+            },
+            "lower": {
+              "$ref": "#/$defs/Amount"
+            },
+            "upper": {
+              "$ref": "#/$defs/Amount"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "required": [
+            "kind",
+            "lower",
+            "upper",
+            "unit"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "unknown"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "required": [
+            "kind",
+            "unit"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RequirementView": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "capability",
+            "input",
+            "facility",
+            "population",
+            "institution"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "satisfied": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "description",
+        "satisfied"
+      ],
+      "additionalProperties": false
+    },
+    "Lead": {
+      "type": "object",
+      "properties": {
+        "lead_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "allowed_methods": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "experiment",
+              "survey",
+              "audit"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "lead_id",
+        "summary",
+        "allowed_methods"
+      ],
+      "additionalProperties": false
+    },
+    "KnownTechnology": {
+      "type": "object",
+      "properties": {
+        "knowledge_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "state": {
+          "enum": [
+            "discovered",
+            "investigating",
+            "understood",
+            "prototyped",
+            "adopted"
+          ]
+        },
+        "known_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RequirementView"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "project_template_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "knowledge_ref",
+        "name",
+        "state",
+        "known_requirements",
+        "project_template_refs",
+        "evidence_refs"
+      ],
+      "additionalProperties": false
+    },
+    "KnownCulturalPractice": {
+      "type": "object",
+      "properties": {
+        "practice_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "state": {
+          "enum": [
+            "discovered",
+            "studying",
+            "understood",
+            "trial",
+            "adopted"
+          ]
+        },
+        "known_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RequirementView"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "known_effects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "practice_ref",
+        "name",
+        "state",
+        "known_requirements",
+        "known_effects",
+        "evidence_refs"
+      ],
+      "additionalProperties": false
+    },
+    "InventoryView": {
+      "type": "object",
+      "properties": {
+        "product_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "location_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "category": {
+          "enum": [
+            "food",
+            "biomass",
+            "metals",
+            "fuels",
+            "chemicals",
+            "precision_goods"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "available": {
+          "$ref": "#/$defs/Amount"
+        },
+        "reserved": {
+          "$ref": "#/$defs/Amount"
+        }
+      },
+      "required": [
+        "product_ref",
+        "location_ref",
+        "category",
+        "unit",
+        "available",
+        "reserved"
+      ],
+      "additionalProperties": false
+    },
+    "Report": {
+      "type": "object",
+      "properties": {
+        "report_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "subject_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "metric": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "estimate": {
+          "$ref": "#/$defs/Estimate"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "as_of_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "received_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "confidence_bp": {
+          "$ref": "#/$defs/BasisPoints"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "report_id",
+        "subject_ref",
+        "metric",
+        "estimate",
+        "source_ref",
+        "as_of_month",
+        "received_month",
+        "evidence_refs"
+      ],
+      "additionalProperties": false
+    },
+    "CulturePopulationReport": {
+      "type": "object",
+      "properties": {
+        "scope_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "as_of_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "coverage": {
+          "enum": [
+            "registered",
+            "surveyed"
+          ]
+        },
+        "total": {
+          "$ref": "#/$defs/Estimate"
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "culture_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "population": {
+                "$ref": "#/$defs/Estimate"
+              },
+              "share_bp": {
+                "$ref": "#/$defs/BasisPoints"
+              }
+            },
+            "required": [
+              "culture_ref",
+              "population",
+              "share_bp"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "scope_ref",
+        "as_of_month",
+        "coverage",
+        "total",
+        "profiles"
+      ],
+      "additionalProperties": false
+    },
+    "FactionView": {
+      "type": "object",
+      "properties": {
+        "faction_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "known_demands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "known_powers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "support_report_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "faction_ref",
+        "name",
+        "known_demands",
+        "known_powers",
+        "support_report_refs"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectView": {
+      "type": "object",
+      "properties": {
+        "project_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "template_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "site_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "status": {
+          "enum": [
+            "queued",
+            "active",
+            "blocked",
+            "paused",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "progress_bp": {
+          "$ref": "#/$defs/BasisPoints"
+        },
+        "monthly_cash_cap": {
+          "$ref": "#/$defs/Amount"
+        },
+        "known_blockers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "project_ref",
+        "template_ref",
+        "site_ref",
+        "status",
+        "progress_bp",
+        "monthly_cash_cap",
+        "known_blockers"
+      ],
+      "additionalProperties": false
+    },
+    "EntityAttribute": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 2000
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Estimate"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Ref"
+              },
+              "minItems": 0,
+              "maxItems": 128
+            }
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "EntityView": {
+      "type": "object",
+      "properties": {
+        "entity_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "entity_type": {
+          "enum": [
+            "civilization",
+            "region",
+            "connection",
+            "organization",
+            "facility",
+            "army",
+            "product",
+            "project_template",
+            "policy",
+            "policy_option",
+            "culture_profile",
+            "offer",
+            "treaty",
+            "recipe",
+            "source",
+            "rule_summary",
+            "project_option",
+            "religious_movement",
+            "belief",
+            "founder"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EntityAttribute"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "related_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        }
+      },
+      "required": [
+        "entity_ref",
+        "entity_type",
+        "label",
+        "attributes",
+        "related_refs"
+      ],
+      "additionalProperties": false
+    },
+    "EventView": {
+      "type": "object",
+      "properties": {
+        "event_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "as_of_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "learned_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "entity_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "event_ref",
+        "kind",
+        "as_of_month",
+        "learned_month",
+        "summary",
+        "entity_refs",
+        "evidence_refs"
+      ],
+      "additionalProperties": false
+    },
+    "BudgetView": {
+      "type": "object",
+      "properties": {
+        "department": {
+          "enum": [
+            "research",
+            "infrastructure",
+            "defense",
+            "administration",
+            "welfare"
+          ]
+        },
+        "monthly_cap": {
+          "$ref": "#/$defs/Amount"
+        },
+        "reserved_cash": {
+          "$ref": "#/$defs/Amount"
+        },
+        "committed_future_cash": {
+          "$ref": "#/$defs/Amount"
+        },
+        "available_cash": {
+          "$ref": "#/$defs/Amount"
+        }
+      },
+      "required": [
+        "department",
+        "monthly_cap",
+        "reserved_cash",
+        "committed_future_cash",
+        "available_cash"
+      ],
+      "additionalProperties": false
+    },
+    "ActionKind": {
+      "enum": [
+        "message",
+        "propose_treaty",
+        "withdraw_offer",
+        "sign_treaty",
+        "break_treaty",
+        "set_budget",
+        "start_project",
+        "manage_project",
+        "investigate",
+        "set_production",
+        "set_policy",
+        "propose_reform",
+        "market_order",
+        "allocate_compute",
+        "military_order",
+        "set_agenda"
+      ]
+    },
+    "goods_delivery": {
+      "type": "object",
+      "properties": {
+        "clause_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "goods_delivery"
+        },
+        "seller_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "buyer_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "product_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Amount"
+        },
+        "destination_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "total_price": {
+          "$ref": "#/$defs/Amount"
+        },
+        "due_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "clause_id",
+        "kind",
+        "seller_ref",
+        "buyer_ref",
+        "product_ref",
+        "quantity",
+        "destination_ref",
+        "total_price",
+        "due_month"
+      ],
+      "additionalProperties": false
+    },
+    "technology_license": {
+      "type": "object",
+      "properties": {
+        "clause_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "technology_license"
+        },
+        "licensor_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "licensee_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "knowledge_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "rights": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "use",
+              "manufacture",
+              "modify",
+              "sublicense"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "fee": {
+          "$ref": "#/$defs/Amount"
+        },
+        "end_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "clause_id",
+        "kind",
+        "licensor_ref",
+        "licensee_ref",
+        "knowledge_ref",
+        "rights",
+        "fee",
+        "end_month"
+      ],
+      "additionalProperties": false
+    },
+    "joint_research": {
+      "type": "object",
+      "properties": {
+        "clause_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "joint_research"
+        },
+        "lead_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "project_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "contributions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "civilization_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "monthly_cash": {
+                "$ref": "#/$defs/Amount"
+              },
+              "monthly_compute": {
+                "$ref": "#/$defs/Amount"
+              }
+            },
+            "required": [
+              "civilization_ref",
+              "monthly_cash",
+              "monthly_compute"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 2,
+          "maxItems": 8
+        },
+        "end_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "clause_id",
+        "kind",
+        "lead_ref",
+        "project_ref",
+        "contributions",
+        "end_month"
+      ],
+      "additionalProperties": false
+    },
+    "access": {
+      "type": "object",
+      "properties": {
+        "clause_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "access"
+        },
+        "owner_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "user_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "target_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "capacity_share_bp": {
+          "$ref": "#/$defs/BasisPoints"
+        },
+        "end_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "clause_id",
+        "kind",
+        "owner_ref",
+        "user_ref",
+        "target_ref",
+        "capacity_share_bp",
+        "end_month"
+      ],
+      "additionalProperties": false
+    },
+    "loan": {
+      "type": "object",
+      "properties": {
+        "clause_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "loan"
+        },
+        "lender_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "borrower_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "principal": {
+          "$ref": "#/$defs/Amount"
+        },
+        "simple_interest_bp": {
+          "$ref": "#/$defs/BasisPoints"
+        },
+        "due_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "clause_id",
+        "kind",
+        "lender_ref",
+        "borrower_ref",
+        "principal",
+        "simple_interest_bp",
+        "due_month"
+      ],
+      "additionalProperties": false
+    },
+    "defense": {
+      "type": "object",
+      "properties": {
+        "clause_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "defense"
+        },
+        "protector_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "protected_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "response_months": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "end_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "clause_id",
+        "kind",
+        "protector_ref",
+        "protected_ref",
+        "response_months",
+        "end_month"
+      ],
+      "additionalProperties": false
+    },
+    "charter": {
+      "type": "object",
+      "properties": {
+        "clause_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "charter"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "civilization_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "voting_share_bp": {
+                "$ref": "#/$defs/BasisPoints"
+              },
+              "retained_autonomy": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "domestic_budget",
+                    "culture",
+                    "local_law",
+                    "local_security"
+                  ]
+                },
+                "minItems": 0,
+                "maxItems": 4,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "civilization_ref",
+              "voting_share_bp",
+              "retained_autonomy"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 2,
+          "maxItems": 8
+        },
+        "amendment_threshold_bp": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "powers": {
+          "type": "object",
+          "properties": {
+            "executive": {
+              "$ref": "#/$defs/Ref"
+            },
+            "budget": {
+              "$ref": "#/$defs/Ref"
+            },
+            "security": {
+              "$ref": "#/$defs/Ref"
+            },
+            "arbitration": {
+              "$ref": "#/$defs/Ref"
+            }
+          },
+          "required": [
+            "executive",
+            "budget",
+            "security",
+            "arbitration"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "clause_id",
+        "kind",
+        "members",
+        "amendment_threshold_bp",
+        "powers"
+      ],
+      "additionalProperties": false
+    },
+    "TreatyClause": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/goods_delivery"
+        },
+        {
+          "$ref": "#/$defs/technology_license"
+        },
+        {
+          "$ref": "#/$defs/joint_research"
+        },
+        {
+          "$ref": "#/$defs/access"
+        },
+        {
+          "$ref": "#/$defs/loan"
+        },
+        {
+          "$ref": "#/$defs/defense"
+        },
+        {
+          "$ref": "#/$defs/charter"
+        },
+        {
+          "$ref": "#/$defs/peace"
+        }
+      ]
+    },
+    "Action_message": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "message"
+        },
+        "recipients": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "recipients",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "Action_propose_treaty": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "propose_treaty"
+        },
+        "recipients": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "expires_round": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "clauses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TreatyClause"
+          },
+          "minItems": 1,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "recipients",
+        "expires_round",
+        "clauses"
+      ],
+      "additionalProperties": false
+    },
+    "Action_withdraw_offer": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "withdraw_offer"
+        },
+        "offer_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "offer_ref",
+        "revision"
+      ],
+      "additionalProperties": false
+    },
+    "Action_sign_treaty": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "sign_treaty"
+        },
+        "offer_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "escrow_cash_cap": {
+          "$ref": "#/$defs/Amount"
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "offer_ref",
+        "revision",
+        "escrow_cash_cap"
+      ],
+      "additionalProperties": false
+    },
+    "Action_break_treaty": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "break_treaty"
+        },
+        "treaty_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "clause_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "treaty_ref",
+        "clause_refs"
+      ],
+      "additionalProperties": false
+    },
+    "Action_set_budget": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "set_budget"
+        },
+        "department": {
+          "enum": [
+            "research",
+            "infrastructure",
+            "defense",
+            "administration",
+            "welfare"
+          ]
+        },
+        "monthly_cap": {
+          "$ref": "#/$defs/Amount"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "department",
+        "monthly_cap",
+        "priority"
+      ],
+      "additionalProperties": false
+    },
+    "Action_start_project": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "start_project"
+        },
+        "template_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "site_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "monthly_cash_cap": {
+          "$ref": "#/$defs/Amount"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "slot_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "option_ref": {
+                "$ref": "#/$defs/Ref"
+              }
+            },
+            "required": [
+              "slot_ref",
+              "option_ref"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "template_ref",
+        "site_ref",
+        "monthly_cash_cap",
+        "priority"
+      ],
+      "additionalProperties": false
+    },
+    "Action_manage_project": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "manage_project"
+        },
+        "project_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "operation": {
+          "enum": [
+            "pause",
+            "resume",
+            "cancel"
+          ]
+        },
+        "monthly_cash_cap": {
+          "$ref": "#/$defs/Amount"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "project_ref",
+        "operation",
+        "monthly_cash_cap",
+        "priority"
+      ],
+      "additionalProperties": false
+    },
+    "Action_investigate": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "investigate"
+        },
+        "lead_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "method": {
+          "enum": [
+            "experiment",
+            "survey",
+            "audit"
+          ]
+        },
+        "site_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "cash_cap": {
+          "$ref": "#/$defs/Amount"
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "lead_ref",
+        "method",
+        "site_ref",
+        "cash_cap"
+      ],
+      "additionalProperties": false
+    },
+    "Action_set_production": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "set_production"
+        },
+        "facility_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "recipe_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "utilization_bp": {
+          "$ref": "#/$defs/BasisPoints"
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "facility_ref",
+        "recipe_ref",
+        "utilization_bp"
+      ],
+      "additionalProperties": false
+    },
+    "Action_set_policy": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "set_policy"
+        },
+        "policy_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "option_ref": {
+          "$ref": "#/$defs/Ref"
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "policy_ref",
+        "option_ref"
+      ],
+      "additionalProperties": false
+    },
+    "Action_propose_reform": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "propose_reform"
+        },
+        "practice_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "scope_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "monthly_cash_cap": {
+          "$ref": "#/$defs/Amount"
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "practice_ref",
+        "scope_ref",
+        "monthly_cash_cap"
+      ],
+      "additionalProperties": false
+    },
+    "Action_market_order": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "market_order"
+        },
+        "product_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "location_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "side": {
+          "enum": [
+            "buy",
+            "sell"
+          ]
+        },
+        "quantity": {
+          "$ref": "#/$defs/Amount"
+        },
+        "limit_unit_price": {
+          "$ref": "#/$defs/Amount"
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "product_ref",
+        "location_ref",
+        "side",
+        "quantity",
+        "limit_unit_price"
+      ],
+      "additionalProperties": false
+    },
+    "Action_allocate_compute": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "allocate_compute"
+        },
+        "facility_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "allocations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "consumer_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "units_per_month": {
+                "$ref": "#/$defs/Amount"
+              }
+            },
+            "required": [
+              "consumer_ref",
+              "units_per_month"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "facility_ref",
+        "allocations"
+      ],
+      "additionalProperties": false
+    },
+    "Action_military_order": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "military_order"
+        },
+        "army_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "mission": {
+          "enum": [
+            "hold",
+            "move",
+            "attack",
+            "escort",
+            "withdraw"
+          ]
+        },
+        "target_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "monthly_supply_cash_cap": {
+          "$ref": "#/$defs/Amount"
+        },
+        "retreat_below_readiness_bp": {
+          "$ref": "#/$defs/BasisPoints"
+        },
+        "route_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 72
+        },
+        "supply_source_ref": {
+          "$ref": "#/$defs/Ref"
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "army_ref",
+        "mission",
+        "target_ref",
+        "monthly_supply_cash_cap",
+        "retreat_below_readiness_bp"
+      ],
+      "additionalProperties": false
+    },
+    "Action": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Action_message"
+        },
+        {
+          "$ref": "#/$defs/Action_propose_treaty"
+        },
+        {
+          "$ref": "#/$defs/Action_withdraw_offer"
+        },
+        {
+          "$ref": "#/$defs/Action_sign_treaty"
+        },
+        {
+          "$ref": "#/$defs/Action_break_treaty"
+        },
+        {
+          "$ref": "#/$defs/Action_set_budget"
+        },
+        {
+          "$ref": "#/$defs/Action_start_project"
+        },
+        {
+          "$ref": "#/$defs/Action_manage_project"
+        },
+        {
+          "$ref": "#/$defs/Action_investigate"
+        },
+        {
+          "$ref": "#/$defs/Action_set_production"
+        },
+        {
+          "$ref": "#/$defs/Action_set_policy"
+        },
+        {
+          "$ref": "#/$defs/Action_propose_reform"
+        },
+        {
+          "$ref": "#/$defs/Action_market_order"
+        },
+        {
+          "$ref": "#/$defs/Action_allocate_compute"
+        },
+        {
+          "$ref": "#/$defs/Action_military_order"
+        },
+        {
+          "$ref": "#/$defs/Action_set_agenda"
+        }
+      ]
+    },
+    "Observation": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "const": "0.2"
+        },
+        "ruleset_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "content_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "generator_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "match_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "seat_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "observation_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "phase": {
+          "enum": [
+            "observe",
+            "negotiate",
+            "plan",
+            "resolve",
+            "ended"
+          ]
+        },
+        "negotiation_window": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "knowledge_version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "public_rules_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "treasury": {
+          "type": "object",
+          "properties": {
+            "available_cash": {
+              "$ref": "#/$defs/Amount"
+            },
+            "reserved_cash": {
+              "$ref": "#/$defs/Amount"
+            },
+            "unit": {
+              "const": "milli_credit"
+            }
+          },
+          "required": [
+            "available_cash",
+            "reserved_cash",
+            "unit"
+          ],
+          "additionalProperties": false
+        },
+        "inventories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InventoryView"
+          },
+          "minItems": 0,
+          "maxItems": 512
+        },
+        "culture_population_reports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CulturePopulationReport"
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "factions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FactionView"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProjectView"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        },
+        "known_technologies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KnownTechnology"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        },
+        "known_cultural_practices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KnownCulturalPractice"
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "leads": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Lead"
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "reports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Report"
+          },
+          "minItems": 0,
+          "maxItems": 512
+        },
+        "visible_entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EntityView"
+          },
+          "minItems": 0,
+          "maxItems": 512
+        },
+        "available_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ActionKind"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "world_commitment": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "cultural_profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CulturalProfileView"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        },
+        "known_religions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReligionView"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "religion_population_reports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReligionPopulationReport"
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "known_objectives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectiveView"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "active_objective_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "protocol_version",
+        "ruleset_version",
+        "content_version",
+        "generator_version",
+        "match_id",
+        "seat_id",
+        "observation_id",
+        "month",
+        "round",
+        "phase",
+        "negotiation_window",
+        "knowledge_version",
+        "public_rules_ref",
+        "treasury",
+        "inventories",
+        "culture_population_reports",
+        "factions",
+        "projects",
+        "known_technologies",
+        "known_cultural_practices",
+        "leads",
+        "reports",
+        "visible_entities",
+        "available_actions",
+        "world_commitment",
+        "cultural_profiles",
+        "known_religions",
+        "religion_population_reports",
+        "known_objectives",
+        "active_objective_refs"
+      ],
+      "additionalProperties": false
+    },
+    "CommandBatch": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "const": "0.2"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "seat_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "observation_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "phase": {
+          "enum": [
+            "negotiate",
+            "plan"
+          ]
+        },
+        "negotiation_window": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Action"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "protocol_version",
+        "match_id",
+        "seat_id",
+        "observation_id",
+        "round",
+        "phase",
+        "negotiation_window",
+        "idempotency_key",
+        "actions"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "phase": {
+                "const": "negotiate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actions": {
+                "maxItems": 8,
+                "items": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/Action_message"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_propose_treaty"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_withdraw_offer"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "negotiation_window": {
+                "const": 0
+              },
+              "actions": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/Action_sign_treaty"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_break_treaty"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_set_budget"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_start_project"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_manage_project"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_investigate"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_set_production"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_set_policy"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_propose_reform"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_market_order"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_allocate_compute"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_military_order"
+                    },
+                    {
+                      "$ref": "#/$defs/Action_set_agenda"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "QueryRequest": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "const": "0.2"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "seat_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "observation_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "query_kind": {
+          "enum": [
+            "entity",
+            "history",
+            "knowledge",
+            "reports",
+            "budget",
+            "objectives",
+            "cultures",
+            "religions"
+          ]
+        },
+        "target_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "protocol_version",
+        "match_id",
+        "seat_id",
+        "observation_id",
+        "query_kind"
+      ],
+      "additionalProperties": false
+    },
+    "QueryResponse": {
+      "type": "object",
+      "properties": {
+        "observation_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EntityView"
+              },
+              {
+                "$ref": "#/$defs/EventView"
+              },
+              {
+                "$ref": "#/$defs/KnownTechnology"
+              },
+              {
+                "$ref": "#/$defs/KnownCulturalPractice"
+              },
+              {
+                "$ref": "#/$defs/Report"
+              },
+              {
+                "$ref": "#/$defs/BudgetView"
+              },
+              {
+                "$ref": "#/$defs/CulturalProfileView"
+              },
+              {
+                "$ref": "#/$defs/ReligionView"
+              },
+              {
+                "$ref": "#/$defs/ObjectiveView"
+              }
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "observation_id",
+        "items",
+        "next_cursor"
+      ],
+      "additionalProperties": false
+    },
+    "ErrorCode": {
+      "enum": [
+        "INVALID_SCHEMA",
+        "STALE_OBSERVATION",
+        "WRONG_PHASE",
+        "ALREADY_SEALED",
+        "IDEMPOTENCY_CONFLICT",
+        "NOT_VISIBLE_OR_UNKNOWN",
+        "INSUFFICIENT_VISIBLE_BUDGET",
+        "CONFLICTING_ACTIONS",
+        "RATE_LIMITED",
+        "UNAUTHORIZED"
+      ]
+    },
+    "Receipt": {
+      "type": "object",
+      "properties": {
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "status": {
+          "enum": [
+            "sealed",
+            "rejected"
+          ]
+        },
+        "accepted_action_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/$defs/ErrorCode"
+              },
+              "action_id": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Ref"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "code",
+              "action_id",
+              "message"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/Ref"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "status",
+        "accepted_action_ids",
+        "errors",
+        "receipt_id"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "sealed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "errors": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "accepted_action_ids": {
+                "maxItems": 0
+              },
+              "errors": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ExecutionResult": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "pending",
+            "failed_condition",
+            "interrupted"
+          ]
+        },
+        "event_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "report_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        },
+        "public_reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "action_id",
+        "status",
+        "event_refs",
+        "report_refs",
+        "public_reason"
+      ],
+      "additionalProperties": false
+    },
+    "peace": {
+      "type": "object",
+      "properties": {
+        "clause_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "peace"
+        },
+        "parties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 2,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "ceasefire_end_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "transfers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "region_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "from_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "to_ref": {
+                "$ref": "#/$defs/Ref"
+              }
+            },
+            "required": [
+              "region_ref",
+              "from_ref",
+              "to_ref"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 72
+        },
+        "reparations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "payer_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "payee_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "amount": {
+                "$ref": "#/$defs/Amount"
+              }
+            },
+            "required": [
+              "payer_ref",
+              "payee_ref",
+              "amount"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "clause_id",
+        "kind",
+        "parties",
+        "ceasefire_end_month",
+        "transfers",
+        "reparations"
+      ],
+      "additionalProperties": false
+    },
+    "CulturalProfileView": {
+      "type": "object",
+      "properties": {
+        "culture_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "as_of_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "openness": {
+              "$ref": "#/$defs/Estimate"
+            },
+            "revisability": {
+              "$ref": "#/$defs/Estimate"
+            },
+            "exploration": {
+              "$ref": "#/$defs/Estimate"
+            },
+            "cultivation": {
+              "$ref": "#/$defs/Estimate"
+            },
+            "exchange": {
+              "$ref": "#/$defs/Estimate"
+            },
+            "martial": {
+              "$ref": "#/$defs/Estimate"
+            }
+          },
+          "required": [
+            "openness",
+            "revisability",
+            "exploration",
+            "cultivation",
+            "exchange",
+            "martial"
+          ],
+          "additionalProperties": false
+        },
+        "traditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "practice_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "known_effects": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "minItems": 0,
+                "maxItems": 16
+              }
+            },
+            "required": [
+              "practice_ref",
+              "label",
+              "known_effects"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "culture_ref",
+        "revision",
+        "name",
+        "as_of_month",
+        "attributes",
+        "traditions",
+        "evidence_refs"
+      ],
+      "additionalProperties": false
+    },
+    "ReligionView": {
+      "type": "object",
+      "properties": {
+        "religion_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "origin_region_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "known_belief_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "as_of_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "religion_ref",
+        "name",
+        "origin_region_ref",
+        "known_belief_refs",
+        "as_of_month"
+      ],
+      "additionalProperties": false
+    },
+    "ReligionPopulationReport": {
+      "type": "object",
+      "properties": {
+        "scope_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "as_of_month": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "coverage": {
+          "enum": [
+            "registered",
+            "surveyed"
+          ]
+        },
+        "total": {
+          "$ref": "#/$defs/Estimate"
+        },
+        "affiliations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "religion_ref": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Ref"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "population": {
+                "$ref": "#/$defs/Estimate"
+              },
+              "share_bp": {
+                "$ref": "#/$defs/BasisPoints"
+              }
+            },
+            "required": [
+              "religion_ref",
+              "population",
+              "share_bp"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "scope_ref",
+        "as_of_month",
+        "coverage",
+        "total",
+        "affiliations"
+      ],
+      "additionalProperties": false
+    },
+    "ObjectiveView": {
+      "type": "object",
+      "properties": {
+        "objective_ref": {
+          "$ref": "#/$defs/Ref"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "status": {
+          "enum": [
+            "available",
+            "active",
+            "completed",
+            "blocked"
+          ]
+        },
+        "known_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RequirementView"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "estimate": {
+                "$ref": "#/$defs/Estimate"
+              },
+              "as_of_month": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "label",
+              "estimate",
+              "as_of_month"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ref"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "objective_ref",
+        "label",
+        "status",
+        "known_requirements",
+        "metrics",
+        "evidence_refs"
+      ],
+      "additionalProperties": false
+    },
+    "Action_set_agenda": {
+      "type": "object",
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/Ref"
+        },
+        "kind": {
+          "const": "set_agenda"
+        },
+        "allocations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "objective_ref": {
+                "$ref": "#/$defs/Ref"
+              },
+              "priority_share_bp": {
+                "$ref": "#/$defs/BasisPoints"
+              }
+            },
+            "required": [
+              "objective_ref",
+              "priority_share_bp"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "action_id",
+        "kind",
+        "allocations"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

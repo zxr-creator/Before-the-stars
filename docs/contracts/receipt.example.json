@@ -1,0 +1,12 @@
+{
+  "idempotency_key": "batch_round8_plan_v1",
+  "status": "sealed",
+  "accepted_action_ids": [
+    "a_001",
+    "a_002",
+    "a_003",
+    "a_004"
+  ],
+  "errors": [],
+  "receipt_id": "rc_z52"
+}

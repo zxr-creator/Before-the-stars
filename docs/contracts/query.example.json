@@ -1,0 +1,9 @@
+{
+  "protocol_version": "0.2",
+  "match_id": "m_a83",
+  "seat_id": "s_c52",
+  "observation_id": "o_e91",
+  "query_kind": "entity",
+  "target_ref": "t_g02",
+  "limit": 20
+}
