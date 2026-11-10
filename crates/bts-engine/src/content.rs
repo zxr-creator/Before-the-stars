@@ -1404,11 +1404,11 @@ fn facilities() -> Vec<FacDef> {
             .req("T102").cost(&[(Metal, 5.0), (Conductors, 10.0), (Insulation, 3.0)]).work(150.0)
             .skilled(&[Q::Electrician], 1_000).provides(Cap::GridLink, 1.0)
             .upkeep(&[(Spares, 0.4)]).labor(L::Industry).tags(&[Tag::Electric]).max(1),
-        // Slice E: the jump programme draws about 23,200 units a month (3.2 GW
+        // Slice E: the jump programme draws about 21,200 units a month (2.9 GW
         // continuous: two lines 8,000, three nodes 3,000, the testbed 8,000, the
-        // high-energy laboratory 3,000, launch complex, station and yard 1,200).
-        // A level of these plants is a station of several units: twelve fission
-        // levels, four fusion levels or eight receivers carry the programme, each
+        // high-energy laboratory 1,000, launch complex, station and yard 1,200).
+        // A level of these plants is a station of several units: eleven fission
+        // levels, four fusion levels or seven receivers carry the programme, each
         // with its fuel, upkeep and qualified crew - a generating base, not a building.
         fac("fission", "Fission plant", "Power", "Safeguarded reactors: 2,000 units of steady electricity a level from three kilotonnes of rare minerals a month.")
             .req("T147 & C045").cost(&[(Metal, 160.0), (Components, 80.0), (Electronics, 40.0), (Conductors, 40.0), (Insulation, 20.0)]).work(4000.0)
@@ -1517,10 +1517,16 @@ fn facilities() -> Vec<FacDef> {
         // 1.0. Bills, work and upkeep were raised with the crews. One staffed
         // research post still gives one researcher-month, so the frontier output
         // of a works is at most its research staff.
-        fac("high_energy", "High-energy laboratory", "Research", "Accelerators, plasma devices and the sixty thousand people who can run them. Draws 3,000 units of electricity a month.")
+        // The design table asks 3,000 units of electricity. The first laboratory must
+        // run before fission is understood (fission, fusion and the plasma work are
+        // investigated there), on hydroelectric works and generator halls of about 54
+        // units a level; at 3,000 the all-native campaigns lost a third of the seats
+        // that completed the graph (docs/calibration/slice-e-*.txt). 1,000 units is ten
+        // times ruleset 1.0's draw and half a level of fission.
+        fac("high_energy", "High-energy laboratory", "Research", "Accelerators, plasma devices and the sixty thousand people who can run them. Draws 1,000 units of electricity a month.")
             .req("T146 & C045").cost(&[(Metal, 150.0), (Components, 80.0), (Electronics, 80.0), (Conductors, 80.0), (Instruments, 50.0)]).work(4000.0)
             .skilled(&[Q::Scientist], 40_000).skilled(&[Q::Technician], 12_000).skilled(&[Q::Electrician], 8_000)
-            .recipe(rec("frontier", "Frontier experiments").research(RC::Frontier, 60.0).elec(3000.0).compute(50.0))
+            .recipe(rec("frontier", "Frontier experiments").research(RC::Frontier, 60.0).elec(1000.0).compute(50.0))
             .upkeep(&[(Instruments, 6.0), (Electronics, 4.0), (Spares, 4.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Science]),
         // ---- space and jump engineering ----------------------------------
         fac("launch_complex", "Launch complex", "Space", "Pads, tracking and propellant handling worked by sixty thousand people. Keeps a launch cadence only while supplied.")
