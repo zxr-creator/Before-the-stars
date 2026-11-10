@@ -2,7 +2,7 @@
 // served from the same origin as the API (or through the Vite dev proxy), so
 // every URL is relative.
 import type {
-  Action, ApiErrorBody, MatchSummary, NewMatchRequest, Observation, Receipt, SeatId,
+  Action, AgentLogEntry, ApiErrorBody, MatchSummary, NewMatchRequest, Observation, Receipt, SeatId, SpectatorView,
 } from './protocol';
 
 export class ApiError extends Error {
@@ -98,6 +98,13 @@ export const api = {
     request<MatchSummary>('POST', '/api/ready', { seat, token: tokenOf(seat), through_round: throughRound }),
   delegate: (seat: SeatId, domains: string[]) =>
     request<MatchSummary>('POST', '/api/delegate', { seat, token: tokenOf(seat), domains }),
+  /** Observer matches only (403 otherwise; 404 on referees that predate observer mode). */
+  spectator: () => request<SpectatorView>('GET', '/api/spectator'),
+  /** Observer matches: run 1–20 more rounds (0 pauses). Answers at once; the match moves as its seats answer. */
+  advance: (rounds: number) => request<MatchSummary>('POST', '/api/advance', { rounds }),
+  /** App mode only: save and stop the local referee. */
+  shutdown: () => request<unknown>('POST', '/api/shutdown', {}),
+  agentLog: (seat: SeatId) => request<{ entries: AgentLogEntry[] }>('GET', `/api/agent-log?seat=${seat}`),
   saves: () => request<{ saves: string[] }>('GET', '/api/saves'),
   save: (name: string) => request<{ saved: string }>('POST', '/api/save', { name }),
   load: (name: string) => request<MatchSummary>('POST', '/api/load', { name }),

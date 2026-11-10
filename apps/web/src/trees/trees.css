@@ -1,0 +1,224 @@
+/* Technology and civics trees: a night star chart carrying parchment cards and
+   brass links. Ghostly outlines are questions not yet answered; solid parchment
+   is knowledge held; a gilt frame is knowledge in ordinary use. */
+
+.tree-overlay .fs-body { display: flex; min-width: 0; }
+.tree-main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.tree-kbd { background: rgba(0, 0, 0, 0.22); border-color: rgba(255, 255, 255, 0.22); color: inherit; font-size: 10px; padding: 0 4px; opacity: 0.8; }
+.fs-tab.is-active .tree-kbd { background: rgba(0, 0, 0, 0.12); border-color: rgba(0, 0, 0, 0.3); }
+.tree-count { font: 600 11.5px var(--sans); color: var(--brass-hi); white-space: nowrap; }
+
+/* --- queue strip -------------------------------------------------------------- */
+.tree-queue {
+  flex: none; height: 54px; display: flex; align-items: center; gap: 14px; padding: 0 14px; position: relative; z-index: 2;
+  background: linear-gradient(180deg, rgba(20, 26, 42, 0.96), rgba(27, 35, 56, 0.9)); border-bottom: 1px solid var(--night-0);
+  box-shadow: 0 1px 0 rgba(201, 162, 77, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.tree-queue-title { flex: none; display: inline-flex; align-items: center; gap: 6px; font: 600 12px var(--serif); font-variant-caps: small-caps; letter-spacing: 0.08em; color: var(--brass-hi); white-space: nowrap; }
+.tree-queue-items { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.tree-queue-empty { color: var(--cream-3); font: italic 12.5px var(--serif); white-space: nowrap; }
+.tree-q {
+  flex: none; width: 200px; display: flex; flex-direction: column; gap: 3px; padding: 5px 9px 6px; text-align: left; cursor: pointer; color: var(--cream);
+  border: 1px solid var(--night-line); border-radius: 7px; background: rgba(255, 255, 255, 0.05); transition: border-color 0.14s, background 0.14s;
+}
+.tree-q:hover:not(:disabled) { border-color: var(--brass); background: rgba(241, 218, 152, 0.1); }
+.tree-q:disabled { cursor: default; }
+.tree-q-name { font: 600 12px/1.2 var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.tree-q-name .icon { color: var(--warn-night); margin-right: 4px; }
+.tree-q-row { display: flex; align-items: center; gap: 6px; font: 10.5px/1 var(--sans); color: var(--cream-3); white-space: nowrap; }
+.tree-q-row b { color: var(--cream); font-variant-numeric: tabular-nums; }
+.tree-q-row .est { border-bottom-color: var(--cream-3); }
+.tree-q-bar { flex: 1; min-width: 30px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.tree-q-bar i { display: block; height: 100%; border-radius: 3px; background: var(--brass-grad); }
+.tree-q.is-blocked { border-color: rgba(242, 194, 100, 0.5); }
+.tree-q.is-adopting .tree-q-bar i { background: linear-gradient(180deg, #a9d59c, #5f9a4c); }
+.tree-queue-cap { flex: none; display: flex; align-items: center; gap: 6px; }
+.tree-cap { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 1px; padding: 3px 7px; cursor: help; border-radius: 6px; background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(0, 0, 0, 0.4); font: 600 9px/1.2 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cream-3); white-space: nowrap; }
+.tree-cap b { font: 600 13px/1.1 var(--serif); color: var(--cream); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.tree-cap b small { font: 500 10px var(--sans); color: var(--cream-3); }
+.tree-cap.is-idle { border-color: rgba(242, 194, 100, 0.55); }
+.tree-cap.is-idle b { color: var(--warn-night); }
+.tree-cap.is-idle:only-child { flex-direction: row; align-items: center; gap: 5px; color: var(--warn-night); text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+
+/* --- chart ---------------------------------------------------------------------- */
+.tree-viewport {
+  flex: 1; min-height: 0; position: relative; overflow: hidden; cursor: grab; outline: none; touch-action: none; user-select: none; -webkit-user-select: none;
+  background:
+    var(--stars), var(--stars) 30% 70% / 53% 61%,
+    repeating-linear-gradient(0deg, rgba(160, 180, 230, 0.045) 0 1px, transparent 1px 120px),
+    repeating-linear-gradient(90deg, rgba(160, 180, 230, 0.045) 0 1px, transparent 1px 120px),
+    radial-gradient(ellipse 80% 70% at 50% 0%, #283356, #121728 75%);
+}
+.tree-viewport.is-dragging { cursor: grabbing; }
+.tree-viewport:focus-visible { box-shadow: inset 0 0 0 2px rgba(241, 218, 152, 0.5); }
+.tree-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.tree-edges { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.tree-edge { fill: none; stroke: #c9a24d; stroke-width: 1.6; opacity: 0.6; stroke-linecap: round; }
+.tree-edge.is-long { stroke-dasharray: 2 6; stroke-width: 1.3; opacity: 0.3; }
+.tree-canvas.is-quiet .tree-edge { opacity: 0.12; }
+.tree-plate { position: absolute; border-radius: 14px; background: color-mix(in srgb, var(--g) 8%, transparent); border: 1px solid color-mix(in srgb, var(--g) 26%, transparent); pointer-events: none; }
+.tree-plate-label { position: absolute; left: 11px; right: 11px; top: 5px; font: 700 9px/1.4 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: color-mix(in srgb, var(--g) 80%, #fff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree-frontier-head { position: absolute; width: 264px; display: flex; flex-direction: column; gap: 1px; padding-left: 2px; color: var(--cream-3); font: italic 11.5px/1.35 var(--serif); pointer-events: none; }
+.tree-frontier-head b { display: inline-flex; align-items: center; gap: 6px; font: 600 15px var(--serif); font-style: normal; font-variant-caps: small-caps; letter-spacing: 0.1em; color: var(--brass-hi); }
+
+/* --- cards ------------------------------------------------------------------------ */
+.tcard {
+  position: absolute; display: flex; overflow: hidden; cursor: pointer; text-align: left; color: var(--ink); --g: var(--brass);
+  background: linear-gradient(180deg, #fbf6e6, #efe5cb); border: 1px solid #6f6248; border-radius: 9px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 6px 16px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.16s, opacity 0.16s, border-color 0.16s;
+}
+.tcard:hover { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 0 0 1px var(--brass-hi), 0 10px 24px rgba(0, 0, 0, 0.55); z-index: 2; }
+.tcard:focus-visible { outline: 2px solid #fff3c9; outline-offset: 2px; z-index: 3; }
+.tcard.is-selected { border-color: #fff3c9; box-shadow: 0 0 0 2px #fff3c9, 0 0 22px rgba(241, 218, 152, 0.7), 0 10px 24px rgba(0, 0, 0, 0.55) !important; z-index: 3; }
+.tcard.is-dim { opacity: 0.2; }
+.tcard-art { position: relative; flex: none; width: 78px; overflow: hidden; background: var(--paper-2); border-right: 1px solid rgba(60, 45, 20, 0.45); }
+.tcard-art::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), inset -8px 0 10px -8px rgba(0, 0, 0, 0.35); pointer-events: none; }
+.tcard-glyph { position: absolute; left: 5px; bottom: 5px; z-index: 1; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: #6b6257; box-shadow: 0 0 0 1.5px rgba(255, 250, 235, 0.9), 0 1px 3px rgba(0, 0, 0, 0.5); }
+.tcard-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 9px 7px 10px; box-shadow: inset 0 3px 0 var(--g); }
+.tcard-kicker { font: 700 8.5px/1.3 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: color-mix(in srgb, var(--g) 55%, #3b3226); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcard-name { font: 600 13.5px/1.2 var(--serif); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tcard-name.is-tall { -webkit-line-clamp: 3; margin-top: 2px; }
+.tcard-state { display: flex; align-items: center; gap: 6px; min-width: 0; font: 600 10px/1.3 var(--sans); margin-top: 1px; }
+.tcard-state-label { flex: none; padding: 0 6px; border-radius: 8px; background: rgba(43, 38, 32, 0.1); color: var(--ink-2); white-space: nowrap; }
+.tcard-state .badge { font-size: 9.5px; padding: 0 5px; margin: 0; }
+.tcard-class { color: var(--ink-3); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tcard-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 26px; font-size: 11px; min-width: 0; }
+.tcard-foot .btn-sm { min-height: 24px; padding: 2px 8px; font-size: 11px; flex: none; }
+.tcard-est, .tcard-since { color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10.5px; }
+.tcard-est.is-warn { color: var(--warn); }
+.tcard-lock { display: flex; align-items: center; gap: 4px; min-width: 0; color: inherit; opacity: 0.85; font-size: 10.5px; }
+.tcard-lock span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcard-progress-text { display: flex; align-items: baseline; gap: 7px; font-size: 11px; white-space: nowrap; }
+.tcard-progress-text b { font: 600 15px var(--serif); font-variant-numeric: tabular-nums; }
+.tcard-bar { position: absolute; left: 79px; right: 0; bottom: 0; height: 5px; background: rgba(0, 0, 0, 0.35); }
+.tcard-bar i { display: block; height: 100%; background: var(--brass-grad); box-shadow: 0 0 8px rgba(241, 218, 152, 0.8); }
+.tcard-enables { display: inline-flex; gap: 3px; flex: none; margin-left: auto; }
+.tcard-enable { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; flex: none; color: var(--cream); background: radial-gradient(circle at 35% 30%, #3a4672, #1b2338 75%); box-shadow: 0 0 0 1px var(--brass-lo); }
+.tcard-enable.is-more { font: 700 9px var(--sans); color: var(--brass-hi); }
+
+/* Not yet answered: a ghostly outline on the chart. */
+.tcard-hinted, .tcard-discovered, .pcard-recognized {
+  background: linear-gradient(180deg, rgba(50, 61, 100, 0.9), rgba(30, 38, 63, 0.93)); color: var(--cream);
+  border: 1px dashed rgba(201, 162, 77, 0.55); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+.tcard-hinted .tcard-art, .tcard-discovered .tcard-art, .pcard-recognized .tcard-art { background: #20283f; border-right-color: rgba(201, 162, 77, 0.3); }
+.tcard-hinted .tcard-art svg, .tcard-discovered .tcard-art svg, .pcard-recognized .tcard-art svg { filter: grayscale(0.85) brightness(0.8); opacity: 0.5; }
+.tcard-hinted .tcard-art svg { opacity: 0.28; }
+.tcard-hinted .tcard-name { font-style: italic; }
+.tcard-hinted .tcard-kicker, .tcard-discovered .tcard-kicker, .pcard-recognized .tcard-kicker, .tcard-investigating .tcard-kicker, .pcard-reforming .tcard-kicker, .tcard-lead .tcard-kicker { color: color-mix(in srgb, var(--g) 70%, #fff); }
+.tcard-hinted .tcard-state-label, .tcard-discovered .tcard-state-label, .pcard-recognized .tcard-state-label { background: rgba(255, 255, 255, 0.1); color: var(--cream-2); }
+.tcard-hinted .tcard-class, .tcard-discovered .tcard-class, .pcard-recognized .tcard-class, .tcard-hinted .tcard-est, .tcard-discovered .tcard-est, .pcard-recognized .tcard-est { color: var(--cream-3); }
+.tcard-hinted .est, .tcard-discovered .est, .pcard-recognized .est, .tcard-investigating .est, .pcard-reforming .est, .tcard-lead .est { border-bottom-color: var(--cream-3); }
+.tcard-discovered .tcard-est.is-warn { color: var(--warn-night); }
+.tcard-discovered .tcard-glyph, .pcard-recognized .tcard-glyph, .tcard-hinted .tcard-glyph { background: #46507a; box-shadow: 0 0 0 1.5px rgba(201, 162, 77, 0.6); color: var(--cream-2); }
+.tcard.can-act { border-style: solid; border-color: var(--brass); }
+.tcard.can-act .tcard-art svg { opacity: 0.75; filter: grayscale(0.5); }
+
+/* Being worked on: a brass frame and a filling bar. */
+.tcard-investigating, .pcard-reforming {
+  background: linear-gradient(180deg, #34406c, #232c4a); color: var(--cream); border: 1px solid var(--brass-hi);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 0 18px rgba(241, 218, 152, 0.28), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+.tcard-investigating .tcard-art svg, .pcard-reforming .tcard-art svg { filter: grayscale(0.35); }
+.tcard-investigating .tcard-state-label, .pcard-reforming .tcard-state-label { background: var(--brass-grad); color: var(--night-0); }
+.tcard-investigating .tcard-class, .pcard-reforming .tcard-class { color: var(--cream-3); }
+.tcard-investigating .tcard-glyph, .pcard-reforming .tcard-glyph { background: var(--brass-grad); color: var(--night-0); }
+.tcard-investigating .tcard-progress-text, .pcard-reforming .tcard-progress-text { color: var(--cream-2); }
+.tcard-investigating .tcard-progress-text b, .pcard-reforming .tcard-progress-text b { color: var(--brass-hi); }
+
+/* Held: solid, lit parchment. */
+.tcard-understood .tcard-glyph, .pcard-enacted .tcard-glyph { background: #4d7a3a; }
+.tcard-understood .tcard-state-label, .pcard-enacted .tcard-state-label { background: var(--ok-bg); color: #2f4d22; }
+.tcard-prototyped .tcard-glyph { background: #2f5d6e; }
+.tcard-prototyped .tcard-state-label { background: var(--info-bg); color: #24454f; }
+.tcard-prototyped { border-color: #4a6f7c; }
+
+/* In ordinary use: gilded. */
+.tcard-adopted, .pcard-established {
+  background: linear-gradient(180deg, #fff9e6, #f3e3b6); border-color: var(--brass-deep);
+  box-shadow: 0 0 0 1px var(--brass-hi), 0 0 0 2px var(--brass-lo), 0 0 14px rgba(241, 218, 152, 0.3), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+.tcard-adopted:hover, .pcard-established:hover { box-shadow: 0 0 0 1px #fff3c9, 0 0 0 2px var(--brass), 0 0 22px rgba(241, 218, 152, 0.55), 0 10px 24px rgba(0, 0, 0, 0.55); }
+.tcard-adopted .tcard-glyph, .pcard-established .tcard-glyph { background: var(--brass-grad); color: var(--night-0); box-shadow: 0 0 0 1.5px var(--brass-deep), 0 1px 3px rgba(0, 0, 0, 0.5); }
+.tcard-adopted .tcard-state-label, .pcard-established .tcard-state-label { background: var(--brass-grad); color: #3d2e0c; }
+.tcard-adopted .tcard-art, .pcard-established .tcard-art { border-right-color: var(--brass-lo); }
+.tcard-adopted::after, .pcard-established::after { content: ""; position: absolute; right: 6px; top: 7px; width: 7px; height: 7px; transform: rotate(45deg); background: var(--brass-grad); box-shadow: 0 0 0 1px var(--brass-deep); }
+
+/* Civics: adoption meter. */
+.pcard-adopt { display: inline-flex; align-items: center; gap: 5px; min-width: 0; flex: 1; }
+.pcard-meter { flex: 1; min-width: 20px; height: 5px; border-radius: 3px; background: rgba(43, 38, 32, 0.16); overflow: hidden; }
+.pcard-meter i { display: block; height: 100%; border-radius: 3px; background: #5f9a4c; }
+.pcard-established .pcard-meter i { background: var(--brass); }
+.pcard-recognized .pcard-meter, .pcard-reforming .pcard-meter { background: rgba(255, 255, 255, 0.14); }
+.pcard-adopt b { font-variant-numeric: tabular-nums; font-size: 10.5px; }
+
+/* Leads: mystery cards. */
+.tcard-lead { background: var(--stars), linear-gradient(180deg, #2c3760, #1a2138); color: var(--cream); border: 1px dashed var(--brass-hi); box-shadow: 0 0 16px rgba(241, 218, 152, 0.18), 0 6px 16px rgba(0, 0, 0, 0.4); }
+.tcard-lead .tcard-main { box-shadow: none; }
+.tcard-lead .tcard-name { -webkit-line-clamp: 3; }
+.tcard-lead .tcard-state-label { background: none; padding: 0; color: var(--cream-2); font-weight: 500; }
+.tcard-lead .tcard-class, .tcard-lead .tcard-est { color: var(--cream-3); }
+.tcard-art.is-mystery { display: grid; place-items: center; background: radial-gradient(circle at 50% 42%, #46538a, #151b2e 78%); border-right: 1px dashed rgba(241, 218, 152, 0.4); }
+.tcard-mystery { font: 600 44px/1 var(--serif); color: var(--brass-hi); text-shadow: 0 0 18px rgba(241, 218, 152, 0.7); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .tree-canvas.is-gliding { transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .tcard.can-act { animation: tree-call 2.6s ease-in-out infinite; }
+  .tcard-mystery { animation: tree-twinkle 3.2s ease-in-out infinite; }
+  .tcard-bar i { background-size: 200% 100%; background-image: linear-gradient(90deg, #cfa850, #fff3c9 50%, #cfa850); animation: tree-shimmer 2.2s linear infinite; }
+  @keyframes tree-call { 50% { box-shadow: 0 0 0 1px rgba(241, 218, 152, 0.7), 0 0 20px rgba(241, 218, 152, 0.4), 0 6px 16px rgba(0, 0, 0, 0.3); } }
+  @keyframes tree-twinkle { 50% { opacity: 0.6; } }
+  @keyframes tree-shimmer { to { background-position: -200% 0; } }
+}
+
+/* --- chart tools -------------------------------------------------------------------- */
+.tree-tools { position: absolute; left: 14px; bottom: 14px; z-index: 4; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 9px; background: var(--chrome); border: 1px solid var(--brass-lo); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 6px 16px rgba(0, 0, 0, 0.45); cursor: default; }
+.tree-tool { width: 28px; height: 28px; border: 0; border-radius: 6px; background: none; color: var(--cream-2); cursor: pointer; display: grid; place-items: center; transition: background 0.12s, color 0.12s; }
+.tree-tool:hover { background: rgba(241, 218, 152, 0.14); color: #fff; }
+.tree-zoom { min-width: 38px; text-align: center; font: 600 11px var(--sans); color: var(--cream-3); font-variant-numeric: tabular-nums; }
+.tree-hint { position: absolute; right: 14px; bottom: 14px; max-width: calc(100% - 210px); margin: 0; z-index: 3; padding: 5px 11px; border-radius: 13px; background: rgba(13, 17, 28, 0.78); border: 1px solid rgba(56, 67, 104, 0.9); font: 11px var(--sans); color: var(--cream-3); pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* --- detail drawer ------------------------------------------------------------------- */
+.tree-drawer { flex: none; width: 392px; max-width: 46vw; display: flex; flex-direction: column; min-height: 0; color: var(--ink); background: var(--grain), linear-gradient(180deg, #f9f3e3, var(--paper-3) 200px); border-left: 1px solid var(--brass-deep); box-shadow: -1px 0 0 rgba(241, 218, 152, 0.55), -14px 0 36px rgba(0, 0, 0, 0.5); z-index: 5; }
+.tree-drawer-head { flex: none; position: relative; background: var(--chrome); color: var(--cream); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
+.tree-drawer-head::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, var(--brass-hi), var(--brass) 40%, var(--brass-lo)); }
+.tree-drawer-art { height: 104px; overflow: hidden; background: var(--paper-2); box-shadow: 0 1px 0 var(--brass-lo); position: relative; }
+.tree-drawer-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20, 26, 42, 0) 55%, rgba(20, 26, 42, 0.55)); }
+.tree-drawer-x { position: absolute; right: 8px; top: 8px; z-index: 2; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--brass-lo); background: rgba(20, 26, 42, 0.8); color: var(--brass-hi); cursor: pointer; display: grid; place-items: center; }
+.tree-drawer-x:hover { background: rgba(42, 51, 84, 0.95); box-shadow: 0 0 10px rgba(241, 218, 152, 0.4); }
+.tree-drawer-title { padding: 9px 14px 11px; display: flex; flex-direction: column; gap: 3px; }
+.tree-drawer-kicker { font: 600 9.5px/1.3 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--brass); }
+.tree-drawer-title h3 { font-size: 20px; line-height: 1.2; color: #fffaf0; }
+.tree-drawer-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 3px; }
+.tree-drawer-badges .badge { margin: 0; }
+.tree-state { display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px 1px 7px; border-radius: 10px; font: 600 11px/1.6 var(--sans); background: rgba(255, 255, 255, 0.12); color: var(--cream); border: 1px solid var(--night-line); }
+.tree-state.is-investigating, .tree-state.is-reforming, .tree-state.is-adopted, .tree-state.is-established { background: var(--brass-grad); color: var(--night-0); border-color: var(--brass-deep); }
+.tree-state.is-understood, .tree-state.is-enacted { background: #4d7a3a; color: #fff; border-color: #2f4d22; }
+.tree-state.is-prototyped { background: #2f5d6e; color: #fff; border-color: #24454f; }
+.tree-drawer-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px 26px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.tree-state-help { font: italic 13px/1.45 var(--serif); color: var(--ink-2); margin: 0 0 12px; }
+.tree-block { margin: 0 0 15px; }
+.tree-block > header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-bottom: 4px; margin-bottom: 7px; background: linear-gradient(90deg, var(--brass-lo), var(--brass) 18%, rgba(201, 162, 77, 0.25) 70%, transparent) bottom / 100% 1px no-repeat; }
+.tree-block h4 { margin: 0; font: 600 14.5px/1.3 var(--serif); font-variant-caps: small-caps; letter-spacing: 0.06em; display: inline-flex; align-items: center; gap: 7px; }
+.tree-block h4::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: var(--brass-grad); box-shadow: 0 0 0 1px var(--brass-deep); }
+.tree-block-aside { font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+.tree-block .kv { grid-template-columns: 96px 1fr; }
+.tree-enable-list { display: grid; gap: 5px; margin-top: 7px; }
+.tree-enable-list li { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; }
+.tree-enable-list .tcard-enable { margin-top: -1px; }
+.tree-est-line { display: flex; align-items: center; gap: 5px; margin: 5px 0 0; font-size: 12px; }
+.tree-est-line.is-warn { color: var(--warn); }
+.tree-conn { display: grid; grid-template-columns: 70px 1fr; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+.tree-conn-label { font-size: 11.5px; color: var(--ink-3); }
+.tree-conn-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.tree-chip { border: 1px solid #c9b98f; background: linear-gradient(180deg, #fffdf6, var(--paper-4)); border-radius: 11px; padding: 1px 9px; font: 600 11.5px/1.5 var(--sans); color: var(--ink-2); cursor: pointer; text-align: left; transition: border-color 0.12s, color 0.12s; }
+.tree-chip:hover { border-color: var(--brass-lo); color: var(--accent-ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .tree-drawer { animation: slide-left 0.22s cubic-bezier(0.2, 0.7, 0.2, 1); }
+}
+@media (max-width: 1320px) {
+  .tree-drawer { width: 356px; }
+  .tree-q { width: 172px; }
+  .tree-hint { display: none; }
+}

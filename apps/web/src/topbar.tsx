@@ -1,20 +1,109 @@
-// Top bar: who you are, when it is, what phase the round is in, the stocks
-// that matter every round, and the two ways to hand time back to the referee.
-import { NEGOTIATION_WINDOWS } from './protocol';
-import type { Observation } from './protocol';
-import { GOOD_SHORT, PHASE_LABEL, int, milli, milliSigned, yearOf } from './format';
+// Top bar: whose seat this is, the year, and a ribbon of the stocks and
+// capacities that matter every round. Each chip carries a tooltip that says
+// what the number is, what moved it last round, and what is at risk.
+import type { ComponentChildren } from 'preact';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import type { Good, GoodLine, Observation } from './protocol';
+import { GOOD_LABEL, GOOD_SHORT, RESEARCH_LABEL, compact, int, milli, milliSigned, pct, yearOf } from './format';
 import { Icon } from './icons';
-import { Btn, SeatDot, cx } from './ui';
-import { humanSeatList, openPanel, ready, seatName, setMenu, switchSeat, useApp } from './store';
+import { SeatDot, Tick, cx } from './ui';
+import { humanSeatList, openOverlay, openPanel, seatName, setMenu, switchSeat, useApp, viewAsSeat } from './store';
+import type { PanelKey } from './store';
+import { getLocale, t, tc } from './i18n';
+import { Emblem } from './theme/emblem';
+import { GoodIcon } from './theme/goods';
 
-function nextLabel(obs: Observation): { label: string; hint: string } {
-  if (obs.phase === 'contact') return { label: 'Open negotiations', hint: 'Finish contact selection and open the first negotiation window' };
-  if (obs.phase === 'negotiate') {
-    return obs.window < NEGOTIATION_WINDOWS
-      ? { label: 'Next window', hint: `Close window ${obs.window} and open window ${obs.window + 1}` }
-      : { label: 'To planning', hint: 'Close the last negotiation window and move to planning' };
-  }
-  return { label: 'Finish planning', hint: 'Finish planning; the referee then resolves twelve months' };
+const BASIC: Good[] = ['food', 'materials', 'tools'];
+const ADVANCED: Good[] = ['metal', 'components', 'electronics', 'fuel'];
+
+// i18n-table
+const GOOD_BLURB: Partial<Record<Good, string>> = {
+  food: 'Everyone eats before anything else happens. What is left above the reserve feeds projects, programmes and trade.',
+  materials: 'Timber, stone and clay. Almost every building and repair draws on this store.',
+  tools: 'Worn down by work everywhere. Without tools, facilities and projects slow.',
+  metal: 'Structural metal for machines, rail, hulls and heavy building.',
+  components: 'Machined parts that industry, vehicles and equipment are assembled from.',
+  electronics: 'Devices for control, communication and computing.',
+  fuel: 'Refined fuel for engines, transport and launches.',
+};
+// i18n-end
+
+function netOf(g: GoodLine): number {
+  return g.produced - g.consumed + g.traded_in - g.traded_out;
+}
+
+interface YieldProps {
+  id: string;
+  icon: ComponentChildren;
+  label: string;
+  value: ComponentChildren;
+  sub?: ComponentChildren;
+  tone?: 'ok' | 'warn' | 'bad';
+  panel?: PanelKey;
+  onClick?: () => void;
+  right?: boolean;
+  testid?: string;
+  children: ComponentChildren;
+}
+
+function Yield({ id, icon, label, value, sub, tone, panel, onClick, right, testid, children }: YieldProps) {
+  return (
+    <div class={cx('yield', 'yield-' + id, tone && 'is-' + tone, right && 'tip-right')}>
+      <button type="button" class="yield-btn" aria-label={label} aria-describedby={`tip-${id}`} data-testid={testid ?? `yield-${id}`}
+        onClick={onClick ?? (() => panel && openPanel(panel))}>
+        <span class="yield-icon">{icon}</span>
+        <span class="yield-text">
+          <span class="yield-val">{value}</span>
+          <span class="yield-sub">{sub ?? label}</span>
+        </span>
+      </button>
+      <div class="yield-tip" role="tooltip" id={`tip-${id}`}>
+        <div class="tip-head"><span class="tip-icon">{icon}</span><b>{label}</b></div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Flow({ label, value, sign }: { label: string; value: number; sign: 1 | -1 }) {
+  if (!value) return null;
+  return <div class="tip-row"><span>{label}</span><b class={sign > 0 ? 'pos' : 'neg'}>{milliSigned(sign * value)}</b></div>;
+}
+
+function GoodYield({ g, obs, right }: { g: GoodLine; obs: Observation; right?: boolean }) {
+  const net = netOf(g);
+  const perMonth = g.consumed > 0 ? g.consumed / obs.months_per_round : 0;
+  const months = g.good === 'food' && perMonth > 0 ? g.stock / perMonth : null;
+  const low = g.good === 'food' && months !== null && months < 2;
+  const falling = net < 0 && g.stock + net * 2 <= 0;
+  const full = g.capacity !== null && g.capacity > 0 && g.stock >= g.capacity;
+  const tone = low || (falling && g.stock > 0) ? 'bad' : net < 0 ? 'warn' : undefined;
+  const delta = net === 0 ? null : <em class={net < 0 ? 'neg' : 'pos'}>{milliSigned(net)}</em>;
+  return (
+    <Yield id={g.good} icon={<GoodIcon good={g.good} size={21} />} label={t(GOOD_SHORT[g.good])} panel="economy" tone={tone} right={right}
+      value={<><Tick value={g.stock} format={(n) => milli(Math.round(n / 100) * 100)} />{delta}</>}
+      sub={g.good === 'food' && months !== null ? t('{n} mo in store', { n: months >= 100 ? '99+' : months.toFixed(1) }) : undefined}>
+      <p class="tip-lede">{t(GOOD_BLURB[g.good] ?? '')}</p>
+      <div class="tip-rows">
+        <div class="tip-row"><span>{t('In store')}</span><b>{milli(g.stock)}{g.capacity !== null ? <small> / {milli(g.capacity)}</small> : null}</b></div>
+        {months !== null ? <div class="tip-row"><span>{t('Lasts about')}</span><b>{t('{n} months', { n: months.toFixed(1) })}</b></div> : null}
+      </div>
+      <p class="tip-kicker">{t('Last round')}</p>
+      <div class="tip-rows">
+        <Flow label={t('Produced')} value={g.produced} sign={1} />
+        <Flow label={t('Consumed')} value={g.consumed} sign={-1} />
+        <Flow label={t('Received in trade')} value={g.traded_in} sign={1} />
+        <Flow label={t('Sent in trade')} value={g.traded_out} sign={-1} />
+        {!g.produced && !g.consumed && !g.traded_in && !g.traded_out ? <div class="tip-row"><span class="muted">{t('Nothing moved yet.')}</span></div> : null}
+        <div class="tip-row is-total"><span>{t('Net')}</span><b class={net < 0 ? 'neg' : net > 0 ? 'pos' : ''}>{milliSigned(net)}</b></div>
+      </div>
+      {low ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('Less than two months of food in store. Hunger costs lives and stability.')}</p>
+        : falling && g.stock > 0 ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('At this rate the store runs out within two rounds.')}</p>
+        : full ? <p class="tip-risk is-soft"><Icon name="info" size={12} /> {t('The store is full: anything more is lost until storage grows.')}</p>
+        : net < 0 ? <p class="tip-risk is-soft"><Icon name="info" size={12} /> {t('The store is being drawn down.')}</p> : null}
+      <p class="tip-foot">{t(GOOD_LABEL[g.good])} · {t('Click to open the economy')}</p>
+    </Yield>
+  );
 }
 
 export function TopBar() {
@@ -22,96 +111,157 @@ export function TopBar() {
   const obs = s.obs!;
   const summary = s.summary!;
   const civ = obs.civ;
-  const finished = obs.phase === 'finished';
+  const watching = s.mode === 'observe';
   const rounds = Math.round(obs.horizon / obs.months_per_round);
   const humans = humanSeatList();
-  const waitingOthers = (summary.waiting_on ?? []).filter((x) => x !== obs.seat);
-  const food = civ.goods.find((g) => g.good === 'food');
-  const foodPerMonth = food && food.consumed > 0 ? food.consumed / obs.months_per_round : 0;
-  const foodMonths = food && foodPerMonth > 0 ? food.stock / foodPerMonth : null;
-  const stocks = civ.goods.filter((g) => g.good === 'food' || g.good === 'materials' || g.good === 'tools');
-  const next = nextLabel(obs);
-  const stabTone = civ.stability >= 60 ? 'ok' : civ.stability >= 35 ? 'warn' : 'bad';
+  const line = (good: Good) => civ.goods.find((g) => g.good === good);
+  const basics = BASIC.map(line).filter((g): g is GoodLine => !!g);
+  const advanced = ADVANCED.map(line).filter((g): g is GoodLine => !!g && (g.stock > 0 || g.produced > 0 || g.consumed > 0));
+  const stabTone = civ.stability >= 60 ? undefined : civ.stability >= 35 ? 'warn' : 'bad';
+  const research = civ.research.filter((l) => l.capacity > 0 || l.used > 0);
+  const resCap = research.reduce((a, l) => a + l.capacity, 0);
+  const resUsed = research.reduce((a, l) => a + l.used, 0);
+  const idle = research.some((l) => l.capacity > 0 && l.used === 0);
+  const lab = civ.labor;
+  const free = Math.max(0, lab.working_age - lab.food - lab.students - lab.teachers - lab.soldiers);
+  const callable = Math.round((free * civ.mobilization_cap_bp * civ.policies.mobilization_bp) / 1e8);
+  const growth = civ.births_last_round - civ.deaths_last_round + civ.migration_last_round;
+
+  // The ribbon gives way before the civilization's name does: when the bar is too
+  // narrow, advanced goods leave first (last one first), then labour, then tools.
+  const bar = useRef<HTMLElement>(null);
+  const [drop, setDrop] = useState(0);
+  const [width, setWidth] = useState(window.innerWidth);
+  const maxDrop = advanced.length + 2;
+  const fitKey = `${obs.match_id}:${obs.seat}:${obs.round}:${advanced.length}:${width}:${getLocale()}:${watching}`;
+  const lastKey = useRef(fitKey);
+  useEffect(() => {
+    const on = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  useLayoutEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    if (lastKey.current !== fitKey) {
+      lastKey.current = fitKey;
+      if (drop !== 0) { setDrop(0); return; }
+    }
+    if (el.scrollWidth > el.clientWidth + 1 && drop < maxDrop) setDrop(drop + 1);
+  });
+  const shownAdvanced = advanced.slice(0, Math.max(0, advanced.length - drop));
+  const spare = Math.max(0, drop - advanced.length);
+  const shownBasics = spare >= 2 ? basics.filter((g) => g.good !== 'tools') : basics;
 
   return (
-    <header class="topbar">
-      <button type="button" class="topbar-menu" aria-label="Game menu" title="Game menu" data-testid="menu-button" onClick={() => setMenu(!s.menuOpen)}>
+    <header class="topbar" ref={bar}>
+      <button type="button" class="topbar-menu" aria-label={t('Game menu')} title={t('Game menu')} data-testid="menu-button" onClick={() => setMenu(!s.menuOpen)}>
         <Icon name="menu" size={18} />
       </button>
       <div class="topbar-civ">
-        <span class="civ-swatch" style={{ background: civ.color }} aria-hidden="true" />
+        <Emblem seat={obs.seat} color={civ.color} name={civ.name} size={32} />
         <div class="civ-text">
-          <span class="civ-name" data-testid="civ-name">{civ.name}</span>
-          {humans.length > 1 ? (
+          <span class="civ-name" data-testid="civ-name">{tc(civ.name)}</span>
+          {watching ? (
+            <span class="observing-badge" data-testid="observing-badge"><Icon name="eye" size={12} /> {t('Observing')}</span>
+          ) : humans.length > 1 ? (
             <span class="seat-switch">
               {humans.map((h) => (
                 <button type="button" class={cx('seat-chip', h === obs.seat && 'is-active')} disabled={h === obs.seat}
-                  title={h === obs.seat ? 'You are playing this seat' : `Switch to ${seatName(h)}`} data-testid={`seat-${h}`}
+                  title={h === obs.seat ? t('You are playing this seat') : t('Switch to {name}', { name: seatName(h) })} data-testid={`seat-${h}`}
                   onClick={() => void switchSeat(h)}>
                   <SeatDot color={summary.seats?.find((x) => x.seat === h)?.color ?? '#888'} size={8} />{seatName(h)}
                 </button>
               ))}
             </span>
           ) : (
-            <span class="civ-sub">{obs.status === 'active' ? 'Your civilization' : obs.status}</span>
+            <span class="civ-sub">{obs.status === 'active' ? t('Your civilization') : t(obs.status === 'eliminated' ? 'Eliminated' : 'Forfeited')}</span>
           )}
         </div>
       </div>
 
-      <div class="topbar-date" title={`Month ${obs.month} of ${obs.horizon}`}>
-        <span class="date-year" data-testid="year">Year {yearOf(obs.month)}</span>
-        <span class="date-round">Round {int(obs.round)} of {int(rounds)}</span>
+      <div class="topbar-date" title={t('Month {m} of {h}', { m: obs.month, h: obs.horizon })}>
+        <span class="date-year" data-testid="year">{t('Year {n}', { n: yearOf(obs.month) })}</span>
+        <span class="date-round">{t('Round {r} of {n}', { r: int(obs.round), n: int(rounds) })}</span>
       </div>
 
-      <div class="phase" role="group" aria-label={`Phase: ${PHASE_LABEL[obs.phase]}${obs.window ? `, window ${obs.window} of ${NEGOTIATION_WINDOWS}` : ''}`} data-testid="phase" data-phase={obs.phase} data-window={obs.window}>
-        <span class={cx('phase-step', obs.phase === 'contact' && 'is-now')} title="Contact selection: choose up to three counterparts for this round">Contact</span>
-        <span class={cx('phase-step', obs.phase === 'negotiate' && 'is-now')} title="Negotiation: five simultaneous windows, one envelope per counterpart per window">
-          Negotiate
-          <span class="phase-windows" aria-hidden="true">
-            {Array.from({ length: NEGOTIATION_WINDOWS }, (_, i) => (
-              <i class={cx('phase-win', obs.phase === 'negotiate' && obs.window === i + 1 && 'is-now', (obs.phase === 'plan' || (obs.phase === 'negotiate' && obs.window > i + 1)) && 'is-done')}>{i + 1}</i>
-            ))}
-          </span>
-        </span>
-        <span class={cx('phase-step', obs.phase === 'plan' && 'is-now')} title="Planning: orders are settled, then twelve months are resolved">Plan</span>
-        {finished ? <span class="phase-step is-now">Finished</span> : null}
-      </div>
-
-      <div class="topbar-stats">
-        {stocks.map((g) => {
-          const net = g.produced - g.consumed + g.traded_in - g.traded_out;
-          const low = g.good === 'food' && foodMonths !== null && foodMonths < 2;
-          return (
-            <button type="button" class={cx('tstat', 'tstat-' + g.good, low && 'is-bad')} onClick={() => openPanel('economy')}
-              title={`${GOOD_SHORT[g.good]} in store: ${milli(g.stock)} units. Net last round: ${milliSigned(net)} units.${g.good === 'food' && foodMonths !== null ? ` About ${foodMonths.toFixed(1)} months of consumption in store.` : ''}`}>
-              <span class="tstat-label">{GOOD_SHORT[g.good]}</span>
-              <span class="tstat-value">{milli(g.stock)}<small class={net < 0 ? 'neg' : 'pos'}>{net === 0 ? '' : ' ' + milliSigned(net)}</small></span>
+      {watching ? (
+        <div class="observer-switch" role="group" aria-label={t('Observed civilization')}>
+          {s.spectatorSupported ? (
+            <button type="button" class="obs-world" data-testid="observer-world" title={t('Back to the world view')} onClick={() => void viewAsSeat(null)}>
+              <Icon name="globe" size={14} /><span>{t('World view')}</span>
             </button>
-          );
-        })}
-        <button type="button" class="tstat" onClick={() => openPanel('people')} title={`Population: ${int(civ.population)} people (${int(civ.working_age)} of working age)`}>
-          <span class="tstat-label">People</span>
-          <span class="tstat-value" data-testid="population">{int(civ.population)}</span>
-        </button>
-        <button type="button" class={cx('tstat', 'tstat-stab', 'is-' + stabTone)} onClick={() => openPanel('politics')} title={`Stability ${civ.stability} of 100`}>
-          <span class="tstat-label">Stability</span>
-          <span class="tstat-value">{civ.stability}<small> /100</small></span>
-        </button>
-      </div>
+          ) : null}
+          {(summary.seats ?? []).map((x) => (
+            <button type="button" class={cx('obs-seat', x.seat === obs.seat && 'is-active')} aria-pressed={x.seat === obs.seat}
+              title={t('View as {name}', { name: tc(x.name) })} data-testid={`observer-seat-${x.seat}`} onClick={() => void viewAsSeat(x.seat)}>
+              <Emblem seat={x.seat} color={x.color} name={x.name} size={18} />
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-      <div class="topbar-actions">
-        {finished ? (
-          <span class="waiting"><Icon name="flag" size={14} /> Match finished</span>
-        ) : obs.ready ? (
-          <span class="waiting" data-testid="waiting"><Icon name="clock" size={14} /> Waiting for {waitingOthers.length ? waitingOthers.map(seatName).join(', ') : 'the referee'}</span>
-        ) : (
-          <>
-            <Btn kind="default" title={next.hint} disabled={s.advancing || s.busy} testid="next-phase" onClick={() => void ready(false)}>{next.label}</Btn>
-            <Btn kind="primary" icon="hourglass" title="Pass every remaining phase and resolve twelve months" disabled={s.advancing || s.busy} testid="end-round" onClick={() => void ready(true)}>
-              {s.advancing ? 'Resolving…' : 'End round'}
-            </Btn>
-          </>
-        )}
+      <div class="yields" data-tut="yields" role="group" aria-label={t('Stocks and capacities')}>
+        {shownBasics.map((g) => <GoodYield g={g} obs={obs} />)}
+        {shownAdvanced.map((g) => <GoodYield g={g} obs={obs} />)}
+        <span class="yield-sep" aria-hidden="true" />
+        <Yield id="population" icon={<Icon name="people" size={20} />} label={t('Population')} panel="people" right
+          value={<><span data-testid="population"><Tick value={civ.population} format={(n) => int(Math.round(n))} /></span>{growth ? <em class={growth < 0 ? 'neg' : 'pos'}>{(growth > 0 ? '+' : '−') + int(Math.abs(growth))}</em> : null}</>}>
+          <p class="tip-lede">{t('Everyone your government answers for. Only people of working age can work, study, teach or serve.')}</p>
+          <div class="tip-rows">
+            <div class="tip-row"><span>{t('Children')}</span><b>{int(civ.children)}</b></div>
+            <div class="tip-row"><span>{t('Working age')}</span><b>{int(civ.working_age)}</b></div>
+            <div class="tip-row"><span>{t('Elders')}</span><b>{int(civ.elders)}</b></div>
+          </div>
+          <p class="tip-kicker">{t('Last round')}</p>
+          <div class="tip-rows">
+            <div class="tip-row"><span>{t('Births')}</span><b class="pos">+{int(civ.births_last_round)}</b></div>
+            <div class="tip-row"><span>{t('Deaths')}</span><b class="neg">−{int(civ.deaths_last_round)}</b></div>
+            {civ.migration_last_round ? <div class="tip-row"><span>{t('Migration')}</span><b class={civ.migration_last_round < 0 ? 'neg' : 'pos'}>{(civ.migration_last_round > 0 ? '+' : '−') + int(Math.abs(civ.migration_last_round))}</b></div> : null}
+          </div>
+          {civ.food_fulfillment_bp < 9500 ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('Only {p} of food needs were met. People are going hungry.', { p: pct(civ.food_fulfillment_bp) })}</p> : null}
+          {civ.water_fulfillment_bp < 9500 ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('Only {p} of water needs were met.', { p: pct(civ.water_fulfillment_bp) })}</p> : null}
+          <p class="tip-foot">{t('Click to open people and education')}</p>
+        </Yield>
+        <Yield id="stability" icon={<Icon name="balance" size={20} />} label={t('Stability')} panel="politics" tone={stabTone} right
+          value={<><Tick value={civ.stability} format={(n) => String(Math.round(n))} /><small> /100</small></>}>
+          <p class="tip-lede">{t('How far people accept being governed. Hunger, unmet demands and occupation wear it down; kept promises restore it.')}</p>
+          <div class="tip-rows">
+            <div class="tip-row"><span>{t('Administrative load')}</span><b class={civ.admin_load > civ.admin_capacity ? 'neg' : ''}>{compact(civ.admin_load)} / {compact(civ.admin_capacity)}</b></div>
+            <div class="tip-row"><span>{t('Food needs met')}</span><b>{pct(civ.food_fulfillment_bp)}</b></div>
+            <div class="tip-row"><span>{t('Water needs met')}</span><b>{pct(civ.water_fulfillment_bp)}</b></div>
+          </div>
+          {stabTone ? <p class="tip-risk"><Icon name="warn" size={12} /> {t(stabTone === 'bad' ? 'Stability is dangerously low: expect unrest, refusals and flight.' : 'Stability is slipping. Look at what the factions are asking for.')}</p> : null}
+          <p class="tip-foot">{t('Click to open politics')}</p>
+        </Yield>
+        <Yield id="research" icon={<Icon name="flask" size={20} />} label={t('Research')} tone={idle ? 'warn' : undefined} right onClick={() => openOverlay('tech')}
+          value={resCap > 0 ? <>{compact(resUsed / 1000)}<small> / {compact(resCap / 1000)}</small></> : <span class="yield-none">—</span>}
+          sub={resCap > 0 ? t('research in use') : undefined}>
+          <p class="tip-lede">{t('Work per month that qualified people can put into investigations. It is not a currency: unused capacity is simply lost.')}</p>
+          {research.length ? (
+            <div class="tip-rows">
+              {research.map((l) => <div class="tip-row"><span>{t(RESEARCH_LABEL[l.class])}</span><b class={l.capacity > 0 && l.used === 0 ? 'warn-text' : ''}>{compact(l.used / 1000)} / {compact(l.capacity / 1000)}</b></div>)}
+            </div>
+          ) : <p class="tip-risk is-soft"><Icon name="info" size={12} /> {t('No research capacity yet. Qualified people staffing a makers’ circle or an institute provide it.')}</p>}
+          {idle ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('Some capacity is idle. Start an investigation or follow up a lead.')}</p> : null}
+          <p class="tip-foot">{t('Click to open the technology tree')}</p>
+        </Yield>
+        {spare >= 1 ? null : <Yield id="labour" icon={<Icon name="labour" size={20} />} label={t('Callable labour')} panel="economy" right
+          value={<><Tick value={lab.projects} format={(n) => int(Math.round(n))} /><small> / {int(Math.max(callable, lab.projects))}</small></>}
+          sub={t('on projects')}>
+          <p class="tip-lede">{t('Food comes first. Of the labour left over, custom lets the government call up only a share for public projects; the rest staffs facilities.')}</p>
+          <div class="tip-rows">
+            <div class="tip-row"><span>{t('Growing and gathering food')}</span><b>{int(lab.food)}</b></div>
+            <div class="tip-row"><span>{t('Staffing facilities')}</span><b>{int(lab.facilities)}</b></div>
+            <div class="tip-row"><span>{t('On public projects')}</span><b>{int(lab.projects)}</b></div>
+            <div class="tip-row"><span>{t('Students and teachers')}</span><b>{int(lab.students + lab.teachers)}</b></div>
+            <div class="tip-row"><span>{t('Soldiers')}</span><b>{int(lab.soldiers)}</b></div>
+            <div class="tip-row"><span>{t('Household and unassigned')}</span><b>{int(lab.household)}</b></div>
+            <div class="tip-row is-total"><span>{t('Call-up cap by custom')}</span><b>{pct(civ.mobilization_cap_bp)}</b></div>
+            <div class="tip-row"><span>{t('Callable now (estimate)')}</span><b>≈ {int(callable)}</b></div>
+          </div>
+          <p class="tip-foot">{t('Click to open the economy')}</p>
+        </Yield>}
       </div>
     </header>
   );

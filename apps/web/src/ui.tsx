@@ -1,10 +1,13 @@
 // Shared interface primitives. Plain Preact components over hand-written CSS.
 import type { ComponentChildren, JSX } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { Icon } from './icons';
-import { GOOD_SHORT, compact, milli } from './format';
+import { GOOD_LABEL, GOOD_SHORT, compact, milli } from './format';
 import type { Check, Epistemic, GoodQty, KnownRequirement, RegionId } from './protocol';
-import { getState, selectRegion, useApp } from './store';
+import { getState, isReadOnly, selectRegion, useApp } from './store';
+import { t, tc } from './i18n';
+import { GoodIcon } from './theme/goods';
+import { Emblem } from './theme/emblem';
 
 type Children = { children?: ComponentChildren };
 
@@ -27,12 +30,21 @@ export interface BtnProps extends Children {
   testid?: string;
   pressed?: boolean;
   type?: 'button' | 'submit';
+  /** Navigation only (opens, closes, shows): stays enabled while observing a seat. */
+  nav?: boolean;
 }
 
-export function Btn({ kind = 'default', small, icon, disabled, why, title, onClick, children, class: cls, testid, pressed, type = 'button' }: BtnProps) {
+/** Icons that only ever mean "look somewhere else": such buttons stay live for an observer. */
+const NAV_ICONS = new Set(['close', 'left', 'right', 'up', 'down', 'pin', 'eye', 'search']);
+export const OBSERVING = 'You are observing';
+
+export function Btn({ kind = 'default', small, icon, disabled, why, title, onClick, children, class: cls, testid, pressed, type = 'button', nav }: BtnProps) {
+  // While observing, every control that could give an order is disabled and says why.
+  const watching = isReadOnly() && !nav && !(icon && NAV_ICONS.has(icon) && (!children || icon === 'pin'));
+  if (watching) why = t(OBSERVING);
   const off = disabled || !!why;
   return (
-    <button type={type} class={cx('btn', 'btn-' + kind, small && 'btn-sm', !children && 'btn-icon', cls)}
+    <button type={type} class={cx('btn', 'btn-' + kind, small && 'btn-sm', !children && 'btn-icon', watching && 'is-observing', cls)}
       disabled={off} title={why || title} aria-label={!children ? title : undefined}
       aria-pressed={pressed === undefined ? undefined : pressed}
       data-testid={testid} onClick={off ? undefined : onClick}>
@@ -55,14 +67,16 @@ export function Stepper({ value, min, max, step = 1, onChange, label, unit, disa
   disabled?: boolean; testid?: string;
 }) {
   const clamp = (v: number) => Math.max(min, Math.min(max, v));
+  const watching = isReadOnly();
+  if (watching) disabled = true;
   return (
-    <span class="stepper" role="group" aria-label={label} data-testid={testid}>
-      <button type="button" class="stepper-btn" disabled={disabled || value <= min} aria-label={`Lower ${label}`}
+    <span class="stepper" role="group" aria-label={label} data-testid={testid} title={watching ? t(OBSERVING) : undefined}>
+      <button type="button" class="stepper-btn" disabled={disabled || value <= min} aria-label={t('Lower {label}', { label })}
         data-testid={testid ? testid + '-dec' : undefined} onClick={() => onChange(clamp(value - step))}>
         <Icon name="minus" size={12} />
       </button>
       <span class="stepper-val" aria-live="polite">{value}{unit ? <small> {unit}</small> : null}</span>
-      <button type="button" class="stepper-btn" disabled={disabled || value >= max} aria-label={`Raise ${label}`}
+      <button type="button" class="stepper-btn" disabled={disabled || value >= max} aria-label={t('Raise {label}', { label })}
         data-testid={testid ? testid + '-inc' : undefined} onClick={() => onChange(clamp(value + step))}>
         <Icon name="plus" size={12} />
       </button>
@@ -206,17 +220,17 @@ export function Badge({ tone = 'muted', icon, children, title }: Children & { to
 
 /** A value that is an estimate, report or forecast rather than a verified fact. */
 export function Est({ children, kind = 'estimated', title }: Children & { kind?: Epistemic | string; title?: string }) {
-  const label = kind === 'reported' ? 'Reported, not verified' : kind === 'forecast' ? 'Forecast' : kind === 'unknown' ? 'Unknown' : 'Estimate';
+  const label = t(kind === 'reported' ? 'Reported, not verified' : kind === 'forecast' ? 'Forecast' : kind === 'unknown' ? 'Unknown' : 'Estimate');
   return <span class={cx('est', 'est-' + kind)} title={title ?? label}>{children}</span>;
 }
 
 /** Marks a number as verified or not, by the protocol's epistemic label. */
 export function EpistemicTag({ kind }: { kind: Epistemic }) {
-  if (kind === 'verified') return <Badge tone="ok" icon="check" title="Verified by our own records">Verified</Badge>;
-  if (kind === 'reported') return <Badge tone="warn" icon="question" title="A claim received, not verified">Reported</Badge>;
-  if (kind === 'estimated') return <Badge tone="info" title="Estimated from partial evidence">≈ Estimated</Badge>;
-  if (kind === 'forecast') return <Badge tone="info" title="A forecast, not an observation">Forecast</Badge>;
-  return <Badge tone="muted" title="No evidence">Unknown</Badge>;
+  if (kind === 'verified') return <Badge tone="ok" icon="check" title={t('Verified by our own records')}>{t('Verified')}</Badge>;
+  if (kind === 'reported') return <Badge tone="warn" icon="question" title={t('A claim received, not verified')}>{t('Reported')}</Badge>;
+  if (kind === 'estimated') return <Badge tone="info" title={t('Estimated from partial evidence')}>{t('≈ Estimated')}</Badge>;
+  if (kind === 'forecast') return <Badge tone="info" title={t('A forecast, not an observation')}>{t('Forecast')}</Badge>;
+  return <Badge tone="muted" title={t('No evidence')}>{t('Unknown')}</Badge>;
 }
 
 export function Meter({ value, max = 1, tone = 'accent', label, height = 8, mark }: {
@@ -254,19 +268,19 @@ export function Checklist({ items, unknown }: { items: (KnownRequirement | Check
     <ul class="checklist">
       {items.map((it) => {
         const ok = 'satisfied' in it ? it.satisfied : it.ok;
-        const text = 'text' in it ? it.text : it.label;
-        const detail = 'detail' in it ? it.detail : null;
+        const text = tc('text' in it ? it.text : it.label);
+        const detail = 'detail' in it ? tc(it.detail) : null;
         return (
           <li class={ok ? 'is-ok' : 'is-missing'}>
             <span class="check-mark" aria-hidden="true"><Icon name={ok ? 'check' : 'cross'} size={12} /></span>
-            <span><span class="sr-only">{ok ? 'Met: ' : 'Not met: '}</span>{text}{detail ? <small class="check-detail"> {detail}</small> : null}</span>
+            <span><span class="sr-only">{ok ? t('Met: ') : t('Not met: ')}</span>{text}{detail ? <small class="check-detail"> {detail}</small> : null}</span>
           </li>
         );
       })}
       {unknown ? (
         <li class="is-unknown">
           <span class="check-mark" aria-hidden="true"><Icon name="question" size={12} /></span>
-          <span>Further knowledge not yet identified</span>
+          <span>{t('Further knowledge not yet identified')}</span>
         </li>
       ) : null}
     </ul>
@@ -274,12 +288,12 @@ export function Checklist({ items, unknown }: { items: (KnownRequirement | Check
 }
 
 /** "12 Tools · 3.5 Materials" from milli-unit quantities. */
-export function GoodsList({ items, per, empty = 'none' }: { items: GoodQty[]; per?: string; empty?: string }) {
-  if (!items.length) return <span class="muted">{empty}</span>;
+export function GoodsList({ items, per, empty }: { items: GoodQty[]; per?: string; empty?: string }) {
+  if (!items.length) return <span class="muted">{empty ?? t('none')}</span>;
   return (
     <span class="goods-list">
       {items.map((g, i) => (
-        <span class="goods-item">{i ? <span class="sep"> · </span> : null}<b>{milli(g.amount)}</b> {GOOD_SHORT[g.good]}</span>
+        <span class="goods-item" title={t(GOOD_LABEL[g.good] ?? g.good)}>{i ? <span class="sep"> · </span> : null}<GoodIcon good={g.good} size={13} /> <b>{milli(g.amount)}</b> {t(GOOD_SHORT[g.good] ?? g.good)}</span>
       ))}
       {per ? <span class="muted"> {per}</span> : null}
     </span>
@@ -293,9 +307,10 @@ export function work(n: number): string {
 
 export function RegionLink({ id, children }: Children & { id: RegionId }) {
   const obs = getState().obs;
-  const name = obs?.regions.find((r) => r.id === id)?.name ?? 'Unmapped land';
+  const raw = obs?.regions.find((r) => r.id === id)?.name;
+  const name = raw ? tc(raw) : t('Unmapped land');
   return (
-    <button type="button" class="linklike region-link" title="Show on the map" onClick={(e) => {
+    <button type="button" class="linklike region-link" title={t('Show on the map')} onClick={(e) => {
       e.stopPropagation();
       selectRegion(id, true);
     }}>
@@ -309,17 +324,17 @@ export function ActionNote({ tag }: { tag: string }) {
   const { lastResult } = useApp();
   if (!lastResult || lastResult.tag !== tag) return null;
   const rejected = lastResult.receipts.filter((r) => r.status !== 'accepted' && r.status !== 'applied');
-  if (lastResult.error) return <p class="action-note is-bad" role="alert"><Icon name="cross" size={12} /> {lastResult.error}</p>;
+  if (lastResult.error) return <p class="action-note is-bad" role="alert"><Icon name="cross" size={12} /> {tc(lastResult.error)}</p>;
   if (rejected.length) {
     return (
       <div class="action-note is-bad" role="alert">
-        {rejected.map((r) => <p><Icon name="cross" size={12} /> Not accepted: {r.reason}</p>)}
+        {rejected.map((r) => <p><Icon name="cross" size={12} /> {t('Not accepted: {reason}', { reason: tc(r.reason) })}</p>)}
       </div>
     );
   }
   const ok = lastResult.receipts[lastResult.receipts.length - 1];
   if (!ok) return null;
-  return <p class="action-note is-ok" role="status"><Icon name="check" size={12} /> {ok.reason}</p>;
+  return <p class="action-note is-ok" role="status"><Icon name="check" size={12} /> {tc(ok.reason)}</p>;
 }
 
 export function KV({ k, children, title }: Children & { k: string; title?: string }) {
@@ -328,8 +343,46 @@ export function KV({ k, children, title }: Children & { k: string; title?: strin
   );
 }
 
+/**
+ * A civilization's mark beside its name. At reading sizes it is the seat's
+ * heraldic emblem (looked up by colour); very small marks stay a plain dot.
+ */
 export function SeatDot({ color, size = 10 }: { color: string; size?: number }) {
+  const seat = size >= 9 ? getState().summary?.seats?.find((x) => x.color === color) : undefined;
+  if (seat) return <span class="seat-mark" aria-hidden="true"><Emblem seat={seat.seat} color={color} name={seat.name} size={Math.round(size * 1.45)} /></span>;
   return <span class="seat-dot" style={{ background: color, width: size + 'px', height: size + 'px' }} aria-hidden="true" />;
+}
+
+/** A civilization's emblem by seat, from whatever the client currently knows about it. */
+export function SeatEmblem({ seat, size = 24, title }: { seat: number; size?: number; title?: string }) {
+  const st = getState();
+  const row = st.summary?.seats?.find((x) => x.seat === seat);
+  const color = row?.color ?? st.spectator?.civs.find((c) => c.seat === seat)?.color ?? '#8a7d6a';
+  return <Emblem seat={seat} color={color} name={row?.name ?? ''} size={size} title={title} />;
+}
+
+/** A number that counts up or down to its new value instead of jumping. */
+export function Tick({ value, format }: { value: number; format: (n: number) => string }) {
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
+  useEffect(() => {
+    const start = from.current;
+    from.current = value;
+    if (start === value) return;
+    const still = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still || typeof requestAnimationFrame === 'undefined') { setShown(value); return; }
+    let raf = 0;
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / 520);
+      const e = 1 - Math.pow(1 - k, 3);
+      setShown(k >= 1 ? value : start + (value - start) * e);
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{format(shown)}</>;
 }
 
 export type Jsx = JSX.Element;

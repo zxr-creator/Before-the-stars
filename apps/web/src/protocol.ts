@@ -782,6 +782,23 @@ export interface SeatSummary {
   /** Domains this seat has delegated to a steward. */
   delegates?: string[];
   token?: string;
+  /** Present (non-null) when an LLM agent plays this seat. (newer referees) */
+  agent?: AgentInfo | null;
+}
+
+export type AgentState = 'idle' | 'thinking' | 'error' | 'stopped';
+
+export interface AgentInfo {
+  provider: string;
+  model: string;
+  consult_every: number;
+  state: AgentState;
+  last_note: string;
+  calls: number;
+  /** "error" = the agent failed and will be tried again next round; "stopped" = the steward carries on alone. */
+  last_error: string | null;
+  /** Seconds the agent has been thinking, while `state` is "thinking". */
+  thinking_seconds?: number | null;
 }
 
 export interface MatchSummary {
@@ -803,9 +820,26 @@ export interface MatchSummary {
   versions?: string[];
   /** Domains a human or external seat may hand to a steward (POST /api/delegate). */
   steward_domains?: string[];
+  /** True when no seat is human: the client is a spectator console. (newer referees) */
+  observer_allowed?: boolean;
+  /** Observer matches: the referee keeps resolving rounds until this round is reached. */
+  autoplay_until?: number;
+  /** True when the referee runs as a desktop-style app and may be shut down from the menu. */
+  app_mode?: boolean;
 }
 
-export type SetupController = 'human' | 'external' | 'easy' | 'medium' | 'hard';
+export type AgentProvider = 'claude-api' | 'claude-code' | 'codex' | 'openai-api';
+export type SetupController = 'human' | 'external' | 'easy' | 'medium' | 'hard' | AgentProvider;
+
+export interface AgentOptions {
+  model?: string;
+  /** The agent is consulted every N rounds; a built-in steward runs the seat in between. */
+  consult_every?: number;
+  /** Kept in server memory only. Never stored by the client. */
+  api_key?: string;
+  base_url?: string;
+  effort?: string;
+}
 
 export interface NewMatchRequest {
   seed?: string;
@@ -814,6 +848,103 @@ export interface NewMatchRequest {
   pace_bp?: number;
   controllers?: SetupController[];
   disclosed_objective?: boolean;
+  /** Per-seat LLM agent settings, keyed by seat index as a string. */
+  agent_options?: Record<string, AgentOptions>;
+}
+
+// --- Observer (spectator) mode: GET /api/spectator, POST /api/advance, GET /api/agent-log ---
+
+export interface SpectatorCiv {
+  seat: SeatId;
+  name: string;
+  adjective: string;
+  color: string;
+  /** Controller kind as the referee names it; LLM agent seats are identified by `MatchSummary.seats[].agent`. */
+  controller: string;
+  status: SeatStatus;
+  capital: RegionId;
+  population: number;
+  regions: number;
+  understood: number;
+  discovered: number;
+  practices: number;
+  highest_tier: number;
+  soldiers: number;
+  stability: number;
+  food_months_milli: number;
+  sci_method: Month | null;
+  planetary: Month | null;
+  interstellar: Month | null;
+  gov_streak: number;
+  ftl_streak: number;
+  assemblies: number;
+  trials: number;
+  overlord: SeatId | null;
+  at_war_with: SeatId[];
+  goods: GoodQty[];
+  research_capacity: number;
+  reward: number | null;
+}
+
+export interface SpectatorArmy {
+  id: number;
+  owner: SeatId;
+  name: string;
+  region: RegionId;
+  soldiers: number;
+  tier: number;
+  in_battle: boolean;
+  target: RegionId | null;
+}
+
+export interface SpectatorEvent {
+  id: number;
+  month: Month;
+  seat: SeatId;
+  category: MomentCategory;
+  title: string;
+  text: string;
+  region: RegionId | null;
+  art: string;
+  major: boolean;
+  epistemic: Epistemic;
+}
+
+export interface SpectatorOutcome {
+  finished_month: Month;
+  winner: SeatId | null;
+  reason: string;
+}
+
+export interface SpectatorView {
+  match_id: string;
+  month: Month;
+  round: number;
+  months_per_round: number;
+  horizon: Month;
+  phase: Phase;
+  window: number;
+  outcome: SpectatorOutcome | null;
+  world: WorldFrame;
+  /** Every region, fully visible, with the true owner; `own` is filled for every controlled region. */
+  regions: RegionView[];
+  civs: SpectatorCiv[];
+  armies: SpectatorArmy[];
+  /** Newest last, up to about 300. */
+  events: SpectatorEvent[];
+  test_nodes: RegionId[];
+}
+
+export interface AgentLogEntry {
+  round: number;
+  month: Month;
+  phase: string;
+  note: string;
+  actions: string[];
+  accepted: number;
+  rejected: number;
+  duration_ms: number;
+  error: string | null;
 }
 
 export interface ApiErrorBody {

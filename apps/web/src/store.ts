@@ -4,9 +4,11 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError, rememberTokens } from './api';
 import type {
-  Action, MatchSummary, NewMatchRequest, Observation, Receipt, RegionId, SeatId,
+  Action, AgentLogEntry, MatchSummary, MomentCategory, NewMatchRequest, Observation, Receipt, RegionId, SeatId,
+  SpectatorView,
 } from './protocol';
-import { fmtYear } from './format';
+import { yearOf } from './format';
+import { t, tc } from './i18n';
 
 export type PanelKey =
   | 'briefing' | 'economy' | 'projects' | 'people' | 'knowledge' | 'culture' | 'politics'
@@ -16,11 +18,13 @@ export const PANEL_ORDER: PanelKey[] = [
   'briefing', 'economy', 'projects', 'people', 'knowledge', 'culture', 'politics', 'diplomacy', 'military',
   'objectives', 'chronicle',
 ];
+// i18n-table
 export const PANEL_TITLE: Record<PanelKey, string> = {
   briefing: 'Briefing', economy: 'Economy', projects: 'Projects', people: 'People & education',
   knowledge: 'Knowledge', culture: 'Culture', politics: 'Politics', diplomacy: 'Diplomacy', military: 'Military',
   objectives: 'Objectives', chronicle: 'Chronicle',
 };
+// i18n-end
 
 export interface Toast {
   id: number;
@@ -51,6 +55,37 @@ export type Intent =
   | { kind: 'counterpart'; seat: SeatId }
   | { kind: 'moment'; id: number };
 
+/** Full-screen overlays above the map: the two trees, the almanac and the economy ledger. */
+export type OverlayKey = 'tech' | 'civics' | 'almanac' | 'ledger';
+
+/** A major moment announced across the top of the map (never modal). */
+export interface BannerItem {
+  id: number;
+  title: string;
+  text: string;
+  art: string;
+  month: number;
+  category: MomentCategory;
+  /** Observer world view: whose moment it is. */
+  seat?: SeatId;
+}
+
+/** Observer playback: stepping an unattended match forward and waiting on LLM seats. */
+export interface Playback {
+  playing: boolean;
+  /** 1, 2 or 4. */
+  speed: number;
+  /** Rounds still to run from a "run N rounds" request. */
+  queued: number;
+  /** A step is in flight (the referee is resolving, or agents are thinking). */
+  busy: boolean;
+  /** Seats the referee is waiting on while `busy`. */
+  waitingOn: SeatId[];
+  /** `Date.now()` when the current wait began. */
+  waitingSince: number | null;
+  error: string | null;
+}
+
 export interface ActionResult {
   tag: string;
   at: number;
@@ -59,12 +94,15 @@ export interface ActionResult {
 }
 
 export interface AppState {
-  boot: 'loading' | 'ready' | 'unreachable';
+  /** 'closed' = the local referee was shut down from the menu (app mode). */
+  boot: 'loading' | 'ready' | 'unreachable' | 'closed';
   bootError: string | null;
   summary: MatchSummary | null;
   obs: Observation | null;
   seat: SeatId;
-  screen: 'setup' | 'game';
+  screen: 'title' | 'setup' | 'game';
+  /** How the setup screen was opened: 'tutorial' pre-fills a gentle first match and starts the guided tour. */
+  setupPreset: 'tutorial' | null;
   panel: PanelKey | null;
   intent: (Intent & { nonce: number }) | null;
   selectedRegion: RegionId | null;
@@ -87,6 +125,20 @@ export interface AppState {
   saves: string[];
   /** The drawer is widened (knowledge graph, long tables). */
   wide: boolean;
+  overlay: OverlayKey | null;
+  /** What the overlay should focus: a card handle, or an almanac topic key. */
+  overlayArg: string | null;
+  /** 'observe' when the match has no human seat: the client is a spectator console. */
+  mode: 'play' | 'observe';
+  spectator: SpectatorView | null;
+  /** False when the referee predates GET /api/spectator (one seat is then watched read-only). */
+  spectatorSupported: boolean;
+  /** Observer: the seat whose own interface is shown read-only, or null for the world view. */
+  viewAs: SeatId | null;
+  playback: Playback;
+  agentLogs: Record<number, AgentLogEntry[]>;
+  /** Major moments waiting to be announced; the first is on screen. */
+  banners: BannerItem[];
 }
 
 const initial: AppState = {
@@ -95,7 +147,8 @@ const initial: AppState = {
   summary: null,
   obs: null,
   seat: 0,
-  screen: 'setup',
+  screen: 'title',
+  setupPreset: null,
   panel: 'briefing',
   intent: null,
   selectedRegion: null,
@@ -114,6 +167,15 @@ const initial: AppState = {
   menuOpen: false,
   saves: [],
   wide: false,
+  overlay: null,
+  overlayArg: null,
+  mode: 'play',
+  spectator: null,
+  spectatorSupported: true,
+  viewAs: null,
+  playback: { playing: false, speed: 1, queued: 0, busy: false, waitingOn: [], waitingSince: null, error: null },
+  agentLogs: {},
+  banners: [],
 };
 
 let state: AppState = initial;
@@ -128,6 +190,12 @@ export function getState(): AppState {
 function set(patch: Partial<AppState>): void {
   state = { ...state, ...patch };
   listeners.forEach((l) => l());
+}
+
+/** Subscribe to every store change (for modules that keep their own derived state). */
+export function subscribe(l: () => void): () => void {
+  listeners.add(l);
+  return () => { listeners.delete(l); };
 }
 
 export function useApp(): AppState {
@@ -159,7 +227,7 @@ export function dismissToast(id: number): void {
 }
 
 function describeError(e: unknown): string {
-  if (e instanceof ApiError) return e.message;
+  if (e instanceof ApiError) return tc(e.message);
   if (e instanceof Error) return e.message;
   return String(e);
 }
@@ -202,24 +270,68 @@ function storeSeen(matchId: string, seat: SeatId, id: number): void {
   }
 }
 
+/** The packaged desktop app exposes a small bridge on `window`. */
+export interface DesktopBridge { fullscreen(): void; quit(): void }
+export function desktopShell(): DesktopBridge | null {
+  const w = window as unknown as { __btsDesktop?: Partial<DesktopBridge> };
+  const d = w.__btsDesktop;
+  return d && typeof d.quit === 'function' && typeof d.fullscreen === 'function' ? (d as DesktopBridge) : null;
+}
+
+/** Whether "Quit" can do anything: inside the desktop shell, or when the referee runs in app mode. */
+export function canQuit(): boolean {
+  return !!desktopShell() || !!state.summary?.app_mode;
+}
+
+/**
+ * Whether a launch opens on the title screen when a match is already running.
+ * The packaged app always does (Continue resumes it). A plain browser page goes
+ * straight back into a live match, which is also what automated scripts expect;
+ * `?title` and `?notitle` force either way.
+ */
+function opensOnTitle(summary: MatchSummary): boolean {
+  let query = '';
+  try { query = window.location.search; } catch { /* no location */ }
+  if (/[?&]notitle\b/.test(query)) return false;
+  if (/[?&]title\b/.test(query)) return true;
+  return !!desktopShell() || !!summary.app_mode;
+}
+
 export async function boot(): Promise<void> {
   set({ boot: 'loading', bootError: null });
   try {
     const summary = await api.match();
     void refreshSaves();
     if (!summary.exists) {
-      set({ boot: 'ready', summary, obs: null, screen: 'setup', offline: false });
+      set({ boot: 'ready', summary, obs: null, spectator: null, screen: 'title', offline: false });
       return;
     }
     await enterMatch(summary, null);
-    set({ boot: 'ready', offline: false });
+    set({ boot: 'ready', offline: false, screen: opensOnTitle(summary) ? 'title' : 'game' });
   } catch (e) {
     set({ boot: 'unreachable', bootError: describeError(e) });
   }
 }
 
+/** No seat is human: nobody plays, the user watches. */
+export function isObserverMatch(summary: MatchSummary | null): boolean {
+  if (!summary?.exists) return false;
+  return summary.observer_allowed ?? humanSeats(summary).length === 0;
+}
+
+const RESET_VIEW: Partial<AppState> = {
+  selectedRegion: null, pick: null, marked: [], intent: null, lastResult: null, resultDismissed: false, handover: null,
+  menuOpen: false, overlay: null, overlayArg: null, banners: [], freshMoments: [],
+};
+
 async function enterMatch(summary: MatchSummary, preferred: SeatId | null): Promise<void> {
   rememberTokens(summary);
+  if (isObserverMatch(summary)) {
+    await enterObserver(summary);
+    return;
+  }
+  stopPlayback();
+  set({ mode: 'play', spectator: null, viewAs: null, agentLogs: {} });
   const seat = pickSeat(summary, preferred);
   const obs = await api.observation(seat);
   const seenStored = loadSeen(obs.match_id, seat);
@@ -231,9 +343,195 @@ async function enterMatch(summary: MatchSummary, preferred: SeatId | null): Prom
     summary, obs, seat, screen: 'game', panel: 'briefing', selectedRegion: null, pick: null, marked: [],
     intent: null, lastResult: null, chronicleSeen: seen,
     freshMoments: obs.chronicle.filter((c) => c.id > seen).map((c) => c.id),
-    resultDismissed: false, handover: null, menuOpen: false,
+    resultDismissed: false, handover: null, menuOpen: false, overlay: null, overlayArg: null, banners: [],
     focus: { region: obs.civ.capital, nonce: nonce++ },
   });
+}
+
+// --- observer mode ---------------------------------------------------------------
+
+async function enterObserver(summary: MatchSummary): Promise<void> {
+  const sameMatch = state.mode === 'observe' && state.summary?.match_id === summary.match_id;
+  if (!sameMatch) stopPlayback();
+  let spectator: SpectatorView | null = null;
+  let supported = true;
+  try {
+    spectator = await api.spectator();
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 405)) supported = false;
+    else throw e;
+  }
+  if (!supported) {
+    // An older referee: there is no world view, so one seat is watched read-only.
+    const seat = summary.seats?.[0]?.seat ?? 0;
+    const obs = await api.observation(seat);
+    set({
+      ...RESET_VIEW, summary, obs, seat, mode: 'observe', spectator: null, spectatorSupported: false, viewAs: seat,
+      screen: 'game', panel: 'briefing', chronicleSeen: obs.chronicle.reduce((m, c) => Math.max(m, c.id), -1),
+      focus: { region: obs.civ.capital, nonce: nonce++ }, agentLogs: sameMatch ? state.agentLogs : {},
+    });
+    return;
+  }
+  set({
+    ...RESET_VIEW, summary, obs: null, mode: 'observe', spectator, spectatorSupported: true, viewAs: null,
+    screen: 'game', panel: null, agentLogs: sameMatch ? state.agentLogs : {},
+  });
+  // The referee may already be running rounds (the page was reloaded mid-run): follow it.
+  if (!sameMatch && !summary.finished && (summary.autoplay_until ?? 0) > (summary.round ?? 0)) void pump(null);
+}
+
+/** True while the interface shows a seat it may not command. */
+export function isReadOnly(): boolean {
+  return state.mode === 'observe';
+}
+
+/** Observer: show one civilization's own interface read-only, or return to the world view with `null`. */
+export async function viewAsSeat(seat: SeatId | null): Promise<void> {
+  if (state.mode !== 'observe') return;
+  if (seat === null) {
+    if (!state.spectatorSupported) return;
+    set({ ...RESET_VIEW, viewAs: null, obs: null, panel: null });
+    void refresh().catch(() => undefined);
+    return;
+  }
+  try {
+    const obs = await api.observation(seat);
+    set({
+      ...RESET_VIEW, obs, seat, viewAs: seat, panel: 'briefing',
+      chronicleSeen: obs.chronicle.reduce((m, c) => Math.max(m, c.id), -1),
+      focus: { region: obs.civ.capital, nonce: nonce++ },
+    });
+  } catch (e) {
+    noteNetwork(e);
+    toast({ tone: 'bad', title: t('Could not open that seat'), detail: describeError(e) });
+  }
+}
+
+function setPlayback(patch: Partial<Playback>): void {
+  set({ playback: { ...state.playback, ...patch } });
+}
+
+/** Cancels whichever playback loop is running; a newer loop owns the token. */
+let playToken = 0;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+function stopPlayback(): void {
+  playToken++;
+  if (state.playback.playing || state.playback.queued || state.playback.busy || state.playback.error) {
+    setPlayback({ playing: false, queued: 0, busy: false, waitingOn: [], waitingSince: null, error: null });
+  }
+}
+
+function agentsThinking(summary: MatchSummary): SeatId[] {
+  return (summary.seats ?? []).filter((x) => x.agent && x.agent.state === 'thinking').map((x) => x.seat);
+}
+
+/**
+ * Ask the referee to run `rounds` more rounds (or, with `null`, follow a run it
+ * already has in hand) and follow it to the end. POST /api/advance answers at
+ * once; the match then moves as fast as its seats answer, so the summary is
+ * polled and the world refetched whenever the round changes.
+ */
+async function follow(token: number, rounds: number | null): Promise<boolean> {
+  const before = state.summary?.round ?? 0;
+  setPlayback({ busy: true, error: null, waitingOn: [], waitingSince: Date.now() });
+  try {
+    let summary = rounds === null ? await api.match() : await api.advance(rounds);
+    const target = summary.autoplay_until ?? before + (rounds ?? 0);
+    let seen = before;
+    let wait = 90;
+    let stalled = 0;
+    for (;;) {
+      if (token !== playToken) return false;
+      const round = summary.round ?? 0;
+      set({ summary, playback: { ...state.playback, waitingOn: agentsThinking(summary), queued: Math.max(0, target - round) } });
+      if (round !== seen) {
+        seen = round;
+        wait = 90;
+        stalled = 0;
+        await refresh();
+        if (token !== playToken) return false;
+        setPlayback({ waitingSince: Date.now() });
+      }
+      if (summary.finished || round >= target) break;
+      // A referee that is not running anything (older build, or paused elsewhere) must not spin for ever.
+      if (summary.autoplay_until !== undefined && summary.autoplay_until <= round) break;
+      if (summary.autoplay_until === undefined && ++stalled > 40) throw new Error(t('The referee did not advance the match.'));
+      await sleep(wait);
+      wait = Math.min(1000, Math.round(wait * 1.7));
+      summary = await api.match();
+    }
+    if (state.offline) set({ offline: false });
+    setPlayback({ busy: false, waitingOn: [], waitingSince: null, queued: 0 });
+    return !summary.finished;
+  } catch (e) {
+    noteNetwork(e);
+    if (token === playToken) setPlayback({ busy: false, playing: false, queued: 0, waitingOn: [], waitingSince: null, error: describeError(e) });
+    return false;
+  }
+}
+
+async function pump(first: number | null): Promise<void> {
+  const token = ++playToken;
+  let rounds: number | null = first;
+  for (;;) {
+    const ok = await follow(token, rounds);
+    if (token !== playToken) return;
+    if (!ok || !state.playback.playing) break;
+    await sleep(state.playback.speed >= 4 ? 220 : state.playback.speed >= 2 ? 800 : 1700);
+    if (token !== playToken) return;
+    if (!state.playback.playing) break;
+    rounds = 1;
+  }
+  if (token === playToken && (state.playback.playing || state.playback.queued)) setPlayback({ playing: false, queued: 0 });
+}
+
+/** Observer: run `rounds` more rounds (1 = a single step) and then stop. */
+export function observerRun(rounds: number): void {
+  if (state.mode !== 'observe' || state.summary?.finished) return;
+  const n = Math.max(1, Math.min(20, Math.round(rounds)));
+  setPlayback({ playing: false, queued: n, error: null });
+  void pump(n);
+}
+
+/** Observer: play continuously (one round at a time, paced by the speed), or pause. */
+export function observerPlay(playing: boolean): void {
+  if (state.mode !== 'observe') return;
+  if (playing) {
+    if (state.summary?.finished) return;
+    setPlayback({ playing: true, queued: 0, error: null });
+    void pump(1);
+    return;
+  }
+  playToken++;
+  setPlayback({ playing: false, queued: 0, busy: false, waitingOn: [], waitingSince: null });
+  // rounds: 0 tells the referee to stop after the round in hand.
+  void api.advance(0).then((summary) => set({ summary })).then(() => refresh()).catch(() => undefined);
+}
+
+export function observerSpeed(speed: number): void {
+  setPlayback({ speed });
+}
+
+export async function loadAgentLog(seat: SeatId): Promise<void> {
+  try {
+    const { entries } = await api.agentLog(seat);
+    set({ agentLogs: { ...state.agentLogs, [seat]: entries ?? [] } });
+  } catch {
+    /* the log is a convenience; an older referee has none */
+  }
+}
+
+/** Observer: keep the round and the agents' states fresh while no playback loop is polling. */
+export async function observerTick(): Promise<void> {
+  if (state.mode !== 'observe' || state.screen !== 'game' || state.playback.busy || !state.summary) return;
+  try {
+    const summary = await api.match();
+    if (!summary.exists || summary.match_id !== state.summary.match_id || summary.round !== state.summary.round) await refresh();
+    else set({ summary, offline: false });
+  } catch (e) {
+    noteNetwork(e);
+  }
 }
 
 /** Refetch match summary and observation for the current seat. */
@@ -241,10 +539,30 @@ export async function refresh(): Promise<void> {
   try {
     const summary = await api.match();
     if (!summary.exists) {
-      set({ summary, obs: null, screen: 'setup', offline: false });
+      set({ summary, obs: null, spectator: null, screen: 'title', offline: false });
       return;
     }
     rememberTokens(summary);
+    if (state.mode === 'observe') {
+      if (summary.match_id !== state.summary?.match_id) {
+        await enterMatch(summary, null);
+        return;
+      }
+      const [spectator, obs] = await Promise.all([
+        state.spectatorSupported ? api.spectator() : Promise.resolve(null),
+        state.viewAs !== null ? api.observation(state.viewAs) : Promise.resolve(null),
+      ]);
+      const prev = state.spectator;
+      const patch: Partial<AppState> = { summary, spectator, offline: false };
+      if (obs) patch.obs = obs;
+      if (spectator && prev && state.viewAs === null && spectator.round !== prev.round) {
+        const lastId = prev.events.reduce((m, e) => Math.max(m, e.id), -1);
+        const major = spectator.events.filter((e) => e.id > lastId && e.major).slice(-2);
+        patch.banners = [...state.banners, ...major.map((e) => ({ id: e.id, title: e.title, text: e.text, art: e.art, month: e.month, category: e.category, seat: e.seat }))].slice(-3);
+      }
+      set(patch);
+      return;
+    }
     const obs = await api.observation(state.seat);
     applyObservation(summary, obs);
     if (state.offline) set({ offline: false });
@@ -265,17 +583,23 @@ function applyObservation(summary: MatchSummary, obs: Observation): void {
     patch.panel = state.panel === 'chronicle' ? 'chronicle' : 'briefing';
     patch.pick = null;
     patch.lastResult = null;
+    // Major moments are announced by a banner across the map; the rest arrive as quiet toasts.
+    const major = fresh.filter((c) => c.major).slice(-2);
+    const minor = fresh.filter((c) => !major.includes(c));
+    patch.banners = major.map((c) => ({ id: c.id, title: c.title, text: c.text, art: c.art, month: c.month, category: c.category }));
     set(patch);
-    for (const c of fresh.slice(-3)) {
+    const quiet = major.length ? 2 : 3;
+    for (const c of minor.slice(-quiet)) {
       toast({
         tone: 'moment',
-        title: c.title,
-        detail: `${fmtYear(c.month)} · added to the chronicle`,
-        action: { label: 'View', run: () => openPanel('chronicle', { kind: 'moment', id: c.id }) },
+        title: tc(c.title),
+        detail: t('{year} · added to the chronicle', { year: t('Year {n}', { n: yearOf(c.month) }) }),
+        action: { label: t('View'), run: () => openPanel('chronicle', { kind: 'moment', id: c.id }) },
       }, 9000);
     }
-    if (fresh.length > 3) {
-      toast({ tone: 'moment', title: `${fresh.length - 3} more moments recorded`, action: { label: 'Chronicle', run: () => openPanel('chronicle') } }, 9000);
+    if (minor.length > quiet) {
+      const n = minor.length - quiet;
+      toast({ tone: 'moment', title: n === 1 ? t('One more moment recorded') : t('{n} more moments recorded', { n }), action: { label: t('Chronicle'), run: () => openPanel('chronicle') } }, 9000);
     }
     return;
   }
@@ -306,6 +630,10 @@ export function clearFreshMoments(): void {
 export async function act(actions: Action | Action[], tag = 'general', opts: { quiet?: boolean } = {}): Promise<Receipt[]> {
   const list = Array.isArray(actions) ? actions : [actions];
   if (!list.length || state.busy) return [];
+  if (isReadOnly()) {
+    toast({ tone: 'info', title: t('You are observing'), detail: t('Orders cannot be given for a seat you are only watching.') });
+    return [];
+  }
   set({ busy: true });
   let receipts: Receipt[] = [];
   let error: string | null = null;
@@ -319,11 +647,11 @@ export async function act(actions: Action | Action[], tag = 'general', opts: { q
   }
   const rejected = receipts.filter((r) => r.status !== 'accepted' && r.status !== 'applied');
   const accepted = receipts.filter((r) => r.status === 'accepted' || r.status === 'applied');
-  if (error) toast({ tone: 'bad', title: 'Order not sent', detail: error }, 8000);
-  for (const r of rejected) toast({ tone: 'bad', title: 'Not accepted', detail: capitalize(r.reason) }, 8000);
+  if (error) toast({ tone: 'bad', title: t('Order not sent'), detail: error }, 8000);
+  for (const r of rejected) toast({ tone: 'bad', title: t('Not accepted'), detail: capitalize(tc(r.reason)) }, 8000);
   if (!opts.quiet && accepted.length && !rejected.length && !error) {
     const last = accepted[accepted.length - 1];
-    toast({ tone: 'ok', title: accepted.length > 1 ? `${accepted.length} orders accepted` : 'Accepted', detail: last.reason }, 3600);
+    toast({ tone: 'ok', title: accepted.length > 1 ? t('{n} orders accepted', { n: accepted.length }) : t('Accepted'), detail: tc(last.reason) }, 3600);
   }
   set({ lastResult: { tag, at: Date.now(), receipts, error } });
   try {
@@ -342,6 +670,10 @@ function capitalize(s: string): string {
 /** Mark this seat done with the phase (`through=false`) or the whole round. */
 export async function ready(through: boolean): Promise<void> {
   if (state.advancing || state.busy) return;
+  if (isReadOnly()) {
+    toast({ tone: 'info', title: t('You are observing'), detail: t('Use the playback controls to move the match forward.') });
+    return;
+  }
   set({ advancing: true });
   try {
     const before = state.summary;
@@ -356,7 +688,7 @@ export async function ready(through: boolean): Promise<void> {
     if (!summary.finished && !advanced && waiting.length) {
       const nextHuman = waiting.find((s) => humans.includes(s));
       if (nextHuman !== undefined && humans.length > 1) set({ handover: nextHuman });
-      else toast({ tone: 'info', title: 'Waiting for other seats', detail: waiting.map((s) => seatName(s)).join(', ') + ' have not finished this phase yet.' });
+      else toast({ tone: 'info', title: t('Waiting for other seats'), detail: t('{names} have not finished this phase yet.', { names: waiting.map((s) => seatName(s)).join(', ') }) });
     } else if (!summary.finished && advanced && humans.length > 1) {
       // Everyone was ready and time moved on; the next human to act takes over.
       const nextHuman = (summary.waiting_on ?? []).find((s) => humans.includes(s));
@@ -364,19 +696,20 @@ export async function ready(through: boolean): Promise<void> {
     }
   } catch (e) {
     noteNetwork(e);
-    toast({ tone: 'bad', title: 'Could not advance', detail: describeError(e) }, 8000);
+    toast({ tone: 'bad', title: t('Could not advance'), detail: describeError(e) }, 8000);
   }
   set({ advancing: false });
 }
 
 export function seatName(seat: SeatId): string {
   const s = state.summary?.seats?.find((x) => x.seat === seat);
-  return s?.name ?? `Seat ${seat + 1}`;
+  return s?.name ? tc(s.name) : t('Seat {n}', { n: seat + 1 });
 }
 
 /** Poll while this seat is waiting on others, so external seats can move the match. */
 export async function pollWhileWaiting(): Promise<void> {
   const { obs, summary, advancing, busy, screen } = state;
+  if (state.mode === 'observe') return;
   if (screen !== 'game' || !obs || !summary || advancing || busy || !obs.ready || obs.phase === 'finished') {
     if (state.offline && !advancing && !busy) {
       try {
@@ -405,7 +738,7 @@ export async function switchSeat(seat: SeatId): Promise<void> {
     await refresh();
   } catch (e) {
     noteNetwork(e);
-    toast({ tone: 'bad', title: 'Could not switch seat', detail: describeError(e) });
+    toast({ tone: 'bad', title: t('Could not switch seat'), detail: describeError(e) });
   }
 }
 
@@ -431,13 +764,17 @@ export async function newMatch(req: NewMatchRequest): Promise<string | null> {
 
 /** Hand the listed domains of this seat to a steward (an empty list ends the delegation). */
 export async function setDelegates(domains: string[]): Promise<void> {
+  if (isReadOnly()) {
+    toast({ tone: 'info', title: t('You are observing'), detail: t('Orders cannot be given for a seat you are only watching.') });
+    return;
+  }
   try {
     await api.delegate(state.seat, domains);
     await refresh();
-    toast({ tone: 'ok', title: domains.length ? 'Stewards appointed' : 'Stewards dismissed', detail: domains.length ? `A steward now handles: ${domains.join(', ')}.` : 'Every domain is back in your hands.' });
+    toast({ tone: 'ok', title: domains.length ? t('Stewards appointed') : t('Stewards dismissed'), detail: domains.length ? t('A steward now handles: {domains}.', { domains: domains.map((d) => t(d)).join(', ') }) : t('Every domain is back in your hands.') });
   } catch (e) {
     noteNetwork(e);
-    toast({ tone: 'bad', title: 'Could not change stewards', detail: describeError(e) }, 8000);
+    toast({ tone: 'bad', title: t('Could not change stewards'), detail: describeError(e) }, 8000);
   }
 }
 
@@ -453,11 +790,11 @@ export async function refreshSaves(): Promise<void> {
 export async function saveGame(name: string): Promise<void> {
   try {
     const res = await api.save(name);
-    toast({ tone: 'ok', title: 'Match saved', detail: `Saved as “${res.saved}”.` });
+    toast({ tone: 'ok', title: t('Match saved'), detail: t('Saved as “{name}”.', { name: res.saved }) });
     await refreshSaves();
   } catch (e) {
     noteNetwork(e);
-    toast({ tone: 'bad', title: 'Save failed', detail: describeError(e) });
+    toast({ tone: 'bad', title: t('Save failed'), detail: describeError(e) });
   }
 }
 
@@ -466,7 +803,7 @@ export async function loadGame(name: string): Promise<string | null> {
   try {
     rememberTokens(await api.load(name));
     const summary = await api.match();
-    if (!summary.exists) throw new Error('The save did not contain a match.');
+    if (!summary.exists) throw new Error(t('The save did not contain a match.'));
     await enterMatch(summary, null);
     set({ busy: false, offline: false });
     return null;
@@ -480,11 +817,31 @@ export async function loadGame(name: string): Promise<string | null> {
 // --- interface state -------------------------------------------------------------
 
 export function openPanel(panel: PanelKey | null, intent?: Intent): void {
-  set({ panel, intent: intent ? { ...intent, nonce: nonce++ } : null, menuOpen: false });
+  const patch: Partial<AppState> = { panel, intent: intent ? { ...intent, nonce: nonce++ } : null, menuOpen: false };
+  if (panel) { patch.overlay = null; patch.overlayArg = null; }
+  set(patch);
 }
 
 export function togglePanel(panel: PanelKey): void {
-  set({ panel: state.panel === panel ? null : panel, menuOpen: false });
+  set({ panel: state.panel === panel ? null : panel, menuOpen: false, overlay: null, overlayArg: null });
+}
+
+export function openOverlay(overlay: OverlayKey, arg: string | null = null): void {
+  set({ overlay, overlayArg: arg, menuOpen: false, pick: null });
+}
+
+export function toggleOverlay(overlay: OverlayKey): void {
+  if (state.overlay === overlay) closeOverlay();
+  else openOverlay(overlay);
+}
+
+export function closeOverlay(): void {
+  if (state.overlay) set({ overlay: null, overlayArg: null });
+}
+
+export function dismissBanner(id?: number): void {
+  if (!state.banners.length) return;
+  set({ banners: id === undefined ? state.banners.slice(1) : state.banners.filter((b) => b.id !== id) });
 }
 
 export function consumeIntent(): void {
@@ -514,9 +871,14 @@ export function cancelPick(): void {
   if (state.pick) set({ pick: null });
 }
 
-export function setScreen(screen: 'setup' | 'game'): void {
-  set({ screen, menuOpen: false });
-  if (screen === 'setup') void refreshSaves();
+export function setScreen(screen: 'title' | 'setup' | 'game', preset: 'tutorial' | null = null): void {
+  set({ screen, setupPreset: screen === 'setup' ? preset : null, menuOpen: false, overlay: null, overlayArg: null });
+  if (screen !== 'game') void refreshSaves();
+}
+
+/** True when a match is loaded and can be resumed from the title screen. */
+export function hasLiveMatch(): boolean {
+  return !!state.summary?.exists && (!!state.obs || !!state.spectator);
 }
 
 export function setWide(wide: boolean): void {
@@ -527,6 +889,27 @@ export function setMenu(open: boolean): void {
   set({ menuOpen: open });
 }
 
+/** App mode only: save, stop the local referee, and show the closing screen. */
+export async function quitGame(): Promise<void> {
+  stopPlayback();
+  const desktop = desktopShell();
+  if (desktop) {
+    // The desktop shell saves and closes the window itself.
+    desktop.quit();
+    return;
+  }
+  try {
+    await api.shutdown();
+  } catch (e) {
+    // The referee may close the connection before it answers; that is still a quit.
+    if (!(e instanceof ApiError && e.network)) {
+      toast({ tone: 'bad', title: t('Could not quit'), detail: describeError(e) }, 8000);
+      return;
+    }
+  }
+  set({ boot: 'closed', menuOpen: false, overlay: null });
+}
+
 export function dismissResult(): void {
   set({ resultDismissed: true });
 }
@@ -534,13 +917,15 @@ export function dismissResult(): void {
 // --- derived helpers -------------------------------------------------------------
 
 export function regionName(obs: Observation, id: RegionId): string {
-  return obs.regions.find((r) => r.id === id)?.name ?? 'Unmapped land';
+  const name = obs.regions.find((r) => r.id === id)?.name;
+  return name ? tc(name) : t('Unmapped land');
 }
 
 export function civName(obs: Observation, seat: SeatId | null): string {
-  if (seat === null) return 'No one';
-  if (seat === obs.seat) return obs.civ.name;
-  return obs.others.find((o) => o.seat === seat)?.name ?? 'Unknown polity';
+  if (seat === null) return t('No one');
+  if (seat === obs.seat) return tc(obs.civ.name);
+  const name = obs.others.find((o) => o.seat === seat)?.name;
+  return name ? tc(name) : t('Unknown polity');
 }
 
 export function civColor(obs: Observation, seat: SeatId | null): string {
