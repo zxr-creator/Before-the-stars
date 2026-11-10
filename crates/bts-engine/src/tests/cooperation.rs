@@ -501,3 +501,19 @@ fn a_small_civilization_can_import_hardware_borrow_crews_and_share_a_partners_in
     assert!(failing(&x).iter().any(|l| l.starts_with("Three deployment nodes")));
     let _ = Ending::Term;
 }
+
+#[test]
+fn the_base_checks_do_not_name_installations_the_seat_has_not_discovered() {
+    let mut w = endgame_world();
+    for key in ["launch_complex", "orbital_station", "orbital_yard", "high_energy", "jump_yard", "jump_base"] {
+        remove(&mut w, key);
+    }
+    let named = |w: &World| -> Vec<String> {
+        victory::ftl_checks(w, 0).into_iter().filter(|c| c.category != "" && !c.label.contains("assembl") && !c.label.contains("node")).map(|c| c.detail).filter(|d| ["launch complex", "orbital construction yard", "high-energy", "jump assembly line", "jump deployment node"].iter().any(|n| d.to_lowercase().contains(n))).collect()
+    };
+    assert!(!named(&w).is_empty(), "a seat that knows them is told what is missing");
+    for t in w.civs[0].tech.iter_mut() {
+        *t = TechSt::default();
+    }
+    assert!(named(&w).is_empty(), "{:?}", named(&w));
+}

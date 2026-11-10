@@ -63,4 +63,4 @@ round 240  month 2880  phase Finished
   seat 1 Highmere    Active     pop 59302747 reg 18 tech 138 (tier 9) prac 64 army 752739 stab 95 food 100% sci y60   gov  0 ftl  0
   seat 2 Stonewold   Active     pop 65872028 reg 12 tech 138 (tier 9) prac 64 army 1121535 stab 95 food 100% sci y55   gov  0 ftl  0
   seat 3 Amberfen    Active     pop 41725312 reg  8 tech  89 (tier 7) prac 49 army 266395 stab 95 food 100% sci y65   gov  0 ftl  0
-finished: true  winner: None  elapsed 2.9s  state hash d96837209879f9b5
+finished: true  winner: None  elapsed 2.5s  state hash edc238fb7acaee34

@@ -561,7 +561,7 @@ half again of its inputs and upkeep that each partner adds.
 | 14 | service | Common mission charter across sites established | as before |
 
 The details state the measured value and the need. An installation the seat has not
-discovered is named "a programme installation". The old head-count check (36,000 of
+discovered is named "programme installation". The old head-count check (36,000 of
 each crew) and the fixed store check (240 kt spares, 200 kt fuel) are gone. A jump
 trial is supported by the seat's own orbital yard or a partner's under a joint
 programme.

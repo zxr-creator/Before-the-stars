@@ -149,7 +149,7 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
     // an installation is named only to a seat that has discovered it
     let name = |key: &str| -> String {
         let kind = c.f(key);
-        if crate::actions::facility_visible(w, seat, kind) { c.facilities[kind].name.to_lowercase() } else { "a programme installation".into() }
+        if crate::actions::facility_visible(w, seat, kind) { c.facilities[kind].name.to_lowercase() } else { "programme installation".into() }
     };
     out.push(base_check("scientific", "Fleet-wide jump engineering standards understood", civ.knows_id("T167"), if civ.knows_id("T167") { "Understood".into() } else { "Not yet understood".into() }));
     let live: Vec<&Assembly> = civ.ftl.assemblies.iter().filter(|a| !a.retired).collect();
@@ -273,7 +273,7 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
         "logistical",
         "Logistical base: freight links and electric supply at every programme site",
         !sites.is_empty() && weak_links == 0 && dark == 0,
-        if sites.is_empty() { "No region holds a jump assembly line or deployment node".into() } else { format!("{} sites; {} below transport grade {}; {} received less than 90% of their electric demand", sites.len(), weak_links, SITE_TRANSPORT, dark) },
+        if sites.is_empty() { format!("No region holds a {} or a {}", name("jump_yard"), name("jump_base")) } else { format!("{} sites; {} below transport grade {}; {} received less than 90% of their electric demand", sites.len(), weak_links, SITE_TRANSPORT, dark) },
     ));
     // ---- 13. launch and recovery ----------------------------------------------------
     let launch = (own_running("launch_complex"), w.programme_access(seat, ProgrammeService::Launch));
