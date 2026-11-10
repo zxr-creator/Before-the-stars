@@ -113,12 +113,43 @@ pub fn build_quote(w: &World, seat: SeatId, kind: usize) -> BuildQuote {
 /// while they are prepared, and the site power they draw in a month of full work.
 pub fn ftl_terms(kind: &ProjKind) -> (Vec<(Vec<Qual>, u32)>, i64) {
     let (engineers, orbital, power) = match kind {
-        ProjKind::FtlTrial => (4_000, 4_000, 2_000_000),
-        ProjKind::FtlDeployment => (6_000, 6_000, 1_500_000),
-        ProjKind::FtlReplacement => (2_000, 2_000, 500_000),
+        ProjKind::FtlTrial => (8_000, 8_000, 3_000_000),
+        ProjKind::FtlDeployment => (12_000, 12_000, 2_000_000),
+        ProjKind::FtlReplacement => (4_000, 4_000, 1_000_000),
         _ => return (Vec::new(), 0),
     };
     (vec![(vec![Qual::FtlEngineer], engineers), (vec![Qual::Orbital], orbital)], power)
+}
+
+/// What a preparation of the jump programme is charged: work in worker-months
+/// before the scenario's pace, its goods in base units and its minimum months.
+/// A loaded round trip is a national effort: a hundred thousand people for half
+/// a year, 400 kt of propellant and the spares, devices and parts of a campaign.
+pub fn ftl_bill(kind: &ProjKind) -> (i64, Vec<(Good, i64)>, u16) {
+    match kind {
+        ProjKind::FtlTrial => (600_000, vec![(Good::Fuel, 400_000), (Good::Spares, 100_000), (Good::Electronics, 50_000), (Good::Components, 30_000)], 6),
+        ProjKind::FtlDeployment => (900_000, vec![(Good::Fuel, 600_000), (Good::Spares, 150_000), (Good::Electronics, 60_000)], 6),
+        ProjKind::FtlReplacement => (300_000, vec![(Good::Spares, 150_000), (Good::Electronics, 40_000), (Good::Components, 40_000)], 3),
+        _ => (0, Vec::new(), 0),
+    }
+}
+
+/// Where a preparation of the jump programme is sited: where its people are. Of
+/// the regions the seat governs that hold an enabled jump assembly line (a trial,
+/// a replacement) or an enabled line or deployment node (the exercise), the one
+/// with the most resident jump engineers and orbital crews who are not teaching,
+/// the lowest-numbered of equals; the capital when the seat has no such region.
+pub fn ftl_site(w: &World, seat: SeatId, kind: &ProjKind) -> RegionId {
+    let c = content();
+    let (line, node) = (c.f("jump_yard"), c.f("jump_base"));
+    let has = |r: &Region, k: usize| r.fac(k).map(|f| f.enabled && f.level > 0).unwrap_or(false);
+    let free = |r: &Region, q: Qual| r.quals[q.index()].saturating_sub(r.teachers[q.index()]) as u64;
+    w.regions
+        .iter()
+        .filter(|r| r.controller == Some(seat) && (has(r, line) || (matches!(kind, ProjKind::FtlDeployment) && has(r, node))))
+        .max_by_key(|r| (free(r, Qual::FtlEngineer) + free(r, Qual::Orbital), std::cmp::Reverse(r.id)))
+        .map(|r| r.id)
+        .unwrap_or(w.civs[seat as usize].capital)
 }
 
 /// The most work an order with a stated minimum duration accepts in a month: what
@@ -216,7 +247,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         if let ProjKind::Research { tech } = &kind {
             let site_ok = tech_site_ok(w, seat, *tech);
             if !c.techs[*tech].prereq.eval(&CivCtx { world: w, seat }) || !site_ok {
-                blockers.push(if site_ok { "Investigators lack knowledge this work depends on".into() } else { format!("Needs a working {}", c.facilities[c.f(c.techs[*tech].needs_facility.unwrap())].name.to_lowercase()) });
+                blockers.push(if site_ok { "Investigators lack knowledge this work depends on".into() } else { format!("Needs a working {}",c.facilities[c.f(c.techs[*tech].needs_facility.unwrap())].name.to_lowercase()) });
                 let p = &mut w.civs[si].projects[i];
                 p.blockers = blockers;
                 p.last_progress = 0;
@@ -360,7 +391,10 @@ fn add_facility(w: &mut World, region: usize, kind: usize, levels: u16) {
     }
 }
 
-/// Whether the installation a technology's investigation depends on is operating.
+/// Whether the installation a technology's investigation depends on is operating:
+/// one of the seat's own, or one a partner serves it with under a joint programme
+/// this month. A partner's orbital yard stands on the partner's station, so its
+/// service also carries the investigations that need an orbital station.
 pub fn tech_site_ok(w: &World, seat: SeatId, tech: usize) -> bool {
     let c = content();
     match c.techs[tech].needs_facility {
@@ -369,6 +403,8 @@ pub fn tech_site_ok(w: &World, seat: SeatId, tech: usize) -> bool {
             let k = c.f(key);
             // the installation must actually be running, not merely exist
             w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(k).map(|f| f.level > 0 && f.run.as_ref().map(|x| x.rate_bp >= 2500).unwrap_or(false)).unwrap_or(false))
+                || service_of_facility(key).map(|s| w.programme_access(seat, s)).unwrap_or(false)
+                || (key == "orbital_station" && w.programme_access(seat, ProgrammeService::OrbitalYard))
         }
     }
 }
@@ -740,6 +776,7 @@ fn step_programs(w: &mut World, seat: SeatId) {
                 let tq = p.teacher_qual;
                 let tn = p.teachers;
                 p.graduates += grads;
+                p.last_grad = month;
                 let first = p.graduates == grads;
                 p.enrolled = 0;
                 p.teachers = 0;

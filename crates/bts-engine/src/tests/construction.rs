@@ -649,8 +649,8 @@ fn a_seat_reorders_the_queue_of_a_region_and_the_first_order_is_served_first() {
 fn jump_preparations_hold_their_crews_and_draw_site_power() {
     let (mut m, capital, home) = site_world("jump-crews");
     m.world.civs[0].ftl.assemblies.push(Assembly { id: 9_000, yard_region: capital, built: 0, retired: false });
-    endow(&mut m.world, home, Qual::FtlEngineer, 4_000);
-    endow(&mut m.world, home, Qual::Orbital, 2_000);
+    endow(&mut m.world, home, Qual::FtlEngineer, 8_000);
+    endow(&mut m.world, home, Qual::Orbital, 4_000);
     m.world.civs[0].stock[Good::Coal.index()] = 10_000_000;
     // the trial's own propellant; the site engines burn coal while there is any
     m.world.civs[0].stock[Good::Fuel.index()] = 1_000_000;
@@ -658,27 +658,31 @@ fn jump_preparations_hold_their_crews_and_draw_site_power() {
     assert_eq!(r[0].status, "accepted", "{}", r[0].reason);
     let id = r[0].created.unwrap();
     let p = project(&m, id).clone();
-    assert_eq!(p.crew, vec![(vec![Qual::FtlEngineer], 4_000), (vec![Qual::Orbital], 4_000)]);
-    assert_eq!((p.power_need, p.min_months), (2_000_000, 4));
+    // a loaded round trip: 8,000 jump engineers and 8,000 orbital crew for six months,
+    // 3,000 units of site power a month and 400 kt of propellant (design chapter 35, slice E)
+    assert_eq!(p.crew, vec![(vec![Qual::FtlEngineer], 8_000), (vec![Qual::Orbital], 8_000)]);
+    assert_eq!((p.power_need, p.min_months), (3_000_000, 6));
+    assert_eq!(p.work_needed, 600_000);
+    assert!(p.inputs.iter().any(|(g, n, _)| *g == Good::Fuel && *n == 400_000), "{:?}", p.inputs);
     audited_month(&mut m);
     let p = project(&m, id).clone();
-    assert_eq!(p.crew_on_site, vec![4_000, 2_000]);
-    assert_eq!(p.blockers, vec!["Site crew short: 2,000 of 4,000 orbital crews".to_string()]);
+    assert_eq!(p.crew_on_site, vec![8_000, 4_000]);
+    assert_eq!(p.blockers, vec!["Site crew short: 4,000 of 8,000 orbital crews".to_string()]);
     assert_eq!(p.last_progress, p.max_per_month / 2);
-    // half the crew, half the power: 1,000 units from 200 kt of coal
+    // half the crew, half the power: 1,500 units from 300 kt of coal
     let led = m.world.regions[home].last.power.clone();
-    assert_eq!((led.site_from_engines, led.site_coal), (1_000_000, 200_000));
-    // with the crews complete the trial is prepared at full pace: three and a half months of work remain
+    assert_eq!((led.site_from_engines, led.site_coal), (1_500_000, 300_000));
+    // with the crews complete the trial is prepared at full pace: five and a half months of work remain
     endow(&mut m.world, home, Qual::Orbital, 4_000);
     let mut months = 1;
     while open(&m, id) {
         audited_month(&mut m);
         months += 1;
-        assert!(months < 12, "{:?}", m.world.civs[0].projects.iter().map(|p| (p.work_done, p.work_needed, p.last_progress, p.blockers.clone())).collect::<Vec<_>>());
+        assert!(months < 14, "{:?}", m.world.civs[0].projects.iter().map(|p| (p.work_done, p.work_needed, p.last_progress, p.blockers.clone())).collect::<Vec<_>>());
     }
-    assert_eq!(months, 5, "half a month's work was lost in the first month");
+    assert_eq!(months, 7, "half a month's work was lost in the first month");
     // the other two preparations state their crews the same way
-    for (kind, crew) in [(ProjKind::FtlDeployment, 6_000u32), (ProjKind::FtlReplacement, 2_000)] {
+    for (kind, crew) in [(ProjKind::FtlDeployment, 12_000u32), (ProjKind::FtlReplacement, 4_000)] {
         let (c, power) = crate::sim::projects::ftl_terms(&kind);
         assert_eq!(c, vec![(vec![Qual::FtlEngineer], crew), (vec![Qual::Orbital], crew)]);
         assert!(power > 0);

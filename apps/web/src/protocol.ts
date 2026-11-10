@@ -108,6 +108,13 @@ export interface GoodLine {
    * Absent on referees older than ruleset 2.0 slice B.
    */
   lost?: number;
+  /**
+   * Output the works stood ready to make last round (staffed, supplied and powered)
+   * but did not make because the stores of the good were full. Never made and in no
+   * stock; it counts only where a rule asks what the works can sustain (the
+   * industrial base of the jump programme). Absent before ruleset 2.0 slice E.
+   */
+  withheld?: number;
 }
 
 export interface QualCount {
@@ -642,6 +649,59 @@ export type Clause =
 
 export type ClauseKind = Clause['kind'];
 
+/**
+ * Cooperation clauses (ruleset 2.0 slice E). They travel in the same `clauses` arrays
+ * as `Clause` (same `kind` tag) and are kept as a separate type only so that the
+ * panels' exhaustive tables keep compiling until they handle them; a client that
+ * reads treaties should accept `AnyClause`.
+ */
+export type CooperationClause =
+  /**
+   * `from` lends `count` holders of `qual` (people) for `months` (6-240). They leave
+   * the lender's regions, live and work in the borrower's, and the survivors go home
+   * at term or when the lender ends the treaty; on the borrower's repudiation or war a
+   * quarter stay behind without their qualification. Payment is by goods clauses.
+   */
+  | { kind: 'secondment'; from: SeatId; qual: Qual; count: number; months: number }
+  /**
+   * For `months` (12-240) the host's installation also serves the other party while the
+   * treaty is active and it ran at half rate or better the month before. Each partner
+   * served raises its inputs, upkeep and electric draw by half; at most two partners.
+   * `undisclosed` is shown to a seat that has not discovered the installation and is
+   * never valid in a proposal.
+   */
+  | { kind: 'joint_programme'; host: SeatId; service: ProgrammeService; months: number };
+
+/** Every clause a referee of ruleset 2.0 slice E or later may send or accept. */
+export type AnyClause = Clause | CooperationClause;
+
+/** A service a host's installation gives a partner under a joint programme clause. */
+export type ProgrammeService = 'launch' | 'orbital_yard' | 'high_energy' | 'undisclosed';
+
+/** What has become of the experts of one secondment clause (people). */
+export interface SecondmentView {
+  /** Index of the clause in the treaty's `clauses`. */
+  clause: number;
+  /** People who left the lender when the treaty was signed. */
+  sent: number;
+  /** People still owed home (0 once settled). */
+  owed: number;
+  /** People who came home, and people who stayed behind without their qualification. */
+  returned: number;
+  lost: number;
+  due_month: Month;
+}
+
+/** The state of one joint programme clause. */
+export interface JointProgrammeView {
+  /** Index of the clause in the treaty's `clauses`. */
+  clause: number;
+  /** Whether the host serves the other party this month. */
+  served: boolean;
+  /** Months in which the host's installation ran below half rate. */
+  shortfalls: number;
+}
+
 export interface OfferView {
   id: number;
   from: SeatId;
@@ -663,6 +723,10 @@ export interface TreatyView {
   ends_month: Month | null;
   status: string;
   performance: string[];
+  /** One entry for each secondment clause. Absent before ruleset 2.0 slice E. */
+  secondments?: SecondmentView[];
+  /** One entry for each joint programme clause. Absent before ruleset 2.0 slice E. */
+  programmes?: JointProgrammeView[];
 }
 
 export interface MessageView {
@@ -704,6 +768,12 @@ export interface Check {
   label: string;
   detail: string;
   ok: boolean;
+  /**
+   * For the checks of the jump programme, the base the check belongs to: 'industrial',
+   * 'scientific', 'educational', 'logistical' or 'service'. Empty for governance
+   * checks; absent before ruleset 2.0 slice E.
+   */
+  category?: string;
 }
 
 export interface VictoryView {

@@ -1,0 +1,162 @@
+[
+ {
+  "en": "Trial preparation begun at {site}, where the programme's people are: jump engineers and orbital crews there are held for it for at least six months, and it draws site power.",
+  "zh": "已在{site}開始試驗準備，計畫人員都在那裡：當地的躍遷工程師與軌道乘組將為此保留至少六個月，並消耗場址電力。"
+ },
+ {
+  "en": "Deployment exercise scheduled at {site}, where the programme's people are; it takes at least six months of work. Jump engineers and orbital crews there are held for it, and it draws site power.",
+  "zh": "已在{site}安排部署演練，計畫人員都在那裡；至少需要六個月的工作。當地的躍遷工程師與軌道乘組將為此保留，並消耗場址電力。"
+ },
+ {
+  "en": "Replacement and relief scheduled at {site}, where the programme's people are. Jump engineers and orbital crews there are held for it for at least three months, and it draws site power.",
+  "zh": "已在{site}安排更換與輪換，計畫人員都在那裡。當地的躍遷工程師與軌道乘組將為此保留至少三個月，並消耗場址電力。"
+ },
+ {
+  "en": "{a} seconds {#n} {q} to the other party for {#m} months",
+  "zh": "{a}向對方借調 {n} 名{q}，為期 {m} 個月"
+ },
+ {
+  "en": "{a} shares a programme facility service with the other party for {#m} months",
+  "zh": "{a}與對方共享一項計畫設施服務，為期 {m} 個月"
+ },
+ {
+  "en": "{a} shares its {s} with the other party for {#m} months",
+  "zh": "{a}與對方共享其{s}，為期 {m} 個月"
+ },
+ {
+  "en": "a secondment lends {#a} to {#b} people for {#c} to {#d} months",
+  "zh": "借調人數須為 {a} 至 {b} 人，期限 {c} 至 {d} 個月"
+ },
+ {
+  "en": "a joint programme runs for {#a} to {#b} months",
+  "zh": "聯合計畫的期限為 {a} 至 {b} 個月"
+ },
+ {
+  "en": "Experts seconded to {b}",
+  "zh": "專家借調至{b}"
+ },
+ {
+  "en": "{#n} {what} left our regions for {dest} under a treaty with {b}. They live and work there until month {#due}; the survivors then come home.",
+  "zh": "根據與{b}的條約，{n} 名{what}離開我們的地區前往{dest}。他們將在那裡生活和工作到第 {due} 月；屆時生還者返回家鄉。"
+ },
+ {
+  "en": "Departed in month {#n}",
+  "zh": "於第 {n} 月出發"
+ },
+ {
+  "en": "Experts arrive from {b}",
+  "zh": "來自{b}的專家抵達"
+ },
+ {
+  "en": "{#n} {what} lent by {b} arrived at {dest}. They live, eat and work among us until month {#due}, when they go home.",
+  "zh": "{b}借出的 {n} 名{what}抵達{dest}。他們將在我們這裡生活、用餐和工作到第 {due} 月，然後回國。"
+ },
+ {
+  "en": "Arrived in month {#n}",
+  "zh": "於第 {n} 月抵達"
+ },
+ {
+  "en": "Month {#n}: the joint programme lapsed with the breach; {h} no longer serves the other party",
+  "zh": "第 {n} 月：聯合計畫因違約而失效；{h}不再為對方服務"
+ },
+ {
+  "en": "Joint programme with {h} lapsed",
+  "zh": "與{h}的聯合計畫失效"
+ },
+ {
+  "en": "Month {#n}: {#c} seconded {what} went home to {l}; {#s} stayed behind in {b} without their qualification",
+  "zh": "第 {n} 月：{c} 名借調的{what}返回{l}；{s} 人滯留在{b}，失去了資格"
+ },
+ {
+  "en": "Month {#n}: {#c} seconded {what} went home to {l}",
+  "zh": "第 {n} 月：{c} 名借調的{what}返回{l}"
+ },
+ {
+  "en": "Experts recalled from {b}",
+  "zh": "從{b}召回專家"
+ },
+ {
+  "en": "The treaty with {b} ended in breach. {#c} of our seconded {what} came home; {#s} could not leave and stay there as ordinary residents, their qualification lapsed.",
+  "zh": "與{b}的條約因違約而終止。我們借調的{what}中有 {c} 人回國；{s} 人無法離開，作為普通居民留在當地，資格失效。"
+ },
+ {
+  "en": "Settled in month {#n}",
+  "zh": "於第 {n} 月了結"
+ },
+ {
+  "en": "Experts home from {b}",
+  "zh": "專家從{b}歸來"
+ },
+ {
+  "en": "{#c} {what} seconded to {b} came home and return to work here.",
+  "zh": "借調至{b}的 {c} 名{what}已回國，重新在本地工作。"
+ },
+ {
+  "en": "Returned in month {#n}",
+  "zh": "於第 {n} 月返回"
+ },
+ {
+  "en": "Seconded {what} leave for {l}",
+  "zh": "借調的{what}啟程前往{l}"
+ },
+ {
+  "en": "{#c} experts lent by {l} left our posts.",
+  "zh": "{l}借出的 {c} 名專家離開了我們的崗位。"
+ },
+ {
+  "en": "{#c} experts lent by {l} left our posts; {#s} of them stay on as residents without their qualification.",
+  "zh": "{l}借出的 {c} 名專家離開了我們的崗位；其中 {s} 人作為失去資格的居民留下。"
+ },
+ {
+  "en": "; {#s} of them stay on as residents without their qualification",
+  "zh": "；其中 {s} 人作為失去資格的居民留下"
+ },
+ {
+  "en": "Month {#n}: {h}'s installation ran below half rate; the joint programme is not served this month",
+  "zh": "第 {n} 月：{h}的設施運行不足半數產能；本月聯合計畫不提供服務"
+ },
+ {
+  "en": "{h} is not serving the joint programme",
+  "zh": "{h}未在履行聯合計畫"
+ },
+ {
+  "en": "Month {#n}: the secondment ended; {#c} {what} went home to {l}",
+  "zh": "第 {n} 月：借調結束；{c} 名{what}返回{l}"
+ },
+ {
+  "en": "Their term over, {#c} {what} seconded to {b} came home and return to work here.",
+  "zh": "期滿後，借調至{b}的 {c} 名{what}已回國，重新在本地工作。"
+ },
+ {
+  "en": "Seconded {what} go home to {l}",
+  "zh": "借調的{what}返回{l}"
+ },
+ {
+  "en": "Their term over, {#c} experts lent by {l} left our posts.",
+  "zh": "期滿後，{l}借出的 {c} 名專家離開了我們的崗位。"
+ },
+ {
+  "en": "{#a} jump engineers for {#b} posts ({#c} needed); {#d} orbital crew for {#e} posts ({#f} needed); seconded experts resident here count",
+  "zh": "躍遷工程師 {a} 人，崗位 {b} 個（需要 {c} 人）；軌道乘組 {d} 人，崗位 {e} 個（需要 {f} 人）；常駐本地的借調專家計入"
+ },
+ {
+  "en": "{g}: {m} made and {k} contracted of {r} needed",
+  "zh": "{g}：自產 {m}、合同 {k}，需要 {r}"
+ },
+ {
+  "en": "Last year's output and contracted imports cover {x} for a year with a fifth to spare",
+  "zh": "去年的產出與合同進口足以覆蓋一年的{x}，並有五分之一餘量"
+ },
+ {
+  "en": "{a} spares ({b} needed), {c} fuel ({d} needed)",
+  "zh": "備品 {a}（需要 {b}），燃料 {c}（需要 {d}）"
+ },
+ {
+  "en": "No region holds a {a} or a {b}",
+  "zh": "沒有任何地區擁有{a}或{b}"
+ },
+ {
+  "en": "{#a} sites; {#b} below transport grade {#g}; {#c} received less than 90% of their electric demand",
+  "zh": "{a} 個場址；{b} 個低於 {g} 級交通；{c} 個獲得的電力不足需求的 90%"
+ }
+]

@@ -966,14 +966,16 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
         "high_energy" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Scientist], 1_000)], 100.0, 24),
         "fission" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Scientist], 1_000)], 100.0, 30),
         "fusion" => (&[(&[Builder], 6_000), (&[Technician], 4_000), (&[Electrician], 4_000), (&[Scientist], 2_000)], 200.0, 36),
-        "launch_complex" => (&[(&[Builder], 6_000), (&[Mechanic], 3_000), (&[Technician], 3_000), (&[Electrician], 2_000), (&[Scientist], 1_000)], 100.0, 24),
+        // (slice E: the crews of the launch complex, the orbital yard, the testbed,
+        // the lines and the nodes grew with the works they build)
+        "launch_complex" => (&[(&[Builder], 8_000), (&[Mechanic], 4_000), (&[Technician], 4_000), (&[Electrician], 2_000), (&[Scientist], 1_000)], 150.0, 24),
         "orbital_station" => (&[(&[Builder], 4_000), (&[Technician], 3_000), (&[Electrician], 2_000), (&[Scientist], 1_000), (&[Orbital, Technician], 4_000)], 150.0, 30),
-        "orbital_yard" => (&[(&[Builder], 6_000), (&[Mechanic], 4_000), (&[Technician], 4_000), (&[Electrician], 2_000), (&[Orbital], 6_000)], 200.0, 36),
+        "orbital_yard" => (&[(&[Builder], 8_000), (&[Mechanic], 6_000), (&[Technician], 6_000), (&[Electrician], 3_000), (&[Orbital], 8_000)], 300.0, 36),
         "orbital_power" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Orbital], 2_000)], 150.0, 24),
         "interferometer" => (&[(&[Builder], 2_000), (&[Technician], 2_000), (&[Scientist], 2_000), (&[Orbital], 3_000)], 100.0, 24),
-        "jump_testbed" => (&[(&[Builder], 6_000), (&[Technician], 4_000), (&[Electrician], 4_000), (&[Scientist], 4_000), (&[Orbital], 4_000)], 300.0, 36),
-        "jump_yard" => (&[(&[Builder], 6_000), (&[Mechanic], 4_000), (&[Technician], 4_000), (&[Electrician], 4_000), (&[FtlEngineer], 4_000)], 400.0, 48),
-        "jump_base" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Orbital], 2_000), (&[FtlEngineer], 2_000)], 150.0, 24),
+        "jump_testbed" => (&[(&[Builder], 6_000), (&[Technician], 4_000), (&[Electrician], 6_000), (&[Scientist], 4_000), (&[Orbital], 4_000)], 400.0, 36),
+        "jump_yard" => (&[(&[Builder], 8_000), (&[Mechanic], 6_000), (&[Technician], 6_000), (&[Electrician], 4_000), (&[FtlEngineer], 4_000)], 400.0, 48),
+        "jump_base" => (&[(&[Builder], 4_000), (&[Technician], 3_000), (&[Electrician], 2_000), (&[Orbital], 3_000), (&[FtlEngineer], 2_000)], 200.0, 24),
         _ => panic!("no construction terms for {key}"),
     };
     (crew.iter().map(|(qs, n)| (qs.to_vec(), *n)).collect(), m(power), months)
@@ -1402,21 +1404,27 @@ fn facilities() -> Vec<FacDef> {
             .req("T102").cost(&[(Metal, 5.0), (Conductors, 10.0), (Insulation, 3.0)]).work(150.0)
             .skilled(&[Q::Electrician], 1_000).provides(Cap::GridLink, 1.0)
             .upkeep(&[(Spares, 0.4)]).labor(L::Industry).tags(&[Tag::Electric]).max(1),
-        fac("fission", "Fission plant", "Power", "Safeguarded reactors: steady electricity from small quantities of rare minerals.")
-            .req("T147 & C045").cost(&[(Metal, 80.0), (Components, 40.0), (Electronics, 20.0), (Conductors, 20.0), (Insulation, 10.0)]).work(2000.0)
+        // Slice E: the jump programme draws about 21,200 units a month (2.9 GW
+        // continuous: two lines 8,000, three nodes 3,000, the testbed 8,000, the
+        // high-energy laboratory 1,000, launch complex, station and yard 1,200).
+        // A level of these plants is a station of several units: eleven fission
+        // levels, four fusion levels or seven receivers carry the programme, each
+        // with its fuel, upkeep and qualified crew - a generating base, not a building.
+        fac("fission", "Fission plant", "Power", "Safeguarded reactors: 2,000 units of steady electricity a level from three kilotonnes of rare minerals a month.")
+            .req("T147 & C045").cost(&[(Metal, 160.0), (Components, 80.0), (Electronics, 40.0), (Conductors, 40.0), (Insulation, 20.0)]).work(4000.0)
             .skilled(&[Q::Scientist], 2_000).skilled(&[Q::Technician], 6_000).skilled(&[Q::Electrician], 4_000).general(4_000)
-            .recipe(rec("fission", "Fission generation").inp(&[(Minerals, 1.0)]).gives_elec(600.0))
-            .upkeep(&[(Spares, 2.0), (Electronics, 0.3)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Electric]).power(),
-        fac("fusion", "Fusion plant", "Power", "Maintainable net-power fusion. Enormous output, enormous upkeep.")
-            .req("T149 & C045").cost(&[(Metal, 200.0), (Components, 120.0), (Electronics, 80.0), (Conductors, 60.0), (Insulation, 30.0), (Hardware, 6.0)]).work(6000.0)
+            .recipe(rec("fission", "Fission generation").inp(&[(Minerals, 3.0)]).gives_elec(2000.0))
+            .upkeep(&[(Spares, 4.0), (Electronics, 0.6)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Electric]).power(),
+        fac("fusion", "Fusion plant", "Power", "Maintainable net-power fusion: 6,000 units of electricity a level. Enormous output, enormous upkeep.")
+            .req("T149 & C045").cost(&[(Metal, 400.0), (Components, 240.0), (Electronics, 160.0), (Conductors, 120.0), (Insulation, 60.0), (Hardware, 12.0)]).work(10000.0)
             .skilled(&[Q::Scientist], 6_000).skilled(&[Q::Technician], 10_000).skilled(&[Q::Electrician], 6_000).general(4_000)
-            .recipe(rec("fusion", "Fusion generation").inp(&[(Chemicals, 1.0)]).gives_elec(2500.0))
-            .upkeep(&[(Spares, 5.0), (Electronics, 1.0)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Electric]).power(),
-        fac("orbital_power", "Orbital power receiver", "Power", "Ground station for power collected in orbit. Needs an orbital construction yard.")
-            .req("T150 & F:orbital_yard").cost(&[(Metal, 60.0), (Components, 40.0), (Electronics, 40.0), (Conductors, 40.0)]).work(2500.0)
+            .recipe(rec("fusion", "Fusion generation").inp(&[(Chemicals, 2.0)]).gives_elec(6000.0))
+            .upkeep(&[(Spares, 10.0), (Electronics, 2.0)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Electric]).power(),
+        fac("orbital_power", "Orbital power receiver", "Power", "Ground station for power collected in orbit: 3,000 units of electricity a level. Needs an orbital construction yard.")
+            .req("T150 & F:orbital_yard").cost(&[(Metal, 120.0), (Components, 80.0), (Electronics, 80.0), (Conductors, 80.0)]).work(4000.0)
             .skilled(&[Q::Electrician], 4_000).skilled(&[Q::Orbital], 4_000)
-            .recipe(rec("beam", "Orbital collection").gives_elec(1500.0))
-            .upkeep(&[(Spares, 3.0), (Electronics, 1.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Electric]).power(),
+            .recipe(rec("beam", "Orbital collection").gives_elec(3000.0))
+            .upkeep(&[(Spares, 5.0), (Electronics, 2.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Electric]).power(),
         // ---- transport and civic ----------------------------------------
         fac("roads", "Roads and waystations", "Transport", "Maintained roads, bridges and staged carriage linking this region to the rest.")
             .req("T027").cost(&[(Materials, 15.0), (Tools, 2.0)]).work(80.0).general(2_000)
@@ -1503,29 +1511,41 @@ fn facilities() -> Vec<FacDef> {
             .skilled(&[Q::Scientist], 4_000).skilled(&[Q::AiEngineer, Q::Programmer], 4_000)
             .recipe(rec("automated", "Automated experiments").research(RC::Advanced, 40.0).elec(60.0).compute(200.0))
             .upkeep(&[(Instruments, 2.0), (Electronics, 1.0), (Spares, 1.0)]).labor(L::Knowledge).tags(&[Tag::Compute, Tag::Science]),
-        fac("high_energy", "High-energy laboratory", "Research", "Accelerators, plasma devices and the people who can run them.")
-            .req("T146 & C045").cost(&[(Metal, 100.0), (Components, 50.0), (Electronics, 60.0), (Conductors, 40.0), (Instruments, 40.0)]).work(3000.0)
+        // ---- the space and jump base (design chapter 35, slice E) -----------
+        // Crews, operating inputs and electric draw follow the slice E table: they
+        // are larger against the rest of the economy than a plain x1000 of ruleset
+        // 1.0. Bills, work and upkeep were raised with the crews. One staffed
+        // research post still gives one researcher-month, so the frontier output
+        // of a works is at most its research staff.
+        // The design table asks 3,000 units of electricity. The first laboratory must
+        // run before fission is understood (fission, fusion and the plasma work are
+        // investigated there), on hydroelectric works and generator halls of about 54
+        // units a level; at 3,000 the all-native campaigns lost a third of the seats
+        // that completed the graph (docs/calibration/slice-e-*.txt). 1,000 units is ten
+        // times ruleset 1.0's draw and half a level of fission.
+        fac("high_energy", "High-energy laboratory", "Research", "Accelerators, plasma devices and the sixty thousand people who can run them. Draws 1,000 units of electricity a month.")
+            .req("T146 & C045").cost(&[(Metal, 150.0), (Components, 80.0), (Electronics, 80.0), (Conductors, 80.0), (Instruments, 50.0)]).work(4000.0)
             .skilled(&[Q::Scientist], 40_000).skilled(&[Q::Technician], 12_000).skilled(&[Q::Electrician], 8_000)
-            .recipe(rec("frontier", "Frontier experiments").research(RC::Frontier, 60.0).elec(300.0).compute(50.0))
-            .upkeep(&[(Instruments, 4.0), (Electronics, 2.0), (Spares, 2.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Science]),
+            .recipe(rec("frontier", "Frontier experiments").research(RC::Frontier, 60.0).elec(1000.0).compute(50.0))
+            .upkeep(&[(Instruments, 6.0), (Electronics, 4.0), (Spares, 4.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Science]),
         // ---- space and jump engineering ----------------------------------
-        fac("launch_complex", "Launch complex", "Space", "Pads, tracking and propellant handling. Keeps a launch cadence only while supplied.")
-            .req("T140 & T141 & C045").cost(&[(Metal, 80.0), (Components, 60.0), (Electronics, 30.0), (Conductors, 10.0)]).work(2000.0)
-            .skilled(&[Q::Technician], 8_000).skilled(&[Q::Scientist], 4_000).skilled(&[Q::Mechanic], 8_000).general(10_000)
-            .recipe(rec("cadence", "Launch cadence").inp(&[(Fuel, 8.0), (Components, 2.0), (Electronics, 1.0)]).elec(40.0))
-            .provides(Cap::Launch, 1.0).upkeep(&[(Spares, 1.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Fuel]).max(1),
+        fac("launch_complex", "Launch complex", "Space", "Pads, tracking and propellant handling worked by sixty thousand people. Keeps a launch cadence only while supplied.")
+            .req("T140 & T141 & C045").cost(&[(Metal, 160.0), (Components, 120.0), (Electronics, 60.0), (Conductors, 30.0)]).work(4000.0)
+            .skilled(&[Q::Technician], 16_000).skilled(&[Q::Scientist], 6_000).skilled(&[Q::Mechanic], 16_000).general(22_000)
+            .recipe(rec("cadence", "Launch cadence").inp(&[(Fuel, 30.0), (Components, 6.0), (Electronics, 3.0)]).elec(400.0))
+            .provides(Cap::Launch, 1.0).upkeep(&[(Spares, 3.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Fuel]).max(1),
         fac("orbital_station", "Orbital station", "Space", "A crewed, resupplied station. Requires a working launch complex in the same region.")
             .req("T142 & T144").site(Site::With("launch_complex"))
-            .cost(&[(Metal, 60.0), (Components, 60.0), (Electronics, 40.0), (Insulation, 20.0), (Fuel, 80.0)]).work(2500.0)
-            .skilled(&[Q::Orbital], 12_000).skilled(&[Q::Scientist], 4_000)
-            .recipe(rec("orbit_science", "Orbital research").research(RC::Frontier, 10.0).inp(&[(Fuel, 4.0), (Food, 4.0), (Medicine, 0.5)]).elec(20.0))
-            .provides(Cap::OrbitalStation, 1.0).upkeep(&[(Spares, 2.0), (Electronics, 1.0)]).labor(L::Industry).tags(&[Tag::Space]).max(1),
+            .cost(&[(Metal, 80.0), (Components, 80.0), (Electronics, 60.0), (Insulation, 30.0), (Fuel, 120.0)]).work(3500.0)
+            .skilled(&[Q::Orbital], 16_000).skilled(&[Q::Scientist], 6_000)
+            .recipe(rec("orbit_science", "Orbital research").research(RC::Frontier, 10.0).inp(&[(Fuel, 12.0), (Food, 20.0), (Medicine, 1.0)]).elec(200.0))
+            .provides(Cap::OrbitalStation, 1.0).upkeep(&[(Spares, 3.0), (Electronics, 1.5)]).labor(L::Industry).tags(&[Tag::Space]).max(1),
         fac("orbital_yard", "Orbital construction yard", "Space", "Scaled construction and manufacture in orbit. Requires an orbital station in the same region.")
             .req("T145 & C058").site(Site::With("orbital_station"))
-            .cost(&[(Metal, 150.0), (Components, 150.0), (Electronics, 80.0), (Hardware, 10.0), (Fuel, 200.0)]).work(5000.0)
-            .skilled(&[Q::Orbital], 20_000).skilled(&[Q::Mechanic], 10_000).skilled(&[Q::Technician], 10_000)
-            .recipe(rec("yard_ops", "Orbital operations").inp(&[(Fuel, 8.0), (Components, 2.0)]).elec(60.0))
-            .provides(Cap::OrbitalYard, 1.0).upkeep(&[(Spares, 4.0), (Electronics, 2.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Machine]).max(1),
+            .cost(&[(Metal, 270.0), (Components, 270.0), (Electronics, 150.0), (Hardware, 18.0), (Fuel, 360.0)]).work(9000.0)
+            .skilled(&[Q::Orbital], 30_000).skilled(&[Q::Mechanic], 16_000).skilled(&[Q::Technician], 16_000).general(10_000)
+            .recipe(rec("yard_ops", "Orbital operations").inp(&[(Fuel, 30.0), (Components, 10.0), (Electronics, 4.0)]).elec(600.0))
+            .provides(Cap::OrbitalYard, 1.0).upkeep(&[(Spares, 8.0), (Electronics, 4.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Machine]).max(1),
         fac("interferometer", "Orbital interferometer array", "Space", "Large-baseline optical instruments assembled in orbit.")
             .req("T151 & F:orbital_yard").cost(&[(Components, 60.0), (Electronics, 60.0), (Instruments, 40.0), (Hardware, 6.0), (Fuel, 60.0)]).work(2000.0)
             .skilled(&[Q::Scientist], 10_000).skilled(&[Q::Orbital], 6_000)
@@ -1533,24 +1553,24 @@ fn facilities() -> Vec<FacDef> {
             .upkeep(&[(Spares, 1.0), (Electronics, 1.0)]).labor(L::Knowledge).tags(&[Tag::Space, Tag::Science]).max(1),
         fac("jump_testbed", "Jump testbed", "Jump engineering", "The first installation able to reproduce the anomaly under load. Needs an orbital yard and vast power.")
             .req("T163 & C045 & C056 & F:orbital_yard & F:high_energy")
-            .cost(&[(Metal, 200.0), (Components, 200.0), (Electronics, 150.0), (Conductors, 100.0), (Hardware, 20.0), (Instruments, 60.0)]).work(6000.0)
-            .skilled(&[Q::Scientist], 30_000).skilled(&[Q::FtlEngineer, Q::Technician], 10_000).skilled(&[Q::Orbital], 10_000)
-            .recipe(rec("jump_trials", "Jump-interface experiments").research(RC::Frontier, 60.0).elec(800.0).compute(100.0))
-            .upkeep(&[(Spares, 4.0), (Electronics, 3.0), (Instruments, 2.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Space]).max(1),
-        fac("jump_yard", "Jump assembly line", "Jump engineering", "An independently operable line that completes one standard jump assembly in twenty-four months of full work.")
+            .cost(&[(Metal, 250.0), (Components, 250.0), (Electronics, 200.0), (Conductors, 200.0), (Hardware, 30.0), (Instruments, 80.0)]).work(8000.0)
+            .skilled(&[Q::Scientist], 30_000).skilled(&[Q::FtlEngineer, Q::Technician], 12_000).skilled(&[Q::Orbital], 10_000)
+            .recipe(rec("jump_trials", "Jump-interface experiments").research(RC::Frontier, 60.0).elec(8000.0).compute(100.0))
+            .upkeep(&[(Spares, 6.0), (Electronics, 5.0), (Instruments, 3.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Space]).max(1),
+        fac("jump_yard", "Jump assembly line", "Jump engineering", "An independently operable line of seventy-six thousand people that completes one standard jump assembly in twenty-four months of full work.")
             .req("T166 & C056")
-            .cost(&[(Metal, 200.0), (Components, 200.0), (Electronics, 100.0), (Hardware, 20.0), (Conductors, 60.0)]).work(6000.0)
-            .skilled(&[Q::FtlEngineer], 12_000).skilled(&[Q::Technician], 12_000).skilled(&[Q::Mechanic], 12_000).skilled(&[Q::Electrician], 6_000).general(10_000)
+            .cost(&[(Metal, 300.0), (Components, 300.0), (Electronics, 150.0), (Hardware, 30.0), (Conductors, 100.0)]).work(9000.0)
+            .skilled(&[Q::FtlEngineer], 16_000).skilled(&[Q::Technician], 16_000).skilled(&[Q::Mechanic], 16_000).skilled(&[Q::Electrician], 8_000).general(20_000)
             .recipe(rec("assembly", "Jump assembly manufacture")
-                .inp(&[(Components, 20.0), (Electronics, 15.0), (Hardware, 1.0), (Conductors, 6.0), (Insulation, 3.0), (Metal, 15.0), (Substrate, 1.0)])
-                .elec(400.0).assembly(1.0 / 24.0))
-            .provides(Cap::FtlYard, 1.0).upkeep(&[(Spares, 4.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::HighEnergy, Tag::Machine]).max(1),
+                .inp(&[(Components, 60.0), (Electronics, 45.0), (Hardware, 3.0), (Conductors, 18.0), (Insulation, 9.0), (Metal, 45.0), (Substrate, 3.0)])
+                .elec(4000.0).assembly(1.0 / 24.0))
+            .provides(Cap::FtlYard, 1.0).upkeep(&[(Spares, 8.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::HighEnergy, Tag::Machine]).max(1),
         fac("jump_base", "Jump deployment node", "Jump engineering", "Transport, maintenance and recovery capability at one of the three test nodes.")
             .req("T167 & C057").site(Site::TestNode)
-            .cost(&[(Metal, 80.0), (Components, 60.0), (Electronics, 40.0), (Conductors, 20.0)]).work(2500.0)
-            .skilled(&[Q::FtlEngineer], 4_000).skilled(&[Q::Orbital], 6_000).skilled(&[Q::Technician], 6_000).general(8_000)
-            .recipe(rec("node_ops", "Node operations").inp(&[(Fuel, 4.0), (Electronics, 1.0)]).elec(100.0))
-            .provides(Cap::FtlBase, 1.0).upkeep(&[(Spares, 3.0)]).labor(L::Industry).tags(&[Tag::Space]).max(1),
+            .cost(&[(Metal, 110.0), (Components, 80.0), (Electronics, 55.0), (Conductors, 30.0)]).work(3500.0)
+            .skilled(&[Q::FtlEngineer], 6_000).skilled(&[Q::Orbital], 8_000).skilled(&[Q::Technician], 8_000).general(10_000)
+            .recipe(rec("node_ops", "Node operations").inp(&[(Fuel, 12.0), (Electronics, 3.0)]).elec(1000.0))
+            .provides(Cap::FtlBase, 1.0).upkeep(&[(Spares, 4.0)]).labor(L::Industry).tags(&[Tag::Space]).max(1),
     ];
     v.into_iter()
         .map(|f| {

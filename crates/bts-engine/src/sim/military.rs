@@ -64,14 +64,20 @@ pub fn declare_war(w: &mut World, aggressor: SeatId, victim: SeatId, reason: &st
     let month = w.month;
     let (an, vn) = (w.civs[aggressor as usize].name.clone(), w.civs[victim as usize].name.clone());
     let mut broke_pact = false;
-    for t in w.treaties.iter_mut() {
+    let mut ended = Vec::new();
+    for (ti, t) in w.treaties.iter_mut().enumerate() {
         if t.status == "active" && t.parties.contains(&aggressor) && t.parties.contains(&victim) {
             if t.clauses.iter().any(|c| matches!(c, Clause::NonAggression { .. } | Clause::DefensivePact { .. } | Clause::Subordination { .. })) {
                 broke_pact = true;
             }
             t.status = "broken".into();
             t.performance.push(format!("Month {month}: ended by war ({an} against {vn})"));
+            ended.push(ti);
         }
+    }
+    // war ends every secondment and joint programme between the parties at once
+    for ti in ended {
+        crate::sim::diplomacy::end_cooperation(w, ti, crate::sim::diplomacy::Ending::War);
     }
     // a subordinate attacking, or being attacked by, its overlord ends the subordination
     if w.civs[aggressor as usize].overlord == Some(victim) {

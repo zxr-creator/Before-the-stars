@@ -350,7 +350,7 @@ Construction terms by class, per level, at standard pace (the full list is print
 | Civil works and early industry: irrigation, mines, furnaces, mills, press, instrument makers, insulation works, roads, harbour, waterworks, sewers, hospital, offices, barracks, school, college, technical institute, archive, laboratory | 500-1,000 builders (artisans accepted) | 0 | 3-6 |
 | Industrial: oil wells, machine shops, parts works, wire works, steelworks, chemical works, steam and diesel stations, water treatment, research institute, railway (millwrights: mechanics, or smiths or artisans); pharmaceutical works, refinery, motor depot (mechanics or technicians) | 1,000-2,000 builders (artisans accepted) and 500-1,000 millwrights | 5-20 | 6-12 |
 | Electrical and computing: generator hall, grid, hydroelectric works, computing centre, computer works, synthetic fuel, high-purity materials, electronics cells, advanced research centre, automated experiment hall | 1,000-3,000 builders (artisans accepted); 500-1,000 mechanics or technicians (millwrights at hydroelectric works, none at generator halls and the grid); 500-2,000 electricians (technicians accepted; mechanics too at generator halls and hydroelectric works) | 10-30 | 9-15 |
-| Nuclear, orbital and jump: high-energy laboratory, fission, fusion, launch complex, orbital station, orbital yard, orbital power receiver, interferometer, jump testbed, jump assembly line, jump deployment node | 2,000-6,000 builders, 2,000-4,000 technicians, 2,000-4,000 electricians (not at the interferometer), 1,000-4,000 scientists (high-energy laboratory, fission, fusion, launch complex, station, interferometer, testbed), 3,000-4,000 mechanics (launch complex, orbital yard, assembly line); 2,000-6,000 orbital crews at the orbital works, the testbed and the nodes; 2,000-4,000 jump engineers at the assembly line and the nodes | 100-400 | 24-48 |
+| Nuclear, orbital and jump: high-energy laboratory, fission, fusion, launch complex, orbital station, orbital yard, orbital power receiver, interferometer, jump testbed, jump assembly line, jump deployment node | 2,000-8,000 builders, 2,000-6,000 technicians, 2,000-6,000 electricians (not at the interferometer), 1,000-4,000 scientists (high-energy laboratory, fission, fusion, launch complex, station, interferometer, testbed), 3,000-6,000 mechanics (launch complex, orbital yard, assembly line); 2,000-8,000 orbital crews at the orbital works, the testbed and the nodes; 2,000-4,000 jump engineers at the assembly line and the nodes (since slice E the launch complex, orbital yard, testbed, lines and nodes have the larger crews, site power and bills of the works they build: section 8) | 100-400 | 24-48 |
 
 No crew needs people who cannot exist yet (tested for every facility by walking the
 content's own requirements with that facility withheld): artisans stand in for
@@ -360,11 +360,11 @@ builders; the launch complex needs no orbital crews, because their course follow
 what is investigated there, and the first station accepts technicians in their place;
 the jump testbed needs no jump engineers, for the same reason.
 
-The preparations of the jump programme are orders of the same kind, sited at the
-capital: a loaded round trip holds 4,000 jump engineers and 4,000 orbital crews and
-draws 2,000 units a month for four months; the deployment exercise 6,000 of each and
-1,500 units for six months; a replacement 2,000 of each and 500 units for three
-months. Surveys, settlement, resettlement, recruitment, reforms and the stages of a
+The preparations of the jump programme are orders of the same kind, sited where the
+programme's people are (section 8): since slice E a loaded round trip holds 8,000 jump
+engineers and 8,000 orbital crews and draws 3,000 units a month for six months; the
+deployment exercise 12,000 of each and 2,000 units for six months; a replacement
+4,000 of each and 1,000 units for three months. Surveys, settlement, resettlement, recruitment, reforms and the stages of a
 movement need labour and goods as before, and no crew.
 
 Queues are per region. `OwnRegion.construction_queue` lists every project sited in
@@ -486,9 +486,8 @@ region, its capital included, whose load is within two levels of capacity.
 
 ## 8. The space and jump base
 
-See `docs/design/35-industrial-base-plan-v1.1.md` for the facility table and the
-acceptance checks. The principle: an independent programme needs, each separately
-checked and each consuming real things,
+The principle: an independent programme needs, each separately checked and each
+consuming real things,
 
 - industrial: the capital works themselves and a year's flight hardware delivered by
   own output or contracted imports;
@@ -498,10 +497,106 @@ checked and each consuming real things,
 - logistical: freight links, fuel and spares for a year, electric supply at every
   site, launch and recovery sites.
 
-There is no population threshold anywhere in these checks. A small civilization can
-substitute contracted imports for output, seconded experts for graduates and a
-partner's launch or orbital-yard service for its own, each for payment and each ending
-when the treaty does.
+There is no population threshold anywhere in these checks, explicit or hidden: no
+check reads a head count of residents, and the tests change the population a
+hundredfold without changing a check. A small civilization can substitute contracted
+imports for output, seconded experts for graduates and a partner's launch,
+orbital-yard or laboratory service for its own, each for payment and each ending
+when the treaty does. The jump works themselves (assembly lines, deployment nodes,
+the exercise, the replacement) must be the seat's own.
+
+**The installations** (`content.rs`; people per level, goods in display units per
+level-month, electricity in units of 100 MWh a month):
+
+| Installation | Qualified crew | General | Operating inputs | Upkeep | Electric |
+| --- | --- | --- | --- | --- | --- |
+| High-energy laboratory | 40,000 scientists, 12,000 technicians, 8,000 electricians | - | - | instruments 6, electronics 4, spares 4 | 1,000 |
+| Launch complex | 16,000 technicians, 6,000 scientists, 16,000 mechanics | 22,000 | fuel 30, components 6, electronics 3 | spares 3 | 400 |
+| Orbital station | 16,000 orbital crew, 6,000 scientists | - | fuel 12, food 20, medicine 1 | spares 3, electronics 1.5 | 200 |
+| Orbital construction yard | 30,000 orbital crew, 16,000 mechanics, 16,000 technicians | 10,000 | fuel 30, components 10, electronics 4 | spares 8, electronics 4 | 600 |
+| Jump testbed | 30,000 scientists, 12,000 jump engineers or technicians, 10,000 orbital crew | - | - | spares 6, electronics 5, instruments 3 | 8,000 |
+| Jump assembly line | 16,000 jump engineers, 16,000 technicians, 16,000 mechanics, 8,000 electricians | 20,000 | components 60, electronics 45, hardware 3, conductors 18, insulation 9, metal 45, substrate 3 | spares 8 | 4,000 |
+| Jump deployment node | 6,000 jump engineers, 8,000 orbital crew, 8,000 technicians | 10,000 | fuel 12, electronics 3 | spares 4 | 1,000 |
+| Fission plant (a station of several units) | 2,000 scientists, 6,000 technicians, 4,000 electricians | 4,000 | rare minerals 3 | spares 4, electronics 0.6 | gives 2,000 |
+| Fusion plant | 6,000 scientists, 10,000 technicians, 6,000 electricians | 4,000 | chemicals 2 | spares 10, electronics 2 | gives 6,000 |
+| Orbital power receiver | 4,000 electricians, 4,000 orbital crew | - | - | spares 5, electronics 2 | gives 3,000 |
+
+The whole programme (two lines, three nodes, the testbed, the laboratory, launch
+complex, station and yard) draws about 21,200 units, 2.9 GW continuous: eleven
+fission levels, four of fusion or seven receivers, each with its own fuel, upkeep and
+crew. The high-energy laboratory draws 1,000 units, not the 3,000 of the design
+table, because the first one must run before fission is understood (see the slice E
+notes of the design chapter). Construction crews and bills of these works are the
+last rows of section 6. A loaded round trip (`projects::ftl_bill`) takes 600,000
+worker-months of preparation over at least six months, 8,000 jump engineers and
+8,000 orbital crew held for it, 3,000 units of site power a month, and 400 kt of fuel, 100,000
+spare-part lots, 50,000 device lots and 30 kt of components; the deployment exercise
+and the replacement are charged in the same way. A preparation is sited where the
+programme's people are (the governed region with an assembly line, or for the exercise
+a line or node, holding the most jump engineers and orbital crew).
+
+**The checks** (`sim/victory.rs`, `ftl_checks`; each check carries a `category`). The
+programme's needs are derived from the installations the seat has, and never from
+fewer than an independent programme needs: two assembly lines and three deployment
+nodes, and a launch complex, an orbital station with its yard and a high-energy
+laboratory unless a partner serves the seat with that installation under a joint
+programme (`programme_levels`). An installation that serves partners counts with the
+half again of its inputs and upkeep that each partner adds.
+
+| # | Category | Check | Passes when |
+| --- | --- | --- | --- |
+| 1 | scientific | Fleet-wide jump engineering standards understood | as before |
+| 2 | industrial | Two operational assemblies from two independent lines | as before |
+| 3 | industrial | Both assembly lines staffed | as before |
+| 4 | logistical | Three deployment nodes operating | as before |
+| 5 | service | Three-node deployment exercise completed | as before |
+| 6 | service | Assembly replacement and crew relief verified | as before |
+| 7 | educational | Qualified crews for every post, with reliefs | jump engineers and orbital crew resident in the seat's regions (seconded experts included) are each at least 3/2 of the posts that call for that qualification alone in the programme's installations (at the minimum configuration: 50,000 and 70,000 posts, so 75,000 and 105,000 people) |
+| 8 | educational | Training that replaces the crews | for each of the two: places in courses giving it, held in a governed region with a venue and with a cohort enrolled (or one graduated in the last 60 months), at least 1/20 of its posts; or an active secondment lending the seat that qualification |
+| 9 | scientific | Frontier research capacity | at least 30,000 researcher-months a month of frontier research from staffed posts, and a high-energy laboratory running at half rate or better (own, or a partner's under a joint programme) |
+| 10 | industrial | A year of flight hardware from own output or contracts | for each of components, electronics, computing hardware, conductors and structural metal, last round's own output (with what the works stood ready to make but held back because the stores were full, `GoodLine.withheld`) plus deliveries contracted to the seat for the coming twelve months is at least 6/5 of a year of what its lines, nodes, launch complex and yard take at full rate, inputs and upkeep |
+| 11 | logistical | A year of fuel and spares in store | fuel and spares in store cover twelve months of the inputs and upkeep of all programme installations |
+| 12 | logistical | Freight links and electric supply at every programme site | every governed region holding an assembly line or a node has transport grade 2 or better and last month received at least 90% of its electric demand; fails when there is no such region |
+| 13 | logistical | Launch and recovery services operating | a launch complex and an orbital yard each running at half rate or better, own or a partner's under a joint programme |
+| 14 | service | Common mission charter across sites established | as before |
+
+The details state the measured value and the need. An installation the seat has not
+discovered is named "programme installation". The old head-count check (36,000 of
+each crew) and the fixed store check (240 kt spares, 200 kt fuel) are gone. A jump
+trial is supported by the seat's own orbital yard or a partner's under a joint
+programme.
+
+**Cooperation** (`sim/diplomacy.rs`). Two treaty clauses; payment is by ordinary goods
+clauses of the same treaty, and the treaty limits (eight clauses, 240 months of
+deliveries, recurring deliveries only with escrow) apply.
+
+- `secondment { from, qual, count, months }`: 500-200,000 people for 6-240 months. The
+  proposer can lend at most half of its holders of that qualification who are not
+  teaching (counted over all its secondment clauses in the treaty); a lender named by
+  the other side is counted again at signing. On signature the experts leave the
+  lender's regions with real adults of 20-55 (from the regions with most free holders)
+  for the borrower's capital, where they live, eat, hold posts and can teach. Each
+  month the number owed home falls in the proportion of the borrower's holders of that
+  qualification who died, retired or were enlisted; the dead are not returned. At the
+  end of the term, or when the lender ends the treaty, the survivors (never more than
+  the borrower's free holders) go home with their qualification to the lender's
+  region that gave the most of them. When the borrower repudiates the treaty or the
+  parties go to war, a quarter of them stay behind as ordinary residents without the
+  qualification. Ledger channels are those of the conservation audit, section 4.
+- `joint_programme { host, service, months }` with `service` one of `launch`,
+  `orbital_yard`, `high_energy`: 12-240 months. The host's installation (the one at
+  its capital, else in its lowest-numbered region) serves the other party while the
+  treaty is active and the installation ran at half rate or better the month before;
+  a month below that is a recorded shortfall and serves nobody. Access counts for the
+  investigations that need the installation (a partner's yard also stands for its
+  station), for the `F:` requirements of works that need it to exist (never for a
+  works that must stand in the same region), for checks 9 and 13, and for trial
+  support; never for checks 2-6. Each partner served adds half of the installation's
+  operating inputs, upkeep and electric draw to what the host's works take; an
+  installation serves at most two partners. Access stops at once when the treaty is
+  broken, by repudiation or war, and the lapse is recorded in its performance.
+  `undisclosed` is what a seat that has not discovered the installation is shown; it
+  is never valid, and such a seat can neither propose nor sign the clause.
 
 ## 9. Overflow and precision
 

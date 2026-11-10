@@ -17,10 +17,10 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Culture (07, 18, 31 §6) | Implemented, simplified | Fixed 64-practice graph; recognition by people living with the prerequisites, reform with real requirements, gradual adoption shaped by eight private tendencies with 150/500 basis-point yearly drift limits; observed traits need sustained behaviour. Adoption is tracked per civilization, not per local lineage. C045/C047 corrections applied |
 | Religion (10) | Implemented, light | No religion at start; movement → tradition → precinct → recognized founder → founding with four fixed beliefs; three founding slots per world; fictional names; spread by local and neighbouring contact |
 | Politics (04) | Abstracted | Stability, administrative load and capacity, unrest and callable labour carry faction effects. Factions are reported with weights, support and demands but do not hold separate assets or veto powers |
-| Diplomacy (29) | Implemented | Three counterparts, mutual channels, five simultaneous windows, ten envelopes per pair, protected withdraw/decline/break, structured treaties with performance records and trust. Evidence attachments and multilateral treaties are not built |
-| Contracts (14) | Abstracted | Goods deliveries with shortfall records, knowledge, practice and map transfers, pacts, subordination, cession. Custody, collateral and staged acceptance are not built |
+| Diplomacy (29) | Implemented | Three counterparts, mutual channels, five simultaneous windows, ten envelopes per pair, protected withdraw/decline/break, structured treaties with performance records and trust. Since ruleset 2.0 slice E treaties can second experts (real people who move and come home) and share a launch complex, orbital yard or high-energy laboratory under a joint programme (`docs/units-and-scale.md` section 8). Evidence attachments and multilateral treaties are not built |
+| Contracts (14) | Abstracted | Goods deliveries with shortfall records, knowledge, practice and map transfers, pacts, subordination, cession, secondment of experts and joint programmes (with their own performance records: people sent, owed, returned and kept behind; months served and shortfalls). Custody, collateral and staged acceptance are not built |
 | Warfare (05, 13) | Implemented, simplified | Six tiers × three roles with the published counter matrix, 2.5^tier, proficiency, supply and morale; simultaneous losses, retreat, five-month capture, six-month sovereignty transfer, militia, elimination. Fronts, frontage and prisoners are not modelled |
-| Victory (15, 33) | Implemented | G96 ∧ F24 ∧ Trials96 checked monthly; subordination counts only while real; a broken window restarts; reward 2 − T/H or −1; horizon and all-ineligible endings |
+| Victory (15, 33) | Implemented | G96 ∧ F24 ∧ Trials96 checked monthly; subordination counts only while real; a broken window restarts; reward 2 − T/H or −1; horizon and all-ineligible endings. Since ruleset 2.0 slice E fleet-wide jump capability also needs separate educational, scientific, industrial and logistical bases measured against the installed works, none of them a population threshold; contracted imports, seconded experts and a partner's launch, orbital-yard or laboratory service can stand in for parts of them while their treaties last (`docs/units-and-scale.md` section 8) |
 | Information boundary (06, 02) | Implemented | Observations are projected per seat before serialization; unknown nodes do not appear; opaque per-seat handles; uniform errors for unknown and nonexistent references; foreign estimates are coarse and stable within a year |
 | Native AI (33) | Implemented | Deterministic, non-LLM, protocol-only crate. Difficulty changes candidate actions per round (12/24/48), preparation horizon and offer margins; no resource or information bonus. It is a bounded rule-and-scoring policy, not the forward-search planner sketched in the design |
 | Agent access (technical/02, 04) | Partly | HTTP API and CLI with seat tokens. MCP adapter, generated SDKs, idempotency keys and isolated runner images are not built |
@@ -75,5 +75,19 @@ means the mechanism exists in a simpler form with the same strategic feedback;
   out of a region congested at the top transport grade; in all-AI matches about a
   quarter of capitals end above it, losing up to 7% of what they send
   (`docs/calibration/`).
+- The space and jump base since ruleset 2.0 slice E (`docs/units-and-scale.md`
+  section 8, design chapter 35): the jump checks carry a `category`, treaties carry
+  `secondments` and `programmes` views, goods lines carry `withheld`, and two clause
+  kinds (`secondment`, `joint_programme`) exist. The client mirrors them in
+  `apps/web/src/protocol.ts` (the clauses as a separate `CooperationClause` type, so
+  that the diplomacy panel's exhaustive tables still compile) but shows none of them
+  and cannot propose the new clauses; the new check labels and details, clause
+  summaries, treaty performance lines, briefings and chronicle entries are English
+  strings without translations. The high-energy laboratory draws 1,000 units of
+  electricity instead of the design table's 3,000 (the first one must run before
+  fission is understood). No native seat completes the victory contract under the new
+  base in the eval set; the commonest failures are the jump works themselves and the
+  year of flight hardware. In the riverland world the easy seat, which has no copper,
+  ends at 89 technologies instead of 121 (`docs/calibration/slice-e-*.txt`).
 - The economy ledger's own estimates (marked as such in the interface) agreed with the
   referee's totals to within about 25% in 41 of 57 comparisons; the rest diverge more.

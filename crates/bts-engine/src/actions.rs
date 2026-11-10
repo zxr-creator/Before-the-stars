@@ -98,6 +98,8 @@ fn canon_clause(w: &World, seat: SeatId, c: &Clause) -> Result<Clause, Fail> {
             Some(i) => Clause::Practice { from: *from, practice: ct.practices[i].id.clone() },
             None => return fail(UNKNOWN, "unknown practice"),
         },
+        // an undisclosed service and one the seat has not discovered read alike
+        Clause::JointProgramme { service, .. } if !crate::sim::diplomacy::service_known(w, seat, *service) => return fail(UNKNOWN, "unknown service"),
         other => other.clone(),
     })
 }
@@ -114,6 +116,7 @@ pub fn view_clause(w: &World, viewer: SeatId, c: &Clause) -> Clause {
             let h = ct.prac_ix.get(practice).filter(|i| w.civs[viewer as usize].practice[**i].state > 0).map(|i| prac_handle(w, viewer, *i)).unwrap_or_default();
             Clause::Practice { from: *from, practice: h }
         }
+        Clause::JointProgramme { host, service, months } if !crate::sim::diplomacy::service_known(w, viewer, *service) => Clause::JointProgramme { host: *host, service: ProgrammeService::Undisclosed, months: *months },
         other => other.clone(),
     }
 }
@@ -243,6 +246,17 @@ fn new_site_order(w: &mut World, seat: SeatId, kind: ProjKind, region: RegionId,
     p.crew_on_site.truncate(p.crew.len());
     p.power_need = power.max(0);
     id
+}
+
+/// Place a preparation of the jump programme (a trial, the deployment exercise or
+/// a replacement) as a site order where its people are (`projects::ftl_site`), at
+/// the bill, crew and site power of its kind. Returns the site's name and the order.
+fn ftl_order(w: &mut World, seat: SeatId, kind: ProjKind, priority: Option<u8>) -> (String, u32) {
+    let site = crate::sim::projects::ftl_site(w, seat, &kind);
+    let (crew, power) = crate::sim::projects::ftl_terms(&kind);
+    let (work, goods, months) = crate::sim::projects::ftl_bill(&kind);
+    let id = new_site_order(w, seat, kind, site, scaled(work, w.cfg.pace_bp), goods, months, crew, power, priority);
+    (w.regions[site as usize].name.clone(), id)
 }
 
 /// The regions' orders are served by priority, then by place in the queue. Move
@@ -642,10 +656,8 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.civs[si].projects.iter().any(|p| p.kind == ProjKind::FtlTrial) {
                         return fail("CONFLICTING_ACTIONS", "a trial is already being prepared");
                     }
-                    let capital = w.civs[si].capital;
-                    let (crew, power) = crate::sim::projects::ftl_terms(&ProjKind::FtlTrial);
-                    let id = new_site_order(w, seat, ProjKind::FtlTrial, capital, scaled(300_000, pace), vec![(Good::Fuel, 150_000), (Good::Spares, 40_000), (Good::Electronics, 20_000)], 4, crew, power, priority);
-                    Ok(("Trial preparation begun. Jump engineers and orbital crews at the capital are held for it, and it draws site power.".into(), Some(id)))
+                    let (site, id) = ftl_order(w, seat, ProjKind::FtlTrial, priority);
+                    Ok((format!("Trial preparation begun at {site}, where the programme's people are: jump engineers and orbital crews there are held for it for at least six months, and it draws site power."), Some(id)))
                 }
                 ProjectSpec::FtlDeployment => {
                     if !w.civs[si].knows_id("T167") {
@@ -654,10 +666,8 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.civs[si].projects.iter().any(|p| p.kind == ProjKind::FtlDeployment) {
                         return fail("CONFLICTING_ACTIONS", "an exercise is already being prepared");
                     }
-                    let capital = w.civs[si].capital;
-                    let (crew, power) = crate::sim::projects::ftl_terms(&ProjKind::FtlDeployment);
-                    let id = new_site_order(w, seat, ProjKind::FtlDeployment, capital, scaled(400_000, pace), vec![(Good::Fuel, 200_000), (Good::Spares, 60_000)], 6, crew, power, priority);
-                    Ok(("Deployment exercise scheduled; it takes at least six months of work. Jump engineers and orbital crews at the capital are held for it, and it draws site power.".into(), Some(id)))
+                    let (site, id) = ftl_order(w, seat, ProjKind::FtlDeployment, priority);
+                    Ok((format!("Deployment exercise scheduled at {site}, where the programme's people are; it takes at least six months of work. Jump engineers and orbital crews there are held for it, and it draws site power."), Some(id)))
                 }
                 ProjectSpec::FtlReplacement => {
                     if !w.civs[si].knows_id("T167") {
@@ -669,10 +679,8 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.civs[si].projects.iter().any(|p| p.kind == ProjKind::FtlReplacement) {
                         return fail("CONFLICTING_ACTIONS", "a replacement is already being prepared");
                     }
-                    let capital = w.civs[si].capital;
-                    let (crew, power) = crate::sim::projects::ftl_terms(&ProjKind::FtlReplacement);
-                    let id = new_site_order(w, seat, ProjKind::FtlReplacement, capital, scaled(200_000, pace), vec![(Good::Spares, 60_000)], 3, crew, power, priority);
-                    Ok(("Replacement and relief scheduled. Jump engineers and orbital crews at the capital are held for it, and it draws site power.".into(), Some(id)))
+                    let (site, id) = ftl_order(w, seat, ProjKind::FtlReplacement, priority);
+                    Ok((format!("Replacement and relief scheduled at {site}, where the programme's people are. Jump engineers and orbital crews there are held for it for at least three months, and it draws site power."), Some(id)))
                 }
             }
         }
@@ -764,7 +772,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 return fail("RATE_LIMITED", "too many programmes");
             }
             let id = w.id();
-            w.civs[si].programs.push(Program { id, course: ci, region, seats, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: def.months, graduates: 0, paused: false, blockers: vec![] });
+            w.civs[si].programs.push(Program { id, course: ci, region, seats, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: def.months, graduates: 0, paused: false, blockers: vec![], last_grad: 0 });
             Ok(("Programme opened. Cohorts enrol while learners, teachers and places exist.".into(), Some(id)))
         }
         Action::ManageProgram { program, op, seats } => {

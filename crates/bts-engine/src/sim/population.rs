@@ -354,6 +354,110 @@ pub fn relocate_adults(regions: &mut [Region], from: usize, to: usize, count: u3
     moved
 }
 
+/// Holders of a qualification resident in a seat's regions who are not teaching.
+pub fn free_holders(w: &World, seat: SeatId, q: Qual) -> u32 {
+    w.regions.iter().filter(|r| r.controller == Some(seat)).map(|r| r.quals[q.index()].saturating_sub(r.teachers[q.index()])).sum()
+}
+
+/// Adults aged 20-55, the people `relocate_adults` moves, resident in a region.
+fn movable_adults(r: &Region) -> u32 {
+    r.blocks.iter().map(|b| b.ages[20..=55].iter().sum::<u32>()).sum()
+}
+
+/// A seat's regions in the order experts are drawn from them: the region named
+/// first (if the seat governs it), then the most free holders of `q`, then the
+/// lowest-numbered of equals.
+fn expert_sources(w: &World, seat: SeatId, q: Qual, first: Option<usize>) -> Vec<usize> {
+    let mut v: Vec<usize> = (0..w.regions.len()).filter(|ri| w.regions[*ri].controller == Some(seat)).collect();
+    let free = |ri: usize| w.regions[ri].quals[q.index()].saturating_sub(w.regions[ri].teachers[q.index()]);
+    v.sort_by_key(|ri| (Some(*ri) != first, std::cmp::Reverse(free(*ri)), *ri));
+    v
+}
+
+/// Second up to `count` free holders of `q` from the lender's regions to the
+/// region `to` (the borrower's capital): real adults move with their qualification,
+/// so they leave the lender's labour pool and live, eat and work where they arrive.
+/// Booked as `seconded_out` by the lender and `seconded_in` by the borrower that
+/// governs `to`. Returns the people sent and the lender's region that gave the most
+/// of them (where the survivors return).
+pub fn second_out(w: &mut World, lender: SeatId, q: Qual, count: u32, to: usize) -> (u32, RegionId) {
+    let qi = q.index();
+    let borrower = w.regions[to].controller;
+    let mut left = count;
+    let mut home = (w.civs[lender as usize].capital, 0u32);
+    for ri in expert_sources(w, lender, q, None) {
+        if left == 0 {
+            break;
+        }
+        if ri == to {
+            continue;
+        }
+        let r = &w.regions[ri];
+        let n = left.min(r.quals[qi].saturating_sub(r.teachers[qi])).min(movable_adults(r));
+        if n == 0 {
+            continue;
+        }
+        let moved = relocate_adults(&mut w.regions, ri, to, n);
+        w.regions[ri].quals[qi] -= moved;
+        w.regions[to].quals[qi] += moved;
+        left -= moved;
+        if moved > home.1 {
+            home = (ri as RegionId, moved);
+        }
+    }
+    let sent = count - left;
+    w.civs[lender as usize].qual_flows.seconded_out[qi] += sent as i64;
+    if let Some(b) = borrower {
+        w.civs[b as usize].qual_flows.seconded_in[qi] += sent as i64;
+    }
+    (sent, home.0)
+}
+
+/// End a secondment: up to `owed` free holders of `q` leave the borrower's holders
+/// (`seconded_back`), never more than its regions still hold. When `breach` (the
+/// borrower repudiated, or the parties went to war) a quarter of them stay where they
+/// are as ordinary residents without their qualification; the rest go home with it
+/// to the lender's region `home` (its capital if it no longer governs `home`).
+/// The lender books all of them as `seconded_home` and those who stayed as
+/// `seconded_lost`. Returns (came home, stayed behind).
+pub fn second_home(w: &mut World, lender: SeatId, borrower: SeatId, q: Qual, owed: u32, home: RegionId, breach: bool) -> (u32, u32) {
+    let qi = q.index();
+    let dest = if w.regions[home as usize].controller == Some(lender) { home as usize } else { w.civs[lender as usize].capital as usize };
+    let to_lender = w.regions[dest].controller == Some(lender);
+    let capital = w.civs[borrower as usize].capital as usize;
+    let mut left = owed.min(free_holders(w, borrower, q));
+    let mut stay_left = if breach { left / 4 } else { 0 };
+    let (mut came, mut stayed) = (0u32, 0u32);
+    for ri in expert_sources(w, borrower, q, Some(capital)) {
+        if left == 0 {
+            break;
+        }
+        let free = w.regions[ri].quals[qi].saturating_sub(w.regions[ri].teachers[qi]);
+        let n = left.min(free);
+        if n == 0 {
+            continue;
+        }
+        // those kept behind lose the qualification and stay as residents
+        let stay = stay_left.min(n);
+        w.regions[ri].quals[qi] -= stay;
+        stay_left -= stay;
+        stayed += stay;
+        // the others travel home with it, as far as the region's adults allow
+        let go = n - stay;
+        let moved = if go > 0 && to_lender && ri != dest { relocate_adults(&mut w.regions, ri, dest, go) } else { 0 };
+        w.regions[ri].quals[qi] -= moved;
+        w.regions[dest].quals[qi] += moved;
+        came += moved;
+        left -= stay + moved;
+    }
+    let released = came + stayed;
+    w.civs[borrower as usize].qual_flows.seconded_back[qi] += released as i64;
+    let l = &mut w.civs[lender as usize].qual_flows;
+    l.seconded_home[qi] += released as i64;
+    l.seconded_lost[qi] += stayed as i64;
+    (came, stayed)
+}
+
 /// Remove `count` adults aged 18-40 from a region for military service (recruits,
 /// or militia who fell). Returns the number removed. Their share of the region's
 /// qualified people and learners goes with them: a qualification lapses in
