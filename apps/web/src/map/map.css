@@ -395,7 +395,8 @@
   top: calc(var(--mi-t) + 14px);
   width: 286px;
   max-width: calc(100% - var(--mi-l) - var(--mi-r) - 28px);
-  max-height: calc(100% - var(--mi-t) - var(--mi-b) - 84px);
+  /* Stops short of the zoom buttons and the mode bar below it. */
+  max-height: calc(100% - var(--mi-t) - var(--mi-b) - 132px);
   min-height: 96px;
   display: flex;
   flex-direction: column;
@@ -452,3 +453,13 @@
 .dev-ramp { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-2, #5a5044); }
 .dev-ramp > span:nth-child(2) { display: flex; flex: 1; height: 9px; border: 1px solid var(--ink-2, #5a5044); }
 .dev-ramp i { flex: 1; }
+/* On a narrow strip of map the card keeps to its headline. */
+.map-province-plan.is-compact { width: 232px; padding: 9px 11px 10px; gap: 5px; }
+.map-province-plan.is-compact h3 { font-size: 16px; }
+.map-province-plan.is-compact .dev-sectors,
+.map-province-plan.is-compact .dev-keys,
+.map-province-plan.is-compact .dev-ramp,
+.map-province-plan.is-compact > .dev-note { display: none; }
+.map-province-plan.is-compact .dev-list { max-height: 148px; }
+/* In the development view the card takes the overview map's corner; its list moves the camera. */
+.map-view.is-3d[data-mode="construction"] .map-mini { display: none; }

@@ -281,9 +281,12 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
   const regions = obs.regions;
   const seesWorks = regions.some((r) => r.own && r.own.facilities.length > 0);
   if (mode === 'political') {
-    rows.push(
-      <li><span class="map-chip" style={{ background: obs.civ.color }} />{tc(obs.civ.name)} <em>{t('(you)')}</em></li>,
-    );
+    // The observer's world view has no realm of its own to list.
+    if (obs.seat >= 0) {
+      rows.push(
+        <li><span class="map-chip" style={{ background: obs.civ.color }} />{tc(obs.civ.name)} <em>{t('(you)')}</em></li>,
+      );
+    }
     for (const o of obs.others) {
       rows.push(<li><span class="map-chip" style={{ background: o.color }} />{tc(o.name)}</li>);
     }
@@ -510,7 +513,8 @@ export function MapView(props: MapViewProps): JSX.Element {
   const mode = props.mode ?? ownMode;
   const [hoverId, setHoverId] = useState<RegionId | null>(null);
   const [hoverDep, setHoverDep] = useState<DepositHit | null>(null);
-  // Renderer tier: the 3D map by default, the flat atlas on request or when WebGL fails.
+  // Renderer tier: the flat atlas by default (it reads best at every distance and needs no
+  // GPU); the 3D map on request, falling back to the atlas when WebGL fails.
   const [tierPref, setTierPref] = useState<MapTier>(savedTier);
   const [mod3d, setMod3d] = useState<Map3DModule | null>(null);
   const [failed3d, setFailed3d] = useState(false);
@@ -915,6 +919,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           onSelect={onSelect}
           onFocus={(id) => engineRef.current?.focusRegion(id)}
           onBuild={props.onBuild}
+          compact={typeof window !== 'undefined' && window.innerWidth - insets.left - insets.right < 640}
         />
       )}
       {is3d && <div ref={labelsRef} class="m3-labels" aria-hidden="true" />}

@@ -54,9 +54,11 @@ export interface DevelopmentProps {
   onSelect(id: RegionId | null): void;
   onFocus(id: RegionId): void;
   onBuild?(id: RegionId): void;
+  /** The uncovered map is narrow: keep the card to its headline so the map stays in view. */
+  compact?: boolean;
 }
 
-export function DevelopmentCard({ obs, selected, building, categories, onSelect, onFocus, onBuild }: DevelopmentProps): JSX.Element {
+export function DevelopmentCard({ obs, selected, building, categories, onSelect, onFocus, onBuild, compact }: DevelopmentProps): JSX.Element {
   const rows: Row[] = [];
   for (const r of obs.regions) {
     const use = landUse(r, categories, building[r.id]);
@@ -88,7 +90,7 @@ export function DevelopmentCard({ obs, selected, building, categories, onSelect,
     const nameOf = (kind: string): string =>
       tc(obs.catalog.facilities.find((f) => f.kind === kind)?.name ?? r.own?.facilities.find((f) => f.kind === kind)?.name ?? kind.replace(/_/g, ' '));
     return (
-      <aside class="map-province-plan" data-testid="province-plan">
+      <aside class={'map-province-plan' + (compact ? ' is-compact' : '')} data-testid="province-plan">
         <small>{t('Regional development')}</small>
         <h3>{tc(r.name)}</h3>
         <p>{t(SETTLEMENT_LABEL[r.settlement])} · {t('{n} people', { n: int(r.own?.population ?? 0) })} · {t('{n} built levels', { n: int(use.total) })}</p>
@@ -126,7 +128,7 @@ export function DevelopmentCard({ obs, selected, building, categories, onSelect,
   }
 
   return (
-    <aside class="map-province-plan is-list" data-testid="province-plan">
+    <aside class={'map-province-plan is-list' + (compact ? ' is-compact' : '')} data-testid="province-plan">
       <small>{t('Regional development')}</small>
       {rows.length ? (
         <>
