@@ -587,9 +587,181 @@ fn offer_value(ai: &NativeAi, obs: &Observation, offer: &OfferView) -> i64 {
                 }
             }
             Clause::CedeRegion { from, .. } => v += if *from == me { -400 } else { 200 },
+            Clause::Secondment { from, qual, count, months } => {
+                if *from == me {
+                    v -= lending_cost(obs, *qual, *count, *months, trust);
+                } else {
+                    // people who may be kept from us if things go badly are worth less
+                    v += expert_value(obs, *qual, *count, *months) * (trust + 40).min(100) / 100;
+                }
+            }
+            Clause::JointProgramme { host, service, months } => {
+                if *host == me {
+                    v -= hosting_cost(obs, *service, *months);
+                } else {
+                    v += service_value(obs, *service, *months) * (trust + 30).min(100) / 100;
+                }
+            }
         }
     }
     v
+}
+
+/// Whether this seat has merchant arbitration and escrow established, which recurring
+/// deliveries need (by one party; this seat can see only its own).
+fn has_escrow(obs: &Observation) -> bool {
+    obs.culture.practices.iter().any(|p| p.name == "Merchant arbitration and escrow" && p.state == PracticeState::Established)
+}
+
+/// A good this seat holds in plenty and makes steadily, to pay with.
+fn payment_good(obs: &Observation, monthly: bool) -> Option<Good> {
+    [Good::Metal, Good::Food, Good::Materials, Good::Tools, Good::Copper, Good::Components, Good::Electronics].into_iter().find(|g| {
+        obs.civ.goods.iter().find(|l| l.good == *g).map(|l| if monthly { made_in_year(l) > used_in_year(l) + 120_000 } else { l.stock > used_in_year(l) / 2 + 200_000 }).unwrap_or(false)
+    })
+}
+
+/// A proposal for experts or for a partner's installation, when the jump programme's
+/// educational base or launch, recovery and laboratory services fall short. Only
+/// terms the engine accepts from this seat's own facts: the counterpart is at peace
+/// with it, the installation is in this seat's catalog, a recurring payment only with
+/// escrow established here, and a single payment only from stock in hand.
+fn cooperation_ask(ai: &NativeAi, obs: &Observation, o: &ForeignCiv) -> Option<Action> {
+    if ai.difficulty == Difficulty::Easy || obs.objectives.victory.is_none() || o.at_war || o.trust < 40 {
+        return None;
+    }
+    // only once the jump works themselves are in view: before that, nobody has posts for these people
+    if !obs.catalog.facilities.iter().any(|f| f.kind == "jump_yard") {
+        return None;
+    }
+    let me = obs.seat;
+    let s = o.seat;
+    let escrow = has_escrow(obs);
+    if base_short(obs, "Educational base: qualified crews") {
+        let (eng, _) = holders(obs, Qual::FtlEngineer);
+        let (orb, _) = holders(obs, Qual::Orbital);
+        let (q, gap) = if 75 * K - eng >= 120 * K - orb { (Qual::FtlEngineer, 75 * K - eng) } else { (Qual::Orbital, 120 * K - orb) };
+        let count = (gap.clamp(5 * K, 30 * K) / K * K) as u32;
+        let months: u16 = 120;
+        let worth = count as i64 * months as i64 / 2_000 * 13 / 10;
+        if let Some(pg) = payment_good(obs, escrow) {
+            let total = worth * 1000 / base_price(pg);
+            let pay = if escrow {
+                Clause::Goods { from: me, good: pg, amount_per_month: (total / months as i64).max(1000), months }
+            } else {
+                let have = obs.civ.goods.iter().find(|l| l.good == pg).map(|l| l.stock).unwrap_or(0);
+                if have < total * 2 {
+                    return None;
+                }
+                Clause::Goods { from: me, good: pg, amount_per_month: total.max(1000), months: 1 }
+            };
+            return Some(Action::ProposeTreaty { to: s, clauses: vec![Clause::Secondment { from: s, qual: q, count, months }, pay], text: Some(format!("We ask you to lend us {} {} for ten years, and pay for their work.", count, q.label().to_lowercase())) });
+        }
+    }
+    if escrow && (base_short(obs, "Launch and recovery") || base_short(obs, "Scientific base")) {
+        let have = |kind: &str| obs.regions.iter().filter_map(|r| r.own.as_ref()).any(|x| x.facilities.iter().any(|f| f.kind == kind && f.level > 0));
+        let asking = obs.diplomacy.treaties.iter().filter(|t| t.status == "active" && t.parties.contains(&s)).flat_map(|t| t.clauses.iter()).any(|c| matches!(c, Clause::JointProgramme { .. }));
+        let pick = [ProgrammeService::Launch, ProgrammeService::OrbitalYard, ProgrammeService::HighEnergy].into_iter().find(|sv| {
+            let kind = service_facility(*sv).unwrap();
+            obs.catalog.facilities.iter().any(|f| f.kind == kind) && !have(kind)
+        });
+        if let (Some(sv), false) = (pick, asking) {
+            let ft = obs.catalog.facilities.iter().find(|f| Some(f.kind.as_str()) == service_facility(sv))?;
+            let monthly: i64 = ft.recipes.first().map(|r| r.inputs.iter().map(|i| goods_value(obs, i.good, i.amount, false)).sum::<i64>()).unwrap_or(0) + ft.upkeep.iter().map(|u| goods_value(obs, u.good, u.amount, false)).sum::<i64>();
+            let months: u16 = 120;
+            let pg = payment_good(obs, true)?;
+            let per_month = (monthly / 2 * 13 / 10 + 1) * 1000 / base_price(pg);
+            let made = obs.civ.goods.iter().find(|l| l.good == pg).map(made_in_year).unwrap_or(0);
+            if per_month * 12 * 3 > made {
+                return None;
+            }
+            return Some(Action::ProposeTreaty {
+                to: s,
+                clauses: vec![Clause::JointProgramme { host: s, service: sv, months }, Clause::Goods { from: me, good: pg, amount_per_month: per_month.max(1000), months }],
+                text: Some(format!("We ask to share your {} for ten years, and pay for what it costs you.", sv.label().to_lowercase())),
+            });
+        }
+    }
+    None
+}
+
+/// Qualified people of one qualification: (holders, holders in a post).
+fn holders(obs: &Observation, q: Qual) -> (i64, i64) {
+    obs.civ.quals.iter().find(|x| x.qual == q).map(|x| (x.count as i64, x.employed as i64)).unwrap_or((0, 0))
+}
+
+/// The installation a joint programme service is given by.
+fn service_facility(s: ProgrammeService) -> Option<&'static str> {
+    match s {
+        ProgrammeService::Launch => Some("launch_complex"),
+        ProgrammeService::OrbitalYard => Some("orbital_yard"),
+        ProgrammeService::HighEnergy => Some("high_energy"),
+        ProgrammeService::Undisclosed => None,
+    }
+}
+
+/// What lending experts costs this seat, in the units of `goods_value`: their work
+/// for the term, more if they would leave posts empty, and the quarter that a
+/// partner of poor record may keep. Never more than the engine allows: half of the
+/// holders, from those without a post.
+fn lending_cost(obs: &Observation, q: Qual, count: u32, months: u16, trust: i64) -> i64 {
+    let (have, employed) = holders(obs, q);
+    let count = count as i64;
+    if count * 2 > have || count > (have - employed).max(0) {
+        return 100_000;
+    }
+    let base = count * months as i64 / 2_000;
+    let risk = if trust < 50 { base / 2 } else { 0 };
+    // the jump programme's own crews are not lent while this seat is building one
+    let own_need = obs.objectives.victory.is_some() && matches!(q, Qual::FtlEngineer | Qual::Orbital) && employed * 10 >= have * 6;
+    base + risk + if own_need { base * 3 } else { 0 }
+}
+
+/// What borrowed experts are worth to this seat: their work for the term when it is
+/// short of them, little otherwise.
+fn expert_value(obs: &Observation, q: Qual, count: u32, months: u16) -> i64 {
+    let (have, employed) = holders(obs, q);
+    let base = count as i64 * months as i64 / 2_000;
+    let short = employed * 10 >= have * 9 || (obs.objectives.victory.is_some() && matches!(q, Qual::FtlEngineer | Qual::Orbital) && base_short(obs, "Educational base"));
+    if short { base * 2 } else { base / 5 }
+}
+
+/// Whether one of the jump programme's base checks fails.
+fn base_short(obs: &Observation, prefix: &str) -> bool {
+    obs.objectives.victory.as_ref().map(|v| v.ftl_checks.iter().any(|c| c.label.starts_with(prefix) && !c.ok)).unwrap_or(false)
+}
+
+/// What serving a partner costs the host: half again of the installation's operating
+/// inputs and upkeep for the term. Refused outright when this seat has no such
+/// installation or it already serves two partners.
+fn hosting_cost(obs: &Observation, s: ProgrammeService, months: u16) -> i64 {
+    let Some(kind) = service_facility(s) else { return 100_000 };
+    let mine = obs.regions.iter().filter_map(|r| r.own.as_ref()).any(|o| o.facilities.iter().any(|f| f.kind == kind && f.level > 0 && f.utilization_bp >= 6000));
+    let serving = obs.diplomacy.treaties.iter().filter(|t| t.status == "active").flat_map(|t| t.clauses.iter()).filter(|c| matches!(c, Clause::JointProgramme { host, service, .. } if *host == obs.seat && *service == s)).count();
+    if !mine || serving >= 2 {
+        return 100_000;
+    }
+    let Some(ft) = obs.catalog.facilities.iter().find(|f| f.kind == kind) else { return 100_000 };
+    let monthly: i64 = ft.recipes.first().map(|r| r.inputs.iter().map(|i| goods_value(obs, i.good, i.amount, false)).sum::<i64>()).unwrap_or(0) + ft.upkeep.iter().map(|u| goods_value(obs, u.good, u.amount, false)).sum::<i64>();
+    monthly * months as i64 / 2 + 20
+}
+
+/// What a partner's service is worth: much while this seat's jump programme lacks
+/// the installation, something for the investigations it opens otherwise.
+fn service_value(obs: &Observation, s: ProgrammeService, months: u16) -> i64 {
+    let Some(kind) = service_facility(s) else { return -100_000 };
+    let have = obs.regions.iter().filter_map(|r| r.own.as_ref()).any(|o| o.facilities.iter().any(|f| f.kind == kind && f.level > 0));
+    if have {
+        return 0;
+    }
+    let wanted = obs.objectives.victory.is_some() && (base_short(obs, "Launch and recovery") || base_short(obs, "Scientific base"));
+    if !wanted {
+        return months as i64 * 2;
+    }
+    // what running one of our own would cost for the term, and building it
+    let Some(ft) = obs.catalog.facilities.iter().find(|f| f.kind == kind) else { return months as i64 * 2 };
+    let monthly: i64 = ft.recipes.first().map(|r| r.inputs.iter().map(|i| goods_value(obs, i.good, i.amount, true)).sum::<i64>()).unwrap_or(0) + ft.upkeep.iter().map(|u| goods_value(obs, u.good, u.amount, true)).sum::<i64>();
+    let build: i64 = ft.cost.iter().map(|c| goods_value(obs, c.good, c.amount, true)).sum();
+    monthly * months as i64 * 3 / 4 + build
 }
 
 /// How much better than break-even an offer must look before this controller signs.
@@ -670,6 +842,13 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
             if !pact && !ambitious && borders(obs, s) && ai.memory.war_target != Some(s) && (theirs >= mine || ai.difficulty == Difficulty::Easy) {
                 ai.memory.last_offer_round[s as usize] = obs.round;
                 out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::NonAggression { months: 120 }], text: Some("Neither of us gains from fighting over this border.".into()) });
+                continue;
+            }
+            // a jump programme short of crews or of a launch, orbital or laboratory
+            // service asks a partner it trusts, and pays for it
+            if let Some(a) = cooperation_ask(ai, obs, o) {
+                ai.memory.last_offer_round[s as usize] = obs.round;
+                out.push(a);
                 continue;
             }
             // buy what we cannot make, paying with what we hold in plenty
@@ -1128,9 +1307,12 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         (Qual::Programmer, share(100, 8)),
         (Qual::Physician, share(40, 4)),
         (Qual::AiEngineer, share(30, 8)),
-        (Qual::Orbital, 70 * K),
-        (Qual::FtlEngineer, 60 * K),
+        // an independent jump programme needs its crews for every post with reliefs
+        // (two lines, three nodes, the orbital works: 50,000 and 70,000 posts)
+        (Qual::Orbital, 110 * K),
+        (Qual::FtlEngineer, 80 * K),
     ];
+    let jump_crews = |q: Qual| obs.objectives.victory.is_some() && matches!(q, Qual::Orbital | Qual::FtlEngineer);
     // 1. work out who is short and who is in surplus; stop feeding surpluses first
     struct Need<'c> {
         courses: Vec<&'c CourseType>,
@@ -1149,10 +1331,15 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         // hold posts: twice the shortfall, so the works are not stripped for the site
         let crew_short = p.crew_wanted.get(q).copied().unwrap_or(0);
         let posts = demand.get(q).copied().unwrap_or(0);
-        let target = (*base).max(posts * 12 / 10 + 2 * K).max(if crew_short > 0 { posts + crew_short * 2 + 2 * K } else { 0 }).max(1);
+        let relief = if jump_crews(*q) { posts * 3 / 2 } else { posts * 12 / 10 };
+        let target = (*base).max(relief + 2 * K).max(if crew_short > 0 { posts + crew_short * 2 + 2 * K } else { 0 }).max(1);
         let training: i64 = obs.programs.iter().filter(|g| courses.iter().any(|c| c.key == g.course)).map(|g| g.enrolled as i64).sum();
         let deficit = target - have(*q) - training;
         if deficit <= 0 {
+            // the jump programme's courses keep running: the base needs crews replaced
+            if jump_crews(*q) {
+                continue;
+            }
             for g in obs.programs.iter().filter(|g| !g.paused && courses.iter().any(|c| c.key == g.course)) {
                 p.push(Action::ManageProgram { program: g.id, op: ManageOp::Pause, seats: None });
             }
@@ -1822,6 +2009,19 @@ fn endgame(p: &mut Plan, regions: &[&RegionView]) {
     for r in regions.iter().filter(|r| r.test_node) {
         if p.level(r, "jump_base") == 0 {
             p.try_build(r, "jump_base", 1, 2);
+        }
+    }
+    // every line and node needs freight links of grade two: a railway, or roads and a harbour
+    let sites: Vec<&RegionView> = regions.iter().copied().filter(|r| ["jump_yard", "jump_base"].iter().any(|k| p.level(r, k) > 0 || p.pending(r.id, k))).collect();
+    for r in sites {
+        let grade = p.level(r, "roads") as i64 + p.level(r, "port") as i64 + 2 * p.level(r, "rail") as i64 + 3 * p.level(r, "depot") as i64;
+        if grade >= 2 || ["rail", "roads", "port", "depot"].iter().any(|k| p.pending(r.id, k)) {
+            continue;
+        }
+        for k in ["rail", "depot", "roads", "port"] {
+            if p.level(r, k) == 0 && p.fac_type(k).map(|f| f.available).unwrap_or(false) && p.site_cap(p.fac_type(k).unwrap(), r) > 0 && p.try_build(r, k, 1, 2) {
+                break;
+            }
         }
     }
     let busy = |k: &str| obs.projects.iter().any(|x| x.kind == k);
