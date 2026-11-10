@@ -16,11 +16,11 @@ mod agents;
 #[cfg(feature = "desktop")]
 mod desktop;
 mod providers;
+mod saves;
 
 use bts_engine::MatchConfig;
 use bts_host::{controller, Session};
 use bts_protocol::*;
-use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -79,6 +79,7 @@ fn err(status: u16, code: &str, msg: &str) -> tiny_http::Response<std::io::Curso
 fn respond(reply: bts_host::Reply) -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
     match reply.kind {
         bts_host::Body::Json => json_response(reply.status, reply.body),
+        bts_host::Body::Binary => saves::file_response(reply.data).with_status_code(reply.status),
         bts_host::Body::Markdown => tiny_http::Response::from_string(reply.body).with_status_code(reply.status).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/markdown; charset=utf-8"[..]).unwrap()),
     }
 }
@@ -95,16 +96,6 @@ fn content_type(path: &Path) -> &'static str {
         "woff2" => "font/woff2",
         _ => "application/octet-stream",
     }
-}
-
-fn safe_name(s: &str) -> String {
-    let n: String = s.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').take(40).collect();
-    if n.is_empty() { "save".into() } else { n }
-}
-
-#[derive(Deserialize)]
-struct SaveBody {
-    name: String,
 }
 
 static WEB: include_dir::Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../apps/web/dist");
@@ -159,6 +150,10 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
         None if app_mode => user_saves_dir(),
         None => PathBuf::from("saves"),
     };
+    // files the player exports, or puts there to import (the desktop window cannot download)
+    // (as full paths: the client shows the player where a file went)
+    let full = |p: PathBuf| std::env::current_dir().map(|here| here.join(&p)).unwrap_or(p);
+    let dirs = saves::Dirs { exports: full(args.flags.get("exports").map(PathBuf::from).unwrap_or_else(|| saves.join("exports"))), saves: full(saves.clone()) };
     let mut server = None;
     for attempt in 0..10u16 {
         match tiny_http::Server::http(("127.0.0.1", port)) {
@@ -197,6 +192,7 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
     println!("  game:   http://127.0.0.1:{port}/");
     println!("  agents: http://127.0.0.1:{port}/api  (see docs/agent-api.md)");
     println!("  saves:  {}", saves.display());
+    println!("  exports: {}", dirs.exports.display());
     if !embedded && !from_disk {
         println!("  note: web client not built ({}); run scripts/build.sh", web.display());
     }
@@ -204,7 +200,12 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
         println!("  close this window, or choose Quit in the game menu, to stop the game");
     }
     // every request below is answered by the shared host (bts-host), the same code the browser build runs
-    let host = bts_host::Host::new(bts_host::Config { require_tokens, app_mode, settle_inline: true });
+    let mut host = bts_host::Host::new(bts_host::Config { require_tokens, app_mode, settle_inline: true });
+    // how large a save file this referee reads, packed or unpacked (default 64 MiB)
+    if let Some(mib) = args.flags.get("save-max-mb").and_then(|v| v.parse::<usize>().ok()).filter(|m| (1..=1024).contains(m)) {
+        host.limits = bts_host::portable::Limits { max_file: mib << 20, max_unpacked: mib << 20 };
+    }
+    let body_cap = host.limits.max_file;
     let shared: agents::Shared = std::sync::Arc::new(std::sync::Mutex::new(agents::ServerState { host, saves: saves.clone() }));
     let autosave = saves.join("autosave.json");
     if autosave.exists() && !args.has("fresh") {
@@ -238,46 +239,30 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
         let target = req.url().to_string();
         let path = target.split_once('?').map(|(p, _)| p).unwrap_or(&target);
         let method = req.method().clone();
-        let mut body = String::new();
-        let _ = req.as_reader().read_to_string(&mut body);
+        // bodies are bytes: a save file is binary. Nothing larger than a save file is ever sent.
+        let mut body = Vec::new();
+        let _ = req.as_reader().take(body_cap as u64 + 1).read_to_end(&mut body);
+        if body.len() > body_cap {
+            let _ = req.respond(err(413, "TOO_LARGE", &format!("the request is larger than the {body_cap} bytes this referee reads")));
+            continue;
+        }
         if log_requests {
             println!("  {} {}", method, path);
         }
         let mut guard = shared.lock().unwrap();
         let st = &mut *guard;
         let mut quit = false;
-        // What needs this machine is answered here: named saves on disk and the client's
-        // files. Everything else is the referee's, in the shared host.
-        let response = match (method.as_str(), path) {
-            ("GET", "/api/saves") => {
-                let mut names: Vec<String> = std::fs::read_dir(&saves)
-                    .map(|d| d.filter_map(|e| e.ok()).filter_map(|e| e.file_name().to_str().and_then(|n| n.strip_suffix(".json")).map(|n| n.to_string())).collect())
-                    .unwrap_or_default();
-                names.sort();
-                json_response(200, serde_json::json!({ "saves": names }).to_string())
+        // Saves on this machine (named saves, the exports folder) are answered by saves.rs.
+        if let Some(outcome) = saves::handle(st, &dirs, method.as_str(), path, target.split_once('?').map(|(_, q)| q).unwrap_or(""), &body) {
+            if outcome.installed {
+                start_agents(&shared, st);
             }
-            ("POST", "/api/save") => match (st.host.session_text(), serde_json::from_str::<SaveBody>(&body)) {
-                (Some(text), Ok(b)) => {
-                    let _ = std::fs::create_dir_all(&saves);
-                    let name = safe_name(&b.name);
-                    match std::fs::write(saves.join(format!("{name}.json")), text) {
-                        Ok(_) => json_response(200, serde_json::json!({ "saved": name }).to_string()),
-                        Err(e) => err(500, "IO", &e.to_string()),
-                    }
-                }
-                (None, _) => err(404, "NO_MATCH", "no match is running"),
-                (_, Err(e)) => err(400, "INVALID_SCHEMA", &e.to_string()),
-            },
-            ("POST", "/api/load") => match serde_json::from_str::<SaveBody>(&body) {
-                Ok(b) => match std::fs::read_to_string(saves.join(format!("{}.json", safe_name(&b.name)))).map_err(|e| e.to_string()).and_then(|t| st.host.install_text(&t)) {
-                    Ok(()) => {
-                        start_agents(&shared, st);
-                        json_response(200, serde_json::to_string(&st.host.summary(true)).unwrap())
-                    }
-                    Err(e) => err(404, "NOT_FOUND", &e),
-                },
-                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
-            },
+            drop(guard);
+            let _ = req.respond(outcome.response);
+            continue;
+        }
+        // The client's files are served here. Everything else is the referee's, in the shared host.
+        let response = match (method.as_str(), path) {
             ("GET", p) if !p.starts_with("/api/") => {
                 let rel = p.trim_start_matches('/');
                 let rel = if rel.is_empty() || rel.contains("..") { "index.html" } else { rel };
@@ -297,7 +282,7 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
                 }
             }
             _ => {
-                let reply = st.host.handle(&bts_host::Request { method: method.as_str(), target: &target, body: &body, entropy: entropy() });
+                let reply = st.host.handle_bytes(method.as_str(), &target, &body, entropy());
                 if reply.effects.installed {
                     start_agents(&shared, st);
                 }

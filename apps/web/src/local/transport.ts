@@ -17,6 +17,8 @@ export interface LocalReply {
   status: number;
   body: string;
   flags: number;
+  /** A binary reply (a save file); `body` is then empty. */
+  data?: Uint8Array;
 }
 
 /** Something changed the match held by the worker. */
@@ -74,7 +76,7 @@ function onMessage(message: FromWorker): void {
     const w = waiting.get(message.id);
     if (!w) return;
     waiting.delete(message.id);
-    w.resolve({ status: message.status, body: message.body, flags: message.flags });
+    w.resolve({ status: message.status, body: message.body, flags: message.flags, data: message.data ? new Uint8Array(message.data) : undefined });
     if (message.status === 200 && message.flags & FLAG_CHANGED) {
       emit({
         cause: 'request', request: w.request, roundResolved: (message.flags & FLAG_AUTOSAVE) !== 0,
@@ -102,15 +104,17 @@ function start(): Worker {
 }
 
 /** Send one request to the referee in the worker. Rejects only when the engine itself has failed. */
-export function localCall(method: string, target: string, body?: string): Promise<LocalReply> {
+export function localCall(method: string, target: string, body?: string | Uint8Array): Promise<LocalReply> {
   if (!localAvailable()) return Promise.reject(new EngineFailure('This build does not include the in-browser game engine.'));
   if (failed !== null) return Promise.reject(new EngineFailure(failed));
   return new Promise((resolve, reject) => {
     const id = nextId++;
     waiting.set(id, { resolve, reject, request: `${method} ${target.split('?')[0]}` });
-    const message: ToWorker = { type: 'call', id, method, target, body };
+    // bytes go as a copy that is handed over, so the caller keeps its own
+    const data = typeof body === 'string' || body === undefined ? undefined : (body.slice().buffer as ArrayBuffer);
+    const message: ToWorker = { type: 'call', id, method, target, body: typeof body === 'string' ? body : undefined, data };
     try {
-      start().postMessage(message);
+      start().postMessage(message, data ? [data] : []);
     } catch (e) {
       waiting.delete(id);
       reject(new EngineFailure(e instanceof Error ? e.message : String(e)));

@@ -28,9 +28,11 @@ is not touched. The module is built with source paths remapped, so it carries no
 of the machine that built it.
 
 `pages-smoke.mjs` takes the site's address, so it can be pointed at the deployed site
-as well. It plays a human match and watches an AI-only one in headless Chromium, and
-fails on any page error, failed request, request to an `/api/` path, or request that
-leaves the site's own path.
+as well. It plays a human match and watches an AI-only one in headless Chromium,
+exercises saves (reload and restore, files out and in, refusals, the storage budget;
+see [saves.md](saves.md)), and fails on any page error, failed request, request to an
+`/api/` path, or request that leaves the site's own path. It removes the saves it
+makes and does not assume the page's database was empty.
 
 `node apps/web/scripts/wasm-bench.mjs` measures the module on its own in Node.
 
@@ -76,9 +78,9 @@ always uses the worker; any other build that happens to carry the module (built 
 
 | Export | Meaning |
 | --- | --- |
-| `bts_abi()` | Interface version (1) |
+| `bts_abi()` | Interface version (2: version 2 added the save-file routes and binary replies) |
 | `bts_alloc(len)`, `bts_free(ptr, len)` | A buffer for the caller to fill |
-| `bts_call(line, line_len, body, body_len, entropy_hi, entropy_lo)` | One request: `line` is `METHOD /path?query`, `body` the raw request body. Returns the status |
+| `bts_call(line, line_len, body, body_len, entropy_hi, entropy_lo)` | One request: `line` is `METHOD /path?query`, `body` the raw request body (text, or the bytes of a save file). Returns the status |
 | `bts_result_ptr()`, `bts_result_len()`, `bts_result_flags()` | The reply body (raw bytes, valid until the next call) and its flags |
 | `bts_tick()` | One step of observer playback; returns flags |
 | `bts_panic_ptr()`, `bts_panic_len()` | The panic message after a failure |
@@ -86,7 +88,7 @@ always uses the worker; any other build that happens to carry the module (built 
 
 Flags: 1 the match changed, 2 a round was resolved (the server's autosave point), 4 a
 match was created or imported, 8 playback has steps due, 16 the reply is plain text,
-32 a tick moved the match. Entropy for a new match comes from `crypto.getRandomValues`
+32 a tick moved the match, 64 the reply is binary (a save file). Entropy for a new match comes from `crypto.getRandomValues`
 in the worker; the module uses no clock, thread, file or operating-system randomness.
 
 ### The worker
@@ -95,9 +97,9 @@ Messages (`apps/web/src/local/protocol.ts`):
 
 ```text
 page -> worker   { type: 'init', wasmUrl }
-                 { type: 'call', id, method, target, body? }
+                 { type: 'call', id, method, target, body?, data? }    data: the bytes of a save file
 worker -> page   { type: 'ready', abi }
-                 { type: 'reply', id, status, body, flags }
+                 { type: 'reply', id, status, body, flags, data? }     data: a save file (flag 64)
                  { type: 'progress', flags }      a round resolved by playback, or playback stopped
                  { type: 'fatal', message }       the engine failed; the worker is finished
 ```
@@ -110,9 +112,11 @@ so a paused match rests at the start of a round.
 
 A panic aborts the module. The worker catches the trap, reads the message the panic
 hook left, and tells the page, which shows it on the start screen; *Try again* starts a
-fresh engine. Before a save is imported the worker rehearses it in a second, throwaway
-instance of the module (the host builds every view and resolves one round), so a save
-that would make the engine fail is refused and the match in progress is unharmed.
+fresh engine, and the page gives it the latest autosave. Before a save is imported the
+worker rehearses it in a second, throwaway instance of the module (the host builds
+every view and resolves one round), so a save that would make the engine fail is
+refused and the match in progress is unharmed. A file is described (the import
+preview) entirely in such an instance.
 
 ## Observer rules
 
@@ -129,17 +133,31 @@ everything in it, exactly as with the server's save files on disk.
 
 ## Saves
 
+Saves are described in [saves.md](saves.md): the portable `.btsave` file both builds
+write and read, what is checked before one is loaded, and the browser's store. In
+short, for this build:
+
+- The match is autosaved after every round into IndexedDB, compressed by the referee
+  (three rotating autosaves within a 20 MiB budget, both configurable). **Reloading the
+  page brings the match back** at the same round with the same state; the title
+  screen's *Continue* says which autosave it is.
+- Named saves (`api.saves() / save(name) / load(name)`) are stored the same way and
+  outlive the page (`api.features.durableSaves` is true unless the browser refuses
+  IndexedDB, in which case the page says so and keeps saves in memory).
+- A game can be exported to a file and a file imported, with a preview first; the same
+  file loads in the desktop game.
+
 Both transports offer:
 
 | Client call | Request | |
 | --- | --- | --- |
-| `api.exportSession(): Promise<string>` | `GET /api/session/export` | The session as save text (the server's save-file format) |
-| `api.importSession(text): Promise<MatchSummary>` | `POST /api/session/import` | Replaces the match; a refused save (`400 INVALID_SAVE`) leaves the match untouched |
-| `api.onSessionChange(listener)` | | Browser build only: called after every request that changed the match and after every round playback resolves. `roundResolved` marks the server's autosave points |
-
-In the browser build `api.saves() / save(name) / load(name)` work on session text kept
-in the page's memory: a named save lasts until the page is closed or reloaded. Durable
-storage (files, IndexedDB) is meant to be built on the three calls above.
+| `api.exportSave(): Promise<Uint8Array>` | `GET /api/savefile` | The match as a `.btsave` file |
+| `api.describeSave(bytes)` | `POST /api/savefile/describe` | What a file is and whether it would load, without loading it |
+| `api.importSave(bytes): Promise<MatchSummary>` | `POST /api/savefile/import` | Replaces the match; a refused file (`400 INVALID_SAVE` with a `reason`) leaves the match untouched |
+| `api.saveList()`, `loadSave(id)`, `saveFile(id)`, `renameSave(id, name)`, `deleteSave(id)` | | The stored saves: the vault here, the saves folder on the server |
+| `api.exportSession(): Promise<string>` | `GET /api/session/export` | The session as bare save text |
+| `api.importSession(text): Promise<MatchSummary>` | `POST /api/session/import` | The same import, from bare text |
+| `api.onSessionChange(listener)` | | Browser build only: called after every request that changed the match and after every round playback resolves. `roundResolved` marks the autosave points |
 
 ## What the browser build does not have
 
@@ -148,9 +166,9 @@ storage (files, IndexedDB) is meant to be built on the three calls above.
   by name. A save that contains such a seat cannot be imported.
 - **External agents.** There is no HTTP API to connect to, so no `tools/mcp.mjs`, no
   `bts observe | act | ready`, and no seat tokens. Use the server-backed game.
-- **Durable saves and autosave.** Reloading the page starts with no match (see above).
 - **Quit.** There is nothing to shut down; the menu does not offer it.
-- One match per page. Two tabs are two independent games.
+- One match per page. Two tabs are two independent games that share one set of saves
+  (each tab warns about the other; see [saves.md](saves.md)).
 
 It needs a browser with WebAssembly and module workers (current Chrome, Edge, Firefox
 and Safari).
@@ -163,7 +181,7 @@ built-in AIs on 48 regions, standard length, played to its end:
 
 | | |
 | --- | --- |
-| `bts.wasm` | 1,894,286 bytes; 497 KB with `gzip -9` (`opt-level = "s"`, LTO). `opt-level = 3` gives about 2.36 MB / 0.68 MB and is about a fifth faster |
+| `bts.wasm` | 2,011,806 bytes; 539 KB with `gzip -9` (`opt-level = "s"`, LTO), of which the save container is 117 KB / 41 KB. `opt-level = 3` gave about 2.36 MB / 0.68 MB before the container and is about a fifth faster |
 | New match | 7 ms |
 | One round, in the worker | about 4 ms in the first twenty rounds, 20 ms mid-match, 21–30 ms in the last twenty; slowest round 30–40 ms |
 | Longest single step | 17 ms (the longest the worker is deaf to the page) |
@@ -171,6 +189,8 @@ built-in AIs on 48 regions, standard length, played to its end:
 | Interface thread while the worker plays | never held longer than 5 ms |
 | Late-game replies | spectator view 0.66–0.70 MB in 4–7 ms; one seat's observation 1.0 MB in 5 ms; session export 1.3–1.4 MB in 6 ms |
 | Late-game import | 28 ms in the module, checked and rehearsed; the worker does it twice (scratch instance, then the referee) |
+| Late-game save file | 168 KB for 1.34 MB of session text; made in 25 ms, described in 26 ms, imported in 52 ms (see [saves.md](saves.md)) |
+| Autosave | 3–5 ms early, at most 32 ms late, in the worker; the IndexedDB write 1–2 ms |
 | Engine memory at the end of the match | 10–12 MB of WebAssembly memory; the page's own JavaScript heap was 23 MB |
 
 These vary by a few milliseconds from run to run and rise when the machine is busy.

@@ -7,28 +7,30 @@
 //! entropy with every call (`crypto.getRandomValues`); it is used when a match is made.
 //!
 //! ```text
-//! bts_abi() -> u32                       version of this interface (1)
+//! bts_abi() -> u32                       version of this interface (2)
 //! bts_alloc(len) -> ptr                  a buffer the caller fills
 //! bts_free(ptr, len)                     release a buffer from bts_alloc
 //! bts_call(line, line_len, body, body_len, entropy_hi, entropy_lo) -> status
 //!     line  UTF-8 "METHOD /path?query", exactly as over HTTP (docs/agent-api.md)
-//!     body  UTF-8 request body, or len 0
+//!     body  the request body as raw bytes, or len 0 (UTF-8 text, except a save file)
 //!     returns the HTTP-style status; the reply is read with:
-//! bts_result_ptr() / bts_result_len()    reply body, UTF-8 (JSON unless FLAG_TEXT); valid until the next call
+//! bts_result_ptr() / bts_result_len()    reply body; valid until the next call. UTF-8 JSON, unless
+//!                                        FLAG_TEXT (plain text) or FLAG_BINARY (a save file)
 //! bts_result_flags() -> u32              FLAG_* bits for the last call
 //! bts_tick() -> flags                    one step of observer playback (see FLAG_PENDING)
 //! bts_panic_ptr() / bts_panic_len()      the panic message after a trap
 //! bts_debug_panic()                      fail on purpose, to test that a failure is reported
 //! ```
 //!
-//! Bodies cross as raw bytes in both directions, so a save (text now, possibly a
-//! binary blob later) is never wrapped or escaped a second time.
+//! Bodies cross as raw bytes in both directions, so a save (session text, or the
+//! binary save file of `bts_host::portable`) is never wrapped or escaped a second
+//! time. Version 2 of the interface added the save-file routes and `FLAG_BINARY`.
 //!
 //! A panic aborts (the module traps). The hook records the message first, so the
 //! worker can report it to the page instead of dying silently; after a trap the
 //! module's state is undefined and must not be called again.
 
-use bts_host::{Body, Config, Host, NoAgents, Request};
+use bts_host::{Body, Config, Host, NoAgents};
 use std::sync::Mutex;
 
 /// The session was changed by the call.
@@ -43,6 +45,8 @@ pub const FLAG_PENDING: u32 = 8;
 pub const FLAG_TEXT: u32 = 16;
 /// `bts_tick` moved the match.
 pub const FLAG_STEPPED: u32 = 32;
+/// The reply body is binary (a save file), not text.
+pub const FLAG_BINARY: u32 = 64;
 
 struct State {
     host: Host<NoAgents>,
@@ -71,7 +75,7 @@ fn with_state<T>(f: impl FnOnce(&mut State) -> T) -> T {
 
 #[no_mangle]
 pub extern "C" fn bts_abi() -> u32 {
-    1
+    2
 }
 
 #[no_mangle]
@@ -97,23 +101,26 @@ pub unsafe extern "C" fn bts_free(ptr: *mut u8, len: usize) {
 #[no_mangle]
 pub unsafe extern "C" fn bts_call(line: *const u8, line_len: usize, body: *const u8, body_len: usize, entropy_hi: u32, entropy_lo: u32) -> u32 {
     let bytes = |ptr: *const u8, len: usize| if ptr.is_null() || len == 0 { &[][..] } else { std::slice::from_raw_parts(ptr, len) };
-    let (line, body) = (std::str::from_utf8(bytes(line, line_len)), std::str::from_utf8(bytes(body, body_len)));
+    let (line, body) = (std::str::from_utf8(bytes(line, line_len)), bytes(body, body_len));
     with_state(|st| {
-        let (Ok(line), Ok(body)) = (line, body) else {
+        let Ok(line) = line else {
             st.result = b"{\"error\":\"INVALID_SCHEMA\",\"message\":\"the request is not valid UTF-8\"}".to_vec();
             st.flags = 0;
             return 400;
         };
         let (method, target) = line.split_once(' ').unwrap_or((line, ""));
-        let reply = st.host.handle(&Request { method, target, body, entropy: ((entropy_hi as u64) << 32) | entropy_lo as u64 });
+        // a body that is not text is refused by the host, except where a route takes a save file
+        let reply = st.host.handle_bytes(method, target, body, ((entropy_hi as u64) << 32) | entropy_lo as u64);
         let e = reply.effects;
         st.flags = (e.changed as u32 * FLAG_CHANGED)
             | (e.autosave as u32 * FLAG_AUTOSAVE)
             | (e.installed as u32 * FLAG_INSTALLED)
             | (st.host.pending() as u32 * FLAG_PENDING)
-            | ((reply.kind == Body::Markdown) as u32 * FLAG_TEXT);
-        st.result = reply.body.into_bytes();
-        reply.status as u32
+            | ((reply.kind == Body::Markdown) as u32 * FLAG_TEXT)
+            | ((reply.kind == Body::Binary) as u32 * FLAG_BINARY);
+        let status = reply.status as u32;
+        st.result = reply.into_bytes();
+        status
     })
 }
 
@@ -168,20 +175,25 @@ mod tests {
     /// The module holds one match; tests that use it take turns.
     static TURN: Mutex<()> = Mutex::new(());
 
-    fn call(line: &str, body: &str) -> (u32, String, u32) {
+    fn call_bytes(line: &str, body: &[u8]) -> (u32, Vec<u8>, u32) {
         unsafe {
-            let copy = |s: &str| {
+            let copy = |s: &[u8]| {
                 let p = bts_alloc(s.len());
                 std::ptr::copy_nonoverlapping(s.as_ptr(), p, s.len());
                 p
             };
-            let (l, b) = (copy(line), copy(body));
+            let (l, b) = (copy(line.as_bytes()), copy(body));
             let status = bts_call(l, line.len(), b, body.len(), 0x1234_5678, 0x9abc_def0);
             bts_free(l, line.len());
             bts_free(b, body.len());
             let out = std::slice::from_raw_parts(bts_result_ptr(), bts_result_len());
-            (status, String::from_utf8(out.to_vec()).unwrap(), bts_result_flags())
+            (status, out.to_vec(), bts_result_flags())
         }
+    }
+
+    fn call(line: &str, body: &str) -> (u32, String, u32) {
+        let (status, out, flags) = call_bytes(line, body.as_bytes());
+        (status, String::from_utf8(out).unwrap(), flags)
     }
 
     fn field(json: &str, key: &str) -> String {
@@ -192,7 +204,7 @@ mod tests {
     #[test]
     fn a_human_match_plays_through_the_abi_and_keeps_the_observer_door_shut() {
         let _turn = TURN.lock().unwrap_or_else(|e| e.into_inner());
-        assert_eq!(bts_abi(), 1);
+        assert_eq!(bts_abi(), 2);
         assert_eq!(call("GET /api/health", ""), (200, "{\"ok\":true}".into(), 0));
         let (status, summary, flags) = call("POST /api/match", "{\"seed\":\"abi\",\"regions\":24,\"controllers\":[\"human\",\"easy\",\"medium\",\"hard\"]}");
         assert_eq!(status, 200, "{summary}");
@@ -224,6 +236,84 @@ mod tests {
             let bad = [0xffu8, 0xfe];
             assert_eq!(bts_call(bad.as_ptr(), 2, std::ptr::null(), 0, 0, 0), 400);
         }
+        // a body that is not text reaches only the routes that take a save file
+        assert_eq!(call_bytes("POST /api/ready", &[0xff, 0xfe]).0, 400);
+        assert_eq!(field(&call("GET /api/match", "").1, "round"), "2");
+    }
+
+    #[test]
+    fn a_save_file_crosses_the_abi_as_bytes_in_both_directions() {
+        let _turn = TURN.lock().unwrap_or_else(|e| e.into_inner());
+        assert_eq!(call("POST /api/match", "{\"seed\":\"abi-file\",\"regions\":24,\"controllers\":[\"human\",\"easy\",\"medium\",\"hard\"]}").0, 200);
+        call("POST /api/ready", "{\"seat\":0,\"token\":\"\",\"through_round\":true}");
+        let (_, text, _) = call("GET /api/session/export", "");
+        let (status, file, flags) = call_bytes("GET /api/savefile?kind=auto&created=1700000000000", b"");
+        assert_eq!((status, flags), (200, FLAG_BINARY));
+        assert_eq!(&file[..8], b"\x89BTSAVE\n");
+        assert!(std::str::from_utf8(&file).is_err(), "the file is binary, and crossed unharmed");
+        let (header, inside) = bts_host::portable::open(&file, &bts_host::portable::Limits::default()).unwrap();
+        assert_eq!((inside.as_str(), header.round, header.created_ms), (text.as_str(), 2, 1_700_000_000_000));
+
+        // describing reads the bytes and changes nothing
+        let (status, described, flags) = call_bytes("POST /api/savefile/describe", &file);
+        let described = String::from_utf8(described).unwrap();
+        assert_eq!((status, flags, field(&described, "loadable").as_str()), (200, 0, "true"));
+
+        // a damaged file is refused with its reason and the match stays where it was
+        call("POST /api/ready", "{\"seat\":0,\"token\":\"\",\"through_round\":true}");
+        let mut bad = file.clone();
+        let last = bad.len() - 7;
+        bad[last] ^= 0x40;
+        let (status, refusal, flags) = call_bytes("POST /api/savefile/import", &bad);
+        let refusal = String::from_utf8(refusal).unwrap();
+        assert_eq!((status, flags, field(&refusal, "reason").as_str()), (400, 0, "\"CORRUPT\""), "{refusal}");
+        assert_eq!(call_bytes("POST /api/savefile/import", &file[..file.len() / 2]).0, 400);
+        assert_eq!(field(&call("GET /api/match", "").1, "round"), "3", "a refused file leaves the match alone");
+
+        // the good file brings the earlier round back, byte for byte
+        let (status, restored, flags) = call_bytes("POST /api/savefile/import", &file);
+        assert_eq!((status, flags), (200, FLAG_CHANGED | FLAG_INSTALLED));
+        assert_eq!(field(&String::from_utf8(restored).unwrap(), "round"), "2");
+        assert_eq!(call("GET /api/session/export", "").1, text);
+    }
+
+    /// The same file loads whichever transport wrote it: the server's host and this
+    /// module run one implementation, and a file made by either is read by the other.
+    #[test]
+    fn save_files_move_between_the_server_host_and_this_module() {
+        use bts_host::portable::{Kind, Limits, Meta};
+        let _turn = TURN.lock().unwrap_or_else(|e| e.into_inner());
+        // the host as the HTTP server configures it
+        let server_cfg = Config { require_tokens: false, app_mode: true, settle_inline: true };
+        let mut server: Host<NoAgents> = Host::new(server_cfg);
+        let made = server.handle_bytes("POST", "/api/match", b"{\"seed\":\"desk\",\"regions\":24,\"controllers\":[\"human\",\"hard\",\"medium\",\"easy\"]}", 99);
+        assert_eq!(made.status, 200);
+        for _ in 0..3 {
+            server.handle_bytes("POST", "/api/ready", b"{\"seat\":0,\"through_round\":true}", 0);
+        }
+        let desk_text = server.session_text().unwrap();
+        let desk_file = server.handle_bytes("GET", "/api/savefile?name=from%20the%20desk", b"", 0).data;
+
+        // desktop -> browser
+        let (status, summary, _) = call_bytes("POST /api/savefile/import", &desk_file);
+        assert_eq!(status, 200, "{}", String::from_utf8_lossy(&summary));
+        assert_eq!(call("GET /api/session/export", "").1, desk_text, "the browser module holds exactly the server's match");
+        // play on in the module, then browser -> desktop
+        let (_, after, _) = call("POST /api/ready", "{\"seat\":0,\"token\":\"\",\"through_round\":true}");
+        assert_eq!(field(&after, "round"), "5");
+        let (_, page_file, _) = call_bytes("GET /api/savefile?kind=manual&name=from%20the%20page", b"");
+        let (_, page_text, _) = call("GET /api/session/export", "");
+        let mut desktop: Host<NoAgents> = Host::new(server_cfg);
+        let loaded = desktop.handle_bytes("POST", "/api/savefile/import", &page_file, 0);
+        assert_eq!(loaded.status, 200, "{}", loaded.body);
+        assert_eq!(desktop.session_text().unwrap(), page_text);
+        // the server, continuing its own copy, reaches the same state the module did
+        server.handle_bytes("POST", "/api/ready", b"{\"seat\":0,\"through_round\":true}", 0);
+        assert_eq!(server.session.as_ref().unwrap().m.state_hash(), desktop.session.as_ref().unwrap().m.state_hash());
+        // and the server's own storage form (no request, no permission rule) is the same container
+        let own = desktop.container(Meta { kind: Kind::Auto, name: "", created_ms: 0 }).unwrap();
+        assert_eq!(call_bytes("POST /api/savefile/import", &own).0, 200);
+        assert_eq!(bts_host::portable::open(&own, &Limits::default()).unwrap().1, page_text);
     }
 
     #[test]

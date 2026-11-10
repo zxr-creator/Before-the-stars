@@ -11,3 +11,7 @@ bts-engine = { path = "../bts-engine" }
 bts-ai = { path = "../bts-ai" }
 serde.workspace = true
 serde_json.workspace = true
+# The portable save file (src/portable.rs). Both are pure Rust with no system
+# dependencies, so they build for wasm32-unknown-unknown like the rest of this crate.
+miniz_oxide = "0.8"
+sha2 = "0.10"

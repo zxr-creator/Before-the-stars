@@ -452,3 +452,330 @@ fn a_session_never_leaves_a_referee_with_an_external_seat() {
     let mut observed: Host = new_match(SERVER, ["easy", "easy", "medium", "hard"]);
     assert_eq!(get(&mut observed, "/api/session/export").status, 200);
 }
+
+// ---- save files ---------------------------------------------------------------------
+
+use crate::portable::{self, Kind, Limits, Meta, PREFIX};
+
+struct Bin {
+    status: u16,
+    kind: Body,
+    data: Vec<u8>,
+    body: Value,
+    effects: Effects,
+}
+
+fn bytes_call<A: AgentSlot>(h: &mut Host<A>, method: &str, target: &str, body: &[u8]) -> Bin {
+    let r = h.handle_bytes(method, target, body, 7);
+    Bin { status: r.status, kind: r.kind, body: serde_json::from_str(&r.body).unwrap_or(Value::Null), data: r.data, effects: r.effects }
+}
+
+/// Everything about a host's match that an import could disturb.
+fn fingerprint<A: AgentSlot>(h: &Host<A>) -> (u64, u64, String, u32, String) {
+    let s = h.session.as_ref().unwrap();
+    (s.m.state_hash(), h.generation, s.m.match_id().to_string(), s.m.round(), portable::sha256_hex(s.save().as_bytes()))
+}
+
+/// Rebuild a save file around an edited header (lengths and CRC made right again).
+fn reheader(file: &[u8], edit: impl FnOnce(&mut Value)) -> Vec<u8> {
+    let head_len = u32::from_le_bytes(file[12..16].try_into().unwrap()) as usize;
+    let mut header: Value = serde_json::from_slice(&file[PREFIX..PREFIX + head_len]).unwrap();
+    edit(&mut header);
+    let head = serde_json::to_vec(&header).unwrap();
+    let mut out = file[..12].to_vec();
+    out.extend_from_slice(&(head.len() as u32).to_le_bytes());
+    out.extend_from_slice(&portable::crc32(&head).to_le_bytes());
+    out.extend_from_slice(&head);
+    out.extend_from_slice(&file[PREFIX + head_len..]);
+    out
+}
+
+/// A session text that parses but cannot be played: most of its regions are gone.
+fn unplayable(text: &str) -> String {
+    let mut save: Value = serde_json::from_str(text).unwrap();
+    let mut world: Value = serde_json::from_str(save["world"].as_str().unwrap()).unwrap();
+    let regions = world.as_object_mut().unwrap().values_mut().find(|v| v.as_array().is_some_and(|a| a.len() == 24)).expect("the world lists its 24 regions");
+    regions.as_array_mut().unwrap().truncate(3);
+    save["world"] = json!(world.to_string());
+    save.to_string()
+}
+
+#[test]
+fn a_save_file_round_trips_through_the_routes_in_either_kind_of_host() {
+    let mut h: Host = new_match(BROWSER, ["human", "easy", "medium", "hard"]);
+    for _ in 0..2 {
+        post(&mut h, "/api/ready", json!({ "seat": 0, "through_round": true }));
+    }
+    let text = get(&mut h, "/api/session/export").text;
+    let file = bytes_call(&mut h, "GET", "/api/savefile?kind=manual&name=Before%20the%20flood%20%E2%9C%93&created=1700000000123", b"");
+    assert_eq!((file.status, file.kind), (200, Body::Binary));
+    assert_eq!(file.effects, Effects::default(), "exporting changes nothing");
+    let (header, inside) = portable::open(&file.data, &Limits::default()).unwrap();
+    assert_eq!(inside, text, "the container holds exactly the session export");
+    assert_eq!((header.kind, header.name.as_str(), header.created_ms, header.round), (Kind::Manual, "Before the flood ✓", 1_700_000_000_123, 3));
+    assert_eq!(header.seats[0].controller, bts_protocol::ControllerKind::Human);
+    assert_eq!(header.seed.as_deref(), Some("host-rules"), "this match discloses its seed");
+    let mut sealed: Host = Host::new(BROWSER);
+    post(&mut sealed, "/api/match", json!({ "seed": "kept-to-the-referee", "regions": 24, "public_seed": false }));
+    let sealed_file = bytes_call(&mut sealed, "GET", "/api/savefile", b"").data;
+    let head_len = u32::from_le_bytes(sealed_file[12..16].try_into().unwrap()) as usize;
+    assert!(!String::from_utf8_lossy(&sealed_file[..PREFIX + head_len]).contains("kept-to-the-referee"), "a sealed seed is not in the plain header");
+    // the text route and the plain handle() entry point reach the same routes
+    let auto = h.handle(&Request { method: "GET", target: "/api/savefile?kind=auto", body: "", entropy: 0 });
+    assert_eq!(portable::open(&auto.data, &Limits::default()).unwrap().0.kind, Kind::Auto);
+
+    // describing it loads nothing
+    let before = fingerprint(&h);
+    let d = bytes_call(&mut h, "POST", "/api/savefile/describe", &file.data);
+    assert_eq!((d.status, &d.body["loadable"], &d.body["legacy"], &d.body["reason"]), (200, &json!(true), &json!(false), &Value::Null));
+    assert_eq!(d.body["header"]["match_id"], json!(before.2));
+    assert_eq!(d.body["header"]["year"], json!(header.year));
+    assert_eq!(d.body["bytes"], json!(file.data.len()));
+    assert_eq!(d.body["build"]["ruleset"], bts_engine::content::RULESET_VERSION);
+    assert!(d.body["file_name"].as_str().unwrap().ends_with(".btsave"));
+    assert_eq!(d.effects, Effects::default());
+    assert_eq!(fingerprint(&h), before);
+
+    // it loads in the host that wrote it, in a fresh browser-style host and in a server-style one
+    post(&mut h, "/api/ready", json!({ "seat": 0, "through_round": true }));
+    let later = hash(&h);
+    let mut browser: Host = Host::new(BROWSER);
+    let mut server: Host<StubAgent> = Host::new(SERVER);
+    let r = bytes_call(&mut h, "POST", "/api/savefile/import", &file.data);
+    assert_eq!((r.status, &r.body["round"], r.effects.installed, r.effects.changed), (200, &json!(3), true, true));
+    assert_eq!(hash(&h), before.0);
+    post(&mut h, "/api/ready", json!({ "seat": 0, "through_round": true }));
+    assert_eq!(hash(&h), later);
+    let r = bytes_call(&mut browser, "POST", "/api/savefile/import", &file.data);
+    assert_eq!((r.status, &r.body["match_id"]), (200, &json!(before.2)));
+    assert_eq!(get(&mut browser, "/api/session/export").text, text, "byte-identical after the trip");
+    post(&mut browser, "/api/ready", json!({ "seat": 0, "through_round": true }));
+    assert_eq!(hash(&browser), later, "a restored match continues exactly as the original did");
+    let r = bytes_call(&mut server, "POST", "/api/savefile/import", &file.data);
+    assert_eq!(r.status, 200);
+    assert_eq!(get(&mut server, "/api/session/export").text, text);
+    assert_eq!(get(&mut server, "/api/spectator").status, 403, "importing opens no observer door");
+}
+
+#[test]
+fn every_refused_save_file_leaves_the_match_exactly_as_it_was() {
+    let mut donor: Host = new_match(BROWSER, ["human", "easy", "medium", "hard"]);
+    post(&mut donor, "/api/ready", json!({ "seat": 0, "through_round": true }));
+    let text = get(&mut donor, "/api/session/export").text;
+    let file = bytes_call(&mut donor, "GET", "/api/savefile", b"").data;
+    let head_len = u32::from_le_bytes(file[12..16].try_into().unwrap()) as usize;
+
+    let mut flipped_payload = file.clone();
+    flipped_payload[PREFIX + head_len + 100] ^= 0x04;
+    let mut flipped_header = file.clone();
+    flipped_header[PREFIX + 10] ^= 0x01;
+    let mut wrong_magic = file.clone();
+    wrong_magic[1] = b'X';
+    let mut future = file.clone();
+    future[8..10].copy_from_slice(&7u16.to_le_bytes());
+    let other_rules = reheader(&file, |h| h["versions"]["ruleset"] = "bts-rules/0.1.0".into());
+    let oversized = reheader(&file, |h| h["length"] = (1u64 << 36).into());
+    let zeros = vec![0u8; 40 << 20];
+    let packed_zeros = miniz_oxide::deflate::compress_to_vec(&zeros, 6);
+    let mut bomb = file[..PREFIX + head_len].to_vec();
+    bomb.extend_from_slice(&packed_zeros);
+    let bomb = reheader(&bomb, |h| {
+        h["stored"] = (packed_zeros.len() as u64).into();
+        h["stored_crc32"] = portable::crc32(&packed_zeros).into();
+    });
+    let session = donor.session.as_ref().unwrap();
+    let broken = portable::pack(session, &unplayable(&text), Meta { kind: Kind::Manual, name: "", created_ms: 0 });
+    let not_a_session = portable::pack(session, "{\"format\":\"bts-save/1\"}", Meta { kind: Kind::Manual, name: "", created_ms: 0 });
+    let cases: Vec<(&str, Vec<u8>, &str)> = vec![
+        ("empty", Vec::new(), "NOT_A_SAVE"),
+        ("truncated in the payload", file[..file.len() - 40].to_vec(), "TRUNCATED"),
+        ("truncated in the header", file[..PREFIX + 9].to_vec(), "TRUNCATED"),
+        ("truncated in the preamble", file[..11].to_vec(), "TRUNCATED"),
+        ("a flipped bit in the payload", flipped_payload, "CORRUPT"),
+        ("a flipped bit in the header", flipped_header, "CORRUPT"),
+        ("trailing bytes", [&file[..], b"extra"].concat(), "CORRUPT"),
+        ("wrong magic", wrong_magic, "NOT_A_SAVE"),
+        ("some other file", b"%PDF-1.7 not a save at all".to_vec(), "NOT_A_SAVE"),
+        ("some other JSON", b"{\"hello\":\"world\"}".to_vec(), "NOT_A_SAVE"),
+        ("a future container format", future, "FORMAT_VERSION"),
+        ("a different ruleset", other_rules, "INCOMPATIBLE"),
+        ("an oversized declared length", oversized, "TOO_LARGE"),
+        ("a deflate bomb", bomb, "CORRUPT"),
+        ("a sound container around an unplayable session", broken, "UNPLAYABLE"),
+        ("a sound container around something that is not a session", not_a_session, "UNPLAYABLE"),
+        ("truncated legacy text", text.as_bytes()[..text.len() / 2].to_vec(), "UNPLAYABLE"),
+    ];
+
+    // the match that must survive all of it is a different one, three rounds in
+    let mut h: Host = Host::new(BROWSER);
+    assert_eq!(post(&mut h, "/api/match", json!({ "seed": "the-survivor", "regions": 24, "controllers": ["human", "hard", "hard", "easy"] })).status, 200);
+    for _ in 0..3 {
+        post(&mut h, "/api/ready", json!({ "seat": 0, "through_round": true }));
+    }
+    let before = fingerprint(&h);
+    for (what, bad, reason) in &cases {
+        let d = bytes_call(&mut h, "POST", "/api/savefile/describe", bad);
+        assert_eq!((d.status, &d.body["loadable"], &d.body["reason"]), (200, &json!(false), &json!(reason)), "describe: {what}: {}", d.body);
+        assert!(d.body["message"].as_str().is_some_and(|m| m.len() > 10), "describe gives a reason for {what}");
+        let r = bytes_call(&mut h, "POST", "/api/savefile/import", bad);
+        assert_eq!((r.status, &r.body["error"], &r.body["reason"]), (400, &json!("INVALID_SAVE"), &json!(reason)), "import: {what}: {}", r.body);
+        assert!(r.body["message"].as_str().is_some_and(|m| m.len() > 10), "import gives a reason for {what}");
+        assert_eq!(r.effects, Effects::default(), "{what}");
+        assert_eq!(fingerprint(&h), before, "the match changed after refusing {what}");
+    }
+    // the messages a player will actually meet say what is wrong
+    let message = |h: &mut Host, bad: &[u8]| bytes_call(h, "POST", "/api/savefile/import", bad).body["message"].as_str().unwrap().to_string();
+    assert_eq!(message(&mut h, &cases[11].1), format!("this file was saved by rules bts-rules/0.1.0; this build runs rules {}", bts_engine::content::RULESET_VERSION));
+    assert!(message(&mut h, &cases[10].1).contains("save-file format 7"));
+    assert!(message(&mut h, &cases[14].1).contains("cannot be played"));
+    // a header can be shown even when the file cannot be loaded
+    let d = bytes_call(&mut h, "POST", "/api/savefile/describe", &cases[11].1);
+    assert_eq!(d.body["header"]["versions"]["ruleset"], "bts-rules/0.1.0");
+    assert_eq!(d.body["header"]["match_id"], json!(donor.session.as_ref().unwrap().m.match_id()));
+
+    // the size limit is the host's to set
+    h.limits = Limits { max_file: 64 << 20, max_unpacked: 1000 };
+    let r = bytes_call(&mut h, "POST", "/api/savefile/import", &file);
+    assert_eq!((r.status, &r.body["reason"]), (400, &json!("TOO_LARGE")));
+    let r = bytes_call(&mut h, "POST", "/api/savefile/import", text.as_bytes());
+    assert_eq!((r.status, &r.body["reason"]), (400, &json!("TOO_LARGE")), "bare text is held to the same limit");
+    h.limits = Limits { max_file: 1000, max_unpacked: 64 << 20 };
+    assert_eq!(bytes_call(&mut h, "POST", "/api/savefile/import", &file).body["reason"], "TOO_LARGE");
+    assert_eq!(fingerprint(&h), before);
+
+    // and after all that, the good file still loads
+    h.limits = Limits::default();
+    let r = bytes_call(&mut h, "POST", "/api/savefile/import", &file);
+    assert_eq!(r.status, 200, "{}", r.body);
+    assert_eq!(hash(&h), hash(&donor));
+    assert_eq!(h.generation, before.1 + 1);
+}
+
+#[test]
+fn bare_session_text_is_still_a_save_file() {
+    // the server's saves from before the container, and its autosave, are session text
+    let mut old: Host = new_match(SERVER, ["human", "easy", "medium", "hard"]);
+    post(&mut old, "/api/ready", json!({ "seat": 0, "through_round": true }));
+    let text = get(&mut old, "/api/session/export").text;
+    let mut h: Host = Host::new(BROWSER);
+    let d = bytes_call(&mut h, "POST", "/api/savefile/describe", text.as_bytes());
+    assert_eq!((&d.body["loadable"], &d.body["legacy"], &d.body["header"]["round"]), (&json!(true), &json!(true), &json!(2)));
+    assert!(h.session.is_none());
+    let r = bytes_call(&mut h, "POST", "/api/savefile/import", format!("  \n{text}").as_bytes());
+    assert_eq!(r.status, 200, "{}", r.body);
+    assert_eq!(hash(&h), hash(&old));
+    // and the text routes are untouched
+    assert_eq!(post(&mut h, "/api/session/import", serde_json::from_str(&text).unwrap()).status, 200);
+    // a request that is not text is refused by the text routes, not misread
+    let r = bytes_call(&mut h, "POST", "/api/ready", &[0xff, 0xfe, 0x00]);
+    assert_eq!((r.status, &r.body["error"]), (400, &json!("INVALID_SCHEMA")));
+}
+
+#[test]
+fn a_save_file_never_leaves_a_referee_with_an_external_seat() {
+    let mut h: Host = new_match(SERVER, ["external", "easy", "medium", "hard"]);
+    let out = bytes_call(&mut h, "GET", "/api/savefile", b"");
+    assert_eq!((out.status, out.kind, out.data.len()), (403, Body::Json, 0));
+    // nor does a stored save of such a match, through the route a transport offers for named saves
+    let stored = h.session_text().unwrap();
+    assert_eq!(h.export_text(&stored, Meta { kind: Kind::Manual, name: "x", created_ms: 0 }).unwrap_err().0, 403);
+    // the transport's own storage is not a request and is not refused
+    let own = h.container(Meta { kind: Kind::Manual, name: "x", created_ms: 0 }).unwrap();
+    let header = portable::open(&own, &Limits::default()).unwrap().0;
+    assert!(!h.header_portable(&header), "and its header says it may not be handed out");
+
+    let mut tokens: Host = new_match(Config { require_tokens: true, ..SERVER }, ["easy", "easy", "medium", "hard"]);
+    assert_eq!(bytes_call(&mut tokens, "GET", "/api/savefile", b"").status, 403);
+    let stored = tokens.session_text().unwrap();
+    assert_eq!(tokens.export_text(&stored, Meta { kind: Kind::Manual, name: "", created_ms: 0 }).unwrap_err().0, 403);
+
+    let mut observed: Host = new_match(SERVER, ["easy", "easy", "medium", "hard"]);
+    let out = bytes_call(&mut observed, "GET", "/api/savefile", b"");
+    assert_eq!(out.status, 200);
+    let header = portable::open(&out.data, &Limits::default()).unwrap().0;
+    assert!(observed.header_portable(&header));
+    let stored = observed.session_text().unwrap();
+    assert!(observed.export_text(&stored, Meta { kind: Kind::Auto, name: "", created_ms: 5 }).is_ok());
+    assert_eq!(bytes_call(&mut Host::<NoAgents>::new(SERVER), "GET", "/api/savefile", b"").status, 404);
+}
+
+#[test]
+fn a_save_never_contains_an_api_key() {
+    const KEY: &str = "sk-ant-api03-THIS-IS-THE-SECRET-0123456789abcdef";
+    const OTHER: &str = "sk-proj-ANOTHER-SECRET-zyxwvu9876543210";
+    let mut h: Host<StubAgent> = Host::new(SERVER);
+    let made = post(
+        &mut h,
+        "/api/match",
+        json!({
+            "seed": "keys", "regions": 24, "controllers": ["claude-api", "claude-api", "medium", "hard"],
+            "agent_options": {
+                "0": { "model": "some-model", "api_key": KEY, "base_url": format!("https://gateway-user:{KEY}@proxy.example:8443/v1/messages?api_key={KEY}&x=1#frag-{KEY}"), "effort": "high" },
+                "1": { "model": format!("model-{OTHER}"), "api_key": format!("  {OTHER}  "), "base_url": format!("proxy.example/{OTHER}/v1"), "effort": OTHER },
+            },
+        }),
+    );
+    assert_eq!(made.status, 200, "{}", made.text);
+    assert!(!made.text.contains(KEY) && !made.text.contains(OTHER), "the match summary does not repeat a key");
+    // the keys are held, in memory, where the agent workers read them
+    let held = h.session.as_ref().unwrap().agent_cfgs[0].as_ref().unwrap();
+    assert_eq!(held.api_key.as_deref(), Some(KEY));
+    assert!(held.base_url.as_deref().unwrap().contains(KEY), "the address is used as given while the match runs");
+    post(&mut h, "/api/advance", json!({ "rounds": 1 }));
+
+    let leaks = |what: &str, bytes: &[u8]| {
+        for key in [KEY, OTHER] {
+            assert!(!bytes.windows(key.len()).any(|w| w == key.as_bytes()), "{what} contains an API key");
+            // not in part either: no long run of the key survives
+            let tail = &key.as_bytes()[key.len() - 12..];
+            assert!(!bytes.windows(tail.len()).any(|w| w == tail), "{what} contains part of an API key");
+        }
+    };
+    let text = h.session_text().unwrap();
+    leaks("the session save text", text.as_bytes());
+    let exported = get(&mut h, "/api/session/export");
+    assert_eq!(exported.status, 200);
+    leaks("the session export", exported.text.as_bytes());
+    let file = bytes_call(&mut h, "GET", "/api/savefile?name=keys", b"");
+    assert_eq!(file.status, 200);
+    leaks("the save file as stored", &file.data);
+    let (header, inside) = portable::open(&file.data, &Limits::default()).unwrap();
+    leaks("the save file's contents", inside.as_bytes());
+    leaks("the save file's header", serde_json::to_string(&header).unwrap().as_bytes());
+    leaks("the transport's own container", &h.container(Meta { kind: Kind::Auto, name: "", created_ms: 1 }).unwrap());
+    assert_eq!(header.seats[0].agent.as_deref(), Some("claude-api"));
+
+    // what a save does keep of the seat: provider, model, pace, and the address without its credentials
+    let saved: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(saved["agent_cfgs"][0], json!({ "provider": "claude-api", "model": "some-model", "consult_every": 1, "base_url": "https://proxy.example:8443/v1/messages", "effort": "high" }));
+    assert_eq!(saved["agent_cfgs"][1], json!({ "provider": "claude-api", "model": "", "consult_every": 1, "base_url": null, "effort": null }));
+    assert!(saved["agent_cfgs"][0].get("api_key").is_none());
+
+    // the tripwire behind all of that: text that does repeat a held key is recognised
+    assert!(h.session.as_ref().unwrap().leaks_credential(&format!("..{KEY}..")));
+    assert!(!h.session.as_ref().unwrap().leaks_credential(&text));
+
+    // a save with an agent seat resumes on a referee that can run one, and is refused by name where none can
+    let mut again: Host<StubAgent> = Host::new(SERVER);
+    assert_eq!(bytes_call(&mut again, "POST", "/api/savefile/import", &file.data).status, 200);
+    assert!(again.session.as_ref().unwrap().agent_cfgs[0].as_ref().unwrap().api_key.is_none());
+    let mut browser: Host = new_match(BROWSER, ["human", "easy", "medium", "hard"]);
+    let before = fingerprint(&browser);
+    let r = bytes_call(&mut browser, "POST", "/api/savefile/import", &file.data);
+    assert_eq!((r.status, &r.body["reason"]), (400, &json!("NEEDS_SERVER")));
+    let d = bytes_call(&mut browser, "POST", "/api/savefile/describe", &file.data);
+    assert_eq!((&d.body["loadable"], &d.body["reason"], &d.body["header"]["seats"][0]["agent"]), (&json!(false), &json!("NEEDS_SERVER"), &json!("claude-api")));
+    assert_eq!(fingerprint(&browser), before);
+}
+
+#[test]
+fn addresses_are_scrubbed_of_credentials() {
+    use crate::scrub_url;
+    assert_eq!(scrub_url("https://api.example.com/v1"), "https://api.example.com/v1");
+    assert_eq!(scrub_url("https://user:pass@api.example.com:8443/v1?key=abc#x"), "https://api.example.com:8443/v1");
+    assert_eq!(scrub_url("http://token@localhost:1234"), "http://localhost:1234");
+    assert_eq!(scrub_url("  https://a@b@host/p@th  "), "https://host/p@th");
+    assert_eq!(scrub_url("user:pw@host.example/v1?k=v"), "host.example/v1");
+    assert_eq!(scrub_url("https://host/?token=abc"), "https://host/");
+    assert_eq!(scrub_url(""), "");
+}

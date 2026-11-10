@@ -2,7 +2,11 @@
 // All game data comes from the server's permission-filtered Observation; the
 // store only adds interface state (open panel, selection, toasts).
 import { useEffect, useState } from 'preact/hooks';
-import { api, ApiError, rememberTokens } from './api';
+import { api, ApiError, rememberTokens, SaveNotStored } from './api';
+import { restoreAutosave, startAutosave } from './saves/autosave';
+import type { SaveEntry } from './saves/types';
+import { describeSaveError, fmtWhen, openSaveManager } from './saves/ui';
+import { requestPersistence, vaultState } from './saves/vault';
 import type {
   Action, AgentLogEntry, MatchSummary, MomentCategory, NewMatchRequest, Observation, Receipt, RegionId, SeatId,
   SpectatorView,
@@ -123,6 +127,8 @@ export interface AppState {
   handover: SeatId | null;
   menuOpen: boolean;
   saves: string[];
+  /** Every stored save with what it holds, newest first (the names above are the ones loadable by name). */
+  saveEntries: SaveEntry[];
   /** The drawer is widened (knowledge graph, long tables). */
   wide: boolean;
   overlay: OverlayKey | null;
@@ -166,6 +172,7 @@ const initial: AppState = {
   handover: null,
   menuOpen: false,
   saves: [],
+  saveEntries: [],
   wide: false,
   overlay: null,
   overlayArg: null,
@@ -227,6 +234,8 @@ export function dismissToast(id: number): void {
 }
 
 function describeError(e: unknown): string {
+  // a save that was refused or not stored says why in the player's own language
+  if (e instanceof SaveNotStored || (e instanceof ApiError && e.reason)) return describeSaveError(e);
   if (e instanceof ApiError) return tc(e.message);
   if (e instanceof Error) return e.message;
   return String(e);
@@ -304,6 +313,37 @@ api.onEngineFailure((message) => {
   set({ boot: 'unreachable', bootError: t('The game engine stopped: {message}', { message }), menuOpen: false, overlay: null, busy: false, advancing: false });
 });
 
+// Browser build: the page keeps the autosave (the referee in it has no disk).
+startAutosave();
+
+/**
+ * Browser build, at start-up: the referee in the page begins with no match, so the
+ * latest autosave is brought back. A reload of a tab that was playing returns to the
+ * game; a fresh visit opens on the title screen with Continue ready. An autosave that
+ * will not load is passed over for the one before it, and the player is told.
+ */
+async function restoreAtBoot(): Promise<boolean> {
+  const { restored, failed } = await restoreAutosave();
+  if (!restored) return false;
+  rememberTokens(restored.summary);
+  await enterMatch(await api.match(), null);
+  let query = '';
+  try { query = window.location.search; } catch { /* no location */ }
+  const toGame = /[?&]notitle\b/.test(query) || (restored.sameTab && !/[?&]title\b/.test(query));
+  set({ boot: 'ready', offline: false, screen: toGame ? 'game' : 'title' });
+  const when = fmtWhen(restored.entry.created);
+  if (failed.length) {
+    toast({
+      tone: 'bad', title: t('An earlier autosave was restored'),
+      detail: t('The latest autosave could not be loaded, so the one from {when} (year {n}) was restored instead. The damaged one is kept: see Saves and storage.', { when, n: restored.entry.header.year }),
+      action: { label: t('Saves and storage'), run: () => openSaveManager() }, sticky: true,
+    });
+  } else {
+    toast({ tone: 'ok', title: t('Match restored'), detail: t('Continuing from the autosave of {when} (year {n}).', { when, n: restored.entry.header.year }) }, 7000);
+  }
+  return true;
+}
+
 export async function boot(): Promise<void> {
   set({ boot: 'loading', bootError: null });
   api.restartEngine();
@@ -311,6 +351,7 @@ export async function boot(): Promise<void> {
     const summary = await api.match();
     void refreshSaves();
     if (!summary.exists) {
+      if (await restoreAtBoot()) return;
       set({ boot: 'ready', summary, obs: null, spectator: null, screen: 'title', offline: false });
       return;
     }
@@ -860,38 +901,71 @@ export async function setDelegates(domains: string[]): Promise<void> {
 
 export async function refreshSaves(): Promise<void> {
   try {
-    const { saves } = await api.saves();
-    set({ saves });
+    const { entries } = await api.saveList();
+    // loadable by name: the player's own saves, and in the server-backed game the autosave file too
+    const named = entries.filter((e) => !api.features.local || e.kind === 'manual').map((e) => e.name).sort();
+    set({ saves: named, saveEntries: entries });
   } catch {
     /* the list is a convenience */
   }
 }
 
-export async function saveGame(name: string): Promise<void> {
+let askedToPersist = false;
+
+/** Save under a name. Returns whether the save was made. */
+export async function saveGame(name: string): Promise<boolean> {
   try {
     const res = await api.save(name);
     toast({ tone: 'ok', title: t('Match saved'), detail: t('Saved as “{name}”.', { name: res.saved }) });
     await refreshSaves();
+    // The player has now made something worth keeping: ask the browser, once, not to
+    // clear this site's data when the device runs short of space.
+    if (api.features.local && !askedToPersist && vaultState().persisted === false) {
+      askedToPersist = true;
+      void requestPersistence();
+    }
+    return true;
   } catch (e) {
     noteNetwork(e);
-    toast({ tone: 'bad', title: t('Save failed'), detail: describeError(e) });
+    const detail = describeError(e);
+    toast({ tone: 'bad', title: t('Save failed'), detail }, e instanceof SaveNotStored ? 12000 : undefined);
+    // no room: nothing was deleted to make some. The storage manager is where room is made.
+    if (e instanceof SaveNotStored) openSaveManager(detail);
+    return false;
   }
 }
 
-export async function loadGame(name: string): Promise<string | null> {
+/**
+ * Replace the match with a saved one, however it is fetched (a named save, a stored
+ * save, a file). The referee checks it first; when it refuses, the match in progress
+ * and everything on screen stay as they were. Returns what went wrong, or null.
+ */
+export async function installMatch(fetch: () => Promise<MatchSummary>): Promise<unknown | null> {
   set({ busy: true });
   try {
-    rememberTokens(await api.load(name));
+    rememberTokens(await fetch());
     const summary = await api.match();
     if (!summary.exists) throw new Error(t('The save did not contain a match.'));
     await enterMatch(summary, null);
     set({ busy: false, offline: false });
+    void refreshSaves();
     return null;
   } catch (e) {
     noteNetwork(e);
     set({ busy: false });
-    return describeError(e);
+    return e ?? new Error('failed');
   }
+}
+
+export async function loadGame(name: string): Promise<string | null> {
+  const failed = await installMatch(() => api.load(name));
+  return failed === null ? null : describeError(failed);
+}
+
+/** Load a stored save by its handle (see `saveEntries`). */
+export async function loadSaveEntry(id: string): Promise<string | null> {
+  const failed = await installMatch(() => api.loadSave(id));
+  return failed === null ? null : describeError(failed);
 }
 
 // --- interface state -------------------------------------------------------------

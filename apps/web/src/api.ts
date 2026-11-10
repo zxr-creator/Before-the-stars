@@ -13,38 +13,66 @@ import type {
 } from './protocol';
 import { EngineFailure, localAvailable, localCall, localFailure, localRestart, onLocalChange, onLocalFailure } from './local/transport';
 import type { LocalChange } from './local/transport';
+import { readHeader, safeName } from './saves/container';
+import type { ExportedFile, SaveDescription, SaveEntry, SaveHeader, SaveKind, SaveListing } from './saves/types';
+import { SAVE_MIME } from './saves/types';
+import { deleteSave as vaultDelete, manualId, readSave, refreshVault, renameSave as vaultRename, subscribeVault, vaultState, writeSave } from './saves/vault';
+import type { StoredSave, WriteFailure } from './saves/vault';
 
 export class ApiError extends Error {
   status: number;
   code: string;
   /** True when the server could not be reached at all. */
   network: boolean;
-  constructor(message: string, status: number, code: string, network = false) {
+  /** For a refused save file (`INVALID_SAVE`): which check it failed, e.g. `CORRUPT`. */
+  reason?: string;
+  constructor(message: string, status: number, code: string, network = false, reason?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.network = network;
+    this.reason = reason;
+  }
+}
+
+/** Browser build: a save was not stored because the vault has no room for it (or the browser refused). */
+export class SaveNotStored extends ApiError {
+  why: WriteFailure;
+  needed: number;
+  free: number;
+  budget: number;
+  constructor(why: WriteFailure, needed: number, free: number, budget: number, detail: string) {
+    super(detail || 'The save was not stored: there is no room for it.', 507, 'SAVE_NOT_STORED');
+    this.why = why;
+    this.needed = needed;
+    this.free = free;
+    this.budget = budget;
   }
 }
 
 // --- transports ------------------------------------------------------------------
 
 type Method = 'GET' | 'POST';
-interface Raw { status: number; ok: boolean; text: string }
-type Transport = (method: Method, path: string, body?: string) => Promise<Raw>;
+/** A reply: text, or `bytes` when it is a save file. */
+interface Raw { status: number; ok: boolean; text: string; bytes?: Uint8Array }
+/** A body is JSON text, or the bytes of a save file. */
+type Transport = (method: Method, path: string, body?: string | Uint8Array) => Promise<Raw>;
 
 const httpTransport: Transport = async (method, path, body) => {
   let res: Response;
   try {
     res = await fetch(path, {
       method,
-      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
-      body,
+      headers: body === undefined ? undefined : { 'content-type': typeof body === 'string' ? 'application/json' : 'application/octet-stream' },
+      body: typeof body === 'string' || body === undefined ? body : (body.slice().buffer as ArrayBuffer),
       cache: 'no-store',
     });
   } catch (e) {
     throw new ApiError('The local referee is not reachable. Is the game server still running?', 0, 'UNREACHABLE', true);
+  }
+  if (res.ok && (res.headers.get('content-type') ?? '').startsWith(SAVE_MIME)) {
+    return { status: res.status, ok: true, text: '', bytes: new Uint8Array(await res.arrayBuffer()) };
   }
   return { status: res.status, ok: res.ok, text: await res.text() };
 };
@@ -52,7 +80,7 @@ const httpTransport: Transport = async (method, path, body) => {
 const localTransport: Transport = async (method, path, body) => {
   try {
     const reply = await localCall(method, path, body);
-    return { status: reply.status, ok: reply.status >= 200 && reply.status < 300, text: reply.body };
+    return { status: reply.status, ok: reply.status >= 200 && reply.status < 300, text: reply.body, bytes: reply.data };
   } catch (e) {
     const detail = e instanceof EngineFailure ? e.message : String(e);
     throw new ApiError(`The game engine stopped: ${detail}`, 500, 'ENGINE_FAILURE');
@@ -80,7 +108,7 @@ const LOCAL = chooseLocal();
 const transport: Transport = LOCAL ? localTransport : httpTransport;
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
-  const res = await transport(method, path, body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body));
+  const res = await transport(method, path, body === undefined ? undefined : typeof body === 'string' || body instanceof Uint8Array ? body : JSON.stringify(body));
   let data: unknown = null;
   if (res.text) {
     try {
@@ -91,10 +119,22 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
     }
   }
   if (!res.ok) {
-    const err = (data ?? {}) as Partial<ApiErrorBody>;
-    throw new ApiError(err.message || `Server error ${res.status}`, res.status, err.error || 'HTTP_' + res.status);
+    const err = (data ?? {}) as Partial<ApiErrorBody> & { reason?: string };
+    throw new ApiError(err.message || `Server error ${res.status}`, res.status, err.error || 'HTTP_' + res.status, false, err.reason);
   }
   return data as T;
+}
+
+/** A reply that is a save file: its bytes. */
+async function requestBytes(method: Method, path: string, body?: string | Uint8Array): Promise<Uint8Array> {
+  const res = await transport(method, path, body);
+  if (!res.ok) {
+    let err: Partial<ApiErrorBody> & { reason?: string } = {};
+    try { err = JSON.parse(res.text) as typeof err; } catch { /* not a JSON error body */ }
+    throw new ApiError(err.message || `Server error ${res.status}`, res.status, err.error || 'HTTP_' + res.status, false, err.reason);
+  }
+  if (!res.bytes) throw new ApiError('The referee did not send a save file.', res.status, 'BAD_SAVE');
+  return res.bytes;
 }
 
 /** A reply that is text in its own right (a save, a Markdown chronicle): returned as sent. */
@@ -161,16 +201,32 @@ function downloadText(text: string, file: string, type: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-// --- named saves without a server --------------------------------------------------
+// --- saves --------------------------------------------------------------------------
 //
-// The server keeps named saves as files. In the browser the same three calls work on
-// session text held in this page's memory: they last until the page is closed. They
-// are built on exportSession/importSession, which is where durable storage belongs.
-const localSaves = new Map<string, string>();
-/** The server's rule for a save name (crates/bts-server, `safe_name`). */
-function safeName(name: string): string {
-  const n = Array.from(name).filter((c) => /[A-Za-z0-9_-]/.test(c)).slice(0, 40).join('');
-  return n || 'save';
+// A save is a `.btsave` container made by the referee (docs/saves.md). The server
+// keeps named saves as files in its saves folder; the browser build keeps them in the
+// vault (./saves/vault.ts: IndexedDB, with a budget). Either way the same calls list,
+// load, export, rename and delete them, and a file from one loads in the other.
+
+function entryOf(e: StoredSave): SaveEntry {
+  return { id: e.id, name: e.name, kind: e.kind, bytes: e.cost, created: e.created, header: e.header };
+}
+
+interface ServerSaves {
+  saves: string[];
+  entries?: { name: string; kind: SaveKind; legacy: boolean; bytes: number; modified_ms: number; header: SaveHeader | null }[];
+  total_bytes?: number;
+  dir?: string;
+  exports_dir?: string;
+}
+
+/** Store a file the referee has just made in the vault, or say why it was not stored. */
+async function keep(file: Uint8Array, kind: SaveKind, name: string): Promise<StoredSave> {
+  const header = readHeader(file);
+  if (!header) throw new ApiError('The referee did not send a save file.', 500, 'BAD_SAVE');
+  const result = await writeSave({ kind, name, created: header.created_ms || Date.now(), data: file, header });
+  if (!result.ok) throw new SaveNotStored(result.reason, result.needed, result.free, result.budget, result.detail);
+  return result.entry;
 }
 
 /** What this referee can do beyond running a match. False entries need the server-backed game. */
@@ -181,7 +237,10 @@ export interface ApiFeatures {
   llmSeats: boolean;
   /** External agents can join over HTTP or MCP (`/api/turn`, seat tokens). */
   externalAgents: boolean;
-  /** Named saves are files that outlive the page. */
+  /**
+   * Saves outlive the page: files beside the server, or IndexedDB in the browser build
+   * (false there only when the browser refuses to store anything).
+   */
   durableSaves: boolean;
 }
 
@@ -190,7 +249,8 @@ export type SessionChange = LocalChange;
 export const api = {
   /** 'local' when the referee runs in this page, 'http' when it is a server. */
   mode: (LOCAL ? 'local' : 'http') as 'local' | 'http',
-  features: { local: LOCAL, llmSeats: !LOCAL, externalAgents: !LOCAL, durableSaves: !LOCAL } as ApiFeatures,
+  // durableSaves is corrected once the vault has opened: false when the browser refuses IndexedDB
+  features: { local: LOCAL, llmSeats: !LOCAL, externalAgents: !LOCAL, durableSaves: true } as ApiFeatures,
 
   match: () => request<MatchSummary>('GET', '/api/match'),
   newMatch: (req: NewMatchRequest) => request<MatchSummary>('POST', '/api/match', req),
@@ -210,19 +270,103 @@ export const api = {
   shutdown: () => request<unknown>('POST', '/api/shutdown', {}),
   agentLog: (seat: SeatId) => request<{ entries: AgentLogEntry[] }>('GET', `/api/agent-log?seat=${seat}`),
 
-  saves: (): Promise<{ saves: string[] }> =>
-    LOCAL ? Promise.resolve({ saves: [...localSaves.keys()].sort() }) : request<{ saves: string[] }>('GET', '/api/saves'),
+  /** The names of the saves the player can load by name (in the server-backed game, the autosave among them). */
+  saves: async (): Promise<{ saves: string[] }> => {
+    if (!LOCAL) return request<{ saves: string[] }>('GET', '/api/saves');
+    return { saves: (await refreshVault()).filter((e) => e.kind === 'manual').map((e) => e.name).sort() };
+  },
+  /**
+   * Save the match under a name; a save of that name is replaced. In the browser
+   * build the save goes to the vault and may be refused for lack of room
+   * (`SaveNotStored`): a manual save is never made to fit by deleting another.
+   */
   save: async (name: string): Promise<{ saved: string }> => {
     if (!LOCAL) return request<{ saved: string }>('POST', '/api/save', { name });
     const saved = safeName(name);
-    localSaves.set(saved, await api.exportSession());
+    await keep(await api.exportSave({ kind: 'manual', name: saved }), 'manual', saved);
     return { saved };
   },
   load: (name: string): Promise<MatchSummary> => {
     if (!LOCAL) return request<MatchSummary>('POST', '/api/load', { name });
-    const text = localSaves.get(safeName(name));
-    if (text === undefined) return Promise.reject(new ApiError('No save has that name.', 404, 'NOT_FOUND'));
-    return api.importSession(text);
+    return api.loadSave(manualId(safeName(name)));
+  },
+
+  /** Every stored save, manual and automatic, newest first, with what each one is. */
+  saveList: async (): Promise<SaveListing> => {
+    if (LOCAL) {
+      const entries = (await refreshVault()).map(entryOf);
+      return { entries, totalBytes: entries.reduce((sum, e) => sum + e.bytes, 0) };
+    }
+    const r = await request<ServerSaves>('GET', '/api/saves');
+    // a referee from before save files only lists names
+    const entries: SaveEntry[] = (r.entries ?? r.saves.map((name) => ({ name, kind: (name === 'autosave' ? 'auto' : 'manual') as SaveKind, legacy: true, bytes: 0, modified_ms: 0, header: null })))
+      .map((e) => ({ id: e.name, name: e.name, kind: e.kind, bytes: e.bytes, created: e.header?.created_ms || e.modified_ms, legacy: e.legacy, header: e.header }))
+      .sort((a, b) => b.created - a.created);
+    return { entries, totalBytes: r.total_bytes ?? entries.reduce((sum, e) => sum + e.bytes, 0), dir: r.dir, exportsDir: r.exports_dir };
+  },
+  /** Replace the match with a stored save. Checked like any import; a refusal leaves the match alone. */
+  loadSave: async (id: string): Promise<MatchSummary> => {
+    if (!LOCAL) return request<MatchSummary>('POST', '/api/load', { name: id });
+    const file = await readSave(id);
+    if (!file) throw new ApiError('No save has that name.', 404, 'NOT_FOUND');
+    return api.importSave(file);
+  },
+  /** A stored save as a `.btsave` file. */
+  saveFile: async (id: string): Promise<Uint8Array> => {
+    if (!LOCAL) return requestBytes('GET', `/api/saves/file?name=${encodeURIComponent(id)}`);
+    const file = await readSave(id);
+    if (!file) throw new ApiError('No save has that name.', 404, 'NOT_FOUND');
+    return file;
+  },
+  deleteSave: async (id: string): Promise<void> => {
+    if (LOCAL) await vaultDelete(id);
+    else await request<unknown>('POST', '/api/saves/delete', { name: id });
+  },
+  /** Give a manual save another name. Refused (409) when the name is taken. */
+  renameSave: async (id: string, name: string): Promise<{ renamed: string }> => {
+    const to = safeName(name);
+    if (!LOCAL) return request<{ renamed: string }>('POST', '/api/saves/rename', { name: id, to });
+    const file = await readSave(id);
+    if (!file) throw new ApiError('No save has that name.', 404, 'NOT_FOUND');
+    // the name is part of the file: the referee rewrites the header
+    const renamed = await requestBytes('POST', `/api/savefile/rename?name=${encodeURIComponent(to)}`, file);
+    const header = readHeader(renamed);
+    if (!header) throw new ApiError('The referee did not send a save file.', 500, 'BAD_SAVE');
+    const result = await vaultRename(id, { kind: 'manual', name: to, created: header.created_ms || Date.now(), data: renamed, header });
+    if (!result.ok) {
+      throw result.reason === 'taken' ? new ApiError(`a save named '${to}' already exists`, 409, 'CONFLICT') : new ApiError('The save could not be renamed.', 500, 'IO');
+    }
+    return { renamed: to };
+  },
+
+  /**
+   * The running match as a `.btsave` file (docs/saves.md): the same bytes from either
+   * referee. Refused (403) by a referee that has an external seat or requires tokens.
+   */
+  exportSave: (options: { kind?: SaveKind; name?: string } = {}): Promise<Uint8Array> =>
+    requestBytes('GET', `/api/savefile?kind=${options.kind ?? 'manual'}&name=${encodeURIComponent(options.name ?? '')}&created=${Date.now()}`),
+  /** What a file is and whether it would load, without loading it. Never throws for a bad file: it says why. */
+  describeSave: (file: Uint8Array) => request<SaveDescription>('POST', '/api/savefile/describe', file),
+  /**
+   * Replace the match with the one in a save file. The file is verified, unpacked
+   * within its limits and rehearsed first; when it is refused (400 `INVALID_SAVE`,
+   * with `reason`) the match in progress is untouched.
+   */
+  importSave: (file: Uint8Array) => request<MatchSummary>('POST', '/api/savefile/import', file),
+
+  /**
+   * Server-backed game: the exports folder on the referee's machine. The desktop
+   * window cannot download, so there the referee writes the file itself and says
+   * where; files placed in the folder can be imported from it.
+   */
+  exportsFolder: {
+    list: () => request<{ dir: string; files: ExportedFile[] }>('GET', '/api/exports'),
+    /** Write the running match, or the named save, into the folder. */
+    write: (name?: string) => request<{ file: string; path: string; dir: string; bytes: number }>('POST', '/api/exports/write', name === undefined ? {} : { name }),
+    describe: (file: string) => request<SaveDescription>('POST', '/api/exports/describe', { file }),
+    import: (file: string) => request<MatchSummary>('POST', '/api/exports/import', { file }),
+    /** Show the file (or the folder) in the system's file manager. */
+    reveal: (file?: string) => request<{ revealed: boolean; path: string }>('POST', '/api/exports/reveal', file === undefined ? {} : { file }),
   },
 
   /**
@@ -270,6 +414,12 @@ export const api = {
     };
   },
 };
+
+if (LOCAL) {
+  subscribeVault(() => {
+    if (vaultState().ready) api.features.durableSaves = vaultState().durable;
+  });
+}
 
 // For the browser console and the automated checks (scripts/pages-smoke.mjs): the same
 // calls the interface makes, under the same rules. It opens nothing the page cannot already do.

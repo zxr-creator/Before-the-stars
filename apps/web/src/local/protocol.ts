@@ -4,6 +4,8 @@
 // call names a method and a path with its query, carries the body as text, and is
 // answered with a status and the reply body as text. Nothing is interpreted on the
 // way, so the worker returns exactly what the server would for the same request.
+// A save file is binary: it travels as `data` (an ArrayBuffer, transferred) in
+// either direction instead of `body`.
 
 /** Bits of `Reply.flags` and `Progress.flags` (crates/bts-wasm/src/lib.rs). */
 export const FLAG_CHANGED = 1;
@@ -16,18 +18,20 @@ export const FLAG_PENDING = 8;
 /** The reply body is plain text (a Markdown export), not JSON. */
 export const FLAG_TEXT = 16;
 export const FLAG_STEPPED = 32;
+/** The reply is binary (a save file): it is in `data`, and `body` is empty. */
+export const FLAG_BINARY = 64;
 
 /** The interface version of the module this client was built with. */
-export const ABI = 1;
+export const ABI = 2;
 
 export type ToWorker =
   /** First message: where the module is. The worker answers `ready` or `fatal`. */
   | { type: 'init'; wasmUrl: string }
-  | { type: 'call'; id: number; method: string; target: string; body?: string };
+  | { type: 'call'; id: number; method: string; target: string; body?: string; data?: ArrayBuffer };
 
 export type FromWorker =
   | { type: 'ready'; abi: number }
-  | { type: 'reply'; id: number; status: number; body: string; flags: number }
+  | { type: 'reply'; id: number; status: number; body: string; flags: number; data?: ArrayBuffer }
   /** Observer playback resolved a round (FLAG_AUTOSAVE) or stopped (no FLAG_PENDING). */
   | { type: 'progress'; flags: number }
   /** The engine failed (a panic, or the module could not be loaded). The worker is finished. */

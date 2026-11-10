@@ -60,9 +60,13 @@ autosave).
 `scripts/build-pages.sh` builds the game as a static site (`dist/pages`): the rules
 engine and the built-in opponents run as WebAssembly in a Web Worker, so nothing is
 installed and no referee is running. `.github/workflows/pages.yml` publishes it to
-GitHub Pages on every push to `main`. It plays human and AI-only (observer) matches;
-language-model seats, external agents and durable saves need the desktop or server
-game. See [docs/web-build.md](docs/web-build.md).
+GitHub Pages on every push to `main`. It plays human and AI-only (observer) matches,
+autosaves in the browser and comes back after a reload; language-model seats and
+external agents need the desktop or server game. See
+[docs/web-build.md](docs/web-build.md).
+
+A game can be exported to a `.btsave` file and imported again in any of the three
+(desktop, server, browser): see [docs/saves.md](docs/saves.md).
 
 ### Seats, observers and languages
 

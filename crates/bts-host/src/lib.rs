@@ -10,6 +10,7 @@
 //! and the workers that play LLM agent seats (see [`AgentSlot`]). This crate uses
 //! none of them, which is what lets it compile to `wasm32-unknown-unknown`.
 
+pub mod portable;
 mod referee;
 mod session;
 mod turn;
@@ -18,8 +19,8 @@ mod turn;
 mod tests;
 
 pub use referee::{
-    controller, AgentProvider, AgentSlot, AgentSummary, Body, Config, Effects, Host, MatchSummary, NoAgents, Reply, Request, SeatSummary, Tick,
+    controller, AgentProvider, AgentSlot, AgentSummary, Body, Config, Description, Effects, Host, MatchSummary, NoAgents, Reply, Request, SeatSummary, Tick,
     AGENT_CONTROLLERS,
 };
-pub use session::{AgentConfig, Session, SAVE_FORMAT};
+pub use session::{scrub_url, AgentConfig, Session, SAVE_FORMAT};
 pub use turn::{Advance, Submission};

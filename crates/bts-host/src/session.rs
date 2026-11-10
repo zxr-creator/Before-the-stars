@@ -31,6 +31,43 @@ fn one() -> u32 {
     1
 }
 
+/// An address as it may be written to a save: scheme, host, port and path. User
+/// info (`https://user:secret@host`), the query and the fragment are dropped, since
+/// any of them can carry a credential.
+pub fn scrub_url(url: &str) -> String {
+    let url = url.trim();
+    let end = url.find(['?', '#']).unwrap_or(url.len());
+    let url = &url[..end];
+    let (scheme, rest) = match url.find("://") {
+        Some(at) => (&url[..at + 3], &url[at + 3..]),
+        None => ("", url),
+    };
+    let slash = rest.find('/').unwrap_or(rest.len());
+    let (authority, path) = rest.split_at(slash);
+    let host = authority.rsplit('@').next().unwrap_or(authority);
+    format!("{scheme}{host}{path}")
+}
+
+impl AgentConfig {
+    /// The configuration as a save holds it: no key, no credentials riding in the
+    /// address, and no other field that repeats the key.
+    pub fn for_save(&self) -> AgentConfig {
+        let key = self.api_key.as_deref().map(str::trim).filter(|k| !k.is_empty());
+        let clean = |field: &str| match key {
+            Some(k) if field.contains(k) => String::new(),
+            _ => field.to_string(),
+        };
+        AgentConfig {
+            provider: self.provider.clone(),
+            model: clean(&self.model),
+            consult_every: self.consult_every,
+            api_key: None,
+            base_url: self.base_url.as_deref().map(scrub_url).map(|u| clean(&u)).filter(|u| !u.is_empty()),
+            effort: self.effort.as_deref().map(clean).filter(|e| !e.is_empty()),
+        }
+    }
+}
+
 /// The save format this build writes and reads.
 pub const SAVE_FORMAT: &str = "bts-save/1";
 
@@ -165,7 +202,13 @@ impl Session {
     }
 
     pub fn save(&self) -> String {
-        serde_json::to_string(&SaveFile { format: SAVE_FORMAT.into(), world: self.m.save_json(), ais: self.ais.clone(), tokens: self.tokens.clone(), delegates: self.delegates.clone(), stewards: self.stewards.clone(), agent_cfgs: self.agent_cfgs.clone() }).expect("save serializes")
+        serde_json::to_string(&SaveFile { format: SAVE_FORMAT.into(), world: self.m.save_json(), ais: self.ais.clone(), tokens: self.tokens.clone(), delegates: self.delegates.clone(), stewards: self.stewards.clone(), agent_cfgs: self.agent_cfgs.iter().map(|c| c.as_ref().map(AgentConfig::for_save)).collect() }).expect("save serializes")
+    }
+
+    /// Whether `text` repeats an API key this session holds in memory. A save never
+    /// should (`AgentConfig::for_save`); the export routes check anyway and refuse.
+    pub fn leaks_credential(&self, text: &str) -> bool {
+        self.agent_cfgs.iter().flatten().filter_map(|c| c.api_key.as_deref()).map(str::trim).any(|k| k.len() >= 6 && text.contains(k))
     }
 
     /// Prove that a save can be played, on a scratch copy: every seat's view is built

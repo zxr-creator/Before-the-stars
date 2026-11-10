@@ -1,0 +1,98 @@
+[
+ {
+  "en": "the request is larger than the {#n} bytes this referee reads",
+  "zh": "请求超过了裁判端可读取的 {#n} 字节"
+ },
+ {
+  "en": "the file is larger than the {#n} bytes this game reads",
+  "zh": "文件超过了本游戏可读取的 {#n} 字节"
+ },
+ {
+  "en": "the file is {#a} bytes; this game reads save files up to {#b} bytes",
+  "zh": "文件有 {#a} 字节；本游戏最多读取 {#b} 字节的存档文件"
+ },
+ {
+  "en": "the file is {#a} bytes; this game reads saves up to {#b} bytes",
+  "zh": "文件有 {#a} 字节；本游戏最多读取 {#b} 字节的存档"
+ },
+ {
+  "en": "the file is incomplete: it ends after {#n} bytes, inside its own preamble",
+  "zh": "文件不完整：在 {#n} 字节处就结束了，连文件头都不完整"
+ },
+ {
+  "en": "the file uses save-file format {#a}; this build reads format {#b}. It was probably written by a newer version of the game",
+  "zh": "该文件使用存档格式 {#a}；当前版本读取的是格式 {#b}。它很可能由更新版本的游戏写入"
+ },
+ {
+  "en": "the file uses save-file options ({flags}) this build does not know",
+  "zh": "该文件使用了当前版本不认识的存档选项（{flags}）"
+ },
+ {
+  "en": "the file declares a {#a}-byte description; at most {#b} bytes are allowed",
+  "zh": "文件声明的说明信息有 {#a} 字节；最多允许 {#b} 字节"
+ },
+ {
+  "en": "the file is incomplete: it ends after {#a} bytes, inside its {#b}-byte description",
+  "zh": "文件不完整：在 {#a} 字节处就结束了，{#b} 字节的说明信息没有写完"
+ },
+ {
+  "en": "the file's description cannot be read: {why}",
+  "zh": "无法读取文件的说明信息：{why}"
+ },
+ {
+  "en": "the file is packed with '{codec}', which this build does not read",
+  "zh": "该文件使用“{codec}”压缩，当前版本无法读取"
+ },
+ {
+  "en": "the file is incomplete: it holds {#a} of {#b} bytes",
+  "zh": "文件不完整：应有 {#b} 字节，实际只有 {#a} 字节"
+ },
+ {
+  "en": "the file is damaged: {#n} bytes follow the end of the save",
+  "zh": "文件已损坏：存档结尾之后还多出 {#n} 字节"
+ },
+ {
+  "en": "this file was saved by rules {theirs}; this build runs rules {ours}",
+  "zh": "此文件由规则 {theirs} 保存；当前版本运行的是规则 {ours}"
+ },
+ {
+  "en": "this file was saved by content {theirs}; this build runs content {ours}",
+  "zh": "此文件由内容 {theirs} 保存；当前版本运行的是内容 {ours}"
+ },
+ {
+  "en": "this file was saved by session format {theirs}; this build runs session format {ours}",
+  "zh": "此文件由对局格式 {theirs} 保存；当前版本运行的是对局格式 {ours}"
+ },
+ {
+  "en": "the save would unpack to {#a} bytes; this game accepts at most {#b} bytes",
+  "zh": "存档解压后将有 {#a} 字节；本游戏最多接受 {#b} 字节"
+ },
+ {
+  "en": "the file is damaged: {#a} packed bytes cannot hold the {#b} bytes it declares",
+  "zh": "文件已损坏：{#a} 字节的压缩数据不可能容纳它声明的 {#b} 字节"
+ },
+ {
+  "en": "the file is damaged or hostile: it unpacks to more than the {#n} bytes it declares",
+  "zh": "文件已损坏或带有恶意：解压后超过了它声明的 {#n} 字节"
+ },
+ {
+  "en": "the file is damaged: it unpacks to {#a} bytes, not the {#b} it declares",
+  "zh": "文件已损坏：解压后是 {#a} 字节，而不是它声明的 {#b} 字节"
+ },
+ {
+  "en": "the save text cannot be read: {why}",
+  "zh": "无法读取存档文本：{why}"
+ },
+ {
+  "en": "the save cannot be played: {why}",
+  "zh": "该存档无法继续对局：{why}"
+ },
+ {
+  "en": "a save named '{name}' already exists",
+  "zh": "已有名为“{name}”的存档"
+ },
+ {
+  "en": "seat {#n} of this save is an LLM agent seat, which needs the server-backed game; this referee has no agent workers",
+  "zh": "此存档的第 {#n} 席是大模型智能体席位，需要服务器版游戏；本裁判端没有智能体工作进程"
+ }
+]

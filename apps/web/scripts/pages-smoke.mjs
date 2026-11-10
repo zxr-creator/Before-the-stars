@@ -14,6 +14,15 @@
 //    The observer-only calls are refused for that match, through the page's own API.
 // B. Saves: a named save, the session text out and back in, and a refused import that
 //    leaves the match alone.
+// S. Saves that last (docs/saves.md): the match comes back after a reload, at the same
+//    round and byte-identical; a manual save survives a reload; export to a .btsave
+//    file, start another match, import the file; damaged, truncated, foreign and
+//    hostile files are refused with a visible reason and the match untouched; three
+//    autosaves rotate; under a tiny budget the oldest autosaves are evicted first and
+//    a manual save never is; a save that does not fit is refused; the storage manager
+//    shows usage and its cleanup works.
+// T. Two tabs at once, storage that is blocked, a database from a newer version, a
+//    damaged autosave (the one before it is restored, and the player told).
 // C. An AI-only match is watched: step one round, play continuously, pause, run ten
 //    rounds (which must not arrive as one jump), look through one civilization's eyes.
 // D. Timings in the worker for four AIs on 48 regions, early and late in a match, how
@@ -23,15 +32,24 @@
 // Throughout: no page error, no console error, no failed or refused request, and no
 // request that leaves the site's own path (so nothing depends on a server or on "/").
 //
+// The run removes the saves it makes from the page's database and does not assume the
+// database was empty, so it can be pointed at the deployed site.
+//
 // Environment: PAGES_URL (instead of the argument), PAGES_SHOTS (screenshot directory),
-// PAGES_SKIP_BENCH=1 (skip D), PAGES_HEADED=1.
+// PAGES_SKIP_BENCH=1 (skip D), PAGES_HEADED=1, PAGES_ONLY=S (stop after part S).
 import { chromium } from 'playwright';
-import { mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { damagedFiles, readSaveFile, unplayableFile } from './savefile-lib.mjs';
 
 const BASE = (process.argv[2] ?? process.env.PAGES_URL ?? 'http://127.0.0.1:8080/Before-the-stars/').replace(/\/?$/, '/');
 const SHOTS = process.env.PAGES_SHOTS ? process.env.PAGES_SHOTS.replace(/\/?$/, '/') : fileURLToPath(new URL('../screenshots/pages/', import.meta.url));
 mkdirSync(SHOTS, { recursive: true });
+/** Save files downloaded from the page, and the damaged copies made of them. */
+const TMP = mkdtempSync(join(tmpdir(), 'bts-pages-smoke-'));
 
 const log = (...a) => console.log('[pages]', ...a);
 const notes = [];
@@ -112,15 +130,17 @@ async function selectRegion(id) {
   await page.waitForSelector(tid('inspector'));
   return true;
 }
+/** The title screen. A page that has an autosave goes straight back into its match unless asked for the title. */
 async function openTitle() {
-  await page.goto(BASE);
+  await page.goto(BASE + '?title');
   await page.waitForSelector(tid('title-screen'), { timeout: 30000 });
 }
 
 // =====================================================================================
 async function partA() {
   log('A: a person plays, with no server');
-  await openTitle();
+  await page.goto(BASE);
+  await page.waitForSelector(tid('title-screen'), { timeout: 30000 });
   assert(await page.evaluate(() => window.__btsApi.mode === 'local' && window.__btsApi.features.local), 'the page runs its own referee');
   assert((await api('match')).exists === false, 'a fresh page has no match');
   await shot('01-title');
@@ -255,6 +275,618 @@ async function partB(obs) {
 }
 
 // =====================================================================================
+// Saves that last. Everything below runs against the page's own database, which may
+// already hold saves (the deployed site in a used profile): it counts only what it
+// made, by name and by match, and removes it again at the end.
+const made = { matches: new Set(), names: new Set() };
+const b64 = (bytes) => Buffer.from(bytes).toString('base64');
+/** A page-API call that takes a save file's bytes. */
+const withBytes = (p, fn, bytes) => p.evaluate(([f, data]) => window.__btsApi[f](Uint8Array.from(atob(data), (c) => c.charCodeAt(0))), [fn, b64(bytes)]);
+const refusedBytes = (p, fn, bytes) => p.evaluate(([f, data]) => window.__btsApi[f](Uint8Array.from(atob(data), (c) => c.charCodeAt(0)))
+  .then(() => null, (e) => ({ status: e.status, code: e.code, reason: e.reason, message: e.message })), [fn, b64(bytes)]);
+const vaultOf = (p) => p.evaluate(async () => { await window.__btsSaves.refresh(); return window.__btsSaves.state(); });
+const settleOf = (p) => p.evaluate(() => window.__btsSaves.settled());
+const vault = () => vaultOf(page);
+const settle = () => settleOf(page);
+const autosOf = (v) => v.entries.filter((e) => e.kind === 'auto');
+const mineOf = (v) => v.entries.filter((e) => made.matches.has(e.matchId));
+const sha256 = (text) => createHash('sha256').update(text).digest('hex');
+
+async function playRound() {
+  const year = await yearShown();
+  await closePanel();
+  await clearToasts();
+  await page.click(tid('end-round'));
+  await page.waitForFunction((y) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) > y, year, { timeout: 30000 });
+  await settle();
+  return year + 1;
+}
+async function openManager() {
+  if (await page.$(tid('saves-manager'))) return;
+  if (!(await page.$(tid('game-menu')))) await page.click(tid('menu-button'));
+  await page.waitForSelector(tid('game-menu'));
+  await page.click(tid('menu-saves'));
+  await page.waitForSelector(tid('saves-manager'));
+  await page.waitForTimeout(250);
+}
+async function closeManager() {
+  if (await page.$(tid('saves-manager'))) await page.click(tid('saves-close'));
+  await page.waitForSelector(tid('saves-manager'), { state: 'detached' });
+  if (await page.$(tid('game-menu'))) await page.keyboard.press('Escape');
+  await page.waitForSelector(tid('game-menu'), { state: 'detached' });
+}
+async function setBudget(bytes) {
+  await openManager();
+  await page.fill(tid('saves-budget'), (bytes / 1048576).toFixed(6));
+  await page.waitForFunction((b) => Math.abs(window.__btsSaves.state().settings.budgetBytes - b) <= 2, bytes);
+}
+
+async function partS(obs) {
+  log('S: saves that last — autosave, restoration, files, the budget');
+  made.matches.add(obs.match_id);
+  made.names.add('pagessmoke');
+
+  // --- autosave after each round, and the same match after a reload ---------------------
+  await settle();
+  let v = await vault();
+  assert(v.durable && v.problem === null, `saves are kept in IndexedDB (${v.problem} ${v.problemDetail})`);
+  assert(await page.evaluate(() => window.__btsApi.features.durableSaves === true), 'named saves are durable in the browser build');
+  let m = await api('match');
+  assert(autosOf(v).length >= 1 && autosOf(v).length <= v.settings.autosaves, `autosaves are being kept (${autosOf(v).length} of at most ${v.settings.autosaves})`);
+  assert(autosOf(v)[0].matchId === m.match_id && autosOf(v)[0].round === m.round, 'the newest autosave is this match at this round');
+  assert(v.settings.budgetBytes === 20 * 1048576 && v.settings.autosaves === 3, 'the defaults are a 20 MiB budget and three autosaves');
+  let beforeReload = await api('exportSession');
+  assert(autosOf(v)[0].sha256 === sha256(beforeReload), 'the newest autosave holds exactly the current state');
+
+  // part B left the match where the page API put it; a reload must bring back exactly that
+  await page.reload();
+  await page.waitForSelector(tid('map-canvas'), { timeout: 30000 });
+  let after = await api('match');
+  assert(after.match_id === m.match_id && after.round === m.round, `a reload returns to the same match and round (${after.match_id} round ${after.round})`);
+  assert((await api('exportSession')) === beforeReload, 'the restored state is byte-identical to the state before the reload');
+  assert((await yearShown()) === m.round, 'the interface is back in the game at that year');
+  v = await vault();
+  assert(v.restored && v.restored.round === m.round && v.restoreFailures.length === 0, 'the page knows which autosave it restored');
+  const told = await page.textContent('.toast');
+  assert(/restored/i.test(told ?? ''), `the player is told the match was restored ("${told}")`);
+  await shot('07-restored-after-reload');
+
+  // orders given within a round are saved too: at once when the tab is hidden, and after a pause otherwise
+  const domain = (await api('match')).steward_domains[0];
+  const slots = autosOf(v).length;
+  await api('delegate', 0, [domain]);
+  const withOrder = await api('exportSession');
+  assert(withOrder !== beforeReload && autosOf(await vault())[0].sha256 !== sha256(withOrder), 'an order within the round is not written the instant it is given');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction((want) => window.__btsSaves.state().entries.find((e) => e.kind === 'auto')?.sha256 === want, sha256(withOrder), { timeout: 1200 });
+  await page.evaluate(() => { delete document.visibilityState; });
+  v = await vault();
+  assert(autosOf(v).length === slots && autosOf(v)[0].round === m.round, 'hiding the tab saved the order, in the slot of the same round');
+  await api('delegate', 0, []);
+  await page.waitForFunction(async (want) => window.__btsSaves.state().entries.find((e) => e.kind === 'auto')?.sha256 === want, sha256(await api('exportSession')), { timeout: 4000 });
+  assert(autosOf(await vault()).length === slots, 'and a pause saved the next one, again without using another slot');
+  note('orders within a round: saved when the tab was hidden, and after a pause of a second and a half; the round keeps one autosave slot');
+
+  // play on from the restored match, and reload again in the middle of things
+  await playRound();
+  await playRound();
+  m = await api('match');
+  beforeReload = await api('exportSession');
+  v = await vault();
+  assert(autosOf(v)[0].round === m.round && autosOf(v)[0].sha256 === sha256(beforeReload), 'the autosave written after the round holds exactly the current state');
+  note(`autosave: round ${m.round} stored as ${autosOf(v)[0].bytes} bytes (session text ${beforeReload.length} bytes); export ${v.lastAutosave.exportMs.toFixed(1)} ms in the worker, IndexedDB write ${v.lastAutosave.storeMs.toFixed(1)} ms`);
+  await page.reload();
+  await page.waitForSelector(tid('map-canvas'), { timeout: 30000 });
+  after = await api('match');
+  assert(after.match_id === m.match_id && after.round === m.round && (await api('exportSession')) === beforeReload && (await yearShown()) === m.round, 'a second reload, after playing on, again returns the same round and state');
+
+  // a fresh visit lands on the title screen with Continue ready, saying which save and when
+  await page.goto(BASE + '?title');
+  await page.waitForSelector(tid('title-screen'), { timeout: 30000 });
+  assert(!(await page.isDisabled(tid('title-continue'))), 'Continue is offered after a reload');
+  const sub = (await page.textContent(tid('title-continue'))) ?? '';
+  assert(sub.includes(`Year ${m.round}`) && /autosaved/.test(sub), `Continue says which save it is ("${sub}")`);
+  await shot('08-title-continue');
+  await page.click(tid('title-continue'));
+  await page.waitForSelector(tid('map-canvas'));
+  assert((await yearShown()) === m.round && (await api('exportSession')) === beforeReload, 'Continue resumes that state');
+  note(`reload: match ${m.match_id} came back at round ${m.round}, byte-identical; title "Continue" reads "${sub.replace('Continue', '').trim()}"`);
+
+  // --- a manual save survives a reload and loads from the title screen ---------------------
+  await page.click(tid('menu-button'));
+  await page.waitForSelector(tid('game-menu'));
+  assert((await page.$(tid('save-local-note'))) === null, 'the menu no longer says saves are lost on reload');
+  await page.fill(tid('save-name'), 'smoke-manual');
+  made.names.add('smoke-manual');
+  await page.click('.menu form button[type="submit"]');
+  await page.waitForFunction(() => window.__btsSaves.state().entries.some((e) => e.id === 'm:smoke-manual'));
+  const savedText = await api('exportSession');
+  const savedRound = m.round;
+  await page.keyboard.press('Escape');
+  await playRound();
+  await page.goto(BASE + '?title');
+  await page.waitForSelector(tid('title-screen'), { timeout: 30000 });
+  await page.click(tid('title-load'));
+  await page.waitForSelector(tid('title-saves'));
+  await shot('09-title-load');
+  await page.click(tid('title-load-smoke-manual'));
+  await page.waitForSelector(tid('map-canvas'));
+  after = await api('match');
+  assert(after.round === savedRound && (await api('exportSession')) === savedText, 'the manual save made before the reload loads to exactly the saved state');
+  note(`manual save "smoke-manual" (round ${savedRound}) survived a reload and loaded from the title screen, byte-identical`);
+
+  // --- export to a file, play something else, import the file ------------------------------
+  await openManager();
+  await shot('10-saves-manager');
+  const usageText = await page.textContent(tid('saves-usage-text'));
+  v = await vault();
+  assert(Number(await page.getAttribute(tid('saves-usage'), 'data-used')) === v.entries.reduce((n, e) => n + e.cost, 0), 'the usage bar shows what is stored');
+  assert(/ of 20\.0 MiB used/.test(usageText ?? ''), `usage is shown against the budget ("${usageText}")`);
+  assert(['true', 'false', 'null'].includes(await page.getAttribute(tid('saves-persist'), 'data-persisted')), 'the manager says whether the browser will keep the data');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click(tid('saves-export-current'))]);
+  const filePath = join(TMP, download.suggestedFilename());
+  await download.saveAs(filePath);
+  const file = readFileSync(filePath);
+  const exportText = await api('exportSession');
+  const exported = readSaveFile(file); // checks magic, both CRCs, lengths and SHA-256 independently of the game
+  assert(/^before-the-stars-.*\.btsave$/.test(download.suggestedFilename()), `the file is named for the game (${download.suggestedFilename()})`);
+  assert(exported.version === 1 && exported.text === exportText, 'the file unpacks (in Node) to exactly the session export');
+  const h = exported.header;
+  assert(h.match_id === after.match_id && h.round === after.round && h.year === after.round && h.kind === 'manual', 'the header names the match, round and year');
+  assert(h.seats.length === 4 && h.seats[0].controller === 'human' && h.seats[0].name === obs.civ.name, 'the header lists the seats');
+  assert(after.versions.includes(h.versions.ruleset) && after.versions.includes(h.versions.content) && after.versions.includes(h.versions.protocol), 'the header carries the versions the engine reports');
+  assert(h.seed === 'pages-smoke' && Math.abs(h.created_ms - Date.now()) < 120000, 'the header carries the disclosed seed and the time of saving');
+  note(`export: ${download.suggestedFilename()}, ${file.length} bytes for ${exportText.length} bytes of session text (${(exportText.length / file.length).toFixed(1)}:1), header ${exported.headerLength} bytes`);
+  await closeManager();
+
+  // a different match, through the interface
+  await page.goto(BASE + '?title');
+  await page.waitForSelector(tid('title-screen'), { timeout: 30000 });
+  await page.click(tid('title-new'));
+  await page.waitForSelector(tid('setup-screen'));
+  await page.fill(tid('setup-seed'), 'pages-other');
+  await page.click(tid('setup-regions-24'));
+  await page.click(tid('setup-start'));
+  await page.waitForSelector(tid('map-canvas'), { timeout: 30000 });
+  await page.waitForTimeout(400);
+  await playRound();
+  const other = await api('match');
+  made.matches.add(other.match_id);
+  assert(other.match_id !== h.match_id && other.round === 2, 'a different match is now in progress');
+  const otherText = await api('exportSession');
+
+  // preview, cancel: nothing changes
+  await openManager();
+  await page.setInputFiles(tid('saves-import-input'), filePath);
+  await page.waitForSelector(`${tid('saves-preview')}[data-loadable="true"]`);
+  const previewText = (await page.textContent(tid('saves-preview'))) ?? '';
+  assert(previewText.includes(h.match_id) && previewText.includes(`Year ${h.year}`) && previewText.includes(obs.civ.name) && previewText.includes(h.versions.ruleset), 'the preview shows the match, year, seats and versions before anything is loaded');
+  assert(/Replace the current game/.test((await page.textContent(tid('saves-preview-confirm'))) ?? ''), 'the preview asks before replacing the game in progress');
+  await shot('11-import-preview');
+  await page.click(tid('saves-preview-cancel'));
+  assert((await api('exportSession')) === otherText, 'looking at a file and cancelling changes nothing');
+  // preview, confirm: the exported state is back
+  await page.setInputFiles(tid('saves-import-input'), filePath);
+  await page.waitForSelector(`${tid('saves-preview')}[data-loadable="true"]`);
+  await page.click(tid('saves-preview-confirm'));
+  await page.waitForSelector(tid('saves-manager'), { state: 'detached' });
+  await page.waitForFunction((y) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) === y, h.year);
+  assert((await api('exportSession')) === exportText, 'after the import the state is byte-identical to the export');
+  note(`import: from a different match (${other.match_id}, round 2), the file brought back ${h.match_id} at round ${h.round}, byte-identical to the export`);
+
+  // --- files that must be refused, each with a reason, none of them touching the match -----
+  const bad = [...damagedFiles(file), { name: 'unplayable-session', reason: 'UNPLAYABLE', bytes: unplayableFile(file) }];
+  const reasons = [];
+  for (const b of bad) {
+    const r = await refusedBytes(page, 'importSave', b.bytes);
+    assert(r && r.status === 400 && r.code === 'INVALID_SAVE' && r.reason === b.reason, `${b.name}: import is refused as ${b.reason} (${JSON.stringify(r)})`);
+    assert((await api('exportSession')) === exportText, `${b.name}: the match is unchanged after the refused import`);
+    const badPath = join(TMP, `${b.name}.btsave`);
+    writeFileSync(badPath, b.bytes);
+    await openManager();
+    await page.setInputFiles(tid('saves-import-input'), badPath);
+    await page.waitForSelector(`${tid('saves-preview')}[data-loadable="false"]:not([data-reason=""])`);
+    assert((await page.getAttribute(tid('saves-preview'), 'data-reason')) === b.reason, `${b.name}: the preview gives the reason ${b.reason}`);
+    const why = ((await page.textContent(tid('saves-preview-reason'))) ?? '').replace(/\s+/g, ' ').trim();
+    assert(why.length > 30 && (await page.isVisible(tid('saves-preview-reason'))), `${b.name}: the reason is shown to the player`);
+    assert((await page.$(tid('saves-preview-confirm'))) === null, `${b.name}: a file that cannot be loaded offers no way to load it`);
+    if (b.name === 'other-rules') {
+      assert(why.includes('bts-rules/0.0.1') && why.includes(h.versions.ruleset), `the version refusal names both versions ("${why}")`);
+      await shot('12-import-refused');
+    }
+    reasons.push(`${b.name} -> ${b.reason}`);
+    await page.click(tid('saves-preview-cancel'));
+    assert((await api('exportSession')) === exportText, `${b.name}: the match is unchanged after the preview`);
+  }
+  note(`refused files (${bad.length}), each with a visible reason and the match byte-identical afterwards: ${reasons.join('; ')}`);
+
+  // a file dropped on the window opens the same preview
+  await closeManager();
+  await page.evaluate((data) => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([Uint8Array.from(atob(data), (c) => c.charCodeAt(0))], 'dropped.btsave'));
+    window.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+  }, b64(file));
+  await page.waitForSelector(`${tid('saves-preview')}[data-loadable="true"]`);
+  assert(((await page.textContent(tid('saves-preview'))) ?? '').includes('dropped.btsave'), 'a dropped file is previewed');
+  await page.click(tid('saves-preview-cancel'));
+  await closeManager();
+  note('drag and drop: a file dropped on the window opened the import preview');
+
+  // --- rotation: three autosaves, the oldest making way ------------------------------------
+  await openManager();
+  if (await page.$(tid('saves-delete-autos'))) await page.click(tid('saves-delete-autos'));
+  await page.waitForFunction(() => window.__btsSaves.state().entries.every((e) => e.kind !== 'auto'));
+  await page.fill(tid('saves-name'), 'smoke-keep');
+  made.names.add('smoke-keep');
+  await page.click(tid('saves-save'));
+  await page.waitForFunction(() => window.__btsSaves.state().entries.some((e) => e.id === 'm:smoke-keep'));
+  const keep = (await vault()).entries.find((e) => e.id === 'm:smoke-keep');
+  const keepText = await api('exportSession');
+  assert(keep.sha256 === sha256(keepText) && keep.kind === 'manual', 'the manual save holds the current state');
+  await closeManager();
+  const keptIntact = async (when) => {
+    const e = (await vault()).entries.find((x) => x.id === 'm:smoke-keep');
+    assert(e && e.sha256 === keep.sha256 && e.bytes === keep.bytes, `the manual save is untouched ${when}`);
+  };
+  const played = [];
+  for (let i = 0; i < 5; i++) played.push(await playRound());
+  v = await vault();
+  assert(JSON.stringify(autosOf(v).map((e) => e.round)) === JSON.stringify(played.slice(-3).reverse()), `three autosaves rotate: rounds ${autosOf(v).map((e) => e.round)} are kept after playing ${played}`);
+  await keptIntact('by rotation');
+  const A = Math.max(...autosOf(v).map((e) => e.cost));
+  note(`rotation: after rounds ${played.join(', ')} the autosaves are rounds ${autosOf(v).map((e) => e.round).join(', ')} (${autosOf(v).map((e) => e.cost).join(', ')} bytes); manual save ${keep.cost} bytes`);
+
+  // --- a tiny budget: oldest autosaves are evicted first, the manual save stays ---------------
+  const others = v.entries.filter((e) => e.kind === 'manual').reduce((n, e) => n + e.cost, 0);
+  await setBudget(Math.round(others + 2.9 * A));
+  await shot('13-tiny-budget');
+  await closeManager();
+  for (let i = 0; i < 3; i++) {
+    const round = await playRound();
+    v = await vault();
+    assert(JSON.stringify(autosOf(v).map((e) => e.round)) === JSON.stringify([round, round - 1]), `with room for two autosaves the oldest is evicted first (kept rounds ${autosOf(v).map((e) => e.round)} at round ${round})`);
+    assert(v.usage.used <= v.settings.budgetBytes, `usage ${v.usage.used} stays within the budget ${v.settings.budgetBytes}`);
+    await keptIntact('by eviction');
+  }
+  note(`budget ${v.settings.budgetBytes} bytes (your saves ${others} + room for two autosaves): three more rounds, always the newest two autosaves kept, usage ${v.usage.used}; the manual save never touched`);
+
+  // --- a manual save that does not fit is refused; nothing is deleted for it -------------------
+  await setBudget(Math.round(others + 0.5 * A));
+  await closeManager();
+  const idsBefore = (await vault()).entries.map((e) => e.id).sort();
+  await page.click(tid('menu-button'));
+  await page.waitForSelector(tid('game-menu'));
+  await page.fill(tid('save-name'), 'smoke-nofit');
+  await page.click('.menu form button[type="submit"]');
+  await page.waitForSelector(tid('saves-notice'));
+  const notice = ((await page.textContent(tid('saves-notice'))) ?? '').replace(/\s+/g, ' ').trim();
+  assert(/Nothing was deleted/.test(notice) && /budget/.test(notice), `the refusal says why and that nothing was deleted ("${notice}")`);
+  assert(await page.isVisible(tid('saves-manager')), 'the storage manager opens so the player can make room');
+  await shot('14-manual-refused');
+  const r = await refused('save', 'smoke-nofit');
+  assert(r && r.status === 507 && r.code === 'SAVE_NOT_STORED', `the page API refuses it too (${JSON.stringify(r)})`);
+  assert(JSON.stringify((await vault()).entries.map((e) => e.id).sort()) === JSON.stringify(idsBefore), 'no save, manual or automatic, was removed for the save that did not fit');
+  await keptIntact('by a refused save');
+  await closeManager();
+  note(`manual save that does not fit: refused ("${notice.slice(0, 110)}…"), the storage manager opened, every existing save still there`);
+
+  // --- an autosave that cannot fit is skipped, with a standing warning ----------------------------
+  await playRound();
+  await page.waitForSelector(tid('saves-warning-autosave'));
+  assert((await page.getAttribute(tid('saves-warning-autosave'), 'data-reason')) === 'full', 'the warning says the budget is full');
+  v = await vault();
+  assert(JSON.stringify(v.entries.map((e) => e.id).sort()) === JSON.stringify(idsBefore) && v.autosaveOff?.reason === 'full', 'the autosave was skipped and the older autosaves were kept');
+  await shot('15-autosave-off');
+  await playRound();
+  assert(await page.isVisible(tid('saves-warning-autosave')), 'the warning stays while autosave is off');
+  await page.click(tid('saves-warning-dismiss'));
+  await page.waitForSelector(tid('saves-warning-autosave'), { state: 'detached' });
+  await playRound();
+  assert((await page.$(tid('saves-warning-autosave'))) === null && (await vault()).autosaveOff?.reason === 'full', 'a dismissed warning stays dismissed while the cause is the same');
+  await openManager();
+  assert(await page.isVisible(tid('saves-autosave-off')), 'the storage manager still says autosave is off');
+  await page.fill(tid('saves-budget'), '20');
+  await closeManager();
+  const back = await playRound();
+  v = await vault();
+  assert(v.autosaveOff === null && autosOf(v)[0].round === back, 'with room again the next round is autosaved and the warning clears');
+  await keptIntact('while autosave was off');
+  note('autosave that cannot fit: skipped with a standing, dismissible warning; older autosaves kept; autosave resumed once the budget was raised');
+
+  // --- the browser itself out of room (simulated QuotaExceededError) -------------------------------
+  await page.evaluate(() => window.__btsSaves.refuseWrites(1));
+  const tight = await playRound();
+  v = await vault();
+  assert(autosOf(v)[0].round === tight && v.autosaveOff === null, 'after the browser refuses a write, the autosave is written by giving up older autosaves');
+  await keptIntact('when the browser ran out of room');
+  await page.evaluate(() => window.__btsSaves.refuseWrites(9));
+  const q = await page.evaluate(() => window.__btsApi.save('smoke-quota').then(() => null, (e) => ({ code: e.code, why: e.why })));
+  await page.evaluate(() => window.__btsSaves.refuseWrites(0));
+  v = await vault();
+  assert(q && q.code === 'SAVE_NOT_STORED' && q.why === 'quota' && !v.entries.some((e) => e.id === 'm:smoke-quota'), `a manual save the browser has no room for is refused (${JSON.stringify(q)})`);
+  await keptIntact('by a quota refusal');
+  note(`QuotaExceededError (simulated): the autosave got through by evicting older autosaves (${autosOf(v).length} left); a manual save was refused; the existing manual save untouched`);
+
+  // --- rename, load, delete with confirmation, cleanup controls -------------------------------------
+  await openManager();
+  await page.click(tid('saves-rename-m:smoke-keep'));
+  await page.fill(tid('saves-rename-input-m:smoke-keep'), 'smoke-manual');
+  await page.click(tid('saves-rename-confirm-m:smoke-keep'));
+  await page.waitForSelector(`${tid('saves-row-m:smoke-keep')} .sv-row-error`);
+  assert((await vault()).entries.some((e) => e.id === 'm:smoke-keep'), 'renaming onto a name that is taken is refused and replaces nothing');
+  await page.fill(tid('saves-rename-input-m:smoke-keep'), 'smoke-kept');
+  made.names.add('smoke-kept');
+  await page.click(tid('saves-rename-confirm-m:smoke-keep'));
+  await page.waitForSelector(tid('saves-row-m:smoke-kept'));
+  v = await vault();
+  assert(!v.entries.some((e) => e.id === 'm:smoke-keep') && v.entries.find((e) => e.id === 'm:smoke-kept').sha256 === keep.sha256, 'the save has its new name and the same contents');
+  const renamed = Buffer.from(await page.evaluate(async () => btoa(String.fromCharCode(...(await window.__btsApi.saveFile('m:smoke-kept'))))), 'base64');
+  assert(readSaveFile(renamed).header.name === 'smoke-kept' && readSaveFile(renamed).text === keepText, 'the file itself carries the new name');
+  await page.click(tid('saves-load-m:smoke-kept'));
+  await page.waitForSelector(tid('saves-manager'), { state: 'detached' });
+  assert((await api('exportSession')) === keepText, 'loading it from the manager restores the saved state');
+  await openManager();
+  await page.click(tid('saves-delete-m:smoke-kept'));
+  assert((await vault()).entries.some((e) => e.id === 'm:smoke-kept'), 'deleting a manual save asks first');
+  await page.click(tid('saves-delete-confirm-m:smoke-kept'));
+  await page.waitForSelector(tid('saves-row-m:smoke-kept'), { state: 'detached' });
+  const usedBefore = (await vault()).usage.used;
+  await page.click(tid('saves-delete-autos'));
+  await page.waitForFunction(() => window.__btsSaves.state().entries.every((e) => e.kind !== 'auto'));
+  v = await vault();
+  assert(v.usage.used < usedBefore && v.entries.some((e) => e.id === 'm:smoke-manual'), '"Delete all autosaves" frees their space and leaves manual saves');
+  assert(Number(await page.getAttribute(tid('saves-usage'), 'data-used')) === v.usage.used, 'the usage bar follows');
+  note(`cleanup: rename (and a refused rename onto a taken name), load, delete with confirmation, "delete all autosaves" (usage ${usedBefore} -> ${v.usage.used} bytes)`);
+
+  // --- settings: the autosave count, and both settings across a reload ---------------------------------
+  await page.fill(tid('saves-autocount'), '1');
+  await page.fill(tid('saves-budget'), '7');
+  await closeManager();
+  await playRound();
+  await playRound();
+  v = await vault();
+  assert(autosOf(v).length === 1 && v.settings.autosaves === 1, 'with the count set to one, one autosave is kept');
+  await page.goto(BASE); // (the address still carried ?title; this is the plain page again)
+  await page.waitForSelector(tid('map-canvas'), { timeout: 30000 });
+  v = await vault();
+  assert(v.settings.budgetBytes === 7 * 1048576 && v.settings.autosaves === 1, 'the budget and the autosave count are remembered across a reload');
+  await openManager();
+  await page.fill(tid('saves-autocount'), '0');
+  await closeManager();
+  await playRound();
+  assert(autosOf(await vault()).length === 1 && autosOf(await vault())[0].round < (await api('match')).round, 'a count of zero turns autosave off');
+  await openManager();
+  await page.click(tid('saves-settings-reset'));
+  v = await vault();
+  assert(v.settings.budgetBytes === 20 * 1048576 && v.settings.autosaves === 3, 'the defaults come back');
+  await closeManager();
+  note('settings: autosave count 1 kept one; budget and count survived a reload; count 0 stopped autosave; defaults restored');
+}
+
+/** Remove what this run stored in the page's database, and put the settings back. */
+async function cleanUp() {
+  const left = await page.evaluate(async ([names, matches]) => {
+    const api = window.__btsApi;
+    window.__btsSaves.settings({ autosaves: 0 });
+    await window.__btsSaves.settled();
+    for (const e of (await api.saveList()).entries) {
+      if ((e.kind === 'manual' && names.includes(e.name)) || (e.header && matches.includes(e.header.match_id))) await api.deleteSave(e.id);
+    }
+    window.__btsSaves.resetSettings();
+    return (await api.saveList()).entries.filter((e) => e.header && matches.includes(e.header.match_id)).length;
+  }, [[...made.names], [...made.matches]]);
+  assert(left === 0, 'the saves this run made were removed');
+  note(`cleanup: removed the saves of ${made.matches.size} matches and ${made.names.size} names made by this run; settings back to the defaults`);
+}
+
+// =====================================================================================
+async function partT(browser) {
+  log('T: two tabs, blocked storage, a newer database, a damaged autosave');
+  const fresh = async (init) => {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    if (init) await ctx.addInitScript(init);
+    return ctx;
+  };
+  const open = async (ctx, query = '') => {
+    const p = await ctx.newPage();
+    watch(p);
+    await p.goto(BASE + query);
+    await p.waitForSelector(`${tid('title-screen')}, ${tid('map-canvas')}`, { timeout: 30000 });
+    return p;
+  };
+  const start = (p, seed, rounds) => p.evaluate(async ([s, n]) => {
+    const api = window.__btsApi;
+    const made = await api.newMatch({ seed: s, regions: 24, controllers: ['human', 'easy', 'easy', 'easy'] });
+    for (let i = 0; i < n; i++) {
+      await api.ready(0, true);
+      await window.__btsSaves.settled();
+    }
+    return made.match_id;
+  }, [seed, rounds]);
+  const round = (p) => p.evaluate(async () => { const s = await window.__btsApi.ready(0, true); await window.__btsSaves.settled(); return s.round; });
+
+  // --- two tabs on the site -----------------------------------------------------------
+  let ctx = await fresh();
+  const a = await open(ctx);
+  const b = await open(ctx);
+  const matchA = await start(a, 'tab-a', 1);
+  const matchB = await start(b, 'tab-b', 1);
+  await a.waitForFunction(() => window.__btsSaves.state().otherTabs === 1);
+  await b.waitForFunction(() => window.__btsSaves.state().otherTabs === 1);
+  await a.evaluate(() => window.__btsSaves.open());
+  await a.waitForSelector(tid('saves-tabs-warning'));
+  await a.screenshot({ path: `${SHOTS}22-two-tabs.png` });
+  await a.evaluate(() => window.__btsSaves.close());
+  // both write at once, several times: nothing is lost, nothing is doubled, nothing is half-written
+  for (let i = 0; i < 4; i++) {
+    await Promise.all([
+      a.evaluate((n) => Promise.all([window.__btsApi.save(`tab-a-${n}`), window.__btsApi.ready(0, true)]), i),
+      b.evaluate((n) => Promise.all([window.__btsApi.save(`tab-b-${n}`), window.__btsApi.ready(0, true)]), i),
+    ]);
+  }
+  await settleOf(a);
+  await settleOf(b);
+  const [va, vb] = [await vaultOf(a), await vaultOf(b)];
+  const ids = (v) => v.entries.map((e) => `${e.id}:${e.sha256.slice(0, 8)}`).sort();
+  assert(JSON.stringify(ids(va)) === JSON.stringify(ids(vb)) && va.usage.used === vb.usage.used, 'both tabs see the same saves and the same usage');
+  assert(va.entries.filter((e) => e.kind === 'manual').length === 8, `all eight manual saves written by the two tabs are there (${va.entries.filter((e) => e.kind === 'manual').length})`);
+  assert(autosOf(va).length <= 3 && autosOf(va).length >= 1, `the autosaves stayed within the three slots across both tabs (${autosOf(va).length})`);
+  const stored = await a.evaluate(async () => {
+    let bad = 0;
+    for (const e of window.__btsSaves.state().entries) {
+      const d = await window.__btsApi.describeSave(await window.__btsApi.saveFile(e.id));
+      if (!d.loadable || d.header.sha256 !== e.sha256) bad++;
+    }
+    return bad;
+  });
+  assert(stored === 0, 'every save written while both tabs were busy is intact');
+  // each tab comes back to its own match when its autosave is still there
+  await round(a);
+  await round(b);
+  await a.reload();
+  await a.waitForSelector(tid('map-canvas'), { timeout: 30000 });
+  await b.reload();
+  await b.waitForSelector(tid('map-canvas'), { timeout: 30000 });
+  assert((await a.evaluate(() => window.__btsApi.match())).match_id === matchA && (await b.evaluate(() => window.__btsApi.match())).match_id === matchB, 'after a reload each tab resumes the match it was playing');
+  await b.close();
+  await a.waitForFunction(async () => { await window.__btsSaves.refresh(); return window.__btsSaves.state().otherTabs === 0; }, null, { timeout: 10000 });
+  note(`two tabs: each warned about the other; ${va.entries.length} saves written concurrently, identical in both tabs and all intact; ${autosOf(va).length} autosaves; each tab resumed its own match after a reload; the warning cleared when the other tab closed`);
+  await ctx.close();
+
+  // --- storage blocked (a private window that refuses IndexedDB) ---------------------------
+  ctx = await fresh(() => {
+    Object.defineProperty(window, 'indexedDB', { get() { throw new DOMException('The operation is insecure.', 'SecurityError'); } });
+  });
+  let p = await open(ctx);
+  await start(p, 'blocked', 2);
+  let v = await vaultOf(p);
+  assert(v.durable === false && v.problem === 'unavailable', `blocked storage is noticed (${v.problem})`);
+  assert(await p.evaluate(() => window.__btsApi.features.durableSaves === false), 'the page stops promising durable saves');
+  assert((await p.evaluate(() => window.__btsApi.save('in-memory'))).saved === 'in-memory' && (await p.evaluate(() => window.__btsApi.load('in-memory'))).round === 3, 'saving and loading still work for the life of the tab');
+  await p.waitForSelector(`${tid('saves-warning-autosave')}[data-reason="unavailable"]`);
+  await p.evaluate(() => window.__btsSaves.open());
+  await p.waitForSelector(`${tid('saves-problem')}[data-problem="unavailable"]`);
+  await p.screenshot({ path: `${SHOTS}23-storage-blocked.png` });
+  await p.reload();
+  await p.waitForSelector(tid('title-screen'), { timeout: 30000 });
+  assert((await p.evaluate(() => window.__btsApi.match())).exists === false, 'with storage blocked a reload starts clean, without an error');
+  note('blocked storage: noticed and explained (warning, storage manager, menu); saves work until the tab closes; a reload starts clean');
+  await ctx.close();
+
+  // --- no CompressionStream in the page: compression is the referee's own -----------------
+  ctx = await fresh(() => {
+    delete window.CompressionStream;
+    delete window.DecompressionStream;
+  });
+  p = await open(ctx);
+  assert(await p.evaluate(() => typeof window.CompressionStream === 'undefined'), 'CompressionStream is absent in this page');
+  await start(p, 'no-streams', 2);
+  v = await vaultOf(p);
+  const whole = await p.evaluate(async () => (await window.__btsApi.describeSave(await window.__btsApi.exportSave())).loadable);
+  assert(autosOf(v).length >= 1 && autosOf(v)[0].bytes < autosOf(v)[0].header.length / 4 && whole, 'saves are written, compressed, and read back without CompressionStream');
+  note(`no CompressionStream: autosave still ${autosOf(v)[0].bytes} bytes for ${autosOf(v)[0].header.length} of text (the referee compresses, in Rust)`);
+
+  // a burst of rounds: one write at a time, the rest coalesced into the state at the end
+  const burst = await p.evaluate(async () => {
+    const before = window.__btsSaves.stats();
+    await Promise.all(Array.from({ length: 12 }, () => window.__btsApi.ready(0, true)));
+    await window.__btsSaves.settled();
+    const after = window.__btsSaves.stats();
+    const newest = window.__btsSaves.state().entries.find((e) => e.kind === 'auto');
+    return { written: after.written - before.written, most: after.maxInFlight, round: (await window.__btsApi.match()).round, saved: newest.round };
+  });
+  assert(burst.most === 1, `never two autosave writes at once (${burst.most})`);
+  assert(burst.written < 12 && burst.saved === burst.round, `twelve rounds in a burst were coalesced into ${burst.written} write(s), ending on the last round (${burst.saved} of ${burst.round})`);
+  note(`burst: twelve rounds resolved back to back made ${burst.written} autosave write(s), never two at once, and the last round (${burst.round}) is the one saved`);
+  await ctx.close();
+
+  // --- the database is upgraded by a newer version of the game in another tab ----------------
+  ctx = await fresh();
+  p = await open(ctx);
+  await start(p, 'upgrade', 2);
+  await p.evaluate(() => window.__btsApi.save('before-upgrade'));
+  const count = (await vaultOf(p)).entries.length;
+  await p.evaluate(() => new Promise((resolve, reject) => {
+    const req = indexedDB.open(window.__btsSaves.dbName, 99);
+    req.onupgradeneeded = () => undefined; // a newer layout would be made here
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  }));
+  await p.waitForFunction(() => window.__btsSaves.state().problem === 'stale');
+  await p.evaluate(() => window.__btsSaves.open());
+  await p.waitForSelector(`${tid('saves-problem')}[data-problem="stale"]`);
+  await p.reload();
+  await p.waitForSelector(tid('title-screen'), { timeout: 30000 });
+  v = await vaultOf(p);
+  assert(v.problem === 'newer' && v.durable === false, `a database from a newer version is not touched (${v.problem})`);
+  const kept = await p.evaluate(() => new Promise((resolve, reject) => {
+    const req = indexedDB.open(window.__btsSaves.dbName);
+    req.onsuccess = () => {
+      const all = req.result.transaction('meta', 'readonly').objectStore('meta').count();
+      all.onsuccess = () => { req.result.close(); resolve(all.result); };
+    };
+    req.onerror = () => reject(req.error);
+  }));
+  assert(kept === count, `the ${count} stored saves are still in the upgraded database (${kept})`);
+  await p.evaluate(() => window.__btsSaves.open());
+  await p.waitForSelector(`${tid('saves-problem')}[data-problem="newer"]`);
+  note(`database upgraded elsewhere: this tab stopped using it and asked for a reload; on reload the newer database (still holding its ${kept} saves) was left alone and the page said so`);
+  await ctx.close();
+
+  // --- the newest autosave is damaged: fall back to the one before, and say so ------------------
+  ctx = await fresh();
+  p = await open(ctx);
+  const damagedMatch = await start(p, 'damaged', 3);
+  v = await vaultOf(p);
+  assert(JSON.stringify(autosOf(v).map((e) => e.round)) === '[4,3,2]', `three autosaves to work with (${autosOf(v).map((e) => e.round)})`);
+  const damage = (ids) => p.evaluate((list) => new Promise((resolve, reject) => {
+    const req = indexedDB.open(window.__btsSaves.dbName);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const tx = req.result.transaction('data', 'readwrite');
+      const store = tx.objectStore('data');
+      for (const id of list) {
+        const get = store.get(id);
+        get.onsuccess = () => {
+          const bytes = new Uint8Array(get.result);
+          bytes[bytes.length - 200] ^= 0x55;
+          store.put(bytes.buffer, id);
+        };
+      }
+      tx.oncomplete = () => { req.result.close(); resolve(); };
+      tx.onerror = () => reject(tx.error);
+    };
+  }), ids);
+  await damage([autosOf(v)[0].id]);
+  await p.reload();
+  await p.waitForSelector(tid('map-canvas'), { timeout: 30000 });
+  let m = await p.evaluate(() => window.__btsApi.match());
+  assert(m.match_id === damagedMatch && m.round === 3, `with the newest autosave damaged, the one before it is restored (round ${m.round})`);
+  const said = ((await p.textContent('.toast-bad')) ?? '').replace(/\s+/g, ' ');
+  assert(/earlier autosave was restored/i.test(said) && /kept/.test(said), `the player is told ("${said}")`);
+  await p.screenshot({ path: `${SHOTS}24-restore-fallback.png` });
+  v = await vaultOf(p);
+  assert(v.restoreFailures.length === 1 && v.restoreFailures[0].reason === 'CORRUPT' && autosOf(v).length === 3, 'the damaged autosave is reported and kept, not deleted');
+  // every autosave damaged: no match, a note on the title screen, nothing wiped, no reload loop
+  await p.evaluate(() => window.__btsSaves.settings({ autosaves: 0 }));
+  await damage(autosOf(v).slice(1).map((e) => e.id));
+  let loads = 0;
+  p.on('load', () => { loads++; });
+  await p.reload();
+  await p.waitForSelector(tid('title-restore-failed'), { timeout: 30000 });
+  await p.waitForTimeout(1500);
+  assert(loads === 1 && (await p.isDisabled(tid('title-continue'))), 'with nothing loadable the page rests on the title screen: one load, no loop');
+  v = await vaultOf(p);
+  assert(autosOf(v).length === 3 && (await p.evaluate(() => window.__btsApi.match())).exists === false, 'the damaged autosaves are all still there');
+  note(`damaged autosave: the previous one (round 3) was restored and the player told ("${said.trim().slice(0, 80)}…"); with all three damaged the page rested on the title screen with a note, nothing deleted`);
+  await ctx.close();
+}
+
+// =====================================================================================
 async function partC() {
   log('C: an AI-only match is watched');
   await openTitle();
@@ -270,6 +902,7 @@ async function partC() {
   await page.waitForSelector(tid('observer-console'), { timeout: 30000 });
   await page.waitForSelector(tid('observer-playback'));
   let m = await api('match');
+  made.matches.add(m.match_id);
   assert(m.observer_allowed && m.seats.every((s) => s.controller.startsWith('native')), 'four built-in AIs, nobody playing');
   assert(m.round === 1 && (await yearShown()) === 1, 'nothing moves until asked');
   const world = await api('spectator');
@@ -385,8 +1018,22 @@ async function partD() {
     const t2 = performance.now();
     const save = (await api.exportSession()).length;
     const saveMs = performance.now() - t2;
+    // the save file late in a match: how large, how long to make, to check and to load
+    await window.__btsSaves.settled();
+    const t3 = performance.now();
+    const file = await api.exportSave({ kind: 'auto' });
+    const fileMs = performance.now() - t3;
+    const t4 = performance.now();
+    const described = await api.describeSave(file);
+    const describeMs = performance.now() - t4;
+    const t5 = performance.now();
+    await api.importSave(file);
+    const importMs = performance.now() - t5;
     const m = await api.match();
+    const vault = window.__btsSaves.state();
     return {
+      file: file.length, fileMs, describeMs, importMs, loadable: described.loadable, matchId: m.match_id,
+      autosave: { ...window.__btsSaves.stats(), last: vault.lastAutosave, sizes: vault.entries.filter((e) => e.kind === 'auto').map((e) => `round ${e.round}: ${e.bytes}`) },
       created, rounds: perRound.length, round: m.round, finished: m.finished,
       early: avg(perRound.slice(0, 20)), middle: avg(perRound.slice(110, 130)), late: avg(perRound.slice(-20)),
       slowest: Math.max(...perRound), total: perRound.reduce((x, y) => x + y, 0), worstGap,
@@ -402,6 +1049,13 @@ async function partD() {
   note(`bench: late spectator view ${(result.spectator / 1024).toFixed(0)} KB in ${result.spectatorMs.toFixed(0)} ms; session export ${(result.save / 1024).toFixed(0)} KB in ${result.saveMs.toFixed(0)} ms`);
   note(`bench: engine memory ${memory ? (memory / 1048576).toFixed(1) + ' MB' : 'n/a'}; page JS heap ${result.heap ? (result.heap / 1048576).toFixed(1) + ' MB' : 'n/a'}`);
   assert(result.worstGap < 1000, 'the interface thread stayed responsive while the worker ran a whole match');
+  made.matches.add(result.matchId);
+  assert(result.loadable && result.file * 4 < result.save, `the late-game save file is compressed (${result.file} of ${result.save} bytes)`);
+  const auto = result.autosave;
+  assert(auto.written >= 3 && auto.failed === 0 && auto.skipped === 0, `autosaves were written throughout playback (${JSON.stringify(auto)})`);
+  assert(auto.written < result.rounds / 2, `fast playback did not autosave every round: ${auto.written} writes for ${result.rounds} rounds`);
+  note(`bench: late-game save file ${result.file} bytes (${(result.file / 1024).toFixed(0)} KiB) for ${(result.save / 1024).toFixed(0)} KiB of session text, ${(result.save / result.file).toFixed(1)}:1; made in ${result.fileMs.toFixed(0)} ms, described (verified and rehearsed) in ${result.describeMs.toFixed(0)} ms, imported in ${result.importMs.toFixed(0)} ms`);
+  note(`bench: autosave during playback: ${auto.written} written for ${result.rounds} rounds (${auto.coalesced} requests coalesced, ${auto.unchanged} unchanged); slowest export in the worker ${auto.maxExportMs.toFixed(0)} ms, slowest IndexedDB write ${auto.maxStoreMs.toFixed(0)} ms; kept at the end: ${auto.sizes.join(', ')} bytes`);
 }
 
 // =====================================================================================
@@ -442,6 +1096,7 @@ async function partE(browser) {
   assert(probe.refusal && probe.refusal.status === 400 && probe.refusal.code === 'INVALID_SAVE', `an unplayable save is refused (${JSON.stringify(probe.refusal)})`);
   assert(probe.round === 3, 'the match in progress survived the unplayable save and played on');
   note(`unplayable save -> refused: "${probe.refusal.message.replace(/\s+/g, ' ').slice(0, 130)}"; the match in progress played on`);
+  const lost = await p.evaluate(async () => { await window.__btsSaves.settled(); return window.__btsApi.exportSession(); });
 
   // 3. the engine itself fails (a deliberate panic): the page says so, calls are refused
   //    rather than left hanging, and "Try again" starts a fresh engine
@@ -453,9 +1108,11 @@ async function partE(browser) {
   const again = await p.evaluate(() => window.__btsApi.match().then(() => 'answered', (e) => e.code));
   assert(again === 'ENGINE_FAILURE', 'a failed engine refuses calls instead of hanging');
   await p.click('.splash-card button');
-  await p.waitForSelector(tid('title-screen'), { timeout: 30000 });
-  assert((await p.evaluate(() => window.__btsApi.match())).exists === false, 'after "Try again" a fresh engine answers');
-  note(`engine panic -> the page shows "${shown.slice(0, 150)}"; calls are refused; "Try again" started a fresh engine`);
+  // the fresh engine starts empty, and the page gives it the autosave: the match is not lost
+  await p.waitForSelector(tid('map-canvas'), { timeout: 30000 });
+  const back = await p.evaluate(async () => ({ m: await window.__btsApi.match(), text: await window.__btsApi.exportSession() }));
+  assert(back.m.exists && back.m.round === 3 && back.text === lost, 'after "Try again" a fresh engine holds the autosaved match, byte-identical');
+  note(`engine panic -> the page shows "${shown.slice(0, 150)}"; calls are refused; "Try again" started a fresh engine and restored the autosave (round ${back.m.round}, byte-identical)`);
   await ctx.close();
   expectTrouble = false;
 }
@@ -471,10 +1128,17 @@ try {
   log('site:', BASE);
   const obs = await partA();
   await partB(obs);
-  await partC();
-  await partD();
+  await partS(obs);
+  if (process.env.PAGES_ONLY !== 'S') {
+    await partC();
+    await partD();
+  }
+  await cleanUp();
   await context.close();
-  await partE(browser);
+  if (process.env.PAGES_ONLY !== 'S') {
+    await partE(browser);
+    await partT(browser);
+  }
 
   // the static host answers unknown paths with the site's own not-found page
   const missing = await fetch(BASE + 'no-such-page/at-all').catch(() => null);
@@ -492,6 +1156,7 @@ try {
   if (page && !page.isClosed()) await page.screenshot({ path: `${SHOTS}failure.png` }).catch(() => {});
 } finally {
   await browser.close();
+  rmSync(TMP, { recursive: true, force: true });
 }
 console.log('\n[pages] summary');
 for (const n of notes) console.log('  - ' + n);

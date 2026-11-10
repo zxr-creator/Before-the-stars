@@ -1,0 +1,95 @@
+/* Saves and storage: one dialog over the title screen or the game, and the standing autosave warning. */
+.sv-scrim { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; background: rgba(10, 13, 22, 0.66); backdrop-filter: blur(2px); }
+.sv-dialog { width: min(820px, 94vw); max-height: 90vh; display: flex; flex-direction: column; color: var(--ink); background: var(--grain), linear-gradient(180deg, #fbf5e4, var(--paper-3)); border: 1px solid var(--brass-deep); border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 1px var(--brass-hi) inset, 0 24px 70px rgba(0, 0, 0, 0.6); }
+.sv-dialog.is-dragging { outline: 3px dashed var(--brass); outline-offset: -8px; }
+.sv-head { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(201, 162, 77, 0.2), transparent); }
+.sv-head h2 { flex: 1; font-size: 18px; }
+.sv-crest { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: var(--brass-deep); background: var(--gold-bg); border: 1px solid var(--brass-lo); }
+.sv-x { border: 0; background: none; cursor: pointer; color: var(--ink-2); padding: 4px; border-radius: 4px; display: grid; place-items: center; }
+.sv-x:hover { background: rgba(43, 38, 32, 0.1); }
+.sv-body { padding: 12px 16px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.sv-section { display: flex; flex-direction: column; gap: 7px; }
+.sv-section h3 { display: flex; align-items: center; gap: 8px; font-size: 14.5px; padding-bottom: 4px; border-bottom: 1px solid var(--line-2); }
+.sv-section h3 small { font: 600 11px var(--sans); color: var(--ink-3); background: var(--paper-2); border-radius: 9px; padding: 1px 7px; }
+.sv-section h3 .sv-btn { margin-left: auto; }
+
+.sv-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 11px; border-radius: 6px; border: 1px solid var(--line); background: linear-gradient(180deg, #fffdf6, #f3ead3); color: var(--ink); font: 600 12px var(--sans); cursor: pointer; white-space: nowrap; }
+.sv-btn:hover:not(:disabled) { border-color: var(--brass-lo); background: #fff; }
+.sv-btn:disabled { cursor: not-allowed; color: var(--ink-3); border-style: dashed; background: transparent; }
+.sv-btn.is-primary { background: var(--accent); border-color: var(--accent-ink); color: #fff8ec; }
+.sv-btn.is-primary:hover:not(:disabled) { background: #ad4631; }
+.sv-btn.is-primary:disabled { background: transparent; color: var(--ink-3); }
+.sv-btn.is-danger { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+.sv-btn.is-danger:hover:not(:disabled) { background: #f6c9ba; }
+.sv-btn.is-quiet { background: transparent; border-color: transparent; color: var(--ink-2); font-weight: 500; }
+.sv-btn.is-quiet:hover:not(:disabled) { background: rgba(43, 38, 32, 0.08); border-color: transparent; }
+.sv-input { height: 28px; padding: 2px 8px; border-radius: 5px; border: 1px solid var(--line); background: #fffdf7; color: var(--ink); font: 13px var(--sans); min-width: 0; }
+.sv-input.is-num { width: 86px; }
+.sv-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sv-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sv-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.sv-usage { display: flex; flex-direction: column; gap: 5px; }
+.sv-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--paper-2); border: 1px solid var(--line); }
+.sv-bar.is-over { border-color: var(--bad); }
+.sv-bar-manual { background: var(--accent-2); }
+.sv-bar-auto { background: var(--gold); }
+.sv-usage-text { margin: 0; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 12.5px; }
+.sv-usage-text span { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); }
+.sv-key { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.sv-key.is-manual { background: var(--accent-2); }
+.sv-key.is-auto { background: var(--gold); }
+.sv-fine { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.sv-empty { margin: 0; color: var(--ink-3); font-size: 12.5px; font-style: italic; }
+.sv-note { margin: 0; display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); border-left-width: 4px; font-size: 12.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.sv-note > .icon { flex: none; margin-top: 2px; }
+.sv-note small { display: block; color: var(--ink-2); font-size: 11.5px; }
+.sv-note .sv-btn { margin-left: auto; flex: none; }
+.sv-note.is-ok { background: var(--ok-bg); border-color: var(--ok); }
+.sv-note.is-warn { background: var(--warn-bg); border-color: var(--warn); }
+.sv-note.is-bad { background: var(--bad-bg); border-color: var(--bad); }
+
+.sv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sv-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 2px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.sv-row-main { display: flex; gap: 9px; align-items: flex-start; min-width: 0; flex: 1 1 280px; }
+.sv-row-icon { flex: none; margin-top: 2px; color: var(--brass-lo); }
+.sv-row-text { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.sv-row-name { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sv-row-what { color: var(--ink-2); font-size: 12px; overflow-wrap: anywhere; }
+.sv-row-meta { color: var(--ink-3); font-size: 11.5px; }
+.sv-row-error { color: var(--bad); font-size: 12px; }
+.sv-row-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.sv-ask { font-size: 12px; color: var(--bad); }
+
+.sv-settings { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.sv-settings label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-2); }
+
+.sv-preview { display: flex; flex-direction: column; gap: 10px; }
+.sv-preview h3 { font-size: 15px; }
+.sv-file { margin: 0; display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.sv-wait { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
+.sv-facts { margin: 0; display: grid; gap: 6px; }
+.sv-facts > div { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: start; }
+.sv-facts dt { color: var(--ink-3); font-size: 12px; }
+.sv-facts dd { margin: 0; overflow-wrap: anywhere; }
+.sv-facts dd small { color: var(--ink-3); margin-left: 4px; }
+.sv-seats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 14px; }
+.sv-seats span { color: var(--ink-2); font-size: 12px; }
+.sv-versions { border-collapse: collapse; font-size: 12px; }
+.sv-versions th, .sv-versions td { text-align: left; padding: 1px 12px 1px 0; font-weight: 400; }
+.sv-versions thead th, .sv-versions tbody th { color: var(--ink-3); }
+.sv-versions tr.is-different td { color: var(--bad); font-weight: 600; }
+.sv-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+.sv-warning { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 110; max-width: min(760px, 92vw); display: flex; align-items: center; gap: 9px; padding: 7px 8px 7px 12px; border-radius: 8px; border: 1px solid var(--warn); border-left-width: 4px; background: var(--warn-bg); color: var(--ink); font-size: 12.5px; line-height: 1.45; box-shadow: 0 10px 26px rgba(20, 16, 6, 0.4); }
+.sv-warning > .icon { flex: none; color: var(--warn); }
+
+/* the Load pane of the title screen */
+.title-save-what { display: block; font-weight: 400; font-size: 11.5px; color: var(--cream-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title-save .title-save-text { flex: 1; min-width: 0; display: block; white-space: normal; }
+.title-pane .title-manage { align-self: flex-start; }
+.title-note { color: var(--warn-night); font-size: 12px; margin: 0; line-height: 1.45; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .sv-dialog { animation: pop-in 0.18s ease-out; }
+}

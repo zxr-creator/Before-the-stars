@@ -1,0 +1,20 @@
+{
+ "this is not a Before the Stars save file": "這不是《星辰之前》的存檔檔案",
+ "the file is damaged: its description does not match its checksum": "檔案已損壞：說明資訊與校驗值不符",
+ "the file's description carries no usable checksum": "檔案的說明資訊中沒有可用的校驗值",
+ "the file's description is not one this game would write": "檔案的說明資訊不是本遊戲會寫出的內容",
+ "the file is damaged: its packed data does not match its checksum": "檔案已損壞：壓縮資料與校驗值不符",
+ "the file is damaged: its packed data cannot be read": "檔案已損壞：壓縮資料無法讀取",
+ "the file is damaged: its contents do not match its checksum": "檔案已損壞：內容與校驗值不符",
+ "the file is damaged: its contents are not text": "檔案已損壞：內容不是文字",
+ "no save has that name": "沒有這個名稱的存檔",
+ "no such file in the exports folder": "匯出資料夾中沒有這個檔案",
+ "'autosave' is the name of the game's own save; choose another": "「autosave」是遊戲自動存檔的名稱，請另選一個",
+ "the autosave keeps its name": "自動存檔不能更名",
+ "not available on a referee that requires tokens": "要求令牌的裁判端不提供此功能",
+ "the save would contain an API key; nothing was exported": "存檔中會包含 API 金鑰，因此沒有匯出",
+ "the save is not text": "該存檔不是文字",
+ "a session can be exported only when no seat is external and tokens are not required": "只有在沒有外部席位且不要求令牌時才能匯出對局",
+ "The referee did not send a save file.": "裁判端沒有返回存檔檔案。",
+ "The save could not be renamed.": "無法為該存檔更名。"
+}
