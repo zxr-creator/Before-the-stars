@@ -56,6 +56,27 @@ client and API for browsers and external agents.
 
 - macOS: the universal `.app` was built, launched, loaded the embedded client in its
   window and quit cleanly on this project's development machine (Apple silicon).
-  The Intel half was built but not run.
+  The Intel half was built but not run. In a match the window loaded the 3D map
+  module, so the system web view offered WebGL, but its frame rate there has not been
+  measured (see the self-check below).
 - Windows: the x64 executable cross-compiles and links. It has not been run on
   Windows, and the release workflow (native build, icon, installer) has not been run.
+
+## Checking the 3D map on a machine
+
+The automated checks draw the 3D map with a software renderer, so they say nothing
+about a real graphics card. To measure one, run the game once in self-check mode with
+the screen on and unlocked:
+
+```bash
+BTS_SELFCHECK=1 target/release/bts --port 7990 --saves "$(mktemp -d)"
+# packaged macOS app: BTS_SELFCHECK=1 "/Applications/Before the Stars.app/Contents/MacOS/before-the-stars" --port 7990 --saves "$(mktemp -d)"
+# Windows (PowerShell): $env:BTS_SELFCHECK=1; .\before-the-stars.exe --port 7990 --saves $env:TEMP\bts-check
+```
+
+It opens the window on a throwaway match, turns the camera for a few seconds close up
+and over the whole world, prints one `selfcheck {...}` line with the graphics renderer
+and frames per second, and quits. A software renderer manages about 13 frames per
+second on a late-game map; a result near that on real hardware means the web view is
+not using the graphics card. With the display asleep or locked no frames are presented
+and the check reports that instead. The map's "Flat" switch is always available.

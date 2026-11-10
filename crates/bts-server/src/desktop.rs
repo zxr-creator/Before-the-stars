@@ -24,6 +24,62 @@ window.addEventListener('keydown', function (e) {
 }, true);
 "#;
 
+/// `BTS_SELFCHECK=1`: open straight into the match (starting a throwaway one when none
+/// exists), spin the 3D map for a few seconds and print what the system web view
+/// managed: the graphics renderer and frames per second, close up and zoomed out.
+/// Use it with `--saves <empty dir>` so it never touches a real save.
+const SELFCHECK: &str = r#"
+window.addEventListener('load', function () {
+  var t0 = Date.now();
+  function report(o) { window.ipc.postMessage('selfcheck:' + JSON.stringify(o)); }
+  function renderer() {
+    try {
+      var c = document.createElement('canvas');
+      var gl = c.getContext('webgl2') || c.getContext('webgl');
+      if (!gl) return 'no webgl';
+      var ext = gl.getExtension('WEBGL_debug_renderer_info');
+      return (c.getContext('webgl2') ? 'webgl2: ' : 'webgl1: ') + String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    } catch (e) { return 'error: ' + e; }
+  }
+  function spin(m, ms, done) {
+    var n = 0, start = performance.now(), last = start, worst = 0, over = false;
+    // a hidden or locked screen presents no frames at all: say so instead of waiting forever
+    var guard = setTimeout(function () { over = true; done({ fps: null, frames: n, note: 'no frames presented; is the window visible?' }); }, ms + 6000);
+    function step(now) {
+      if (over) return;
+      n++; worst = Math.max(worst, now - last); last = now;
+      m.rotateBy(0.015, false);
+      if (now - start < ms) requestAnimationFrame(step);
+      else { over = true; clearTimeout(guard); done({ fps: Math.round(n * 10000 / (now - start)) / 10, worst_ms: Math.round(worst) }); }
+    }
+    requestAnimationFrame(step);
+  }
+  fetch('/api/match').then(function (r) { return r.json(); }).then(function (s) {
+    if (s.exists) return wait();
+    if (sessionStorage.getItem('selfcheck')) return report({ error: 'could not start a match' });
+    sessionStorage.setItem('selfcheck', '1');
+    return fetch('/api/match', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 'selfcheck', controllers: ['human', 'medium', 'medium', 'medium'] }) }).then(function () { location.reload(); });
+  }).catch(function (e) { report({ error: String(e) }); });
+  function wait() {
+    var m = window.__map3d;
+    if (!m) {
+      if (Date.now() - t0 > 25000) return report({ map3d: false, renderer: renderer(), canvas: !!document.querySelector('canvas'), ua: navigator.userAgent });
+      return setTimeout(wait, 250);
+    }
+    setTimeout(function () {
+      spin(m, 3000, function (close) {
+        m.fit(false);
+        setTimeout(function () {
+          spin(m, 3000, function (far) {
+            report({ map3d: true, visible: document.visibilityState, renderer: renderer(), pixel_ratio: window.devicePixelRatio, size: [innerWidth, innerHeight], close_up: close, whole_world: far, ua: navigator.userAgent });
+          });
+        }, 600);
+      });
+    }, 2500);
+  }
+});
+"#;
+
 fn save_and_exit(shared: &Option<Shared>) -> ! {
     if let Some(s) = shared {
         if let Ok(st) = s.lock() {
@@ -75,17 +131,28 @@ pub fn run(port: u16, shared: Option<Shared>) -> ! {
     let _ = quit_id;
 
     let proxy = event_loop.create_proxy();
-    let builder = wry::WebViewBuilder::new()
-        .with_url(format!("http://127.0.0.1:{port}/"))
+    let selfcheck = std::env::var("BTS_SELFCHECK").is_ok();
+    let mut builder = wry::WebViewBuilder::new()
+        .with_url(format!("http://127.0.0.1:{port}/{}", if selfcheck { "?notitle" } else { "" }))
         .with_initialization_script(INIT)
         .with_devtools(cfg!(debug_assertions))
         .with_ipc_handler(move |req| {
             let _ = match req.body().as_str() {
                 "fullscreen" => proxy.send_event(UserEvent::ToggleFullscreen),
                 "quit" => proxy.send_event(UserEvent::Quit),
-                _ => Ok(()),
+                other => {
+                    if let Some(report) = other.strip_prefix("selfcheck:").filter(|_| selfcheck) {
+                        println!("selfcheck {report}");
+                        proxy.send_event(UserEvent::Quit)
+                    } else {
+                        Ok(())
+                    }
+                }
             };
         });
+    if selfcheck {
+        builder = builder.with_initialization_script(SELFCHECK);
+    }
     #[cfg(not(target_os = "linux"))]
     let _webview = builder.build(&window).expect("could not create the game view");
     #[cfg(target_os = "linux")]
