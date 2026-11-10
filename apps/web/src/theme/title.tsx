@@ -2,7 +2,9 @@
 import { useState } from 'preact/hooks';
 import { Icon } from '../icons';
 import { cx } from '../ui';
-import { canQuit, desktopShell, hasLiveMatch, loadGame, openOverlay, quitGame, setScreen, useApp } from '../store';
+import { canQuit, desktopShell, hasLiveMatch, loadSaveEntry, openOverlay, quitGame, setScreen, useApp } from '../store';
+import { api } from '../api';
+import { fmtWhen, openSaveManager, saveLabel, useVault } from '../saves/ui';
 import { t, tc, useLocale } from '../i18n';
 import { yearOf } from '../format';
 import { LanguageSwitch } from '../setup';
@@ -46,13 +48,19 @@ export function Title() {
   const desktop = desktopShell();
   const summary = s.summary;
   const year = yearOf(s.obs?.month ?? s.spectator?.month ?? summary?.month ?? 0);
-  const resume = !live ? t('No match in progress')
+  const vault = useVault();
+  const resumeMatch = !live ? t('No match in progress')
     : s.mode === 'observe' ? t('Observer match · Year {n}', { n: year })
     : t('{name} · Year {n}', { name: s.obs ? tc(s.obs.civ.name) : '', n: year });
+  // browser build: the match on offer was brought back from an autosave; say which
+  const restored = live && vault.restored && vault.restored.matchId === summary?.match_id ? vault.restored : null;
+  const resume = restored ? t('{match} · autosaved {when}', { match: resumeMatch, when: fmtWhen(restored.created) }) : resumeMatch;
+  // every stored save: the player's own first, then autosaves, each newest first
+  const stored = [...s.saveEntries.filter((e) => e.kind === 'manual'), ...s.saveEntries.filter((e) => e.kind === 'auto')];
 
-  const load = async (name: string) => {
+  const load = async (id: string) => {
     setError(null);
-    const err = await loadGame(name);
+    const err = await loadSaveEntry(id);
     if (err) setError(err);
   };
 
@@ -68,9 +76,12 @@ export function Title() {
         </header>
         <nav class="title-menu" aria-label={t('Main menu')}>
           <Item icon="play" label={t('Continue')} sub={resume} testid="title-continue" disabled={!live} onClick={() => setScreen('game')} />
+          {api.features.local && !live && vault.restoreFailures.length ? (
+            <p class="title-note" role="alert" data-testid="title-restore-failed">{t('The autosave could not be loaded, so no match was restored. It has been kept: open Load game to see it.')}</p>
+          ) : null}
           <Item icon="flag" label={t('New game')} sub={t('Choose seats, world and objective')} testid="title-new" onClick={() => setScreen('setup')} />
           <Item icon="eye" label={t('Observer mode')} sub={t('Watch four AI civilizations; pause, step and compare')} testid="title-observer" onClick={() => setScreen('setup', 'observer')} />
-          <Item icon="save" label={t('Load game')} sub={s.saves.length ? t('{n} saved matches', { n: s.saves.length }) : t('No saved matches yet')} testid="title-load"
+          <Item icon="save" label={t('Load game')} sub={stored.length ? t('{n} saved matches', { n: stored.length }) : t('No saved matches yet')} testid="title-load"
             active={pane === 'load'} onClick={() => setPane(pane === 'load' ? 'none' : 'load')} />
           <Item icon="compass" label={t('Tutorial')} sub={t('A guided first match')} testid="title-tutorial" onClick={() => setScreen('setup', 'tutorial')} />
           <Item icon="almanac" label={t('Almanac')} sub={t('How the game works')} testid="title-almanac" onClick={() => openOverlay('almanac')} />
@@ -86,18 +97,24 @@ export function Title() {
       {pane === 'load' ? (
         <aside class="title-pane" aria-label={t('Load game')} data-testid="title-saves">
           <header><h2>{t('Load game')}</h2><button type="button" class="banner-x" aria-label={t('Close')} onClick={() => setPane('none')}><Icon name="close" size={13} /></button></header>
-          {s.saves.length ? (
+          {stored.length ? (
             <ul class="title-saves">
-              {s.saves.map((name) => (
+              {stored.map((e) => (
                 <li>
-                  <button type="button" class="title-save" disabled={s.busy} data-testid={`title-load-${name}`} onClick={() => void load(name)}>
-                    <Icon name="save" size={15} /><span>{name}</span><Icon name="right" size={13} />
+                  <button type="button" class="title-save" disabled={s.busy} data-kind={e.kind} data-testid={`title-load-${e.kind === 'manual' || !api.features.local ? e.name : e.id}`} onClick={() => void load(e.id)}>
+                    <Icon name={e.kind === 'manual' ? 'save' : 'clock'} size={15} />
+                    <span class="title-save-text">
+                      {e.kind === 'manual' ? e.name : t('Autosave')}
+                      <small class="title-save-what">{e.header ? saveLabel(e.header) : t('No description (an older save)')} · {fmtWhen(e.created)}</small>
+                    </span>
+                    <Icon name="right" size={13} />
                   </button>
                 </li>
               ))}
             </ul>
-          ) : <p class="title-empty">{t('No saved matches yet. The referee keeps an autosave once a round has been resolved.')}</p>}
+          ) : <p class="title-empty">{api.features.local ? t('No saved matches yet. The game keeps an autosave in this browser once a round has been resolved.') : t('No saved matches yet. The referee keeps an autosave once a round has been resolved.')}</p>}
           {error ? <p class="title-error" role="alert"><Icon name="warn" size={13} /> {error}</p> : null}
+          <button type="button" class="title-btn title-manage" data-testid="title-saves-manage" onClick={() => openSaveManager()}>{t('Import, export and storage…')}</button>
         </aside>
       ) : null}
       {pane === 'quit' ? (

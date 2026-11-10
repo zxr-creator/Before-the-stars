@@ -3,6 +3,7 @@ import { useState } from 'preact/hooks';
 import { api } from './api';
 import { Btn, Section } from './ui';
 import { act, canQuit, desktopShell, loadGame, openOverlay, quitGame, saveGame, setMenu, setScreen, toast, useApp } from './store';
+import { openSaveManager } from './saves/ui';
 import { Icon } from './icons';
 import { t, tc, useLocale } from './i18n';
 import { LanguageSwitch } from './setup';
@@ -105,7 +106,11 @@ export function GameMenu() {
               <input class="text" type="text" value={name} maxLength={40} aria-label={t('Save name')} data-testid="save-name" onInput={(e) => setName((e.target as HTMLInputElement).value)} />
               <Btn type="submit" nav icon="save" disabled={!name.trim()}>{t('Save')}</Btn>
             </form>
-            {api.features.durableSaves ? null : <p class="muted small" data-testid="save-local-note">{t('Browser build: a named save is kept only until this page is closed or reloaded.')}</p>}
+            {api.features.durableSaves ? null : <p class="muted small" data-testid="save-local-note">{t('This browser is not letting the game keep saves: a named save lasts only until this page is closed or reloaded. Export the game to a file to keep it.')}</p>}
+            <div class="row wrap">
+              <Btn nav icon="layers" testid="menu-saves" onClick={() => openSaveManager()}>{t('Saves and storage…')}</Btn>
+            </div>
+            <p class="muted small">{t('Export the game to a file, import one, and manage stored saves.')}</p>
           </Section>
           <Section title={t('Load')}>
             {s.saves.length ? (

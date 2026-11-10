@@ -4,6 +4,8 @@ target/
 node_modules/
 apps/web/dist/
 saves/
+# ...but the client's save code is source, not a saves folder
+!apps/web/src/saves/
 .DS_Store
 *.log
 apps/web/screenshots/
