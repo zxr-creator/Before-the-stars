@@ -953,15 +953,15 @@ fn facilities() -> Vec<FacDef> {
     let craft_any = [Q::Artisan, Q::Lorekeeper, Q::Smith, Q::Builder, Q::Agronomist, Q::Navigator, Q::Tallier];
     let v = vec![
         // ---- food -------------------------------------------------------
-        fac("fields", "Fields", "Food", "Cleared and tended plots. Ten cultivators work each level; yield depends on seed, traction, water and inputs actually supplied.")
+        fac("fields", "Fields", "Food", "Cleared and tended plots. Ten cultivators work each level; yield depends on seed, traction, water and inputs actually supplied, and falls by three tenths when no tools are in store.")
             .req("T005").site(Site::Arable).cost(&[(Materials, 2.0), (Tools, 1.0)]).work(24.0).general(10)
-            .upkeep(&[(Tools, 0.15)]).tags(&[Tag::Farm]).scale(4, "C007").scale(14, "C017").food(),
+            .tags(&[Tag::Farm]).scale(4, "C007").scale(14, "C017").food(),
         fac("pasture", "Pastures", "Food", "Managed herds on rough grazing. Animals also provide traction once the methods are known.")
             .req("T006").site(Site::Pasture).cost(&[(Materials, 2.0)]).work(16.0).general(5)
             .tags(&[Tag::Farm, Tag::Forage]).scale(4, "C007").food(),
         fac("fishery", "Fishing grounds", "Food", "Nets, weirs and boats working a stretch of coast or river.")
             .req("T004").site(Site::Fishery).cost(&[(Materials, 2.0), (Tools, 1.0)]).work(12.0).general(8)
-            .upkeep(&[(Tools, 0.15)]).tags(&[Tag::Forage, Tag::Sea]).food(),
+            .tags(&[Tag::Forage, Tag::Sea]).food(),
         fac("granary", "Granaries", "Food", "Dry stores with custodians. Each level keeps 2,500 units of food and slows spoilage.")
             .req("T007").cost(&[(Materials, 6.0)]).work(20.0).general(1).provides(Cap::Storage, 2500.0)
             .labor(L::Services).tags(&[Tag::Farm, Tag::Record]),
