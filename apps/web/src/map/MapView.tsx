@@ -11,10 +11,13 @@ import {
 } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import {
-  Atlas, DEPOSIT_COLOR, POP_RAMP, TERRAIN_TINT,
-  type AtlasData, type AtlasOverlay, type FacilityIcon, type Insets, type MapMode,
+  Atlas, BUILT_RAMP, DEPOSIT_COLOR, POP_RAMP, TERRAIN_TINT,
+  type AtlasOverlay, type Insets, type MapMode,
 } from './atlas';
 import type { DepositHit, Map3D, Map3DData } from '../map3d';
+import { SECTOR_COLOR, type Building, type Sector } from './landuse';
+import { BUILD_AMBER, type ChipGlyph } from './sites';
+import { ChipSwatch, DevelopmentCard } from './Development';
 import './map.css';
 
 type Map3DModule = typeof import('../map3d');
@@ -111,50 +114,23 @@ const MODES: { key: MapMode; label: string; hint: string }[] = [
   { key: 'terrain', label: 'Terrain', hint: 'Landforms, rivers and passes' },
   { key: 'resources', label: 'Resources', hint: 'Deposits and survey coverage' },
   { key: 'population', label: 'Population', hint: 'People per region' },
-  { key: 'construction', label: 'Construction', hint: 'Regional buildings and expansion' },
+  { key: 'construction', label: 'Construction', hint: 'Regional development: built and being built' },
 ];
 /** Ground colours of the 3D tier, for the terrain legend. */
 const TERRAIN_TINT_3D: Record<Terrain, string> = {
-  plains: '#8ac24d', hills: '#a9b855', mountains: '#998c78', forest: '#549942', marsh: '#6ba36b', steppe: '#ccc261',
-  desert: '#edcc80', tundra: '#c4d0bb',
+  plains: '#a5bb73', hills: '#afb777', mountains: '#a49982', forest: '#7b9962', marsh: '#8da47b', steppe: '#cdc384',
+  desert: '#e4cf98', tundra: '#c9ccaf',
 };
 const NO_INSETS: Insets = { left: 0, right: 0, top: 0, bottom: 0 };
 const NO_MARKS: RegionId[] = [];
-
-/** Tolerant mapping from a facility to a map pictogram. */
-export function facilityIcon(kind: string, category?: string, name?: string): FacilityIcon | null {
-  const k = kind.toLowerCase();
-  const c = (category ?? '').toLowerCase();
-  const n = (name ?? '').toLowerCase();
-  if (k.startsWith('jump') || c.includes('jump') || k.includes('ftl')) return 'jump';
-  if (c.includes('space') || k.includes('launch') || k.includes('orbital')) return 'launch';
-  if (k === 'port' || k.includes('harbo') || n.includes('harbour') || n.includes('harbor') || k.includes('dock')) return 'port';
-  if (c.includes('power') || c.includes('energy')) return 'power';
-  if (c.includes('research') || k.includes('lab') || k.includes('institute') && !k.includes('tech_')) return 'lab';
-  if (c.includes('education') || k.includes('school') || k.includes('college') || k.includes('lodge')) return 'school';
-  if (k.startsWith('mine') || k.includes('well') && c.includes('extract') || k.includes('pit')) return 'mine';
-  if (c.includes('industry') || c.includes('manufact')) {
-    return /workshop|kiln|press|instrument/.test(k) ? 'workshop' : 'industry';
-  }
-  return null;
-}
+const NO_BUILDING: Record<number, Building> = {};
+const NO_CATEGORIES: Record<string, string> = {};
 
 function buildData(obs: Observation): Map3DData {
   const seatColors: Record<number, string> = { [obs.seat]: obs.civ.color };
   for (const o of obs.others) seatColors[o.seat] = o.color;
-  const facilityIcons: Record<string, FacilityIcon> = {};
   const facilityCategories: Record<string, string> = {};
-  const cat = new Map(obs.catalog.facilities.map((f) => [f.kind, f]));
   for (const f of obs.catalog.facilities) facilityCategories[f.kind] = f.category;
-  for (const r of obs.regions) {
-    if (!r.own) continue;
-    for (const f of r.own.facilities) {
-      if (f.kind in facilityIcons) continue;
-      const t = cat.get(f.kind);
-      const ic = facilityIcon(f.kind, t?.category, t?.name ?? f.name);
-      if (ic) facilityIcons[f.kind] = ic;
-    }
-  }
   return {
     world: obs.world,
     regions: obs.regions,
@@ -164,9 +140,30 @@ function buildData(obs: Observation): Map3DData {
     armies: obs.armies,
     foreignArmies: obs.foreign_armies,
     month: obs.month,
-    facilityIcons,
     facilityCategories,
+    construction: buildingByRegion(obs),
   };
+}
+
+/**
+ * Building work per region, from what this viewer is told: its own projects, or (where a view
+ * carries no project list, as the observer's world view) the queued levels the region reports.
+ */
+export function buildingByRegion(obs: Observation): Record<number, Building> {
+  const out: Record<number, Building> = {};
+  for (const p of obs.projects) {
+    if (p.kind !== 'build' || p.region == null) continue;
+    const b = out[p.region] ?? (out[p.region] = { levels: 0, projects: 0 });
+    b.levels += p.levels ?? 1;
+    b.projects += 1;
+  }
+  for (const r of obs.regions) {
+    if (!r.own?.construction_sites || out[r.id]) continue;
+    let levels = 0, projects = 0;
+    for (const s of r.own.construction_sites) if (s.queued_levels > 0) { levels += s.queued_levels; projects += 1; }
+    if (levels > 0) out[r.id] = { levels, projects };
+  }
+  return out;
 }
 
 function seatName(obs: Observation, seat: number | null): string | null {
@@ -249,9 +246,40 @@ function LineSwatch({ color, dash, width = 1.6, notched = false }: { color: stri
   );
 }
 
+// i18n-fields
+const WORKS_KEY: { glyph: ChipGlyph; sector: Sector | null; label: string }[] = [
+  { glyph: 'food', sector: 'food', label: 'Farmland' },
+  { glyph: 'extraction', sector: 'extraction', label: 'Mines' },
+  { glyph: 'industry', sector: 'industry', label: 'Industry' },
+  { glyph: 'power', sector: 'power', label: 'Power' },
+  { glyph: 'knowledge', sector: 'knowledge', label: 'Learning' },
+  { glyph: 'port', sector: 'transport', label: 'Harbour' },
+  { glyph: 'space', sector: 'space', label: 'Space' },
+  { glyph: 'build', sector: null, label: 'Building' },
+];
+// i18n-end
+
+/** The sector discs under a region's name: what they stand for and how to read their weight. */
+function WorksKey(): JSX.Element {
+  return (
+    <li class="map-works">
+      <div class="map-works-grid">
+        {WORKS_KEY.map((w) => (
+          <span><ChipSwatch chip={{ glyph: w.glyph, color: w.sector ? SECTOR_COLOR[w.sector] : BUILD_AMBER, magnitude: 3 }} size={18} />{t(w.label)}</span>
+        ))}
+      </div>
+      <div class="map-works-scale" title={t('A disc grows and darkens with the levels built in that sector')}>
+        {[1, 2, 3, 4].map((m) => <ChipSwatch chip={{ glyph: 'industry', color: SECTOR_COLOR.industry, magnitude: m }} size={10 + m * 3} />)}
+        <span>{t('little … much built')}</span>
+      </div>
+    </li>
+  );
+}
+
 function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: MapTier }): JSX.Element {
   const rows: JSX.Element[] = [];
   const regions = obs.regions;
+  const seesWorks = regions.some((r) => r.own && r.own.facilities.length > 0);
   if (mode === 'political') {
     rows.push(
       <li><span class="map-chip" style={{ background: obs.civ.color }} />{tc(obs.civ.name)} <em>{t('(you)')}</em></li>,
@@ -278,9 +306,12 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
       if (regions.some((r) => r.visibility === 'remembered')) {
         rows.push(<li title={t('Not currently observed; the tooltip gives the last-seen date')}><HatchSwatch color="#8a7d6a" dir={-1} />{t('Remembered')}</li>);
       }
-      rows.push(<li><LineSwatch color="#2b2620" width={2} />{t('Known coast')}</li>);
+      rows.push(<li><LineSwatch color="#2b2620" width={2.6} />{t('Border between realms')}</li>);
+      rows.push(<li><LineSwatch color="#8a7d6a" width={1} />{t('Region border')}</li>);
+      rows.push(<li><LineSwatch color="#2c4650" width={2} />{t('Known coast')}</li>);
       rows.push(<li title={t('What lies beyond has not been seen')}><LineSwatch color="#8a7d6a" dash="0.1 3.6" width={1.6} />{t('Edge of knowledge')}</li>);
     }
+    if (seesWorks) rows.push(<WorksKey />);
   } else if (mode === 'terrain') {
     const present = new Set<Terrain>(regions.map((r) => r.terrain));
     for (const tt of Object.keys(TERRAIN_LABEL) as Terrain[]) {
@@ -327,7 +358,16 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
       rows.push(<li class="map-legend-note">{t('Wide faint hatch: surface observations only')}</li>);
     }
   } else if (mode === 'construction') {
-    rows.push(<li><span class="map-construction-key" />{t('Light to dark: 0–24+ built levels')}</li>, <li class="map-legend-note">{t('Select a region to plan its city, rural works, mines and factories. Foreign construction is not disclosed.')}</li>);
+    const labels = [t('under 10'), '10–29', '30–59', '60–99', '100–159', t('160 or more')];
+    rows.push(
+      <li class="map-ramp">
+        {BUILT_RAMP.map((c, i) => <span style={{ background: c }} title={t('{n} built levels', { n: labels[i] })} />)}
+      </li>,
+      <li class="map-ramp-ends"><span>{t('under 10')}</span><span>{t('160 or more')}</span></li>,
+      <li class="map-legend-note">{t('Built levels per region, all sectors (steps at 10, 30, 60, 100, 160)')}</li>,
+      <li><ChipSwatch chip={{ glyph: 'build', color: BUILD_AMBER, magnitude: 4 }} size={18} />{t('+N: levels under construction')}</li>,
+      <li class="map-legend-note">{t('The bar under a name splits its built levels by sector. Building in regions you do not govern is not disclosed.')}</li>,
+    );
   } else {
     const labels = [t('under 100'), '100–500', '500–2,000', '2,000–10,000', '10,000–50,000', '50,000–250,000', t('over 250,000')];
     rows.push(
@@ -344,7 +384,7 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
   return <ul class="map-legend-list">{rows}</ul>;
 }
 
-function Tooltip({ obs, region, mode, pick, deposit }: { obs: Observation; region: RegionView; mode: MapMode; pick: MapPick | null; deposit: DepositView | null }): JSX.Element {
+function Tooltip({ obs, region, mode, pick, deposit, building }: { obs: Observation; region: RegionView; mode: MapMode; pick: MapPick | null; deposit: DepositView | null; building: Building | null }): JSX.Element {
   const r = region;
   const owner = seatName(obs, r.owner);
   const occupied = r.controller != null && r.controller !== r.owner;
@@ -389,6 +429,13 @@ function Tooltip({ obs, region, mode, pick, deposit }: { obs: Observation; regio
         <div class="map-tip-row map-tip-muted">{t('Last seen {date} — may have changed', { date: fmtDate(r.last_seen) })}</div>
       )}
       {r.own && <div class="map-tip-row">{t('{n} people', { n: int(r.own.population) })}</div>}
+      {r.own && mode === 'construction' && (
+        <div class="map-tip-row">
+          {t('{n} built levels', { n: int(r.own.facilities.reduce((n, f) => n + f.level, 0)) })}
+          {building && building.levels > 0 ? ' · ' + t('{n} levels under construction', { n: building.levels }) : ''}
+        </div>
+      )}
+      {mode === 'construction' && !r.own && r.owner != null && <div class="map-tip-row map-tip-muted">{t('What is built here is not disclosed to you.')}</div>}
       {r.foreign && (
         <div class="map-tip-row"><span class="map-est" title={t('Estimated range')}>{t('{n} people', { n: range(r.foreign.population_low, r.foreign.population_high) })}</span></div>
       )}
@@ -477,7 +524,8 @@ export function MapView(props: MapViewProps): JSX.Element {
   const roomy = typeof window === 'undefined'
     ? true
     : window.innerWidth - insets.left - insets.right >= 720 && window.innerHeight - insets.top - insets.bottom >= 470;
-  const legendOpen = legendPref ?? roomy;
+  // In construction mode the development card carries its own key and takes the legend's place.
+  const legendOpen = legendPref ?? (roomy && mode !== 'construction');
   const setLegendOpen = (v: boolean) => setLegendPref(v);
   const [, setZoomTick] = useState(0);
 
@@ -858,15 +906,17 @@ export function MapView(props: MapViewProps): JSX.Element {
         role="application"
         aria-label={canvasLabel}
       />
-      {mode === 'construction' && props.selected !== null && (() => {
-        const region = obs.regions.find(r => r.id === props.selected);
-        if (!region?.own) return null;
-        const own = region.own;
-        return <aside class="map-province-plan" data-testid="province-plan"><small>{t('Regional development')}</small><h3>{tc(region.name)}</h3><p>{tc(SETTLEMENT_LABEL[region.settlement])} · {int(own.population)} {t('people')}</p><div class="province-sectors">{['Food', 'Extraction', 'Industry', 'Knowledge'].map(category => {
-          const kinds = new Set(obs.catalog.facilities.filter(f => f.category === category || (category === 'Knowledge' && ['Education', 'Research'].includes(f.category)) || (category === 'Food' && f.site_key === 'arable')).map(f => f.kind));
-          return <span><b>{own.facilities.filter(f => kinds.has(f.kind)).reduce((n, f) => n + f.level, 0)}</b>{tc(category)}</span>;
-        })}</div><p>{t('{n} projects under construction', { n: obs.projects.filter(p => p.kind === 'build' && p.region === region.id).length })}</p>{props.onBuild ? <button class="btn btn-primary" data-testid="province-build" onClick={() => props.onBuild?.(region.id)}>{t('Plan buildings')}</button> : null}</aside>;
-      })()}
+      {mode === 'construction' && !pick && (
+        <DevelopmentCard
+          obs={obs}
+          selected={selected}
+          building={data.construction ?? NO_BUILDING}
+          categories={data.facilityCategories ?? NO_CATEGORIES}
+          onSelect={onSelect}
+          onFocus={(id) => engineRef.current?.focusRegion(id)}
+          onBuild={props.onBuild}
+        />
+      )}
       {is3d && <div ref={labelsRef} class="m3-labels" aria-hidden="true" />}
       {is3d && !mod3d && <div class="map-loading" role="status">{t('Preparing the 3D map…')}</div>}
 
@@ -976,7 +1026,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       )}
 
       <div ref={tipRef} class={'map-tip' + (hovered ? ' is-on' : '')} role="tooltip" data-testid="map-tooltip">
-        {hovered && <Tooltip obs={obs} region={hovered} mode={mode} pick={pick} deposit={hoveredDeposit} />}
+        {hovered && <Tooltip obs={obs} region={hovered} mode={mode} pick={pick} deposit={hoveredDeposit} building={data.construction?.[hovered.id] ?? null} />}
       </div>
     </div>
   );

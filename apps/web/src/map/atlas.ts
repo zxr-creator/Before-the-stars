@@ -9,9 +9,10 @@ import type {
   ArmyView, Deposit, ForeignArmyView, RegionId, RegionView, Role, SettlementKind, Terrain, WorldFrame,
 } from '../protocol';
 import { hash32, rng } from '../format';
+import { SECTOR_COLOR, SECTORS, landUse, landUseSignature, type Building, type LandUse } from './landuse';
+import { BUILD_AMBER, drawChip, drawSite, chipRadius, sectorChips, siteExtent, type SiteKind } from './sites';
 
 export type MapMode = 'political' | 'terrain' | 'resources' | 'population' | 'construction';
-export type FacilityIcon = 'mine' | 'workshop' | 'industry' | 'school' | 'lab' | 'power' | 'port' | 'launch' | 'jump';
 
 export interface AtlasData {
   world: WorldFrame;
@@ -23,8 +24,10 @@ export interface AtlasData {
   armies: ArmyView[];
   foreignArmies: ForeignArmyView[];
   month: number;
-  /** Facility kind → map pictogram (derived by the caller from the catalog). */
-  facilityIcons: Record<string, FacilityIcon>;
+  /** Facility kind → catalog category, for kinds this build does not know by name. */
+  facilityCategories?: Record<string, string>;
+  /** Region → building work queued or under way there, as far as the viewer knows. */
+  construction?: Record<number, Building>;
 }
 
 export interface AtlasOverlay {
@@ -76,6 +79,15 @@ export const DEPOSIT_COLOR: Record<Deposit, string> = {
   minerals: '#6d5ca8',
 };
 export const TERRAIN_TINT = TINT;
+const COAST_INK = '#2c4650';
+/** Built levels per region (all sectors) and the wash classes of the development view. */
+export const BUILT_BREAKS = [10, 30, 60, 100, 160];
+export const BUILT_RAMP = ['#eef0df', '#d9e5cc', '#bcd6b8', '#97c2a6', '#6ea894', '#488b80'];
+export function builtClass(levels: number): number {
+  let i = 0;
+  while (i < BUILT_BREAKS.length && levels >= BUILT_BREAKS[i]) i++;
+  return i;
+}
 
 type RGB = [number, number, number];
 function hexToRgb(hex: string): RGB {
@@ -124,7 +136,12 @@ interface Edge {
 }
 
 interface Glyph { x: number; y: number; v: number; rank: number }
-interface FieldPatch { x: number; y: number; w: number; h: number; skew: number; alt: boolean }
+interface FieldPatch { x: number; y: number; w: number; h: number; skew: number; alt: boolean; pasture: boolean; stead: number }
+/** A work standing on the land: world position, real size (world half-width) and what it is. */
+interface PlacedSite { kind: SiteKind; x: number; y: number; size: number; n: number; active: boolean; color?: string }
+/** The built-up ground of a settlement: a blob of blocks whose radius follows the population. */
+interface Town { r: number; blocks: number[]; era: number }
+interface Layout { town: Town | null; sites: PlacedSite[]; fields: FieldPatch[]; glyphs: Glyph[] }
 
 interface Prep {
   r: RegionView;
@@ -139,8 +156,13 @@ interface Prep {
   cy: number;
   glyphs: Glyph[];
   fields: FieldPatch[];
-  icons: FacilityIcon[];
   ccw: boolean;
+  /** Sector totals, for regions whose works the viewer sees. */
+  use: LandUse | null;
+  town: Town | null;
+  sites: PlacedSite[];
+  /** Distance from the centre to the nearest border, in world units. */
+  inR: number;
 }
 
 interface LinkLine { a: number; b: number; pts: number[] }
@@ -209,7 +231,6 @@ const GLYPH_SPACING: Record<Terrain, number> = {
 const SETTLEMENT_RANK: Record<SettlementKind, number> = {
   wilderness: 0, camp: 1, village: 2, town: 3, city: 4, metropolis: 5,
 };
-const ICON_ORDER: FacilityIcon[] = ['jump', 'launch', 'lab', 'school', 'power', 'industry', 'workshop', 'mine', 'port'];
 
 // --- the renderer -------------------------------------------------------------
 
@@ -235,6 +256,7 @@ export class Atlas {
 
   private wobbleCache = new Map<string, number[]>();
   private glyphCache = new Map<string, Glyph[]>();
+  private layoutCache = new Map<string, Layout>();
   private coastPath = new Path2D();
   private unknownPath = new Path2D();
   private internalPath = new Path2D();
@@ -523,7 +545,7 @@ export class Atlas {
       const p: Prep = {
         r, idx, edges: [], outline: [], path: new Path2D(), ownerEdges: null, unknownEdges: null,
         bbox: [Infinity, Infinity, -Infinity, -Infinity], cx: r.center[0], cy: r.center[1],
-        glyphs: [], fields: [], icons: [], ccw: area2 < 0,
+        glyphs: [], fields: [], ccw: area2 < 0, use: null, town: null, sites: [], inR: 40,
       };
       for (let i = 0; i < verts.length; i++) {
         const a = verts[i], b = verts[(i + 1) % verts.length];
@@ -679,7 +701,8 @@ export class Atlas {
       }
     }
 
-    // Glyphs, field patches, facility pictograms.
+    // Terrain glyphs, and the land use the observation reports: town, works, farmland.
+    const live = new Set<string>();
     for (const p of preps) {
       const r = p.r;
       const gkey = `${r.id}:${r.terrain}:${r.center[0]},${r.center[1]}:${r.poly.length}:${r.poly[0]?.[0]},${r.poly[0]?.[1]}`;
@@ -688,21 +711,22 @@ export class Atlas {
         glyphs = this.makeGlyphs(p);
         this.glyphCache.set(gkey, glyphs);
       }
-      p.glyphs = glyphs;
-      p.fields = [];
-      p.icons = [];
-      if (r.own) {
-        const fields = r.own.facilities.find((f) => f.kind === 'fields' && f.level > 0);
-        if (fields) p.fields = this.makeFields(p, fields.level);
-        const set = new Set<FacilityIcon>();
-        for (const f of r.own.facilities) {
-          if (f.level <= 0) continue;
-          const ic = d.facilityIcons[f.kind];
-          if (ic) set.add(ic);
-        }
-        p.icons = ICON_ORDER.filter((i) => set.has(i));
+      p.inR = distToPolyEdge(r.poly, p.cx, p.cy);
+      const building = d.construction?.[r.id];
+      p.use = landUse(r, d.facilityCategories, building);
+      const lkey = `${gkey}|${r.visibility === 'remembered' ? 'm' : ''}|${landUseSignature(r, building)}`;
+      live.add(lkey);
+      let lay = this.layoutCache.get(lkey);
+      if (!lay) {
+        lay = this.makeLayout(p, glyphs);
+        this.layoutCache.set(lkey, lay);
       }
+      p.glyphs = lay.glyphs;
+      p.fields = lay.fields;
+      p.town = lay.town;
+      p.sites = lay.sites;
     }
+    if (this.layoutCache.size > 400) for (const k of this.layoutCache.keys()) if (!live.has(k)) this.layoutCache.delete(k);
 
     // Links: rivers through centres, sea routes as arcs, passes as notches.
     this.rivers = [];
@@ -821,23 +845,167 @@ export class Atlas {
     return out;
   }
 
-  private makeFields(p: Prep, level: number): FieldPatch[] {
-    const want = clamp(Math.ceil(level / 3), 1, 4);
-    const rand = rng(hash32(p.r.id * 31 + 5, 0xf1e1d));
-    const out: FieldPatch[] = [];
-    for (let tries = 0; tries < 40 && out.length < want; tries++) {
-      const ang = rand() * Math.PI * 2;
-      const dist = 30 + rand() * 26;
-      const x = p.cx + Math.cos(ang) * dist * 1.25;
-      const y = p.cy + Math.sin(ang) * dist * 0.8 - 6;
-      const w = 17 + rand() * 7, h = 10 + rand() * 4;
-      if (Math.abs(x - p.cx) < 30 && y - p.cy > -12 && y - p.cy < 28) continue;
-      const corners = [[x - w / 2 - 3, y - h / 2], [x + w / 2 + 3, y - h / 2], [x + w / 2 + 3, y + h / 2], [x - w / 2 - 3, y + h / 2]];
-      if (!corners.every((c) => pointInPoly(p.outline, c[0], c[1]) && distToPolyEdge(p.r.poly, c[0], c[1]) > 4)) continue;
-      if (out.some((o) => Math.abs(o.x - x) < (o.w + w) / 2 + 3 && Math.abs(o.y - y) < (o.h + h) / 2 + 3)) continue;
-      out.push({ x, y, w, h, skew: (rand() - 0.5) * 6, alt: rand() > 0.5 });
+  /**
+   * Where a region's reported works stand. Positions are fixed in the world and
+   * deterministic per region; sizes follow the levels really built, so a works
+   * of forty levels covers far more ground than one of four.
+   */
+  private makeLayout(p: Prep, glyphs: Glyph[]): Layout {
+    const r = p.r;
+    const use = p.use;
+    const rand = rng(hash32(r.id * 31 + 5, 0xf1e1d));
+    const inR = p.inR;
+    const flat: number[] = [];
+    for (const pt of r.poly) flat.push(pt[0], pt[1]);
+    const rank = SETTLEMENT_RANK[r.settlement];
+
+    let town: Town | null = null;
+    if (rank > 0) {
+      const base = [0, 4, 6.5, 10, 14, 18][rank];
+      const pop = r.own ? r.own.population : r.foreign ? (r.foreign.population_low + r.foreign.population_high) / 2 : 0;
+      const grow = pop > 0 ? clamp((Math.log10(pop) - 2) / 4, 0, 1) : 0.3;
+      const rad = Math.min(base * (0.8 + 0.5 * grow), Math.max(3.5, inR * 0.4));
+      const cell = 2.3;
+      const blocks: number[] = [];
+      const n = Math.ceil(rad / cell);
+      for (let j = -n; j <= n; j++) {
+        for (let i = -n; i <= n; i++) {
+          const bx = i * cell + (j & 1 ? cell * 0.3 : 0), by = j * cell * 0.8;
+          const dd = Math.hypot(bx, by * 1.25) / rad;
+          const v = rand(), w = rand(), h = rand();
+          if (dd > 1 || v < dd * dd * 0.75) continue;
+          blocks.push(p.cx + bx, p.cy + by, cell * (0.6 + w * 0.22), cell * 0.8 * (0.55 + h * 0.2));
+        }
+      }
+      town = { r: rad, blocks, era: use ? use.era : rank >= 3 ? 1 : 0 };
     }
-    return out;
+
+    const sites: PlacedSite[] = [];
+    const cityR = town ? town.r : 2;
+    const taken: number[] = [p.cx, p.cy, cityR + 0.5];
+    const free = (x: number, y: number, rad: number): boolean => {
+      for (let i = 0; i < taken.length; i += 3) {
+        if (Math.hypot(x - taken[i], y - taken[i + 1]) < rad + taken[i + 2] + 1) return false;
+      }
+      return true;
+    };
+    const fits = (x: number, y: number, rad: number): boolean =>
+      pointInPoly(flat, x, y) && distToPolyEdge(r.poly, x, y) >= rad * 0.8 + 2.5;
+    const place = (kind: SiteKind, size: number, n: number, active: boolean, prefDeg: number, minDist = 0, color?: string): boolean => {
+      const pref = (prefDeg * Math.PI) / 180 + (rand() - 0.5) * 0.3;
+      for (let ring = 0; ring < 9; ring++) {
+        const dist = Math.max(minDist, cityR + size + 2) + ring * 3.4;
+        for (const da of [0, 0.32, -0.32, 0.64, -0.64, 1, -1, 1.4, -1.4]) {
+          const a = pref + da;
+          const x = p.cx + Math.cos(a) * dist * 1.15, y = p.cy + Math.sin(a) * dist * 0.85;
+          // The ground under the settlement is kept for its name.
+          if (y > p.cy + 2 && Math.abs(x - p.cx) < 32) continue;
+          if (!fits(x, y, size) || !free(x, y, size)) continue;
+          taken.push(x, y, size);
+          sites.push({ kind, x, y, size, n, active, color });
+          return true;
+        }
+      }
+      return false;
+    };
+    if (use) {
+      if (use.heavy > 0) {
+        const n = clamp(Math.round(use.heavy / 3.5), 1, 16);
+        place('industry', clamp(3.7 * Math.sqrt(n), 5, 15), n, use.heavyRunning > 0.05, -165);
+      }
+      if (use.generation > 0 && use.powerKind) {
+        const kind: SiteKind = use.powerKind;
+        const n = clamp(Math.ceil(use.generation / 8), 1, 3);
+        place(kind, 5.4 + n * 1.7, n, use.active.power, -128);
+      }
+      if (use.labs > 0) place('lab', 4.8 + Math.min(4, use.labs / 5), 1, use.active.knowledge, -62);
+      if (use.schools > 0) place('school', 4.4 + Math.min(3.2, use.schools / 3), 1, use.active.knowledge, -24);
+      if (use.craft > 0) {
+        const n = clamp(Math.ceil(use.craft / 4), 1, 3);
+        place('craft', 3.8 + n * 1.3, n, use.active.industry, 8);
+      }
+      if (use.jump > 0) place('jump', 6.4 + Math.min(3, use.jump / 3), 1, use.active.space, -78, cityR + 14);
+      if (use.launch > 0) place('launch', 5.4 + Math.min(2.6, use.launch / 3), 1, use.active.space, -100, cityR + 12);
+      if (use.orbital > 0) place('orbital', 5.6, 1, use.active.space, -45, cityR + 12);
+      const MINE_AT = [172, 196, -12, 218, -38, 150];
+      use.mines.slice(0, 5).forEach((m, i) => {
+        const n = clamp(Math.ceil(m.level / 3), 1, m.well ? 4 : 3);
+        const kind: SiteKind = m.well ? 'well' : m.deposit ? 'pit' : 'timber';
+        place(kind, 4.6 + n * 1.3, n, m.active, MINE_AT[i] + (hash32(r.id, m.key.length * 7 + m.key.charCodeAt(m.key.length - 1)) % 18) - 9,
+          Math.max(cityR + 9, inR * 0.5), m.deposit ? DEPOSIT_COLOR[m.deposit] : undefined);
+      });
+      if (use.port > 0) {
+        // A harbour stands on the shore nearest the settlement.
+        let best: Edge | null = null;
+        let bd = Infinity;
+        for (const { e } of p.edges) {
+          if (e.kind !== 'coast') continue;
+          const dd = Math.hypot(e.mx - p.cx, e.my - p.cy) + (e.frame ? 60 : 0);
+          if (dd < bd) { bd = dd; best = e; }
+        }
+        const n = clamp(Math.ceil(use.port / 2), 1, 3);
+        const size = 5.8 + n * 1.3;
+        if (best) {
+          const dx = p.cx - best.mx, dy = p.cy - best.my;
+          const l = Math.hypot(dx, dy) || 1;
+          for (const back of [size + 3, size + 7, size + 12]) {
+            const x = best.mx + (dx / l) * back, y = best.my + (dy / l) * back;
+            if (!free(x, y, size * 0.8)) continue;
+            taken.push(x, y, size);
+            sites.push({ kind: 'port', x, y, size, n, active: use.active.transport });
+            break;
+          }
+        } else place('port', size, n, use.active.transport, 30);
+      }
+      if (use.building.levels > 0) place('scaffold', 5.6, 1, true, 24);
+    }
+
+    // Farmland: tilled plots nearest the settlement, grazing beyond them.
+    const fields: FieldPatch[] = [];
+    if (use && (use.fields > 0 || use.pasture > 0)) {
+      const nf = use.fields > 0 ? clamp(Math.round(use.fields / 3.5), 1, 14) : 0;
+      const np = use.pasture > 0 ? clamp(Math.round(use.pasture / 5), 1, 5) : 0;
+      const cand: { x: number; y: number; d: number }[] = [];
+      const sp = 15;
+      const [x0, y0, x1, y1] = p.bbox;
+      let row = 0;
+      for (let y = y0 + 8; y < y1; y += sp * 0.8, row++) {
+        for (let x = x0 + (row & 1 ? sp / 2 : 0) + 6; x < x1; x += sp * 1.25) {
+          const gx = x + (rand() - 0.5) * 5, gy = y + (rand() - 0.5) * 4;
+          cand.push({ x: gx, y: gy, d: Math.hypot(gx - p.cx, (gy - p.cy) * 1.25) });
+        }
+      }
+      cand.sort((a, b) => a.d - b.d);
+      for (const c of cand) {
+        if (fields.length >= nf + np) break;
+        const w = 13 + rand() * 6, h = 8 + rand() * 3.5;
+        if (Math.abs(c.x - p.cx) < 36 && c.y - p.cy > -3 && c.y - p.cy < 32) continue;
+        const corners = [[c.x - w / 2 - 3, c.y - h / 2], [c.x + w / 2 + 3, c.y - h / 2], [c.x + w / 2 + 3, c.y + h / 2], [c.x - w / 2 - 3, c.y + h / 2]];
+        if (!corners.every((q) => pointInPoly(flat, q[0], q[1]) && distToPolyEdge(r.poly, q[0], q[1]) > 4.5)) continue;
+        if (!free(c.x, c.y, Math.max(w, h) * 0.5)) continue;
+        if (fields.some((o) => Math.abs(o.x - c.x) < (o.w + w) / 2 + 2.5 && Math.abs(o.y - c.y) < (o.h + h) / 2 + 2.5)) continue;
+        fields.push({ x: c.x, y: c.y, w, h, skew: (rand() - 0.5) * 5, alt: rand() > 0.5, pasture: false, stead: 0 });
+      }
+      const graze = nf > 0 ? Math.min(np, Math.max(0, fields.length - 1)) : fields.length;
+      for (let i = 0; i < graze; i++) fields[fields.length - 1 - i].pasture = true;
+      // Farmsteads: rural settlement beside roughly every third plot.
+      let k = 0;
+      for (const f of fields) {
+        if (f.pasture || k++ % 3 !== 0) continue;
+        f.stead = 1 + (k & 1);
+        sites.push({ kind: 'hamlet', x: f.x + f.w / 2 + 1.5, y: f.y - f.h / 2 + 1, size: 3.4, n: f.stead, active: true });
+      }
+    }
+
+    // Terrain glyphs give way to what people have built.
+    const kept = glyphs.filter((g) => {
+      for (let i = 0; i < taken.length; i += 3) {
+        if (Math.hypot(g.x - taken[i], g.y - taken[i + 1]) < taken[i + 2] + 5) return false;
+      }
+      for (const f of fields) if (Math.abs(g.x - f.x) < f.w / 2 + 6 && Math.abs(g.y - f.y) < f.h / 2 + 6) return false;
+      return true;
+    });
+    return { town, sites, fields, glyphs: kept };
   }
 
   // --- drawing -----------------------------------------------------------------------
@@ -959,29 +1127,33 @@ export class Atlas {
     // 6. Terrain glyphs and tended fields.
     this.toWorld();
     if (mode !== 'population') {
-      const gAlpha = mode === 'terrain' ? 1 : mode === 'political' ? 0.62 : 0.34;
+      const gAlpha = mode === 'terrain' ? 0.9 : mode === 'political' ? 0.5 : mode === 'construction' ? 0.22 : 0.32;
       for (const p of visible) this.drawGlyphs(p, px, gAlpha);
+      const fAlpha = mode === 'resources' ? 0.5 : 0.95;
+      for (const p of visible) this.drawFarmland(p, px, fAlpha);
+      for (const p of visible) this.drawTown(p, px, mode === 'resources' ? 0.55 : 1);
     }
 
     // 7. Line work.
+    // Border hierarchy: region borders are a thin secondary line, borders between
+    // realms a continuous heavy one over the coloured bands, the coast a sea-ink line.
     ctx.setLineDash([]);
-    ctx.strokeStyle = alpha(INK_2, mode === 'terrain' ? 0.3 : 0.4);
-    ctx.lineWidth = 0.75 * px;
+    ctx.strokeStyle = alpha(INK_2, mode === 'terrain' ? 0.34 : 0.5);
+    ctx.lineWidth = clamp(0.95 * Math.sqrt(s), 0.8, 1.5) * px;
     ctx.stroke(this.internalPath);
-    if (mode !== 'terrain') {
-      ctx.strokeStyle = alpha(INK, 0.5);
-      ctx.lineWidth = 1.1 * px;
-      ctx.setLineDash([5 * px, 2.2 * px, 1.2 * px, 2.2 * px]);
-      ctx.stroke(this.politicalPath);
-      ctx.setLineDash([]);
-    }
+    ctx.strokeStyle = alpha(PAPER_LIGHT, mode === 'terrain' ? 0.25 : 0.5);
+    ctx.lineWidth = clamp(3.6 * Math.sqrt(s), 3, 5.6) * px;
+    ctx.stroke(this.politicalPath);
+    ctx.strokeStyle = alpha(INK, mode === 'terrain' ? 0.55 : 0.88);
+    ctx.lineWidth = clamp(1.9 * Math.sqrt(s), 1.6, 3.2) * px;
+    ctx.stroke(this.politicalPath);
     ctx.strokeStyle = alpha(INK_3, 0.75);
     ctx.lineWidth = 1.1 * px;
     ctx.setLineDash([0.1 * px, 4.2 * px]);
     ctx.stroke(this.unknownPath);
     ctx.setLineDash([]);
-    ctx.strokeStyle = alpha(INK, 0.9);
-    ctx.lineWidth = clamp(1.7 * Math.sqrt(s), 1.2, 2.6) * px;
+    ctx.strokeStyle = alpha(COAST_INK, 0.92);
+    ctx.lineWidth = clamp(1.6 * Math.sqrt(s), 1.2, 2.4) * px;
     ctx.stroke(this.coastPath);
 
     // Rivers.
@@ -1068,22 +1240,27 @@ export class Atlas {
     }
     const hov = ov.hovered != null ? this.byId.get(ov.hovered) : undefined;
     if (hov && ov.hovered !== ov.selected) {
-      ctx.fillStyle = alpha('#fffbea', 0.2);
+      ctx.fillStyle = alpha('#fffbea', 0.24);
       ctx.fill(hov.path);
-      ctx.strokeStyle = alpha(INK, 0.75);
-      ctx.lineWidth = 1.6 * px;
+      ctx.strokeStyle = alpha(PAPER_LIGHT, 0.9);
+      ctx.lineWidth = 4.2 * px;
+      ctx.stroke(hov.path);
+      ctx.strokeStyle = alpha(INK, 0.85);
+      ctx.lineWidth = 1.8 * px;
       ctx.stroke(hov.path);
     }
     const sel = ov.selected != null ? this.byId.get(ov.selected) : undefined;
     if (sel) {
-      ctx.strokeStyle = alpha(PAPER_LIGHT, 0.95);
-      ctx.lineWidth = 5.6 * px;
+      ctx.fillStyle = alpha('#fffbea', 0.14);
+      ctx.fill(sel.path);
+      ctx.strokeStyle = alpha(PAPER_LIGHT, 0.96);
+      ctx.lineWidth = 7 * px;
       ctx.stroke(sel.path);
       ctx.strokeStyle = INK;
-      ctx.lineWidth = 3.4 * px;
+      ctx.lineWidth = 4.4 * px;
       ctx.stroke(sel.path);
-      ctx.strokeStyle = GOLD;
-      ctx.lineWidth = 1.2 * px;
+      ctx.strokeStyle = '#e3b64f';
+      ctx.lineWidth = 1.8 * px;
       ctx.stroke(sel.path);
     }
 
@@ -1101,7 +1278,8 @@ export class Atlas {
     const tint = TINT[r.terrain];
     let base: string;
     if (mode === 'terrain') base = tint;
-    else if (mode === 'political') base = mix(LAND_BASE, tint, 0.55);
+    else if (mode === 'political') base = mix(LAND_BASE, tint, 0.5);
+    else if (mode === 'construction') base = mix(LAND_BASE, tint, 0.12);
     else base = mix(LAND_BASE, tint, 0.22);
     if (remembered) base = mix(base, GREY_PAPER, 0.72);
     ctx.fillStyle = base;
@@ -1131,10 +1309,11 @@ export class Atlas {
       ctx.globalAlpha = 1;
     }
 
-    if (mode === 'construction' && r.own) {
-      const lv = r.own.facilities.reduce((n, f) => n + f.level, 0);
-      ctx.fillStyle = mix('#e6dfc9', '#467b73', Math.min(1, lv / 24));
+    if (mode === 'construction' && p.use) {
+      ctx.fillStyle = BUILT_RAMP[builtClass(p.use.total)];
+      ctx.globalAlpha = 0.92;
       ctx.fill(p.path);
+      ctx.globalAlpha = 1;
     }
     if (mode === 'population') {
       let people: number | null = null;
@@ -1161,11 +1340,12 @@ export class Atlas {
     }
 
     if (ownerCol && mode !== 'population' && mode !== 'construction') {
-      const wash = mode === 'political' ? (remembered ? 0.1 : 0.38) : remembered ? 0.04 : 0.07;
+      const wash = mode === 'political' ? (remembered ? 0.2 : 0.4) : remembered ? 0.04 : 0.07;
       ctx.fillStyle = alpha(ownerCol, wash);
       ctx.fill(p.path);
     }
-    if (remembered) this.hatch(p, px, 7, -1, alpha(INK_2, 0.17), 0.8);
+    // Remembered land is greyed; a sparse, faint hatch says so without shouting.
+    if (remembered) this.hatch(p, px, 10, -1, alpha(INK_2, 0.09), 0.8);
     if (occupied) this.hatch(p, px, 9, 1, alpha(this.colorOf(r.controller), 0.7), 2.4);
 
     // Inner coloured border along edges that face another owner.
@@ -1177,8 +1357,8 @@ export class Atlas {
         ctx.lineWidth = 2 * clamp(11 * px, 7, 20);
         ctx.stroke(p.ownerEdges);
       }
-      ctx.strokeStyle = alpha(ownerCol, (strong ? 0.72 : 0.6) * k);
-      ctx.lineWidth = 2 * (strong ? clamp(4.2 * px, 3, 8) : clamp(2.4 * px, 1.6, 5));
+      ctx.strokeStyle = alpha(strong ? mix(ownerCol, '#2b2620', 0.12) : ownerCol, (strong ? 0.86 : 0.62) * k);
+      ctx.lineWidth = 2 * (strong ? clamp(4.6 * px, 3, 9) : clamp(2.6 * px, 1.6, 5));
       ctx.stroke(p.ownerEdges);
     }
     // Land fades into paper where knowledge ends (kept inside this region's own outline).
@@ -1210,36 +1390,49 @@ export class Atlas {
     ctx.stroke();
   }
 
-  private drawGlyphs(p: Prep, px: number, modeAlpha: number): void {
+  /** Tilled plots and grazing, as many as the levels of fields and pasture reported. */
+  private drawFarmland(p: Prep, px: number, a: number): void {
+    if (!p.fields.length) return;
     const ctx = this.ctx;
-    const r = p.r;
-    const remembered = r.visibility === 'remembered';
     const s = this.scale;
-    // Grow glyphs a little when zoomed out and thin them so density on screen stays calm.
-    const grow = clamp(0.85 / s, 1, 1.9);
-    const keep = clamp(1 / (grow * grow) + 0.08, 0.2, 1);
-    const ink = remembered ? INK_3 : INK_2;
-    const a = modeAlpha * (remembered ? 0.5 : 1);
+    const fine = s >= 1.25;
     ctx.globalAlpha = a;
-    ctx.lineWidth = clamp(0.9 * px, 0.45, 1.4);
-    ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    const t = r.terrain;
-
-    // Tended fields first (they sit on the ground).
-    if (p.fields.length) {
-      for (const f of p.fields) {
-        const x0 = f.x - f.w / 2, y0 = f.y - f.h / 2;
+    ctx.lineWidth = clamp(0.8 * px, 0.3, 1.2);
+    for (const f of p.fields) {
+      const x0 = f.x - f.w / 2, y0 = f.y - f.h / 2;
+      if (f.pasture) {
         ctx.beginPath();
-        ctx.moveTo(x0 + f.skew, y0);
-        ctx.lineTo(x0 + f.w + f.skew, y0);
-        ctx.lineTo(x0 + f.w, y0 + f.h);
-        ctx.lineTo(x0, y0 + f.h);
-        ctx.closePath();
-        ctx.fillStyle = f.alt ? '#d6c56f' : '#bfcb7c';
+        ctx.ellipse(f.x, f.y, f.w / 2, f.h / 2, 0, 0, Math.PI * 2);
+        ctx.fillStyle = alpha('#cfdba8', 0.8);
         ctx.fill();
-        ctx.strokeStyle = alpha('#6a5a2c', 0.85);
-        ctx.stroke();
+        if (fine) {
+          ctx.setLineDash([1.2 * px, 2.6 * px]);
+          ctx.strokeStyle = alpha('#5f7436', 0.5);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        if (fine) {
+          ctx.fillStyle = alpha('#5f7436', 0.75);
+          for (const [dx, dy] of [[-0.25, -0.1], [0.12, 0.18], [0.28, -0.16], [-0.08, 0.02]]) {
+            ctx.beginPath();
+            ctx.arc(f.x + dx * f.w, f.y + dy * f.h, clamp(0.9 * px, 0.25, 0.7), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        continue;
+      }
+      ctx.beginPath();
+      ctx.moveTo(x0 + f.skew, y0);
+      ctx.lineTo(x0 + f.w + f.skew, y0);
+      ctx.lineTo(x0 + f.w, y0 + f.h);
+      ctx.lineTo(x0, y0 + f.h);
+      ctx.closePath();
+      ctx.fillStyle = f.alt ? '#dccd7e' : '#c8cf88';
+      ctx.fill();
+      ctx.strokeStyle = alpha('#6a5a2c', fine ? 0.7 : 0.5);
+      ctx.stroke();
+      if (fine) {
         ctx.beginPath();
         const rows = 4;
         for (let i = 1; i < rows; i++) {
@@ -1248,10 +1441,62 @@ export class Atlas {
           ctx.moveTo(x0 + sk + 1, yy);
           ctx.lineTo(x0 + f.w + sk - 1, yy);
         }
-        ctx.strokeStyle = alpha('#6a5a2c', 0.6);
+        ctx.strokeStyle = alpha('#6a5a2c', 0.42);
         ctx.stroke();
       }
     }
+    ctx.globalAlpha = 1;
+  }
+
+  /** The built-up ground of a settlement; its radius follows the population. */
+  private drawTown(p: Prep, px: number, a: number): void {
+    const t = p.town;
+    if (!t) return;
+    const ctx = this.ctx;
+    const s = this.scale;
+    const rem = p.r.visibility === 'remembered';
+    const modern = t.era >= 3;
+    ctx.globalAlpha = a * (rem ? 0.6 : 1);
+    ctx.fillStyle = alpha(modern ? '#bdb8ae' : '#d2c3a0', 0.72);
+    ctx.beginPath();
+    ctx.ellipse(p.cx, p.cy, t.r * 1.1, t.r * 0.92, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = alpha(INK_2, 0.35);
+    ctx.lineWidth = 0.7 * px;
+    ctx.stroke();
+    if (t.r * s >= 7) {
+      const own = p.r.owner != null && !rem ? this.colorOf(p.r.owner) : '#9a9488';
+      const roofA = mix(own, modern ? '#8b9097' : '#a8573a', 0.62);
+      const roofB = mix(roofA, PAPER_LIGHT, 0.32);
+      const outline = 2.3 * s >= 7;
+      ctx.lineWidth = 0.6 * px;
+      ctx.strokeStyle = alpha(INK, 0.55);
+      const b = t.blocks;
+      for (let i = 0; i < b.length; i += 4) {
+        ctx.fillStyle = (i >> 2) % 3 === 0 ? roofB : roofA;
+        ctx.fillRect(b[i] - b[i + 2] / 2, b[i + 1] - b[i + 3] / 2, b[i + 2], b[i + 3]);
+        if (outline) ctx.strokeRect(b[i] - b[i + 2] / 2, b[i + 1] - b[i + 3] / 2, b[i + 2], b[i + 3]);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  private drawGlyphs(p: Prep, px: number, modeAlpha: number): void {
+    const ctx = this.ctx;
+    const r = p.r;
+    const remembered = r.visibility === 'remembered';
+    const s = this.scale;
+    // Grow glyphs a little when zoomed out and thin them so density on screen stays calm.
+    // Zoomed in, they grow slower than the land: relief stays a suggestion, not a forest of signs.
+    const grow = s < 0.85 ? clamp(0.85 / s, 1, 1.9) : Math.pow(0.85 / s, 0.62);
+    const keep = clamp(1 / (grow * grow) + 0.08, 0.2, 1);
+    const ink = remembered ? INK_3 : INK_2;
+    const a = modeAlpha * (remembered ? 0.5 : 1);
+    ctx.globalAlpha = a;
+    ctx.lineWidth = clamp(0.9 * px, 0.45, 1.4);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const t = r.terrain;
 
     for (const g of p.glyphs) {
       if (g.rank > keep) continue;
@@ -1447,7 +1692,7 @@ export class Atlas {
     const d = this.data;
     if (!d) return;
     const s = this.scale;
-    const k = clamp(Math.pow(s / 0.8, 0.6), 0.72, 1.75);
+    const k = clamp(Math.pow(s / 0.8, 0.6), 0.72, 2);
     const ov = this.overlay;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -1492,9 +1737,10 @@ export class Atlas {
       ctx.beginPath(); ctx.arc(x, y - 3 * k, rad + 4, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // Army order arrows (under the markers).
+    // Army order arrows (under the markers). The development view leaves the armies out.
+    const showArmies = mode !== 'construction';
     for (const a of d.armies) {
-      if (a.target == null || a.target === a.region) continue;
+      if (!showArmies || a.target == null || a.target === a.region) continue;
       const from = this.byId.get(a.region), to = this.byId.get(a.target);
       if (!from || !to) continue;
       const [x0, y0] = this.worldToScreen(from.cx, from.cy);
@@ -1530,8 +1776,39 @@ export class Atlas {
       ctx.stroke();
     }
 
-    // Settlements, capital star, pictogram rows.
-    const showIcons = s >= 0.5;
+    // Works standing on the land: drawn in place at their real size once that size can be
+    // read, and summed into the sector chips under the name when it cannot.
+    if (mode !== 'population') {
+      const drawn: { st: PlacedSite; x: number; y: number; rem: boolean }[] = [];
+      for (const p of visible) {
+        for (const st of p.sites) {
+          // Too small to read is not drawn at all: the chips carry it. A large works shows from afar.
+          if (st.size * s < (st.kind === 'industry' ? 4.6 : 6.2)) continue;
+          const [x, y] = this.worldToScreen(st.x, st.y);
+          drawn.push({ st, x, y, rem: p.r.visibility === 'remembered' });
+        }
+      }
+      drawn.sort((a, b) => a.y - b.y);
+      ctx.globalAlpha = mode === 'resources' ? 0.6 : 1;
+      for (const { st, x, y, rem } of drawn) {
+        const [ew, eh] = siteExtent(st.kind, st.n);
+        const half = clamp(st.size * s, 7, 76);
+        const u = half / ew;
+        const gy = y + eh * u * 0.4;
+        ctx.fillStyle = alpha(PAPER_LIGHT, 0.5);
+        ctx.beginPath();
+        ctx.ellipse(x, gy, half * 1.12, Math.max(2, half * 0.3), 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.save();
+        ctx.translate(x, gy);
+        ctx.scale(u, u);
+        drawSite(ctx, st.kind, { n: st.n, active: st.active, faded: rem, px: 1 / u, depositColor: st.color, coarse: u < 0.75 });
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Settlements and the capital star.
     const rows: { p: Prep; x: number; y: number; labelY: number }[] = [];
     for (const p of visible) {
       const [x, y] = this.worldToScreen(p.cx, p.cy);
@@ -1540,39 +1817,41 @@ export class Atlas {
       let labelY = y + 9 * k;
       if (r.settlement !== 'wilderness') {
         const roof = remembered ? '#9a9488' : mix(r.owner != null ? this.colorOf(r.owner) : '#a8573a', '#3a2a20', 0.12);
-        this.drawSettlement(r.settlement, x, y + 4 * k, k, roof, remembered);
+        const era = p.town?.era ?? 0;
+        this.drawSettlement(r.settlement, x, y + 4 * k, k, roof, remembered, era);
         labelY = y + 4 * k + 12 + 2 * k;
         if (d.capital === r.id) this.drawStar(x, y + 4 * k - this.settlementHeight(r.settlement) * k - 8 * k, 5.2 * k, this.colorOf(d.mySeat));
       }
       rows.push({ p, x, y, labelY });
     }
 
-    // Labels with greedy collision avoidance.
+    // Labels with greedy collision avoidance: the most important name wins the space.
     const labelAlpha = clamp((s - 0.36) / 0.16, 0, 1);
     const placed: [number, number, number, number][] = [];
+    const hits = (rect: [number, number, number, number]) => placed.some((q) => rect[0] < q[2] && rect[2] > q[0] && rect[1] < q[3] && rect[3] > q[1]);
     const order = rows.slice().sort((a, b) => this.labelPriority(b.p) - this.labelPriority(a.p));
-    const labelled = new Set<number>();
+    const labelled = new Map<number, number>();
     for (const row of order) {
       const r = row.p.r;
       const forced = r.id === ov.selected || r.id === ov.hovered;
       const al = forced ? 1 : labelAlpha * (r.visibility === 'remembered' ? 0.75 : 1);
       if (al <= 0.02) continue;
       const rank = SETTLEMENT_RANK[r.settlement];
-      const size = clamp((rank >= 4 ? 13.5 : rank >= 2 ? 12.5 : 11.5) * clamp(k, 0.9, 1.25), 10.5, 17);
+      const size = clamp((rank >= 4 ? 14 : rank >= 2 ? 12.5 : 11.5) * clamp(k, 0.9, 1.3), 10.5, 18);
       const weight = r.visibility === 'own' || rank >= 3 ? 700 : 600;
       ctx.font = `small-caps ${weight} ${size}px ${SERIF}`;
       this.setLetterSpacing('0.7px');
       const text = r.name;
       const tw = ctx.measureText(text).width;
-      const rect: [number, number, number, number] = [row.x - tw / 2 - 3, row.labelY - size * 0.85, row.x + tw / 2 + 3, row.labelY + size * 0.3];
-      if (!forced && placed.some((q) => rect[0] < q[2] && rect[2] > q[0] && rect[1] < q[3] && rect[3] > q[1])) continue;
+      const rect: [number, number, number, number] = [row.x - tw / 2 - 4, row.labelY - size * 0.9, row.x + tw / 2 + 4, row.labelY + size * 0.34];
+      if (!forced && hits(rect)) continue;
       placed.push(rect);
-      labelled.add(r.id);
+      labelled.set(r.id, rect[3]);
       ctx.globalAlpha = al;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.strokeStyle = alpha(PAPER_LIGHT, 0.92);
-      ctx.lineWidth = 3.4;
+      ctx.strokeStyle = alpha(PAPER_LIGHT, 0.94);
+      ctx.lineWidth = 3.6;
       ctx.strokeText(text, row.x, row.labelY);
       ctx.fillStyle = r.visibility === 'remembered' ? INK_2 : INK;
       ctx.fillText(text, row.x, row.labelY);
@@ -1580,20 +1859,49 @@ export class Atlas {
     }
     this.setLetterSpacing('0px');
 
-    // Pictogram rows under the label.
-    for (const row of rows) {
+    // Under the name: what the region holds, sector by sector. A row that would run into
+    // another region's name is dropped rather than overprinted.
+    const ck = clamp(k, 0.9, 1.3);
+    for (const row of order) {
       const r = row.p.r;
-      const base = row.labelY + (labelled.has(r.id) ? 12 : -2) * 1;
+      const forced = r.id === ov.selected || r.id === ov.hovered;
+      const under = labelled.get(r.id);
       if (mode === 'resources') {
-        this.drawResources(row.p, row.x, base + 1, k);
-      } else if (showIcons && row.p.icons.length) {
-        const icons = row.p.icons.slice(0, 6);
-        const step = 15 * clamp(k, 0.85, 1.2);
-        let ix = row.x - ((icons.length - 1) * step) / 2;
-        for (const ic of icons) {
-          this.drawFacilityIcon(ic, ix, base + 1, clamp(k, 0.85, 1.2));
-          ix += step;
+        this.drawResources(row.p, row.x, row.labelY + (under !== undefined ? 11 : -3), k);
+        continue;
+      }
+      // Top of the row: just clear of the name, or where the name would have been.
+      const top = under !== undefined ? under + 2.5 : row.labelY - 8;
+      const use = row.p.use;
+      if (!use || mode === 'population') continue;
+      if (mode === 'construction') {
+        const w = 58 * ck, h = 7 * ck;
+        const base = top + h / 2 + 2;
+        const rect: [number, number, number, number] = [row.x - w / 2 - 3, top, row.x + w / 2 + 26 * ck, base + h / 2 + (use.building.levels > 0 ? 20 * ck : 3)];
+        if (!forced && hits(rect)) continue;
+        placed.push(rect);
+        this.drawSectorBar(use, row.x - w / 2, base - h / 2, w, h, ck);
+        if (use.building.levels > 0) {
+          drawChip(ctx, { glyph: 'build', color: BUILD_AMBER, magnitude: 4, label: '+' + use.building.levels }, row.x - w / 2 + 8 * ck, base + h / 2 + 11 * ck, ck * 0.82);
         }
+        continue;
+      }
+      const chips = sectorChips(use, s < 1.05 && !forced);
+      if (!chips.length) continue;
+      const gap = 3 * ck;
+      let w = -gap;
+      for (const c of chips) w += chipRadius(c.magnitude, ck) * 2 + gap + (c.label ? 16 * ck : 0);
+      let rmax = 0;
+      for (const c of chips) rmax = Math.max(rmax, chipRadius(c.magnitude, ck));
+      const base = top + rmax + 1;
+      const rect: [number, number, number, number] = [row.x - w / 2 - 2, top, row.x + w / 2 + 2, base + rmax + 2];
+      if (!forced && hits(rect)) continue;
+      placed.push(rect);
+      let cx = row.x - w / 2;
+      for (const c of chips) {
+        const rad = chipRadius(c.magnitude, ck);
+        const used = drawChip(ctx, c, cx + rad, base, ck);
+        cx += Math.max(used, rad * 2 + (c.label ? 16 * ck : 0)) + gap;
       }
     }
 
@@ -1604,7 +1912,7 @@ export class Atlas {
       perRegion.set(region, n + 1);
       return n;
     };
-    for (const a of d.armies) {
+    for (const a of showArmies ? d.armies : []) {
       const p = this.byId.get(a.region);
       if (!p) continue;
       const [x, y] = this.worldToScreen(p.cx, p.cy);
@@ -1621,7 +1929,7 @@ export class Atlas {
         training: a.training_months_left > 0, battle: a.in_battle, lowSupply: a.supply_bp < 5000,
       });
     }
-    for (const a of d.foreignArmies) {
+    for (const a of showArmies ? d.foreignArmies : []) {
       const p = this.byId.get(a.region);
       if (!p) continue;
       const [x, y] = this.worldToScreen(p.cx, p.cy);
@@ -1651,8 +1959,12 @@ export class Atlas {
     return kind === 'camp' ? 8 : kind === 'village' ? 9 : kind === 'town' ? 17 : kind === 'city' ? 20 : 28;
   }
 
-  private drawSettlement(kind: SettlementKind, x: number, y: number, k: number, roof: string, faded: boolean): void {
+  private drawSettlement(kind0: SettlementKind, x: number, y: number, k0: number, roof: string, faded: boolean, era = 0): void {
     const ctx = this.ctx;
+    // An industrial-age city is drawn as a smaller skyline rather than a walled town.
+    const kind: SettlementKind = era >= 3 && kind0 === 'city' ? 'metropolis' : kind0;
+    const k = kind !== kind0 ? k0 * 0.8 : k0;
+    const modernTown = era >= 3 && kind === 'town';
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(k, k);
@@ -1689,6 +2001,19 @@ export class Atlas {
     ctx.beginPath();
     ctx.ellipse(0, -this.settlementHeight(kind) * 0.42, halfW + 3, this.settlementHeight(kind) * 0.62 + 3, 0, 0, Math.PI * 2);
     ctx.fill();
+    if (modernTown) {
+      // Flat-roofed blocks: a town of the machine age.
+      for (const [bx, w, h] of [[-14, 6, 6], [-7.5, 5, 10], [-2, 6.5, 7.5], [5, 5, 12], [10.5, 5.5, 6.5]] as [number, number, number][]) {
+        block(bx, 0, w, h, wall);
+        ctx.fillStyle = roof;
+        ctx.beginPath();
+        ctx.rect(bx, -h, w, 1.8);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
     switch (kind) {
       case 'camp': {
         const tent = (tx: number, w: number, h: number) => {
@@ -1841,20 +2166,36 @@ export class Atlas {
     ctx.stroke();
   }
 
-  private drawFacilityIcon(icon: FacilityIcon, x: number, y: number, k: number): void {
+  /** Built levels by sector as one stacked bar, with the total beside it. */
+  private drawSectorBar(use: LandUse, x: number, y: number, w: number, h: number, k: number): void {
     const ctx = this.ctx;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(k, k);
-    ctx.lineWidth = 1 / k;
-    ctx.fillStyle = PAPER_LIGHT;
-    ctx.strokeStyle = alpha(INK, 0.85);
-    ctx.beginPath();
-    ctx.arc(0, 0, 6.6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    drawFacilityGlyph(ctx, icon, 1.15 / k);
-    ctx.restore();
+    ctx.fillStyle = alpha(PAPER_LIGHT, 0.95);
+    ctx.fillRect(x - 1.5, y - 1.5, w + 3, h + 3);
+    let cx = x;
+    if (use.total > 0) {
+      for (const sec of SECTORS) {
+        const v = use.sectors[sec];
+        if (v <= 0) continue;
+        const sw = (v / use.total) * w;
+        ctx.fillStyle = SECTOR_COLOR[sec];
+        ctx.fillRect(cx, y, sw, h);
+        // A hairline of paper between segments keeps neighbours apart.
+        ctx.fillStyle = PAPER_LIGHT;
+        ctx.fillRect(cx + sw - 0.6, y, 0.6, h);
+        cx += sw;
+      }
+    }
+    ctx.strokeStyle = alpha(INK, 0.8);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 0.5, y - 0.5, w + 1, h + 1);
+    ctx.font = `700 ${Math.round(10.5 * k)}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = alpha(PAPER_LIGHT, 0.95);
+    ctx.strokeText(String(use.total), x + w + 5, y + h / 2 + 0.5);
+    ctx.fillStyle = INK;
+    ctx.fillText(String(use.total), x + w + 5, y + h / 2 + 0.5);
   }
 
   private drawResources(p: Prep, x: number, y: number, k: number): void {
@@ -2039,105 +2380,4 @@ export function drawDepositGlyph(ctx: CanvasRenderingContext2D, kind: Deposit, x
   ctx.lineCap = 'round';
   ctx.stroke();
   ctx.setLineDash([]);
-}
-
-/** Facility pictograms drawn in a 12×12 box centred on the origin. */
-export function drawFacilityGlyph(ctx: CanvasRenderingContext2D, icon: FacilityIcon, lw: number): void {
-  ctx.strokeStyle = INK;
-  ctx.fillStyle = INK;
-  ctx.lineWidth = lw;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  switch (icon) {
-    case 'mine':
-      // Pick: curved head and a handle.
-      ctx.moveTo(-3.6, -1.2);
-      ctx.quadraticCurveTo(0, -5, 3.6, -1.2);
-      ctx.moveTo(0, -3.1);
-      ctx.lineTo(0, 4);
-      ctx.stroke();
-      break;
-    case 'workshop':
-      // Hammer.
-      ctx.moveTo(-2.6, 3.8);
-      ctx.lineTo(1.2, -0.8);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-1.2, -3.4); ctx.lineTo(3.6, 0.2); ctx.lineTo(2.2, 2); ctx.lineTo(-2.6, -1.6);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case 'industry':
-      // Sawtooth works with a chimney.
-      ctx.moveTo(-4, 3.2); ctx.lineTo(-4, -0.4); ctx.lineTo(-1.4, 1.2); ctx.lineTo(-1.4, -0.4); ctx.lineTo(1.2, 1.2);
-      ctx.lineTo(1.2, -4); ctx.lineTo(3.2, -4); ctx.lineTo(4, 3.2);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case 'school':
-      // Open book.
-      ctx.moveTo(0, -2.2);
-      ctx.quadraticCurveTo(-2.2, -3.6, -4.2, -2.6);
-      ctx.lineTo(-4.2, 2.6);
-      ctx.quadraticCurveTo(-2.2, 1.6, 0, 3);
-      ctx.quadraticCurveTo(2.2, 1.6, 4.2, 2.6);
-      ctx.lineTo(4.2, -2.6);
-      ctx.quadraticCurveTo(2.2, -3.6, 0, -2.2);
-      ctx.lineTo(0, 3);
-      ctx.stroke();
-      break;
-    case 'lab':
-      // Flask.
-      ctx.moveTo(-1.2, -4); ctx.lineTo(1.2, -4);
-      ctx.moveTo(-0.9, -4); ctx.lineTo(-0.9, -1); ctx.lineTo(-3.4, 3.4); ctx.lineTo(3.4, 3.4); ctx.lineTo(0.9, -1); ctx.lineTo(0.9, -4);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-2.3, 1.4); ctx.lineTo(2.3, 1.4); ctx.lineTo(3.4, 3.4); ctx.lineTo(-3.4, 3.4);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case 'power':
-      // Bolt.
-      ctx.moveTo(1.4, -4.4); ctx.lineTo(-2.6, 0.6); ctx.lineTo(-0.2, 0.6); ctx.lineTo(-1.4, 4.4); ctx.lineTo(2.6, -0.8); ctx.lineTo(0.2, -0.8);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case 'port':
-      // Anchor.
-      ctx.arc(0, -3.2, 1, 0, Math.PI * 2);
-      ctx.moveTo(0, -2.2); ctx.lineTo(0, 3.8);
-      ctx.moveTo(-2, -0.6); ctx.lineTo(2, -0.6);
-      ctx.moveTo(-3.6, 1); ctx.quadraticCurveTo(-3, 3.8, 0, 3.8); ctx.quadraticCurveTo(3, 3.8, 3.6, 1);
-      ctx.stroke();
-      break;
-    case 'launch':
-      // Rocket.
-      ctx.moveTo(0, -4.6);
-      ctx.quadraticCurveTo(2.2, -2, 1.6, 2);
-      ctx.lineTo(-1.6, 2);
-      ctx.quadraticCurveTo(-2.2, -2, 0, -4.6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(-1.6, 0.6); ctx.lineTo(-3.4, 3.2); ctx.lineTo(-1.4, 2.4);
-      ctx.moveTo(1.6, 0.6); ctx.lineTo(3.4, 3.2); ctx.lineTo(1.4, 2.4);
-      ctx.moveTo(0, 2.6); ctx.lineTo(0, 4.4);
-      ctx.stroke();
-      break;
-    case 'jump':
-      // Ring with a four-point star.
-      ctx.arc(0, 0, 4.1, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const a = -Math.PI / 2 + (Math.PI / 4) * i;
-        const rr = i % 2 ? 0.9 : 3;
-        if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
-        else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-      }
-      ctx.closePath();
-      ctx.fill();
-      break;
-  }
 }
