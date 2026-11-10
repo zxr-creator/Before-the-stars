@@ -67,8 +67,9 @@
 
 .title-pane { position: absolute; left: calc(clamp(28px, 6vw, 110px) + min(440px, 44vw) + 28px); top: 50%; transform: translateY(-50%); width: min(380px, 34vw); max-height: 70%; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px; color: var(--cream); background: var(--stars), linear-gradient(180deg, rgba(38, 48, 80, 0.94), rgba(18, 23, 38, 0.96)); border: 1px solid var(--brass-lo); border-radius: 10px; box-shadow: 0 0 0 1px rgba(241, 218, 152, 0.3) inset, 0 24px 60px rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); }
 .title-pane.is-small { width: min(340px, 34vw); }
-/* Observer quick start: three choices and one button. */
-.title-pane.is-observe { width: min(420px, 38vw); max-height: 86%; overflow-y: auto; gap: 10px; }
+/* Observer quick start: three choices and one button. It is taller than the other panes, so it
+   sits a little lower and never covers the end of the wordmark. */
+.title-pane.is-observe { width: min(420px, 38vw); top: calc(50% + 60px); max-height: min(86%, calc(100% - 264px)); overflow-y: auto; gap: 10px; }
 .title-pane.is-observe h2 { display: flex; align-items: center; gap: 8px; }
 .title-pane.is-observe .title-empty { margin: 0; }
 .tq-field { display: grid; gap: 4px; }
