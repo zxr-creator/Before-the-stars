@@ -53,8 +53,11 @@ out. Native/model-driven seats remain protected by the same authority checks.
 | `POST /api/actions` | `{seat, token, actions:[Action…]}` (at most 32) | `{receipts:[Receipt…]}` |
 | `POST /api/ready` | `{seat, token, through_round}` | Match summary after the referee has advanced as far as it can |
 | `POST /api/delegate` | `{seat, token, domains}` | Hands the listed domains of an external seat to a steward; returns the match summary |
-| `GET /api/saves`, `POST /api/save`, `POST /api/load` | `{name}` | Named saves under `saves/` |
-| `GET /api/session/export` | | The whole session as save text (the format of the save files). Refused (403) when a seat is `external` or tokens are required: a save holds the entire world |
+| `GET /api/saves`, `POST /api/save`, `POST /api/load` | `{name}` | Named saves under `saves/` (see [saves.md](saves.md) for these and the other save routes) |
+| `GET /api/savefile` | `?kind=manual\|auto&name=…&created=<ms>` | The whole session as a portable save file (`.btsave`, binary). Refused (403) when a seat is `external` or tokens are required: a save holds the entire world |
+| `POST /api/savefile/describe` | the file as the body | What the file is and whether it would load; loads nothing |
+| `POST /api/savefile/import` | the file as the body | Replaces the match and returns its summary with tokens. The file is verified, unpacked within its limits and rehearsed first; a refused file (`400 INVALID_SAVE` with a `reason`) leaves the match in progress untouched |
+| `GET /api/session/export` | | The whole session as bare save text (what a save file holds inside). Refused (403) like the save file |
 | `POST /api/session/import` | the save text as the body | Replaces the match and returns its summary with tokens. The save is checked and rehearsed first; a refused save (`400 INVALID_SAVE`) leaves the match in progress untouched |
 | `GET /api/export/chronicle` | `?seat=N&format=md\|json` | The seat's own chronicle |
 
@@ -144,7 +147,8 @@ A seat can be driven by a language model. In `POST /api/match`, use one of these
 
 `agent_options` fields: `model`, `consult_every` (ask the model every N rounds; default
 1), `api_key`, `base_url`, `effort`. A key sent here is kept in memory only and is never
-written to a save.
+written to a save; a `base_url` is saved without user information or query, either of
+which could carry one.
 
 A model seat is an ordinary external seat. Each time it is consulted the referee renders
 that seat's own observation as a compact text briefing and asks for one JSON object:

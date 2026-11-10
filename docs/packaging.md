@@ -14,8 +14,9 @@ the same file. Started without a command it opens the game in its own window.
 
 The window is a native window showing the client through the operating system's
 web view: WKWebView on macOS, WebView2 on Windows (part of Windows 11 and current
-Windows 10). Saves live in the per-user application-data directory. Nothing is
-installed besides the game.
+Windows 10). Saves live in the per-user application-data directory, and exported save
+files in its `exports` folder (the window cannot download; see [saves.md](saves.md)).
+Nothing is installed besides the game.
 
 ## Building packages
 
