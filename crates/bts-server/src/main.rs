@@ -948,8 +948,17 @@ fn main() {
     if argv.len() > 1 {
         attach_parent_console();
     }
-    let cmd = argv.get(1).map(|s| s.as_str()).filter(|s| !s.starts_with("--")).unwrap_or("app");
-    let explicit = argv.get(1).map(|s| !s.starts_with("--")).unwrap_or(false);
+    const USAGE: &str = "Before the Stars\n\n  bts                    the game in its own window\n  bts serve [--port N]   referee and web client for a browser or external agents\n  bts run | verify | inspect      headless matches, determinism check, one seat's view\n  bts match | observe | act | ready   talk to a running referee\n\nSee README.md and docs/agent-api.md.";
+    if matches!(argv.get(1).map(|s| s.as_str()), Some("--help" | "-h" | "help")) {
+        println!("{USAGE}");
+        return;
+    }
+    if matches!(argv.get(1).map(|s| s.as_str()), Some("--version" | "-V")) {
+        println!("bts {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+    let cmd = argv.get(1).map(|s| s.as_str()).filter(|s| !s.starts_with('-')).unwrap_or("app");
+    let explicit = argv.get(1).map(|s| !s.starts_with('-')).unwrap_or(false);
     let args = Args::parse(&argv[argv.len().min(if explicit { 2 } else { 1 })..]);
     let url = args.get("url", "http://127.0.0.1:7878");
     let seat: SeatId = args.num("seat", 0);
@@ -997,7 +1006,7 @@ fn main() {
             }
         }
         "ready" => http(&url, "POST", "/api/ready", Some(&serde_json::json!({ "seat": seat, "token": token, "through_round": args.has("round") }).to_string())),
-        _ => Err("usage: bts serve | run | verify | match | observe | act | ready  (see README.md)".into()),
+        other => Err(format!("unknown command '{other}'\n\n{USAGE}")),
     };
     match result {
         Ok(s) => {
