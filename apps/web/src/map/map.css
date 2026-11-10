@@ -298,3 +298,85 @@
 @media (max-width: 1300px) {
   .map-compass-wrap { display: none; }
 }
+
+/* --- renderer tiers: 3D map chrome ---------------------------------------------- */
+.map-view.is-3d { background: #2c1d12; }
+.map-moderow { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.map-tiers .map-mode { font-family: var(--sans, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif); font-size: 12px; padding: 5px 9px 6px; }
+.map-tier-note {
+  max-width: 290px;
+  padding: 4px 8px;
+  border: 1px solid var(--ink-3, #8a7d6a);
+  border-left: 3px solid var(--accent, #9c3d2a);
+  border-radius: 3px;
+  background: var(--paper-3, #f7f1e1);
+  font-size: 11.5px;
+  color: var(--ink-2, #5a5044);
+}
+.map-loading {
+  position: absolute;
+  left: calc(var(--mi-l) + (100% - var(--mi-l) - var(--mi-r)) / 2);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 16px;
+  border: 1px solid var(--ink-3, #8a7d6a);
+  border-radius: 4px;
+  background: var(--paper-3, #f7f1e1);
+  font-family: var(--serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ink-2, #5a5044);
+}
+.map-compass-btn {
+  appearance: none;
+  border: 1px solid rgba(60, 44, 28, 0.45);
+  border-radius: 50%;
+  padding: 3px;
+  background: rgba(253, 247, 229, 0.86);
+  box-shadow: 0 2px 8px rgba(30, 18, 6, 0.3);
+  color: var(--ink, #2b2620);
+  opacity: 0.92;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 2;
+}
+.map-compass-btn:hover { opacity: 1; background: #fffaea; }
+.map-compass-btn:focus-visible { outline: 2px solid var(--accent-2, #2f5d6e); outline-offset: 2px; }
+.map-compass-btn .map-compass { width: 54px; height: 59px; }
+.map-view.is-3d .map-controls, .map-view.is-3d .map-pick, .map-view.is-3d .map-tip { z-index: 3; }
+.map-view.is-3d .map-tip { z-index: 5; }
+.map-mini {
+  /* Top left: the bottom corners belong to the map controls and the round controls. */
+  position: absolute;
+  left: calc(var(--mi-l) + 14px);
+  top: calc(var(--mi-t) + 14px);
+  z-index: 3;
+  padding: 3px;
+  border: 1px solid var(--ink-3, #8a7d6a);
+  border-radius: 4px;
+  background: var(--paper-3, #f7f1e1);
+  box-shadow: 0 2px 8px rgba(30, 18, 6, 0.3);
+  line-height: 0;
+}
+.map-mini-canvas {
+  display: block;
+  width: 176px;
+  height: 110px;
+  border: 1px solid rgba(60, 44, 28, 0.5);
+  border-radius: 2px;
+  cursor: crosshair;
+  touch-action: none;
+}
+.map-tip-dep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--line, #cbbd9c);
+  font-variant-numeric: tabular-nums;
+}
+.map-tip-dep-name { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-weight: 700; }
+@media (max-width: 900px), (max-height: 560px) {
+  .map-mini { display: none; }
+}

@@ -10,10 +10,13 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
-    "preact": "^10.24.3"
+    "opencc-js": "^1.0.5",
+    "preact": "^10.24.3",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.9.1",
+    "@types/three": "^0.169.0",
     "playwright": "^1.48.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.10"

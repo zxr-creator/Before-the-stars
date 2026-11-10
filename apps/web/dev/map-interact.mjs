@@ -1,4 +1,4 @@
-// Throwaway interaction check for the map dev harness (fixture data only).
+// Throwaway interaction check for the flat atlas tier of the map dev harness (fixture data only).
 import { chromium } from 'playwright';
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
@@ -7,7 +7,7 @@ const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(String(e)));
 const out = {};
-await page.goto('http://127.0.0.1:5181/dev/map.html?n=72&seed=5');
+await page.goto('http://127.0.0.1:5181/dev/map.html?tier=flat&n=72&seed=5');
 await page.waitForSelector('[data-testid="map-canvas"]');
 await page.waitForTimeout(500);
 const log = () => page.textContent('[data-testid="dev-log"]');

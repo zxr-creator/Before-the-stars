@@ -1,4 +1,4 @@
-// Throwaway screenshot driver for the map dev harness.
+// Throwaway screenshot driver for the map dev harness (flat atlas tier; see scripts/map3d-shots.mjs for 3D).
 // usage: node dev/map-shots.mjs name "query" [width height dpr]
 import { chromium } from 'playwright';
 const [name, query = '', w = '1440', h = '900', dpr = '1'] = process.argv.slice(2);
@@ -8,7 +8,7 @@ const page = await ctx.newPage();
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(String(e)));
-await page.goto(`http://127.0.0.1:5181/dev/map.html?${query}`);
+await page.goto(`http://127.0.0.1:5181/dev/map.html?tier=flat&${query}`);
 await page.waitForSelector('[data-testid="map-canvas"]');
 await page.waitForTimeout(700);
 const hoverId = new URLSearchParams(query).get('hover');

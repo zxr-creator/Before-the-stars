@@ -1,5 +1,7 @@
-// Standalone harness for the atlas map: /dev/map.html
-// Query: ?src=fixture|live&seed=11&n=48&mode=terrain&zoom=1.6&sel=ID&pick=1&insets=1&focus=ID&bare=1
+// Standalone harness for the map (3D and flat tiers): /dev/map.html
+// Query: ?src=fixture|live|file&file=w48-r200&seed=11&n=48&mode=terrain&zoom=1.6&sel=ID&pick=1&insets=1&focus=ID&bare=1
+//        &tier=3d|flat&lang=zh-Hans&cam=x,z,dist[,headingDeg]&q=high|low|auto
+// `src=file` loads a real observation saved by scripts/map3d-worlds.mjs from dev/obs/<file>.json.
 import { render } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { Observation } from '../src/protocol';
@@ -8,6 +10,10 @@ import { makeFixture } from './map-fixture';
 
 const q = new URLSearchParams(location.search);
 const num = (k: string, d: number) => (q.has(k) ? Number(q.get(k)) : d);
+// The tier and language are read by MapView and the i18n module from storage at start-up.
+if (q.has('tier')) { try { localStorage.setItem('bts.mapTier', q.get('tier') === 'flat' ? 'flat' : '3d'); } catch { /* ignore */ } }
+try { if (q.has('q') && q.get('q') !== 'auto') localStorage.setItem('bts.mapQuality', q.get('q') ?? ''); else localStorage.removeItem('bts.mapQuality'); } catch { /* ignore */ }
+if (q.has('lang')) window.__btsI18n?.setLocale(q.get('lang') as 'en' | 'zh-Hans' | 'zh-Hant');
 
 function Dev() {
   const [src, setSrc] = useState(q.get('src') ?? 'fixture');
@@ -22,15 +28,16 @@ function Dev() {
   const fixture = useMemo(() => makeFixture(num('seed', 11), num('n', 48)), []);
 
   useEffect(() => {
-    if (src !== 'live') return;
+    if (src !== 'live' && src !== 'file') return;
     // Read-only: the harness never posts to the referee.
-    fetch(`/api/observation?seat=${num('seat', 0)}`)
+    fetch(src === 'file' ? `./obs/${q.get('file') ?? 'w48-r200'}.json` : `/api/observation?seat=${num('seat', 0)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
       .then((o: Observation) => setLive(o))
       .catch((e: Error) => setErr(String(e.message)));
   }, [src]);
 
-  const obs = src === 'live' ? live : fixture;
+  const obs = src === 'live' || src === 'file' ? live : fixture;
+  (window as unknown as { __devObs?: Observation | null }).__devObs = obs;
 
   useEffect(() => {
     if (!obs) return;
@@ -38,12 +45,16 @@ function Dev() {
     const f = q.has('focus') ? num('focus', 0) : null;
     const t = setTimeout(() => {
       if (f != null) setFocus({ region: f, nonce: 1 });
+      if (q.has('cam')) {
+        const [x, z, dist, hd] = (q.get('cam') ?? '').split(',').map(Number);
+        window.__map3d?.lookAt(x, z, dist, ((hd || 0) * Math.PI) / 180);
+      }
       if (z > 0) {
         const btn = document.querySelector<HTMLButtonElement>(z > 1 ? '[data-testid="map-zoom-in"]' : '[data-testid="map-zoom-out"]');
         const steps = Math.round(Math.abs(Math.log(z) / Math.log(1.35)));
         for (let i = 0; i < steps; i++) btn?.click();
       }
-    }, 60);
+    }, q.has('cam') ? 400 : 60);
     return () => clearTimeout(t);
   }, [obs]);
 
@@ -90,6 +101,8 @@ function Dev() {
           <div style={{ position: 'absolute', left: 56, right: 340, bottom: 0, height: 40, background: 'rgba(60,45,25,.5)' }} />
         </>
       )}
+      <span data-testid="dev-sel" style={{ display: 'none' }}>{selected ?? ''}</span>
+      <span data-testid="dev-status" style={{ display: 'none' }}>{log}</span>
       {!bare && (
         <div
           data-testid="dev-bar"
