@@ -33,9 +33,7 @@ export function GameMenu() {
     setCopied(false);
     setViewer({ title, text: null, file });
     try {
-      const res = await fetch(api.chronicleUrl(obs.seat, format), { cache: 'no-store' });
-      if (!res.ok) throw new Error(t('Server error {n}', { n: res.status }));
-      setViewer({ title, text: await res.text(), file });
+      setViewer({ title, text: await api.chronicleText(obs.seat, format), file });
     } catch (e) {
       setViewer({ title, text: '', file, error: e instanceof Error ? e.message : String(e) });
     }
@@ -107,6 +105,7 @@ export function GameMenu() {
               <input class="text" type="text" value={name} maxLength={40} aria-label={t('Save name')} data-testid="save-name" onInput={(e) => setName((e.target as HTMLInputElement).value)} />
               <Btn type="submit" nav icon="save" disabled={!name.trim()}>{t('Save')}</Btn>
             </form>
+            {api.features.durableSaves ? null : <p class="muted small" data-testid="save-local-note">{t('Browser build: a named save is kept only until this page is closed or reloaded.')}</p>}
           </Section>
           <Section title={t('Load')}>
             {s.saves.length ? (
@@ -129,8 +128,8 @@ export function GameMenu() {
                 </div>
               ) : (
                 <div class="row wrap">
-                  <a class="btn btn-default" href={api.chronicleUrl(obs.seat, 'md')} download={`chronicle-${obs.civ.name}.md`}>{t('Chronicle (Markdown)')}</a>
-                  <a class="btn btn-default" href={api.chronicleUrl(obs.seat, 'json')} download={`chronicle-${obs.civ.name}.json`}>{t('Chronicle (JSON)')}</a>
+                  <a class="btn btn-default" {...api.chronicleLink(obs.seat, 'md', `chronicle-${obs.civ.name}.md`)}>{t('Chronicle (Markdown)')}</a>
+                  <a class="btn btn-default" {...api.chronicleLink(obs.seat, 'json', `chronicle-${obs.civ.name}.json`)}>{t('Chronicle (JSON)')}</a>
                   <Btn kind="ghost" nav icon="eye" testid="export-view-md" onClick={() => void view('md')}>{t('View and copy…')}</Btn>
                 </div>
               )}

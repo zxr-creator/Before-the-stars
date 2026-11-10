@@ -297,8 +297,16 @@ function opensOnTitle(summary: MatchSummary): boolean {
   return !!desktopShell() || !!summary.app_mode;
 }
 
+// The in-browser referee has no connection to lose, but its engine can fail. That
+// ends the match it held: say so on the boot screen, where "Try again" starts a new one.
+api.onEngineFailure((message) => {
+  stopPlayback();
+  set({ boot: 'unreachable', bootError: t('The game engine stopped: {message}', { message }), menuOpen: false, overlay: null, busy: false, advancing: false });
+});
+
 export async function boot(): Promise<void> {
   set({ boot: 'loading', bootError: null });
+  api.restartEngine();
   try {
     const summary = await api.match();
     void refreshSaves();
@@ -422,6 +430,32 @@ function stopPlayback(): void {
   }
 }
 
+/**
+ * The in-page referee says when playback resolves a round, so the loop below need not
+ * wait out its polling delay (a server-backed referee says nothing: the delay stands).
+ */
+let playbackNews = 0;
+let wakePoll: (() => void) | null = null;
+api.onSessionChange((change) => {
+  if (change.cause !== 'playback') return;
+  playbackNews++;
+  wakePoll?.();
+});
+
+/** Wait `ms`, or less when the referee has reported a round since `heard`. */
+function untilNews(ms: number, heard: number): Promise<void> {
+  if (playbackNews !== heard) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      if (wakePoll === done) wakePoll = null;
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    wakePoll = done;
+  });
+}
+
 function agentsThinking(summary: MatchSummary): SeatId[] {
   return (summary.seats ?? []).filter((x) => x.agent && x.agent.state === 'thinking').map((x) => x.seat);
 }
@@ -436,6 +470,7 @@ async function follow(token: number, rounds: number | null): Promise<boolean> {
   const before = state.summary?.round ?? 0;
   setPlayback({ busy: true, error: null, waitingOn: [], waitingSince: Date.now() });
   try {
+    let heard = playbackNews;
     let summary = rounds === null ? await api.match() : await api.advance(rounds);
     const target = summary.autoplay_until ?? before + (rounds ?? 0);
     let seen = before;
@@ -457,7 +492,8 @@ async function follow(token: number, rounds: number | null): Promise<boolean> {
       // A referee that is not running anything (older build, or paused elsewhere) must not spin for ever.
       if (summary.autoplay_until !== undefined && summary.autoplay_until <= round) break;
       if (summary.autoplay_until === undefined && ++stalled > 40) throw new Error(t('The referee did not advance the match.'));
-      await sleep(wait);
+      await untilNews(wait, heard);
+      heard = playbackNews;
       wait = Math.min(1000, Math.round(wait * 1.7));
       summary = await api.match();
     }

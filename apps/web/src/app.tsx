@@ -3,6 +3,7 @@
 // notifications over the map, full-screen overlays, toasts and dialogs.
 import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren, JSX } from 'preact';
+import { api } from './api';
 import {
   PANEL_ORDER, PANEL_TITLE, boot, cancelPick, closeOverlay, dismissHandover, dismissResult, dismissToast, observerTick,
   openPanel, pollWhileWaiting, selectRegion, setMarked, setMenu, setWide, switchSeat, toggleOverlay, togglePanel, useApp,
@@ -192,7 +193,9 @@ export function App() {
     return (
       <Splash tone="bad">
         <p class="splash-error" role="alert"><Icon name="warn" /> {s.bootError ?? t('The local referee is not reachable.')}</p>
-        <p class="muted">{t('Start it with')} <code>scripts/run.sh</code>{t(', then try again.')}</p>
+        {api.features.local
+          ? <p class="muted" data-testid="engine-failure-note">{t('The game runs inside this page. Trying again starts a fresh engine; a match that was not saved is gone.')}</p>
+          : <p class="muted">{t('Start it with')} <code>scripts/run.sh</code>{t(', then try again.')}</p>}
         <Btn kind="primary" nav onClick={() => void boot()}>{t('Try again')}</Btn>
       </Splash>
     );

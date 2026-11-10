@@ -108,8 +108,8 @@ export function ChronicleSheet() {
           ))}
         </div>
         <div class="chron-tools">
-          <a class="btn btn-ghost btn-sm" href={api.chronicleUrl(obs.seat, 'md')} download={`chronicle-${obs.civ.name}.md`} data-testid="export-md"><Icon name="download" size={13} /><span>Markdown</span></a>
-          <a class="btn btn-ghost btn-sm" href={api.chronicleUrl(obs.seat, 'json')} download={`chronicle-${obs.civ.name}.json`} data-testid="export-json"><Icon name="download" size={13} /><span>JSON</span></a>
+          <a class="btn btn-ghost btn-sm" {...api.chronicleLink(obs.seat, 'md', `chronicle-${obs.civ.name}.md`)} data-testid="export-md"><Icon name="download" size={13} /><span>Markdown</span></a>
+          <a class="btn btn-ghost btn-sm" {...api.chronicleLink(obs.seat, 'json', `chronicle-${obs.civ.name}.json`)} data-testid="export-json"><Icon name="download" size={13} /><span>JSON</span></a>
           <Btn kind="ghost" small icon="left" title={t('Earlier')} onClick={() => scrollBy(-1)} />
           <Btn kind="ghost" small icon="right" title={t('Later')} onClick={() => scrollBy(1)} />
           <Btn kind="ghost" small icon="close" title={t('Close (Esc)')} testid="chronicle-close" onClick={() => openPanel(null)} />

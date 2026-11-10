@@ -1,0 +1,7 @@
+{
+ "Browser build: a named save is kept only until this page is closed or reloaded.": "瀏覽器版：命名存檔只保留到本頁面關閉或重新整理為止。",
+ "Browser build: the whole game runs in this page. Seats played by language models or external agents need the desktop or server game.": "瀏覽器版：整個遊戲都在本頁面內運行。由語言模型或外部智能體操控的席位需要桌面版或伺服器版遊戲。",
+ "The game engine stopped: {message}": "遊戲引擎已停止：{message}",
+ "The game runs inside this page. Trying again starts a fresh engine; a match that was not saved is gone.": "遊戲在本頁面內運行。重試會啟動一個全新的引擎；未儲存的對局已無法找回。",
+ "No save has that name.": "沒有這個名稱的存檔。"
+}

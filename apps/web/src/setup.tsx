@@ -2,6 +2,7 @@
 // an LLM agent), world size, length, objective mode, and saved matches.
 import './economy/construction.css';
 import { useState } from 'preact/hooks';
+import { api } from './api';
 import type { AgentOptions, AgentProvider, NewMatchRequest, SetupController } from './protocol';
 import { Btn, Field, cx } from './ui';
 import { Icon } from './icons';
@@ -191,7 +192,7 @@ export function Setup() {
                       <div class="seat-row">
                         <span class="seat-id"><Emblem seat={i} color={SEAT_COLORS[i]} name={'seat' + i} size={24} /> {t('Seat {n}', { n: i + 1 })}</span>
                         <div class="segmented" role="radiogroup" aria-label={t('Seat {n} controller', { n: i + 1 })}>
-                          {KINDS.map((o) => (
+                          {KINDS.filter((o) => api.features.llmSeats || o.value !== 'agent').map((o) => (
                             <button type="button" role="radio" aria-checked={c.kind === o.value} class={cx('seg', c.kind === o.value && 'is-active')} title={t(o.hint)}
                               data-testid={`setup-seat-${i}-${o.value}`} onClick={() => patchSeat(i, { kind: o.value })}>
                               {o.value === 'agent' ? <Icon name="agent" size={13} /> : null}{t(o.label)}
@@ -260,6 +261,7 @@ export function Setup() {
                   );
                 })}
               </div>
+              {api.features.llmSeats ? null : <span class="field-hint" data-testid="setup-local-note">{t('Browser build: the whole game runs in this page. Seats played by language models or external agents need the desktop or server game.')}</span>}
               {humans === 0 ? (
                 <p class="observer-note" data-testid="setup-observer-note">
                   <Icon name="eye" size={15} />
