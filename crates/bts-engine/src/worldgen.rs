@@ -648,18 +648,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             r.quals[Qual::Lorekeeper.index()] = START_LOREKEEPERS;
             r.quals[Qual::Artisan.index()] = START_ARTISANS;
             for key in ["makers_circle", "camp", "workshop"] {
-                r.facilities.push(Facility {
-                    kind: c.f(key),
-                    level: 1,
-                    condition_bp: 10_000,
-                    enabled: true,
-                    staffed: 0,
-                    staff_needed: 0,
-                    skilled_bp: 10_000,
-                    run: None,
-                    operated: false,
-                    assembly_progress: 0,
-                });
+                r.facilities.push(Facility::new(c.f(key), 1));
             }
         }
 

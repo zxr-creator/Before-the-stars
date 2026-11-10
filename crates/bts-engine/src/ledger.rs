@@ -60,6 +60,12 @@ pub struct RegionLedger {
     /// How the region's people of working age were occupied when the month's
     /// labour was given out: one person, one role.
     pub labor: LaborSummary,
+    /// What the region's shared infrastructure did in its last month: output made
+    /// and delivered, inputs taken locally, the output exempt from carriage loss.
+    pub infra: InfraMonth,
+    /// The most the region's works could have made in that month, by good: for each
+    /// works, the output of the method it ran x its levels x the rate it ran at.
+    pub out_ceiling: Vec<i64>,
 }
 
 #[derive(Clone, Debug)]
@@ -148,6 +154,18 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
             // the crews were reserved by the seat whose economy ran the month here
             site_crew: r.last.seat.map(|s| w.civs[s as usize].projects.iter().filter(|p| p.region == Some(ri as RegionId)).map(|p| p.crew_counts().1).sum()).unwrap_or(0),
             labor: r.last.labor.clone(),
+            infra: r.last.infra.clone(),
+            out_ceiling: {
+                let mut cap = vec![0i64; NG];
+                for f in &r.facilities {
+                    if let Some(rec) = f.run.as_ref().and_then(|run| c.facilities[f.kind].recipes.get(run.recipe).map(|rec| (rec, run.rate_bp as i64))) {
+                        for (g, a) in &rec.0.outputs {
+                            cap[g.index()] += a * f.level as i64 * rec.1 / 10_000;
+                        }
+                    }
+                }
+                cap
+            },
         })
         .collect();
     let deposits = w
@@ -260,6 +278,9 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
     let n = cur.civs.len();
     let mut grid_in = vec![0i64; n];
     let mut grid_out = vec![0i64; n];
+    // output of the regions' works and what carriage cost it, by seat and good
+    let mut region_made = vec![vec![0i64; NG]; n];
+    let mut region_lost = vec![vec![0i64; NG]; n];
     for r in &cur.regions {
         let name = format!("{at}: region {}", r.id);
         if r.controller.is_none() && (r.residents > 0 || r.quals.iter().any(|x| *x > 0) || r.students > 0) {
@@ -312,6 +333,57 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
         let occupied = l.food as u64 + l.facilities as u64 + l.projects as u64 + l.household as u64 + l.students as u64 + l.teachers as u64;
         if occupied > l.working_age as u64 {
             out.push(format!("{name}: {occupied} roles were given to {} residents of working age", l.working_age));
+        }
+        // economies of scale save overhead and loss; they make nothing. Checked for
+        // the month the snapshot closes, in the regions whose economy ran in it.
+        let i = &r.infra;
+        if cur.before_month || i.month != cur.month || i.made.len() != NG {
+            continue;
+        }
+        if i.maint_bp as i64 > crate::sim::economy::MAINT_SAVING_CAP_BP || i.congestion_bp as i64 > crate::sim::economy::CONGESTION_LOSS_CAP_BP || i.infra_bp > 10_000 {
+            out.push(format!("{name}: a saving or a loss beyond its cap (maintenance {} bp, congestion {} bp, freight {} bp)", i.maint_bp, i.congestion_bp, i.infra_bp));
+        }
+        if (i.load <= i.capacity) != (i.infra_bp == 10_000) || i.congestion_bp as i64 != (10_000 - i.infra_bp as i64) * crate::sim::economy::CONGESTION_LOSS_CAP_BP / 10_000 {
+            out.push(format!("{name}: freight load {} against capacity {} does not give {} bp served and {} bp lost", i.load, i.capacity, i.infra_bp, i.congestion_bp));
+        }
+        for g in 0..NG {
+            let good = Good::from_index(g);
+            let (made_g, delivered, used, exempt) = (i.made[g], i.delivered[g], i.used[g], i.exempt[g]);
+            if made_g < 0 || delivered < 0 || used < 0 || exempt < 0 {
+                out.push(format!("{name} {good:?}: a negative quantity in the region's account"));
+            }
+            if made_g > r.out_ceiling[g] {
+                out.push(format!("{name} {good:?}: the works made {made_g} where their methods, levels and rates allow {}", r.out_ceiling[g]));
+            }
+            if delivered > made_g {
+                out.push(format!("{name} {good:?}: {delivered} delivered of {made_g} made"));
+            }
+            if exempt > used || exempt > made_g || exempt > delivered {
+                out.push(format!("{name} {good:?}: {exempt} exempt from carriage with {used} used here, {made_g} made and {delivered} delivered"));
+            }
+            if let Some(s) = r.month_seat {
+                region_made[s as usize][g] += made_g;
+                region_lost[s as usize][g] += made_g - delivered;
+            }
+        }
+    }
+    // what the regions' works made is part of what was booked as produced, and what
+    // their carriage cost is part of what was booked as lost
+    for (p, c) in prev.civs.iter().zip(cur.civs.iter()) {
+        if cur.before_month || cur.month != prev.month + 1 {
+            continue;
+        }
+        let base = if reopened { &zero } else { &p.flows };
+        let s = c.seat as usize;
+        for g in 0..NG {
+            let good = Good::from_index(g);
+            let (produced, lost) = (c.flows.produced[g] - base.produced[g], c.flows.lost[g] - base.lost[g]);
+            if region_made[s][g] > produced {
+                out.push(format!("{at}: seat {} {good:?}: its regions' works made {} but {produced} was booked as produced", c.seat, region_made[s][g]));
+            }
+            if region_lost[s][g] > lost {
+                out.push(format!("{at}: seat {} {good:?}: carriage cost its regions {} but {lost} was booked as lost", c.seat, region_lost[s][g]));
+            }
         }
     }
     for s in 0..n {

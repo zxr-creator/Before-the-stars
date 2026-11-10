@@ -317,11 +317,24 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
     let r = &w.regions[ri];
     let lin = |i: u16| w.lineages.get(i as usize).map(|l| l.name.clone()).unwrap_or_default();
     let mut facilities = Vec::new();
+    let civ = &w.civs[seat as usize];
+    // the shared infrastructure as it applies in the coming month
+    let infra = economy::region_infra(r);
     for f in &r.facilities {
         let def = &c.facilities[f.kind];
         let mut runs = Vec::new();
-        if let Some(run) = &f.run {
+        // the method that ran last month, named only if the seat knows of it (a
+        // region just taken may have run something its new government has not met)
+        let mut active_method = None;
+        if def.key == "fields" {
+            if let Some(run) = f.field_run.as_ref().filter(|run| run.recipe < economy::FIELD_METHODS.len() && field_method_discovered(civ, run.recipe)) {
+                let m = &economy::FIELD_METHODS[run.recipe];
+                active_method = Some(m.key.to_string());
+                runs.push(RecipeRun { recipe: m.key.to_string(), name: m.name.to_string(), rate_bp: run.rate_bp, blockers: blocker_text(run), missing: run.missing.clone() });
+            }
+        } else if let Some(run) = f.run.as_ref().filter(|run| def.recipes.get(run.recipe).map(|rec| recipe_discovered(civ, rec)).unwrap_or(false)) {
             let rec = &def.recipes[run.recipe];
+            active_method = Some(rec.key.to_string());
             runs.push(RecipeRun { recipe: rec.key.to_string(), name: rec.name.to_string(), rate_bp: run.rate_bp, blockers: blocker_text(run), missing: run.missing.clone() });
         }
         let (staffed, needed) = if def.food {
@@ -331,7 +344,17 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
             (f.staffed, f.staff_needed)
         };
         facilities.push(FacilityView {
-            scale_saving_bp: economy::scale_saving_bp(def, f),
+            // the choice in force: shown as long as the seat knows the method (a region
+            // just taken, or herds since lost, do not make it name anything unknown)
+            method: f.method.clone().filter(|key| {
+                if def.key == "fields" {
+                    economy::field_method_index(key).map(|i| economy::field_method_known(civ, i)).unwrap_or(false)
+                } else {
+                    economy::method_choosable(w, seat, f.kind, key)
+                }
+            }),
+            active_method,
+            scale_saving_bp: economy::scale_saving_bp(def, f, infra.infra_bp),
             kind: def.key.to_string(),
             name: def.name.to_string(),
             level: f.level,
@@ -433,7 +456,103 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
             })
             .filter(|v| v.capacity > 0 || v.reserved > 0)
             .collect(),
+        infrastructure: {
+            // last month's quantities, if it was this seat that ran the month here
+            let mine = r.last.seat == Some(seat);
+            let by_good = |v: &Vec<i64>| -> Vec<GoodQty> {
+                Good::ALL.iter().filter(|g| mine && v.get(g.index()).copied().unwrap_or(0) > 0).map(|g| GoodQty { good: *g, amount: v[g.index()] }).collect()
+            };
+            InfraView {
+                freight_capacity: infra.capacity as u32,
+                freight_load: infra.load as u32,
+                infra_bp: infra.infra_bp as u16,
+                support_saving_cap_bp: (economy::SUPPORT_SAVING_CAP_BP * infra.infra_bp / 10_000) as u16,
+                maintenance_saving_bp: infra.maint_bp as u16,
+                congestion_loss_bp: infra.congestion_bp as u16,
+                chain_exempt: by_good(&r.last.infra.exempt),
+                chain_loss_saved: by_good(&r.last.infra.chain_saved),
+            }
+        },
     }
+}
+
+/// Whether a seat has at least discovered every technology a method rests on:
+/// only such methods are named to it.
+fn recipe_discovered(civ: &Civ, rec: &crate::content::Recipe) -> bool {
+    let mut ts = Vec::new();
+    rec.req.techs(&mut ts);
+    ts.iter().all(|t| civ.tech[*t].state >= ST_DISCOVERED)
+}
+
+fn field_method_discovered(civ: &Civ, i: usize) -> bool {
+    let c = content();
+    economy::FIELD_METHODS[i].techs.iter().all(|id| civ.tech[c.t(id)].state >= ST_DISCOVERED)
+}
+
+/// The entries of an "enables" list that name nothing beyond the seat's knowledge:
+/// a production method is listed with its facility, and is left out until the seat
+/// has discovered every technology and recognized every practice both rest on.
+fn shown_enables(civ: &Civ, labels: &[String], gates: &[(Vec<usize>, Vec<usize>)]) -> Vec<String> {
+    labels
+        .iter()
+        .zip(gates.iter())
+        .filter(|(_, (ts, ps))| ts.iter().all(|t| civ.tech[*t].state >= ST_DISCOVERED) && ps.iter().all(|p| civ.practice[*p].state >= 1))
+        .map(|(label, _)| label.clone())
+        .collect()
+}
+
+/// The posts one level needs under a method: general posts, and the qualified
+/// posts of the facility together with those the method adds.
+fn method_posts(def: &crate::content::FacDef, rec: &crate::content::Recipe) -> (u32, Vec<JobSpec>) {
+    let skilled = def.skilled.iter().chain(rec.extra_skilled.iter()).map(|(qs, n)| JobSpec { qual: Some(qs[0]), count: *n }).collect();
+    (def.general_under(rec.general_bp, 1), skilled)
+}
+
+/// The ways of working fields that the seat has at least discovered, as recipe
+/// views: one level's yield in rations a month as the seat's knowledge now gives
+/// it (before husbandry, tools, irrigation, condition and unrest) and the
+/// chemicals and fuel one level draws.
+fn field_recipes(w: &World, seat: SeatId, def: &crate::content::FacDef) -> Vec<RecipeView> {
+    let civ = &w.civs[seat as usize];
+    let has_pasture = economy::has_pasture(w, seat);
+    let crew = def.general as i64;
+    (0..economy::FIELD_METHODS.len())
+        .filter(|i| field_method_discovered(civ, *i))
+        .map(|i| {
+            let m = &economy::FIELD_METHODS[i];
+            let mut inputs = Vec::new();
+            if m.chem {
+                inputs.push(GoodQty { good: Good::Chemicals, amount: crew * economy::FIELD_CHEM_PER_K / 1000 });
+            }
+            if m.fuel {
+                inputs.push(GoodQty { good: Good::Fuel, amount: crew * economy::FIELD_FUEL_PER_K / 1000 });
+            }
+            let mut note = "Yield of one level's cultivators before irrigation (a quarter more), husbandry, tools, condition and unrest.".to_string();
+            if m.chem || m.fuel {
+                note.push_str(" Used only while a full month of its inputs is in store for every field that may draw them; otherwise the land is worked by the next method down.");
+            }
+            if m.needs_pasture {
+                note.push_str(" Needs herds on pasture somewhere under the same government.");
+            }
+            RecipeView {
+                key: m.key.to_string(),
+                name: m.name.to_string(),
+                inputs,
+                outputs: vec![GoodQty { good: Good::Food, amount: crew * economy::field_yield(civ, i) / 1000 }],
+                shaft: 0,
+                elec: 0,
+                compute: 0,
+                out_shaft: 0,
+                out_elec: 0,
+                out_compute: 0,
+                research: None,
+                note,
+                available: economy::field_method_known(civ, i) && (!m.needs_pasture || has_pasture),
+                general_posts: def.general,
+                skilled_posts: Vec::new(),
+            }
+        })
+        .collect()
 }
 
 pub fn victory_revealed(w: &World, seat: SeatId) -> bool {
@@ -729,7 +848,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             discovered_month: st.disc_month,
             understood_month: if st.state >= ST_UNDERSTOOD { Some(st.und_month) } else { None },
             can_investigate: (st.state == ST_DISCOVERED || st.state == ST_INVESTIGATING) && !in_project && site_ok && t.prereq.eval(&ctx),
-            enables: if st.state >= ST_UNDERSTOOD { c.tech_enables[i].clone() } else { vec![] },
+            enables: if st.state >= ST_UNDERSTOOD { shown_enables(civ, &c.tech_enables[i], &c.tech_enables_gate[i]) } else { vec![] },
             links,
         });
     }
@@ -776,7 +895,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             adoption_bp: st.adoption_bp,
             can_reform: st.state == 1 && p.prereq.eval(&PracEnactedCtx { world: w, seat, recognized_only: false }) && p.hard.eval(&ctx),
             reform_work: projects::scaled(p.work, w.cfg.pace_bp),
-            enables: c.prac_enables[i].clone(),
+            enables: shown_enables(civ, &c.prac_enables[i], &c.prac_enables_gate[i]),
             links,
             source: st.source.clone(),
             recognized_month: st.rec_month,
@@ -882,9 +1001,13 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
                         format!("Draws {} from the deposit, all of it raised. Poorer ore delivers less of what is raised", drawn / 1000)
                     };
                 }
-                RecipeView { key: r.key.to_string(), name: r.name.to_string(), inputs: qty(&r.inputs), outputs, shaft: r.shaft, elec: r.elec, compute: r.compute, out_shaft: r.out_shaft, out_elec: r.out_elec, out_compute: r.out_compute, research: r.research, note, available: r.req.eval(&ctx) }
+                let (general_posts, skilled_posts) = method_posts(def, r);
+                RecipeView { key: r.key.to_string(), name: r.name.to_string(), inputs: qty(&r.inputs), outputs, shaft: r.shaft, elec: r.elec, compute: r.compute, out_shaft: r.out_shaft, out_elec: r.out_elec, out_compute: r.out_compute, research: r.research, note, available: r.req.eval(&ctx), general_posts, skilled_posts }
             })
             .collect();
+        // fields carry no recipe (their yield is per cultivator on the land): their
+        // methods are shown in the same form
+        let recipes: Vec<RecipeView> = if def.key == "fields" { field_recipes(w, seat, def) } else { recipes };
         let mut jobs: Vec<JobSpec> = def.skilled.iter().map(|(qs, n)| JobSpec { qual: Some(qs[0]), count: *n }).collect();
         if def.general > 0 {
             jobs.push(JobSpec { qual: None, count: def.general });

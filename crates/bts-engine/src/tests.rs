@@ -8,6 +8,7 @@ use crate::{Match, MatchConfig};
 use bts_protocol::*;
 
 mod construction;
+mod methods;
 
 fn cfg(seed: &str) -> MatchConfig {
     MatchConfig { seed: seed.into(), regions: 24, ..Default::default() }
@@ -169,7 +170,7 @@ fn endgame_world() -> World {
             r.controller = Some(0);
             let add = |key: &str, r: &mut Region| {
                 let kind = c.f(key);
-                r.facilities.push(Facility { kind, level: 1, condition_bp: 10_000, enabled: true, staffed: 10, staff_needed: 10, skilled_bp: 10_000, run: Some(RunStat { recipe: 0, rate_bp: 10_000, blockers: 0, missing: vec![] }), operated: true, assembly_progress: 0 });
+                r.facilities.push(Facility { staffed: 10, staff_needed: 10, run: Some(RunStat { recipe: 0, rate_bp: 10_000, blockers: 0, missing: vec![] }), operated: true, ..Facility::new(kind, 1) });
             };
             if nodes.contains(&(ri as RegionId)) {
                 add("jump_base", r);
@@ -445,7 +446,7 @@ fn industrial_scale_reduces_general_posts_but_does_not_multiply_goods() {
     let r = &mut m.world.regions[region];
     r.facilities.clear();
     r.blocks[0].ages[30] += 1_000_000;
-    r.facilities.push(Facility { kind: k, level: 10, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0 });
+    r.facilities.push(Facility::new(k, 10));
     m.world.civs[0].stock[Good::Tools.index()] = 1_000_000;
     m.world.civs[0].stock[Good::Materials.index()] = 0;
     m.world.civs[0].stock[Good::Food.index()] = 1_000_000;
@@ -647,7 +648,7 @@ fn a_founding_cohort_is_at_most_four_thousand_and_courses_use_materials_per_thou
     let capital = m.world.civs[0].capital;
     let home = capital as usize;
     // a lodge with room, a course nobody here can teach yet
-    m.world.regions[home].facilities.push(Facility { kind: c.f("lodge"), level: 2, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0 });
+    m.world.regions[home].facilities.push(Facility::new(c.f("lodge"), 2));
     m.world.regions[home].facilities.sort_by_key(|f| f.kind);
     let (cap, reserved) = crate::sim::projects::venue_seats(&m.world, 0, home, crate::content::Cap::SeatsLodge);
     assert_eq!((cap, reserved), (32_000, 0));
@@ -771,6 +772,13 @@ fn print_unit_tables() {
                 services.push(format!("{} researcher-months of {}", group(pts), class.label().to_lowercase()));
             }
             println!("    recipe {} ({}): in {} -> out {}{}", r.key, r.name, goods(&r.inputs), goods(&r.outputs), if services.is_empty() { String::new() } else { format!(" ; {}", services.join(", ")) });
+            // a method may need fewer general posts and further qualified ones
+            let extra: u32 = r.extra_skilled.iter().map(|(_, n)| *n).sum();
+            let crew = f.general_under(r.general_bp, 1) + skilled + extra;
+            if r.general_bp != 10_000 || extra > 0 {
+                let extra_txt = r.extra_skilled.iter().map(|(qs, n)| format!("{} {}", group(*n as i64), qs.iter().map(|q| q.label().to_lowercase()).collect::<Vec<_>>().join("/"))).collect::<Vec<_>>().join(" + ");
+                println!("        crew under this method {} = {} general + {} qualified{}", group(crew as i64), group(f.general_under(r.general_bp, 1) as i64), group((skilled + extra) as i64), if extra_txt.is_empty() { String::new() } else { format!(" (adds {extra_txt})") });
+            }
             for (g, a) in &r.outputs {
                 if crew > 0 {
                     // base units per worker-month, to three decimals
@@ -781,14 +789,43 @@ fn print_unit_tables() {
             }
         }
         if f.food {
-            let civ_none = crate::sim::economy::FoodTech { forage: 2600, field: 3000, pasture: 3200, fish: 3000, fish_port: 3000, chem_per_worker: 0, fuel_per_worker: 0, label: "Hand cultivation" };
-            let y = match f.key {
-                "fields" => civ_none.field,
-                "pasture" => civ_none.pasture,
-                _ => civ_none.fish,
-            };
-            println!("    food at first methods: {} rations per level-month; {}.{:03} rations per worker-month ({} kg)", group(f.general as i64 * y / 1000), y / 1000, y % 1000, y * good_mass_kg(Good::Food) / 1000);
+            use crate::sim::economy::{field_yield, food_tech, FIELD_CHEM_PER_K, FIELD_FUEL_PER_K, FIELD_METHODS};
+            // a people that knows nothing yet, and one that knows everything
+            let first = Match::new(cfg("unit-tables"), 1);
+            let mut last = Match::new(cfg("unit-tables"), 1);
+            know_everything(&mut last.world, 0);
+            let line = |what: &str, y: i64| println!("    {what}: {} rations per level-month; {}.{:03} rations per worker-month ({} kg)", group(f.general as i64 * y / 1000), y / 1000, y % 1000, y * good_mass_kg(Good::Food) / 1000);
+            match f.key {
+                "fields" => {
+                    for (i, m) in FIELD_METHODS.iter().enumerate() {
+                        let (lo, hi) = (field_yield(&first.world.civs[0], i), field_yield(&last.world.civs[0], i));
+                        line(&format!("method {} ({}), needs {}", m.key, m.name, if m.techs.is_empty() { "nothing".to_string() } else { m.techs.join(" & ") }), lo);
+                        if hi != lo {
+                            line("        with selection and soil science", hi);
+                        }
+                        let draw = |on: bool, per_k: i64| if on { disp(f.general as i64 * per_k / 1000) } else { "0".to_string() };
+                        println!("        draws {} chemicals and {} fuel per level-month", draw(m.chem, FIELD_CHEM_PER_K), draw(m.fuel, FIELD_FUEL_PER_K));
+                    }
+                }
+                "pasture" => {
+                    line("food at first methods", food_tech(&first.world.civs[0], false).pasture);
+                    line("food at last methods", food_tech(&last.world.civs[0], true).pasture);
+                }
+                _ => {
+                    line("food at first methods", food_tech(&first.world.civs[0], false).fish);
+                    line("food at last methods, from a harbour with motor boats", food_tech(&last.world.civs[0], true).fish_port);
+                }
+            }
         }
+    }
+    println!();
+    println!("== Economies of scale ==");
+    {
+        use crate::sim::economy::*;
+        println!("freight capacity by transport grade 0-3: {:?} facility levels of industry, extraction and power", FREIGHT_CAPACITY);
+        println!("shared support posts: {} bp of general posts per level beyond the first, at most {} bp", SUPPORT_SAVING_PER_LEVEL_BP, SUPPORT_SAVING_CAP_BP);
+        println!("maintenance pooling: at most {} bp of spares and tools upkeep; one level of repair works serves {} levels", MAINT_SAVING_CAP_BP, REPAIR_WORKS_SERVE);
+        println!("congestion: at most {} bp more lost in carriage", CONGESTION_LOSS_CAP_BP);
     }
     println!();
     println!("== Courses ==");
@@ -823,7 +860,7 @@ fn print_unit_tables() {
 use crate::ledger::{self, LedgerSnapshot};
 
 fn works(kind: &str, level: u16) -> Facility {
-    Facility { kind: content().f(kind), level, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0 }
+    Facility::new(content().f(kind), level)
 }
 
 fn put_works(r: &mut Region, kind: &str, level: u16) {

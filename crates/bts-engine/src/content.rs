@@ -796,13 +796,27 @@ pub enum Cap {
 }
 
 #[derive(Clone, Debug)]
-/// One way of running a facility. Goods, services and research are per level per
-/// month at full rate, in base units.
+/// One way of running a facility: a production method. Goods, services and
+/// research are per level per month at full rate, in base units.
+///
+/// Where a facility has several, the seat may choose one per region
+/// (`Facility::method`); left alone, the works run the first one in the list
+/// whose requirement holds and whose inputs are in store. The order of the list
+/// is therefore the order of preference of the automatic choice, and a method
+/// that trades one scarce thing for another (electricity for coal, compute for
+/// hands) is listed after the plain one, so that it runs only when it is chosen
+/// or the plain one has nothing to work with.
 pub struct Recipe {
     pub key: &'static str,
     pub name: &'static str,
     pub req_src: &'static str,
     pub req: Req,
+    /// Share of the facility's general posts this method needs, basis points
+    /// (10,000 = all of them).
+    pub general_bp: u16,
+    /// Qualified posts per level this method needs beside the facility's own, in
+    /// people: acceptable qualifications in order of preference.
+    pub extra_skilled: Vec<(Vec<Qual>, u32)>,
     pub inputs: Vec<(Good, i64)>,
     pub outputs: Vec<(Good, i64)>,
     pub shaft: i64,
@@ -827,6 +841,14 @@ impl Recipe {
     /// Whether the recipe delivers nothing but services, research or assembly progress.
     pub fn service_only(&self) -> bool {
         self.outputs.is_empty()
+    }
+}
+
+impl FacDef {
+    /// General posts of `levels` levels run by a method that needs `general_bp` of
+    /// them, in people, rounded up, before any saving from shared support.
+    pub fn general_under(&self, general_bp: u16, levels: u32) -> u32 {
+        ((self.general as u64 * levels as u64 * general_bp.min(10_000) as u64 + 9_999) / 10_000) as u32
     }
 }
 
@@ -976,6 +998,8 @@ fn rec(key: &'static str, name: &'static str) -> RB {
         name,
         req_src: "",
         req: Req::True,
+        general_bp: 10_000,
+        extra_skilled: vec![],
         inputs: vec![],
         outputs: vec![],
         shaft: 0,
@@ -1044,6 +1068,25 @@ impl RB {
         self.0.assembly = m(v);
         self
     }
+    /// The method needs only this share of the facility's general posts (basis points).
+    fn general_bp(mut self, bp: u16) -> Self {
+        self.0.general_bp = bp.min(10_000);
+        self
+    }
+    /// `n` further qualified people per level beside the facility's own.
+    fn extra(mut self, quals: &[Qual], n: u32) -> Self {
+        self.0.extra_skilled.push((quals.to_vec(), n));
+        self
+    }
+}
+
+/// Mechanized workings of a mine: cutting, loading and haulage by engines. They
+/// raise what drained deep workings raise and draw the same from the deposit,
+/// with half the hands, a thousand mechanics a level and several times the shaft
+/// work (which a steam or diesel station turns coal or fuel into).
+fn mechanized_workings(ore: Good, raised: f64, deposit: Deposit, shaft: f64) -> RB {
+    rec("mechanized", "Mechanized workings").req("T063 & T094").shaft(shaft).out(&[(ore, raised)]).depletes(deposit)
+        .general_bp(5_000).extra(&[Qual::Mechanic, Qual::Technician], 1_000)
 }
 
 struct FB(FacDef);
@@ -1184,21 +1227,25 @@ fn facilities() -> Vec<FacDef> {
             .req("T014").site(Site::Deposit(Deposit::CopperOre)).cost(&[(Materials, 6.0), (Tools, 3.0)]).work(40.0).general(12_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(10.0).out(&[(CopperOre, 36.0)]).depletes(Deposit::CopperOre))
             .recipe(rec("shallow", "Shallow workings").out(&[(CopperOre, 18.0)]).depletes(Deposit::CopperOre).disturbs(2.0))
+            .recipe(mechanized_workings(CopperOre, 36.0, Deposit::CopperOre, 40.0))
             .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine]).extracts(),
         fac("mine_iron", "Iron mines", "Extraction", "Workings on a surveyed iron orebody. Every tonne raised comes out of the deposit; shallow workings spoil as much again, drained deep workings do not.")
             .req("T014").site(Site::Deposit(Deposit::IronOre)).cost(&[(Materials, 6.0), (Tools, 3.0)]).work(40.0).general(12_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(10.0).out(&[(IronOre, 36.0)]).depletes(Deposit::IronOre))
             .recipe(rec("shallow", "Shallow workings").out(&[(IronOre, 18.0)]).depletes(Deposit::IronOre).disturbs(2.0))
+            .recipe(mechanized_workings(IronOre, 36.0, Deposit::IronOre, 40.0))
             .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine]).extracts(),
         fac("mine_coal", "Coal pits", "Extraction", "Coal workings. Every tonne raised comes out of the seam; shallow pits spoil as much again, drained deep workings do not.")
             .req("T014").site(Site::Deposit(Deposit::Coal)).cost(&[(Materials, 6.0), (Tools, 3.0)]).work(40.0).general(12_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(10.0).out(&[(Coal, 36.0)]).depletes(Deposit::Coal))
             .recipe(rec("shallow", "Shallow workings").out(&[(Coal, 18.0)]).depletes(Deposit::Coal).disturbs(2.0))
+            .recipe(mechanized_workings(Coal, 36.0, Deposit::Coal, 40.0))
             .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Steam]).extracts(),
         fac("mine_minerals", "Rare-mineral workings", "Extraction", "Small workings for the minerals that analysis has shown to matter. Selective surface workings spoil as much as they raise; drained deep workings do not.")
             .req("T043").site(Site::Deposit(Deposit::Minerals)).cost(&[(Materials, 8.0), (Tools, 4.0)]).work(60.0).general(10_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(8.0).out(&[(Minerals, 12.0)]).depletes(Deposit::Minerals))
             .recipe(rec("shallow", "Selective workings").out(&[(Minerals, 6.0)]).depletes(Deposit::Minerals).disturbs(2.0))
+            .recipe(mechanized_workings(Minerals, 12.0, Deposit::Minerals, 30.0))
             .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Chem]).extracts(),
         fac("oilwell", "Oil wells", "Extraction", "Drilled wells and gathering lines on a known field. Every tonne pumped comes out of the field.")
             .req("T090").site(Site::Deposit(Deposit::Crude)).cost(&[(Metal, 6.0), (Components, 2.0), (Tools, 2.0)]).work(60.0)
@@ -1228,11 +1275,23 @@ fn facilities() -> Vec<FacDef> {
             .req("T060").cost(&[(Metal, 20.0), (Materials, 20.0), (Tools, 5.0)]).work(160.0)
             .skilled(&[Q::Smith, Q::Mechanic], 4_000).general(12_000)
             .recipe(rec("steel", "Coke steel").inp(&[(IronOre, 40.0), (Coal, 20.0)]).out(&[(Metal, 30.0)]).shaft(10.0))
+            // electric furnaces: the same steel from the same ore, with a fifth of the
+            // coal (the carbon of the charge) and 150 units of electricity in place of
+            // the rest and of the blowing engines. Made from coal in turbines and
+            // generator halls, that electricity costs as much coal as it saves; from
+            // falling water or a reactor it frees the coal. Fewer hands, more electricians.
+            .recipe(rec("electric", "Electric steelmaking").req("T103").inp(&[(IronOre, 40.0), (Coal, 4.0)]).out(&[(Metal, 30.0)]).elec(150.0)
+                .general_bp(7_000).extra(&[Q::Electrician, Q::Technician], 1_000))
             .upkeep(&[(Tools, 1.5)]).labor(L::Industry).tags(&[Tag::Metal, Tag::Machine]).scale(2, "C033").scale(6, "C035"),
         fac("machine_shop", "Machine shops", "Industry", "Standardized machine tools cutting components to gauge. Needs shaft power.")
             .req("T061").cost(&[(Metal, 12.0), (Tools, 6.0), (Materials, 8.0)]).work(120.0)
             .skilled(&[Q::Mechanic, Q::Artisan, Q::Smith], 4_000).general(6_000)
             .recipe(rec("components", "Precision machining").inp(&[(Metal, 12.5), (Tools, 1.0)]).out(&[(Components, 10.0)]).shaft(30.0))
+            // programmed machines: the same components from the same metal, a little
+            // less tool wear, electric drives and compute in place of four tenths of
+            // the hands, and programmers and technicians to keep them cutting
+            .recipe(rec("nc", "Numerically controlled machining").req("T114").inp(&[(Metal, 12.5), (Tools, 0.8)]).out(&[(Components, 10.0)]).elec(40.0).compute(20.0)
+                .general_bp(6_000).extra(&[Q::Programmer, Q::Technician], 500).extra(&[Q::Technician, Q::Electrician], 500))
             .upkeep(&[(Tools, 1.0)]).labor(L::Industry).tags(&[Tag::Machine]).scale(2, "C033").scale(6, "C035"),
         fac("parts_works", "Parts and repair works", "Industry", "Spares, lubricants and filters matched to the machines that need them.")
             .req("T066").cost(&[(Metal, 8.0), (Components, 3.0), (Tools, 4.0)]).work(90.0)
@@ -1694,6 +1753,12 @@ pub struct Content {
     /// For each technology: names of things it is known to enable.
     pub tech_enables: Vec<Vec<String>>,
     pub prac_enables: Vec<Vec<String>>,
+    /// For each entry of `tech_enables` and of `prac_enables`: the technologies and
+    /// practices a seat must have met before the entry is shown to it. A production
+    /// method is named together with its facility, so it is shown only to a seat
+    /// that has discovered everything the facility and the method rest on.
+    pub tech_enables_gate: Vec<Vec<(Vec<usize>, Vec<usize>)>>,
+    pub prac_enables_gate: Vec<Vec<(Vec<usize>, Vec<usize>)>>,
     pub graph_hash: u64,
 }
 
@@ -1823,12 +1888,21 @@ fn load() -> Content {
 
     let mut tech_enables: Vec<Vec<String>> = vec![Vec::new(); techs.len()];
     let mut prac_enables: Vec<Vec<String>> = vec![Vec::new(); practices.len()];
-    let mut note = |req: &Req, label: String| {
+    let mut tech_enables_gate: Vec<Vec<(Vec<usize>, Vec<usize>)>> = vec![Vec::new(); techs.len()];
+    let mut prac_enables_gate: Vec<Vec<(Vec<usize>, Vec<usize>)>> = vec![Vec::new(); practices.len()];
+    // `gate`: what else the label names, which a seat must have met to be shown it
+    let mut note = |req: &Req, label: String, gate: &[&Req]| {
+        let (mut gt, mut gp) = (Vec::new(), Vec::new());
+        for g in gate {
+            g.techs(&mut gt);
+            g.pracs(&mut gp);
+        }
         let mut ts = Vec::new();
         req.techs(&mut ts);
         for t in ts {
             if !tech_enables[t].contains(&label) {
                 tech_enables[t].push(label.clone());
+                tech_enables_gate[t].push((gt.clone(), gp.clone()));
             }
         }
         let mut ps = Vec::new();
@@ -1836,27 +1910,30 @@ fn load() -> Content {
         for p in ps {
             if !prac_enables[p].contains(&label) {
                 prac_enables[p].push(label.clone());
+                prac_enables_gate[p].push((gt.clone(), gp.clone()));
             }
         }
     };
     for f in &facs {
-        note(&f.req, f.name.to_string());
+        note(&f.req, f.name.to_string(), &[]);
         for r in &f.recipes {
-            note(&r.req, format!("{} ({})", r.name, f.name));
+            // a method is named with its facility: both must be within the seat's knowledge
+            note(&r.req, format!("{} ({})", r.name, f.name), &[&f.req, &r.req]);
         }
         for s in &f.scale {
-            note(&s.1, format!("Larger {}", f.name.to_lowercase()));
+            note(&s.1, format!("Larger {}", f.name.to_lowercase()), &[]);
         }
     }
     for c in &courses {
-        note(&c.req, format!("Course: {}", c.name));
+        note(&c.req, format!("Course: {}", c.name), &[]);
     }
     for t in &tiers {
-        note(&t.req, format!("Formations: {}", t.name));
+        note(&t.req, format!("Formations: {}", t.name), &[]);
     }
     for (i, p) in practices.iter().enumerate() {
         if !p.effect.is_empty() {
             prac_enables[i].insert(0, p.effect.to_string());
+            prac_enables_gate[i].insert(0, (Vec::new(), Vec::new()));
         }
     }
 
@@ -1873,6 +1950,8 @@ fn load() -> Content {
         unit_tiers: tiers,
         tech_enables,
         prac_enables,
+        tech_enables_gate,
+        prac_enables_gate,
     }
 }
 

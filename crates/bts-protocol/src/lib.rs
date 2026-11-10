@@ -484,7 +484,9 @@ pub struct RecipeRun {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FacilityView {
-    /// General-post saving from shared support; not a goods/output multiplier.
+    /// General-post saving from shared support, basis points, as it applies in the
+    /// coming month (it shrinks when the region's freight is congested); not a
+    /// goods/output multiplier.
     #[serde(default)]
     pub scale_saving_bp: u16,
     pub kind: String,
@@ -497,6 +499,17 @@ pub struct FacilityView {
     pub utilization_bp: u16,
     pub runs: Vec<RecipeRun>,
     pub enabled: bool,
+    /// The production method the seat chose for this facility in this region: the
+    /// key of one of the facility type's recipes ([`RecipeView::key`]), set with
+    /// `set_policy` / `method`. Absent while the choice is left to the works
+    /// (automatic: the first known method whose inputs are in store).
+    #[serde(default)]
+    pub method: Option<String>,
+    /// The method the works actually ran last month, chosen or automatic. For
+    /// fields it is the method the land was worked by, which is lower than the
+    /// one chosen when the chosen one's chemicals or fuel were not in store.
+    #[serde(default)]
+    pub active_method: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -644,6 +657,45 @@ pub struct OwnRegion {
     /// Teaching places by venue and how many are booked by programmes.
     #[serde(default)]
     pub venues: Vec<VenueSeats>,
+    /// The region's shared infrastructure and what it saves or costs the works
+    /// that stand together here.
+    #[serde(default)]
+    pub infrastructure: InfraView,
+}
+
+/// A region's shared infrastructure and the economies of scale it carries
+/// (`docs/units-and-scale.md`, section 7). Every figure is a saving of overhead or
+/// a loss in carriage; none raises what a recipe puts out. Capacity, load and the
+/// rates are those that apply in the coming month with the works as they stand;
+/// the quantities are last month's.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct InfraView {
+    /// Facility levels of industry, extraction and power that the region's
+    /// transport grade can serve ([`OwnRegion::transport_level`]).
+    pub freight_capacity: u32,
+    /// Enabled facility levels of industry, extraction and power in the region.
+    pub freight_load: u32,
+    /// Share of the load the transport can serve, basis points: 10,000 while the
+    /// load is within capacity, `capacity / load` beyond it. The savings below
+    /// shrink in this proportion.
+    pub infra_bp: u16,
+    /// The most that shared support can save of a works' general posts here,
+    /// basis points: 2,000 scaled by `infra_bp`.
+    pub support_saving_cap_bp: u16,
+    /// Share of the spares and tools upkeep of the region's other industrial,
+    /// extractive and power works that its repair works save, basis points; at
+    /// most 1,500, scaled by `infra_bp` and by the rate the repair works ran at
+    /// last month.
+    pub maintenance_saving_bp: u16,
+    /// Further share of the output the region sends to the common stock that is
+    /// lost in carriage because its freight is congested, basis points; at most
+    /// 2,000, the capital included.
+    pub congestion_loss_bp: u16,
+    /// Output of last month that paid no carriage loss because the works of the
+    /// same region took as much of that good as inputs: base units by good.
+    pub chain_exempt: Vec<GoodQty>,
+    /// The carriage loss that exemption avoided last month, base units by good.
+    pub chain_loss_saved: Vec<GoodQty>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -870,7 +922,18 @@ pub struct RecipeView {
     #[serde(default)]
     pub research: Option<(ResearchClass, i64)>,
     pub note: String,
+    /// Whether the seat meets the method's requirement, so that it can run and can
+    /// be chosen with `set_policy` / `method`.
     pub available: bool,
+    /// General posts one level needs under this method, in people, before the
+    /// saving from shared support ([`FacilityView::scale_saving_bp`]).
+    #[serde(default)]
+    pub general_posts: u32,
+    /// Qualified posts one level needs under this method, in people: the
+    /// facility's own and those the method adds. `qual` is the qualification
+    /// asked for first.
+    #[serde(default)]
+    pub skilled_posts: Vec<JobSpec>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -883,8 +946,16 @@ pub struct FacilityType {
     pub cost: Vec<GoodQty>,
     /// Worker-months per level before any first-of-kind surcharge.
     pub work: i64,
-    /// Posts per level, in people.
+    /// Posts per level, in people, under the facility's base method: the one that
+    /// needs every general post and no added specialists. A method may need fewer
+    /// general posts or further qualified ones; each entry of `recipes` states its
+    /// own `general_posts` and `skilled_posts`.
     pub jobs: Vec<JobSpec>,
+    /// The production methods of the facility that the seat has at least
+    /// discovered. Where there are several, `set_policy` / `method` chooses one
+    /// per region. For fields these are the ways of working the land, with the
+    /// rations one level yields in a month as outputs and the chemicals and fuel
+    /// it draws as inputs.
     pub recipes: Vec<RecipeView>,
     pub provides: Vec<String>,
     pub site: String,
@@ -1341,6 +1412,21 @@ pub enum PolicySetting {
     /// Rename the civilization (cosmetic; history keeps event-time names).
     Rename { name: String },
     MoveCapital { region: RegionId },
+    /// Choose the production method of a facility in a region. `method` is the
+    /// key of one of the facility type's recipes whose requirement the seat meets
+    /// ([`RecipeView::key`] with `available`). A chosen method runs even when its
+    /// inputs are short, and reports the shortage. For fields the choice is a
+    /// ceiling: the land is worked by the best method not above it whose chemicals
+    /// and fuel are in store, and never draws an input the chosen method does not
+    /// use. `method: null`, or leaving it out, returns the choice to the works
+    /// (automatic). A facility the region does not have, a method that does not
+    /// exist and a method the seat cannot yet use are refused alike.
+    Method {
+        region: RegionId,
+        facility: String,
+        #[serde(default)]
+        method: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

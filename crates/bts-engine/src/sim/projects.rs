@@ -355,18 +355,7 @@ fn add_facility(w: &mut World, region: usize, kind: usize, levels: u16) {
     if let Some(f) = r.fac_mut(kind) {
         f.level += levels;
     } else {
-        r.facilities.push(Facility {
-            kind,
-            level: levels,
-            condition_bp: 10_000,
-            enabled: true,
-            staffed: 0,
-            staff_needed: 0,
-            skilled_bp: 10_000,
-            run: None,
-            operated: false,
-            assembly_progress: 0,
-        });
+        r.facilities.push(Facility::new(kind, levels));
         r.facilities.sort_by_key(|f| f.kind);
     }
 }

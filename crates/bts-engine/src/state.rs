@@ -155,6 +155,61 @@ pub struct Facility {
     pub operated: bool,
     /// Progress toward the next jump assembly, in thousandths, for assembly lines.
     pub assembly_progress: i64,
+    /// The production method the governing seat chose for this facility here: the
+    /// key of one of its recipes, or of one of the field methods for fields. None
+    /// leaves the choice to the works (`sim::economy::choose_recipe`). The choice
+    /// lapses when the region changes hands.
+    #[serde(default)]
+    pub method: Option<String>,
+    /// For fields: how the land was worked last month. `recipe` indexes
+    /// `sim::economy::FIELD_METHODS`, `rate_bp` is the share of the field posts
+    /// that were worked, and `missing` names the chemicals or fuel whose absence
+    /// kept the land on a lower method than the seat allows.
+    #[serde(default)]
+    pub field_run: Option<RunStat>,
+}
+
+impl Facility {
+    /// A new, enabled installation in full repair that has not yet run.
+    pub fn new(kind: usize, level: u16) -> Facility {
+        Facility { kind, level, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0, method: None, field_run: None }
+    }
+}
+
+/// What a region's shared infrastructure did in one month
+/// (`docs/units-and-scale.md`, section 7). The vectors are indexed by `Good`, in
+/// base units, and cover the recipes of the region's works: food grown and
+/// household craft are not in them.
+///
+/// The identities the conservation tests assert, for every good:
+/// `made <= sum over the works of recipe output x level x rate`,
+/// `exempt <= used`, `exempt <= made`, `exempt <= delivered <= made`,
+/// `maint_bp <= 1,500`, `congestion_bp <= 2,000`; and over the regions of one
+/// civilization `sum(made) <= produced` and `sum(made - delivered) <= lost`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InfraMonth {
+    /// The month these figures belong to.
+    pub month: Month,
+    /// Facility levels the transport grade can serve, and enabled levels of
+    /// industry, extraction and power that load it.
+    pub capacity: i64,
+    pub load: i64,
+    /// `min(10,000, capacity x 10,000 / load)`.
+    pub infra_bp: u16,
+    /// Share of spares and tools upkeep the repair works saved the other works.
+    pub maint_bp: u16,
+    /// Extra carriage loss on output sent to the common stock.
+    pub congestion_bp: u16,
+    /// Gross output of the region's recipes.
+    pub made: Vec<i64>,
+    /// What of it reached the common stock.
+    pub delivered: Vec<i64>,
+    /// Inputs the region's recipes took from the common stock.
+    pub used: Vec<i64>,
+    /// Output that paid no carriage loss because as much was used here as input.
+    pub exempt: Vec<i64>,
+    /// The carriage loss the exemption avoided.
+    pub chain_saved: Vec<i64>,
 }
 
 /// Where a region's shaft and electric service came from and went in one month, in
@@ -231,6 +286,9 @@ pub struct RegionMonth {
     /// this month and not yet drawn by one. What no site draws is not used at all.
     #[serde(default)]
     pub site_power_free: i64,
+    /// Freight, maintenance pooling, integrated chains and congestion this month.
+    #[serde(default)]
+    pub infra: InfraMonth,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1008,6 +1066,10 @@ impl World {
             }
         }
         self.regions[region].controller = to;
+        // a choice of method was the old government's, made with what it knew
+        for f in self.regions[region].facilities.iter_mut() {
+            f.method = None;
+        }
     }
     /// The qualification ledger that answers for a region's holders: its controller's.
     pub fn qual_ledger(&mut self, region: usize) -> Option<&mut QualFlows> {

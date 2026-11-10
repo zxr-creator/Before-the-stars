@@ -402,6 +402,25 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     }
                     w.civs[si].capital = region;
                 }
+                PolicySetting::Method { region, facility, method } => {
+                    let ri = own_region(w, seat, region)?;
+                    // a facility that does not exist, one the region does not have, a
+                    // method that does not exist and one the seat cannot yet use are
+                    // all refused in the same words: nothing can be probed for
+                    const NO: &str = "unknown facility or method";
+                    let Some(&kind) = c.fac_ix.get(&facility) else { return fail(UNKNOWN, NO) };
+                    if w.regions[ri].fac(kind).is_none() {
+                        return fail(UNKNOWN, NO);
+                    }
+                    if let Some(key) = &method {
+                        if !crate::sim::economy::method_choosable(w, seat, kind, key) {
+                            return fail(UNKNOWN, NO);
+                        }
+                    }
+                    if let Some(f) = w.regions[ri].fac_mut(kind) {
+                        f.method = method;
+                    }
+                }
             }
             Ok(("Standing policy updated.".into(), None))
         }
