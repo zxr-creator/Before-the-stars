@@ -62,6 +62,11 @@ pub struct Memory {
     /// Goods this seat wants but has no way to make at present; asked for in negotiation.
     #[serde(default)]
     pub imports: Vec<Good>,
+    /// Facilities (region, kind) whose production method this controller chose
+    /// itself. It returns only these to the works: a method the seat's player set
+    /// is never undone by a steward.
+    #[serde(default)]
+    pub methods_set: Vec<(RegionId, String)>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

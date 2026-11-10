@@ -24,7 +24,12 @@
 //!   month before; research used never exceeds the researcher-months of staffed
 //!   posts; project work never exceeds the workers called up;
 //! - deposits: every tonne of ore booked as produced was delivered by a deposit,
-//!   and no deposit delivered more than was drawn from it.
+//!   and no deposit delivered more than was drawn from it;
+//! - economies of scale: in every region, the works made no more than their
+//!   methods, levels and rates allow; no more was delivered than made; no more
+//!   was exempt from carriage than was used on the spot; no saving or congestion
+//!   loss passed its cap; and what the regions made and lost in carriage is
+//!   within what the civilization booked as produced and lost.
 //!
 //! This test lives here because `bts-engine` cannot depend on the policy crate.
 
@@ -98,6 +103,12 @@ struct Seen {
     site_crew_months: i64,
     site_power_from_supply: i64,
     site_power_from_engines: i64,
+    /// Region-months in which freight was congested, in which repair works pooled
+    /// maintenance, and the output that paid no carriage because it was used where
+    /// it was made.
+    congested_months: i64,
+    pooled_months: i64,
+    chain_exempt: i64,
     /// The match ended before its horizon because a seat completed the victory contract.
     won: bool,
 }
@@ -124,6 +135,11 @@ fn audit(seed: &str, controllers: Vec<ControllerKind>, rounds: u32) -> Seen {
                 seen.site_crew_months += cur.regions.iter().map(|r| r.site_crew as i64).sum::<i64>();
                 seen.site_power_from_supply += cur.regions.iter().map(|r| r.power.site_from_supply).sum::<i64>();
                 seen.site_power_from_engines += cur.regions.iter().map(|r| r.power.site_from_engines).sum::<i64>();
+                for r in cur.regions.iter().filter(|r| r.infra.month == cur.month) {
+                    seen.congested_months += (r.infra.congestion_bp > 0) as i64;
+                    seen.pooled_months += (r.infra.maint_bp > 0) as i64;
+                    seen.chain_exempt += r.infra.exempt.iter().sum::<i64>();
+                }
                 seen.research_used += cur.civs.iter().map(|c| c.research_used.iter().sum::<i64>()).sum::<i64>();
                 if cur.month % 12 == 0 {
                     // the goods accounts are closed after the round's last month
@@ -202,6 +218,9 @@ fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment()
         // construction held qualified crews and drew site power in every campaign
         assert!(seen.site_crew_months > 0, "{seed}: no order held a site crew: {seen:?}");
         assert!(seen.site_power_from_supply + seen.site_power_from_engines > 0, "{seed}: no site drew power: {seen:?}");
+        // every campaign had pooled maintenance and integrated chains under the audit
+        assert!(seen.pooled_months > 0 && seen.chain_exempt > 0, "{seed}: an economy of scale never occurred: {seen:?}");
+        total.congested_months += seen.congested_months;
         total.site_power_from_supply += seen.site_power_from_supply;
         total.site_power_from_engines += seen.site_power_from_engines;
         total.changed_hands += seen.changed_hands;
@@ -213,6 +232,8 @@ fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment()
     // war that moves a border, trade, closed courses and a shared grid occur in at least one
     assert!(total.changed_hands > 0, "no region changed hands in any campaign: {total:?}");
     assert!(total.grid_shared > 0, "no electricity crossed a grid in any campaign: {total:?}");
+    // freight was congested somewhere (a seat that builds transport in time may never see it)
+    assert!(total.congested_months > 0, "no region's freight was ever congested: {total:?}");
     // sites ran both on the regions' own shaft work and on engines burning coal or fuel
     assert!(total.site_power_from_supply > 0 && total.site_power_from_engines > 0, "site power came from one source only: {total:?}");
 }

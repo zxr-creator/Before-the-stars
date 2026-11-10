@@ -428,6 +428,14 @@ impl<'a> Plan<'a> {
             if r.id == self.obs.civ.capital {
                 score += 300;
             }
+            // works that load freight go where the transport still has room for them
+            if loads_freight(ft) {
+                if let Some(f) = r.own.as_ref().map(|o| &o.infrastructure).filter(|f| f.freight_capacity > 0) {
+                    if f.freight_load >= f.freight_capacity {
+                        score -= 600;
+                    }
+                }
+            }
             // a region that has the people for the site crew comes before any that has not
             if self.can_crew(r, &ft.kind) {
                 score += 1_000_000;
@@ -821,6 +829,7 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
 
     if on("economy") {
         food_and_water(&mut p, &regions);
+        methods(&mut p, &regions, &mut ai.memory.methods_set);
     }
     if on("research") {
         research(ai, &mut p);
@@ -1302,7 +1311,142 @@ fn production(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
             let _ = p.try_build(r, "roads", 1, 5) || (r.coastal && p.try_build(r, "port", 1, 5));
         }
     }
-    let _ = obs;
+    // freight: a region whose works load its transport to the limit, the capital
+    // included, gets the next grade of transport before more is lost in carriage.
+    // Roads and a harbour first, then the railway, then the motor depot; a region
+    // at the top grade can only be relieved by building elsewhere.
+    for r in regions {
+        if p.full() {
+            break;
+        }
+        let o = r.own.as_ref().unwrap();
+        let f = &o.infrastructure;
+        // an observation without the freight figures (an older referee) says nothing
+        if f.freight_capacity == 0 || o.transport_level >= 3 {
+            continue;
+        }
+        // levels already ordered here will load it too
+        let coming: u32 = obs.projects.iter().filter(|x| x.kind == "build" && !x.paused && x.region == Some(r.id)).filter(|x| x.target.as_deref().and_then(|k| p.fac_type(k)).map(loads_freight).unwrap_or(false)).map(|x| x.levels.unwrap_or(1) as u32).sum();
+        if f.infra_bp < 10_000 || f.freight_load + coming + 2 > f.freight_capacity {
+            let prio = if f.infra_bp < 10_000 { 3 } else { 4 };
+            let _ = p.try_build(r, "roads", 1, prio) || (r.coastal && p.try_build(r, "port", 1, prio)) || p.try_build(r, "rail", 1, prio) || p.try_build(r, "depot", 1, prio);
+        }
+    }
+}
+
+/// Whether a facility type's levels load a region's freight: industry, extraction
+/// and power (`docs/units-and-scale.md`, section 7).
+fn loads_freight(ft: &FacilityType) -> bool {
+    ft.category != "Food" && (ft.category == "Power" || matches!(ft.labor_category, Some(LaborCategory::Industry | LaborCategory::Extraction)))
+}
+
+/// Production methods are left to the works, with two exceptions that the seat's
+/// own reports make plain.
+///
+/// A plant that stands nearly still for want of an input, while another method it
+/// knows makes the same thing from goods and service that are there, is switched
+/// to that method; a method chosen this way goes back to the works when it is
+/// starved in its turn, or when a method the works would rather run (one listed
+/// before it) has three months of its inputs in store again.
+///
+/// Fields burn fuel before anything else in the month. When works or open orders
+/// went without fuel while the food store stands at the seat's reserve target,
+/// the fields are held at the best method that burns none; the hold is lifted
+/// when fuel is no longer short and a year of the fields' burning is in store, or
+/// at once when the food store falls more than a month below the target.
+///
+/// `mine` lists the choices this controller made itself. Only those are ever
+/// returned to the works, so a steward does not undo what the seat's player chose.
+fn methods(p: &mut Plan, regions: &[&RegionView], mine: &mut Vec<(RegionId, String)>) {
+    let obs = p.obs;
+    let set = |region: RegionId, facility: &str, method: Option<String>| Action::SetPolicy { setting: PolicySetting::Method { region, facility: facility.to_string(), method } };
+    // a choice that is no longer in force (the region changed hands, the works are gone) is forgotten
+    mine.retain(|(region, kind)| regions.iter().any(|r| r.id == *region && r.own.as_ref().unwrap().facilities.iter().any(|f| &f.kind == kind && f.method.is_some())));
+    let is_mine = |mine: &Vec<(RegionId, String)>, region: RegionId, kind: &str| mine.iter().any(|(r, k)| *r == region && k == kind);
+    // ---- plants ----------------------------------------------------------------
+    for r in regions {
+        let o = r.own.as_ref().unwrap();
+        for f in o.facilities.iter().filter(|f| f.kind != "fields" && f.enabled && f.level > 0) {
+            let Some(ft) = p.fac_type(&f.kind) else { continue };
+            if ft.recipes.len() < 2 {
+                continue;
+            }
+            let starved = f.utilization_bp < 5000 && f.runs.iter().any(|x| !x.missing.is_empty());
+            let level = f.level as i64;
+            let stocked = |x: &RecipeView| x.inputs.iter().all(|i| *p.avail.get(&i.good).unwrap_or(&0) >= i.amount * level * 3);
+            if let Some(chosen) = &f.method {
+                // its own choice goes back to the works when the method is starved in its
+                // turn, or when a method the works would rather run has its inputs again
+                let preferred = ft.recipes.iter().take_while(|x| &x.key != chosen).any(|x| x.available && stocked(x));
+                if (starved || preferred) && is_mine(mine, r.id, &f.kind) && p.push(set(r.id, &f.kind, None)) {
+                    mine.retain(|(region, kind)| !(*region == r.id && kind == &f.kind));
+                }
+                continue;
+            }
+            let Some(active) = ft.recipes.iter().find(|x| Some(&x.key) == f.active_method.as_ref()) else { continue };
+            if !starved || active.outputs.is_empty() {
+                continue;
+            }
+            let pw = &o.power;
+            let spare = |supply: i64, demand: i64, now: i64, then: i64| then <= now || supply - demand >= (then - now) * level;
+            let alt = ft.recipes.iter().find(|x| {
+                x.available
+                    && x.key != active.key
+                    && x.outputs.first().map(|g| g.good) == active.outputs.first().map(|g| g.good)
+                    && stocked(x)
+                    && spare(pw.shaft_supply, pw.shaft_demand, active.shaft, x.shaft)
+                    && spare(pw.elec_supply, pw.elec_demand, active.elec, x.elec)
+                    && spare(pw.compute_supply, pw.compute_demand, active.compute, x.compute)
+            });
+            if let Some(x) = alt {
+                if p.push(set(r.id, &f.kind, Some(x.key.clone()))) {
+                    mine.push((r.id, f.kind.clone()));
+                }
+            }
+        }
+    }
+    // ---- fields ------------------------------------------------------------------
+    let Some(fields) = p.fac_type("fields") else { return };
+    let burns = |key: &str| fields.recipes.iter().find(|x| x.key == key).map(|x| x.inputs.iter().any(|i| i.good == Good::Fuel)).unwrap_or(false);
+    let pop = obs.civ.population.max(1) as i64;
+    let months = p.stock(Good::Food) / (pop * obs.units.food_per_person_month.max(1));
+    // held only while the food store stands at the seat's own reserve target, and
+    // let go as soon as it falls more than a month below it: lower yields must never
+    // thin the stores that the people's growth depends on
+    let reserve = (obs.civ.policies.food_reserve_months as i64).max(3);
+    let eating = obs.civ.food_fulfillment_bp >= 10_000;
+    let (fed, hungry) = (eating && months >= reserve, !eating || months < reserve - 1);
+    // fuel that works or open orders went without (the fields' own report is not a reason)
+    let fuel_short = regions.iter().any(|r| r.own.as_ref().unwrap().facilities.iter().filter(|f| f.kind != "fields").any(|f| f.runs.iter().any(|x| x.missing.contains(&Good::Fuel))))
+        || obs.projects.iter().filter(|x| !x.paused).any(|x| x.inputs_needed.iter().zip(x.inputs_committed.iter()).any(|(need, have)| need.good == Good::Fuel && have.amount < need.amount && p.stock(Good::Fuel) < need.amount - have.amount));
+    // the seat can work its fields by machine, and the best method it can use that burns no fuel
+    let motorized = fields.recipes.iter().any(|x| x.available && burns(&x.key));
+    let frugal = fields.recipes.iter().filter(|x| x.available && !burns(&x.key)).last().map(|x| x.key.clone());
+    let total_levels: i64 = regions.iter().map(|r| p.level(r, "fields") as i64).sum();
+    for r in regions {
+        let o = r.own.as_ref().unwrap();
+        let Some(f) = o.facilities.iter().find(|f| f.kind == "fields" && f.level > 0) else { continue };
+        match &f.method {
+            Some(_) => {
+                // lifted only when a year of the fields' own burning is in store beside
+                // what everything else used, so that the hold does not come and go
+                let field_fuel: i64 = fields.recipes.iter().flat_map(|x| x.inputs.iter()).filter(|i| i.good == Good::Fuel).map(|i| i.amount).max().unwrap_or(0) * total_levels * 12;
+                let plenty = p.stock(Good::Fuel) >= p.line(Good::Fuel).map(used_in_year).unwrap_or(0) + field_fuel;
+                if (hungry || (!fuel_short && plenty)) && is_mine(mine, r.id, "fields") && p.push(set(r.id, "fields", None)) {
+                    mine.retain(|(region, kind)| !(*region == r.id && kind == "fields"));
+                }
+            }
+            None => {
+                if fed && fuel_short && motorized {
+                    if let Some(key) = &frugal {
+                        if p.push(set(r.id, "fields", Some(key.clone()))) {
+                            mine.push((r.id, "fields".to_string()));
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn power(p: &mut Plan, regions: &[&RegionView]) {
