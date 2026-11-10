@@ -73,7 +73,7 @@ export interface BannerItem {
 /** Observer playback: stepping an unattended match forward and waiting on LLM seats. */
 export interface Playback {
   playing: boolean;
-  /** 1, 2 or 4. */
+  /** 1, 2, 4 or 8 (8 = as fast as the referee resolves). */
   speed: number;
   /** Rounds still to run from a "run N rounds" request. */
   queued: number;
@@ -316,7 +316,8 @@ export async function boot(): Promise<void> {
 /** No seat is human: nobody plays, the user watches. */
 export function isObserverMatch(summary: MatchSummary | null): boolean {
   if (!summary?.exists) return false;
-  return summary.observer_allowed ?? humanSeats(summary).length === 0;
+  // Never with a human seat, whatever the referee says; and never when the referee says no.
+  return humanSeats(summary).length === 0 && summary.observer_allowed !== false;
 }
 
 const RESET_VIEW: Partial<AppState> = {
@@ -358,13 +359,23 @@ async function enterObserver(summary: MatchSummary): Promise<void> {
   try {
     spectator = await api.spectator();
   } catch (e) {
-    if (e instanceof ApiError && (e.status === 404 || e.status === 405)) supported = false;
+    if (spectatorRefused(e)) supported = false;
     else throw e;
   }
   if (!supported) {
     // An older referee: there is no world view, so one seat is watched read-only.
     const seat = summary.seats?.[0]?.seat ?? 0;
-    const obs = await api.observation(seat);
+    let obs: Observation;
+    try {
+      obs = await api.observation(seat);
+    } catch (e) {
+      if (!(e instanceof ApiError && (e.status === 401 || e.status === 403))) throw e;
+      // The referee keeps this match's seats private: nothing may be shown, so nothing is.
+      stopPlayback();
+      set({ ...RESET_VIEW, summary, obs: null, mode: 'play', spectator: null, viewAs: null, screen: 'title' });
+      toast({ tone: 'info', title: t('This match cannot be watched from here'), detail: t('The referee keeps its seats private.') });
+      return;
+    }
     set({
       ...RESET_VIEW, summary, obs, seat, mode: 'observe', spectator: null, spectatorSupported: false, viewAs: seat,
       screen: 'game', panel: 'briefing', chronicleSeen: obs.chronicle.reduce((m, c) => Math.max(m, c.id), -1),
@@ -378,6 +389,11 @@ async function enterObserver(summary: MatchSummary): Promise<void> {
   });
   // The referee may already be running rounds (the page was reloaded mid-run): follow it.
   if (!sameMatch && !summary.finished && (summary.autoplay_until ?? 0) > (summary.round ?? 0)) void pump(null);
+}
+
+/** The referee has no spectator view for this match (older build: 404/405) or refuses it (403). */
+function spectatorRefused(e: unknown): boolean {
+  return e instanceof ApiError && (e.status === 403 || e.status === 404 || e.status === 405);
 }
 
 /** True while the interface shows a seat it may not command. */
@@ -432,21 +448,24 @@ function agentsThinking(summary: MatchSummary): SeatId[] {
  * once; the match then moves as fast as its seats answer, so the summary is
  * polled and the world refetched whenever the round changes.
  */
-async function follow(token: number, rounds: number | null): Promise<boolean> {
+async function follow(token: number, rounds: number | null, owed = 0): Promise<boolean> {
   const before = state.summary?.round ?? 0;
   setPlayback({ busy: true, error: null, waitingOn: [], waitingSince: Date.now() });
   try {
     let summary = rounds === null ? await api.match() : await api.advance(rounds);
     const target = summary.autoplay_until ?? before + (rounds ?? 0);
     let seen = before;
+    let ended = !!state.summary?.finished;
     let wait = 90;
     let stalled = 0;
     for (;;) {
       if (token !== playToken) return false;
       const round = summary.round ?? 0;
-      set({ summary, playback: { ...state.playback, waitingOn: agentsThinking(summary), queued: Math.max(0, target - round) } });
-      if (round !== seen) {
+      set({ summary, playback: { ...state.playback, waitingOn: agentsThinking(summary), queued: Math.max(0, target - round) + owed } });
+      // The last round can end the match without the round number moving: fetch the world for that too.
+      if (round !== seen || (!!summary.finished && !ended)) {
         seen = round;
+        ended = !!summary.finished;
         wait = 90;
         stalled = 0;
         await refresh();
@@ -462,7 +481,7 @@ async function follow(token: number, rounds: number | null): Promise<boolean> {
       summary = await api.match();
     }
     if (state.offline) set({ offline: false });
-    setPlayback({ busy: false, waitingOn: [], waitingSince: null, queued: 0 });
+    setPlayback({ busy: false, waitingOn: [], waitingSince: null, queued: summary.finished ? 0 : owed });
     return !summary.finished;
   } catch (e) {
     noteNetwork(e);
@@ -471,16 +490,31 @@ async function follow(token: number, rounds: number | null): Promise<boolean> {
   }
 }
 
+/**
+ * Rounds are asked for one at a time, however many are wanted: the world is then
+ * fetched after every round (so the comparison history has no gaps), a pause
+ * takes hold at once, and a round that waits on an LLM seat costs nothing extra.
+ */
 async function pump(first: number | null): Promise<void> {
   const token = ++playToken;
-  let rounds: number | null = first;
+  // Rounds a "run N" request still wants after the one in hand.
+  let owed = Math.max(0, (first ?? 0) - 1);
+  let rounds: number | null = first === null ? null : 1;
   for (;;) {
-    const ok = await follow(token, rounds);
+    const ok = await follow(token, rounds, state.playback.playing ? 0 : owed);
     if (token !== playToken) return;
-    if (!ok || !state.playback.playing) break;
-    await sleep(state.playback.speed >= 4 ? 220 : state.playback.speed >= 2 ? 800 : 1700);
-    if (token !== playToken) return;
-    if (!state.playback.playing) break;
+    if (!ok) break;
+    if (state.playback.playing) {
+      const speed = state.playback.speed;
+      const rest = speed >= 8 ? 0 : speed >= 4 ? 220 : speed >= 2 ? 800 : 1700;
+      if (rest) await sleep(rest);
+      if (token !== playToken) return;
+      if (!state.playback.playing) break;
+      owed = 0;
+    } else {
+      if (owed <= 0) break;
+      owed -= 1;
+    }
     rounds = 1;
   }
   if (token === playToken && (state.playback.playing || state.playback.queued)) setPlayback({ playing: false, queued: 0 });
@@ -489,7 +523,7 @@ async function pump(first: number | null): Promise<void> {
 /** Observer: run `rounds` more rounds (1 = a single step) and then stop. */
 export function observerRun(rounds: number): void {
   if (state.mode !== 'observe' || state.summary?.finished) return;
-  const n = Math.max(1, Math.min(20, Math.round(rounds)));
+  const n = Math.max(1, Math.min(240, Math.round(rounds)));
   setPlayback({ playing: false, queued: n, error: null });
   void pump(n);
 }
@@ -510,7 +544,7 @@ export function observerPlay(playing: boolean): void {
 }
 
 export function observerSpeed(speed: number): void {
-  setPlayback({ speed });
+  if (speed !== state.playback.speed) setPlayback({ speed });
 }
 
 export async function loadAgentLog(seat: SeatId): Promise<void> {
@@ -527,7 +561,7 @@ export async function observerTick(): Promise<void> {
   if (state.mode !== 'observe' || state.screen !== 'game' || state.playback.busy || !state.summary) return;
   try {
     const summary = await api.match();
-    if (!summary.exists || summary.match_id !== state.summary.match_id || summary.round !== state.summary.round) await refresh();
+    if (!summary.exists || summary.match_id !== state.summary.match_id || summary.round !== state.summary.round || !!summary.finished !== !!state.summary.finished) await refresh();
     else set({ summary, offline: false });
   } catch (e) {
     noteNetwork(e);
@@ -549,9 +583,19 @@ export async function refresh(): Promise<void> {
         return;
       }
       const [spectator, obs] = await Promise.all([
-        state.spectatorSupported ? api.spectator() : Promise.resolve(null),
+        state.spectatorSupported
+          ? api.spectator().catch((e: unknown) => { if (spectatorRefused(e)) return null; throw e; })
+          : Promise.resolve(null),
         state.viewAs !== null ? api.observation(state.viewAs) : Promise.resolve(null),
       ]);
+      if (state.spectatorSupported && !spectator) {
+        // The referee stopped offering the world view: quietly watch one seat read-only instead.
+        set({ spectatorSupported: false, spectator: null });
+        if (state.viewAs === null) {
+          await enterObserver(summary);
+          return;
+        }
+      }
       const prev = state.spectator;
       const patch: Partial<AppState> = { summary, spectator, offline: false };
       if (obs) patch.obs = obs;
