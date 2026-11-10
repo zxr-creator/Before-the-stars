@@ -10,6 +10,11 @@ Start the referee with `scripts/run.sh` (or `target/release/bts serve`). It list
 returned when the match was created; native-AI seats cannot be observed or driven
 from outside.
 
+Every endpoint below is answered by one transport-neutral host (`crates/bts-host`),
+which holds all the permission rules. The browser build runs the same host as
+WebAssembly inside the page and has no HTTP API, so external agents always need this
+server-backed referee ([web-build.md](web-build.md)).
+
 ## Integrated MCP decision exchange
 
 Run `node tools/mcp.mjs` as a stdio MCP server (Node 22 or newer). Configure
@@ -49,6 +54,8 @@ out. Native/model-driven seats remain protected by the same authority checks.
 | `POST /api/ready` | `{seat, token, through_round}` | Match summary after the referee has advanced as far as it can |
 | `POST /api/delegate` | `{seat, token, domains}` | Hands the listed domains of an external seat to a steward; returns the match summary |
 | `GET /api/saves`, `POST /api/save`, `POST /api/load` | `{name}` | Named saves under `saves/` |
+| `GET /api/session/export` | | The whole session as save text (the format of the save files). Refused (403) when a seat is `external` or tokens are required: a save holds the entire world |
+| `POST /api/session/import` | the save text as the body | Replaces the match and returns its summary with tokens. The save is checked and rehearsed first; a refused save (`400 INVALID_SAVE`) leaves the match in progress untouched |
 | `GET /api/export/chronicle` | `?seat=N&format=md\|json` | The seat's own chronicle |
 
 `controllers` is a list of four of `"human"`, `"external"`, `"easy"`, `"medium"`,
@@ -101,11 +108,16 @@ Example batch:
 
 ## Observer matches
 
-A match with no `human` seat is an observer match. Nothing advances until asked:
+A match in which every seat is played inside the referee (built-in AIs and
+model-driven seats) is an observer match: `observer_allowed` is true in the match
+summary and nothing advances until asked. A `human` seat or an `external` seat that
+speaks this API itself is a competitor, and a match with one is never an observer
+match: every call in this table is refused (403) for it, and so is reading any seat
+that the referee drives. The same holds whenever tokens are required.
 
 | Method and path | Body or query | Returns |
 | --- | --- | --- |
-| `GET /api/spectator` | | The whole world: every region, all four civilizations, armies and a merged event feed. Refused (403) when a human seat is playing or tokens are required |
+| `GET /api/spectator` | | The whole world: every region, all four civilizations, armies and a merged event feed. Refused (403) when a human or external seat is playing or tokens are required |
 | `POST /api/advance` | `{rounds}` (0–20; 0 pauses) | Match summary. All-native matches settle at once; with model seats the call returns immediately and the match advances as the models answer |
 | `GET /api/agent-log` | `?seat=N` | What a model seat said it was doing each time it was consulted, with accepted and rejected orders and any error |
 | `GET /api/observation` | `?seat=N` | Any seat's own view, read-only |

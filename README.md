@@ -10,7 +10,8 @@ build, crew, supply and replace.
 This repository contains the v1.0 design documentation (`docs/`) and a playable
 implementation of it: an authoritative Rust rules engine with native non-LLM opponents
 and optional language-model seats, and a desktop application for macOS and Windows
-(the same client also runs in a browser).
+(the same client also runs in a browser, and as a static site with the engine compiled
+to WebAssembly).
 
 ![The world map and round briefing late in a match](docs/screenshots/world.png)
 
@@ -53,6 +54,15 @@ target/release/bts       # or: the same game in its own window
 `scripts/run.sh` serves <http://127.0.0.1:7878/> for development and for external
 agents. The match autosaves each round and resumes on restart (`--fresh` ignores the
 autosave).
+
+### In a browser, with no server
+
+`scripts/build-pages.sh` builds the game as a static site (`dist/pages`): the rules
+engine and the built-in opponents run as WebAssembly in a Web Worker, so nothing is
+installed and no referee is running. `.github/workflows/pages.yml` publishes it to
+GitHub Pages on every push to `main`. It plays human and AI-only (observer) matches;
+language-model seats, external agents and durable saves need the desktop or server
+game. See [docs/web-build.md](docs/web-build.md).
 
 ### Seats, observers and languages
 
@@ -165,6 +175,14 @@ node scripts/smoke.mjs               # plays through every panel and flow, fails
 node scripts/lategame-shots.mjs      # 170 delegated rounds against the AI, then screenshots
 ```
 
+The browser build is checked with no referee at all (see [docs/web-build.md](docs/web-build.md)):
+
+```bash
+scripts/build-pages.sh
+node apps/web/scripts/serve-static.mjs dist/pages 8080 /Before-the-stars/ &
+node apps/web/scripts/pages-smoke.mjs http://127.0.0.1:8080/Before-the-stars/
+```
+
 External agents (Claude Code, Codex, scripts) play through the same HTTP API as the
 browser, through the `bts observe | act | ready` commands, or the integrated
 `get_turn` / `submit_turn` stdio MCP adapter (`node tools/mcp.mjs`). They receive only their
@@ -177,12 +195,16 @@ crates/bts-protocol   Seat-facing contracts: Observation, Action, Receipt (serde
 crates/bts-engine     Authoritative rules: content, world generation, monthly simulation,
                       actions, observation projection, victory, tests
 crates/bts-ai         Native Easy/Medium/Hard opponents; depends only on bts-protocol
+crates/bts-host       The match host: session, request router and every permission rule,
+                      shared by the server and the browser build
 crates/bts-server     `bts` binary: desktop window, HTTP referee, language-model seats,
                       headless runner, agent CLI
+crates/bts-wasm       The host as a WebAssembly module (plain C ABI) for the browser build
 apps/web              TypeScript + Preact client: 3D and flat maps, trees, ledger, panels,
-                      tutorial, observer console, translations
+                      tutorial, observer console, translations; the Web Worker that runs
+                      the WebAssembly referee
 content/              Technology, practice and course graphs extracted from the design atlases
-scripts/              bootstrap, build, run, package, content extraction
+scripts/              bootstrap, build, run, package, browser build, content extraction
 packaging/            app icon, macOS bundle metadata, Windows installer script
 docs/                 v1.0 design documentation, agent API, implementation status
 dist/                 The original design archive and its checksum
