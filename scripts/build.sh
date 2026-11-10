@@ -34,6 +34,12 @@ if [ "$WEB_ONLY" -eq 0 ]; then
   fi
   echo "==> building referee (release)"
   cd "$ROOT"
-  cargo build --release
+  # The game's own window uses the system web view (macOS, Windows). On Linux build the
+  # headless referee, which serves the same game to a browser, unless BTS_DESKTOP=1.
+  if [ "$(uname -s)" = "Linux" ] && [ "${BTS_DESKTOP:-0}" != "1" ]; then
+    cargo build --release --no-default-features -p bts-server
+  else
+    cargo build --release
+  fi
 fi
 echo "==> build complete"
