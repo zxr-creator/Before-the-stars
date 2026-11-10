@@ -449,6 +449,111 @@ return on expiry, and a quarter are lost on the borrower's breach; a joint
 programme's access stops when the treaty is broken and the host pays the extra
 inputs; clauses are hidden from seats that have not discovered the facility.
 
+Implemented; the rules as the engine applies them, with the table of the
+installations, the checks and the two clauses, are section 8 of
+`docs/units-and-scale.md`, and the tests are in
+`crates/bts-engine/src/tests/cooperation.rs` and `crates/bts-ai/tests/cooperation_policy.rs`.
+Where the implementation goes beyond or differs from the list above:
+
+- The high-energy laboratory draws 1,000 units of electricity, not 3,000. Fission,
+  fusion and the plasma work are investigated at the laboratory, so the first one has
+  to run (a quarter rate at least) on hydroelectric works and generator halls of
+  about 54 units a level. At 3,000 the eight eval worlds ended with 13 seats of 32
+  completing the graph (19 under slice D), 23 at 130 technologies or more (30), and
+  the hard seats with 56 million people on average (98 million). At 1,000 they end as
+  under slice D (below). The programme then draws about 21,200 units, not 23,200.
+  Building several stations at once whenever a works lacked electricity was tried
+  instead: it cost so much that only 3 seats completed the graph.
+- The needs of checks 7, 10 and 11 are derived from the installations the seat has,
+  never from fewer than the minimum configuration of an independent programme (two
+  lines, three nodes, and launch complex, station with yard, and laboratory unless a
+  partner serves that installation) - otherwise a seat with no works would pass them
+  vacuously. Serving partners raises the needs by their share. The posts of check 7
+  are those that call for jump engineers or orbital crew alone (the testbed's posts
+  that technicians may fill are not counted). Check 12 fails when the seat holds no
+  line or node.
+- Check 10 counts last round's gross output of each good (`Flows.produced`) plus the
+  output withheld by full stores (`Flows.withheld`, a memorandum shown as
+  `GoodLine.withheld`) plus deliveries contracted to the seat for the coming twelve
+  months under active treaties (one-off deliveries included).
+- Check categories: 1 and 9 scientific; 2, 3 and 10 industrial; 7 and 8 educational;
+  4, 11, 12 and 13 logistical; 5, 6 and 14 service. Governance checks have none.
+- Secondment: 500-200,000 people for 6-240 months; the half-of-free-holders limit
+  counts every secondment clause of the same lender and qualification in the treaty.
+  Experts are drawn from the lender's regions with the most free holders and go to
+  the borrower's capital (or, if it is held by another, its most populous governed
+  region); they share the attrition of the borrower's holders of their
+  qualification, month by month, and the dead are not returned. Release is never
+  more than the borrower's free holders. A repudiation by the lender is the lender
+  ending the treaty (everyone goes home); one by the borrower, or war, keeps a
+  quarter. A treaty in which a party ceases to govern settles its secondments
+  without movement. The audit gained two channels, `seconded_home` and
+  `seconded_back`, so that a loan is told apart from migration and the world
+  identities (`sum(seconded_in) = sum(seconded_out)`, `sum(seconded_home) =
+  sum(seconded_back) <= sum(seconded_in)`, `seconded_lost <= seconded_home`) can be
+  asserted. Cooperation clauses are signed only in peace or together with a peace
+  clause.
+- Joint programme: 12-240 months; the installation that serves is the host's at its
+  capital, else the one in its lowest-numbered region. Access is decided at the start
+  of each month from the rate the installation ran at the month before (also at
+  signing). A partner's orbital yard also stands for its station in the
+  investigations that need one. The host's extra inputs, upkeep and electricity are
+  taken in the host's own economy step (half again per partner, at most two). A month
+  below half rate counts as a shortfall of the clause and of the treaty; the client
+  is briefed when service stops. A seat that has not discovered the installation sees
+  `undisclosed` and a generic summary; an undisclosed or undiscovered service fails
+  identically (`NOT_VISIBLE_OR_UNKNOWN`, "unknown service").
+- Jump preparations are sited where the programme's people are, and their bills grew
+  with the programme: a loaded round trip is 600,000 worker-months over at least six
+  months with 8,000 jump engineers and 8,000 orbital crew, 3,000 units of site power
+  a month, 400 kt of fuel, 100,000 spare-part lots, 50,000 device lots and 30 kt of
+  components (exercise 900,000 worker-months, 12,000 of each crew, 600 kt fuel;
+  replacement 300,000, 4,000 of each).
+- Native policy: it weighs incoming cooperation clauses on its own facts (lends only
+  holders without a post and at most half of them, never promises an installation it
+  does not run at 60% or more or that already serves two partners, never signs an
+  undisclosed service; values borrowed experts and a partner's service at what it
+  saves while the base check fails), and once the jump works are in its catalog and
+  a base check fails it asks a trusted partner for crews (paying in goods, recurring
+  only with escrow established) or, with escrow, for a launch, orbital-yard or
+  laboratory service. Over the eight eval campaigns native seats made 102 such
+  proposals, every one accepted by the referee, and signed 18 secondments and 3
+  joint programmes (`cooperation_survey`, ignored by default). It trains jump
+  engineers and orbital crew to three halves of their posts (80,000 and 110,000 at
+  least), keeps its largest course of each running once the objective is known,
+  gives every line and node a railway (or roads and harbour), wants the flight
+  hardware, fuel and spares whose base check fails, and builds the power stations
+  whose fuel it has.
+- All-native results against slice D (`docs/calibration/slice-e-*.txt`; thirty-two
+  seats of the eval set at year 240):
+
+  | Eval set, year 240 | baseline 1.0.1 | slice D | slice E |
+  | --- | --- | --- | --- |
+  | Seats completing the graph (138) | 27 | 19 | 21 |
+  | Seats at 130 technologies or more | 27 | 30 | 28 |
+  | Mean technologies | 134.4 | 134.4 | 134.8 |
+  | Weakest seat | 84 | 85 | 109 |
+  | People in all (millions) | 0.002 (ruleset 1 scale) | 1,454 | 1,448 |
+  | Hard seats: mean people, regions, technologies | - , 22, 138 | 98 million, 28, 138 | 70 million, 22, 138 |
+  | Seats eliminated | 2 | 4 | 4 |
+  | Victory contracts completed | 0 | 1 (month 2,764) | 0 |
+
+  Every seat, the eliminated ones included, reached the scientific method and
+  industrialized (the weakest ends at 109 technologies); the hard seats all
+  complete the graph, as before, but are smaller (70 million people against 98) and
+  take less from their neighbours. In the riverland world the two strongest seats end
+  at 138 and 138 technologies (138 and 134 under slice D) with 59 and 66 million
+  people, the hard seat is stuck at 51 as under slices C and D, and the easy seat ends
+  at 89 (121): it has no copper, stalls from round 140 for want of computing hardware
+  and advanced research, and the same stall occurs with the slice D policy on the
+  slice E engine, so it follows from how the stronger seats' economies (and so their
+  trade) changed rather than from its own policy. Food stays at 100% throughout. No
+  seat completes the victory contract. At year 240 the best seat fails five of the
+  twenty checks; the commonest failures are the jump works themselves (two
+  operational assemblies, three nodes and the exercise: 28 of 32 seats each), global
+  authority (25) and the industrial base (24); the store check fails for 10 and the
+  scientific base for 11.
+
 ## Slice F - native AI, compatibility, documentation
 
 - `bts-ai`: train builders and the crews new works need; choose methods only when

@@ -1,4 +1,4 @@
-# Conservation audit (ruleset 2.0, slices B to D)
+# Conservation audit (ruleset 2.0, slices B to E)
 
 Nothing in the rules engine enters the world from nothing. This chapter lists every
 place where goods, people, qualified people, service (shaft, electric, compute) or
@@ -15,7 +15,7 @@ Units are those of `docs/units-and-scale.md`. File references are to
 | --- | --- | --- |
 | Goods, per civilization and round | `Civ.flows` (`state.rs`, `Flows`): `produced`, `consumed`, `lost`, `traded_in`, `traded_out` | for every good, over any interval: `stock_end - stock_start = produced - consumed - lost + traded_in - traded_out`; over the world, `sum(traded_in) = sum(traded_out)` |
 | People, per civilization and round | `Civ.flows.births`, `Civ.flows.deaths` | residents of all regions plus soldiers of the world change by `births - deaths` |
-| Qualified people, per civilization, cumulative from the start | `Civ.qual_flows` (`QualFlows`): `initial`, `trained`, `entered`, `returned`, `died`, `retired`, `enlisted`, `moved_in`, `moved_out`, `seconded_out`, `seconded_in`, `seconded_lost` | for every qualification, at every moment: holders in the regions the civilization controls `= initial + trained - entered + returned - died - retired - enlisted + moved_in - moved_out - seconded_out + seconded_in - seconded_lost`; over the world `sum(moved_in) = sum(moved_out)` |
+| Qualified people, per civilization, cumulative from the start | `Civ.qual_flows` (`QualFlows`): `initial`, `trained`, `entered`, `returned`, `died`, `retired`, `enlisted`, `moved_in`, `moved_out`, `seconded_out`, `seconded_home`, `seconded_lost`, `seconded_in`, `seconded_back` | for every qualification, at every moment: holders in the regions the civilization controls `= initial + trained - entered + returned - died - retired - enlisted + moved_in - moved_out - seconded_out + seconded_home - seconded_lost + seconded_in - seconded_back`; over the world `sum(moved_in) = sum(moved_out)`, `sum(seconded_in) = sum(seconded_out)`, `sum(seconded_home) = sum(seconded_back) <= sum(seconded_in)`, and for every civilization `seconded_lost <= seconded_home` |
 | Roles, per region | `Region.quals`, `students`, `teachers`, `Program.enrolled`; `Region.last.labor`; `Project.crew_on_site` | `sum(quals) + students <= working-age residents`; `teachers[q] <= quals[q]`; `students = sum(enrolled)` of the programmes held there; when the month's labour is given out, `food + facilities + projects + household + students + teachers <= working-age residents` (one person, one role); the site crews of the orders sited in the region `<=` the workers called up for projects there |
 | Service, per region and month | `Region.last.power` (`PowerLedger`) | `shaft_used + site_from_supply <= shaft_made - shaft_to_generators + shaft_from_motors`; `site_from_engines <= 5 x site_coal + 10 x site_fuel`; `elec_from_generators <= 0.9 x shaft_to_generators`; `shaft_from_motors <= 0.9 x elec_to_motors`; `elec_used + elec_to_motors + grid_out <= elec_made + elec_from_generators + grid_in`; per civilization `sum(grid_in) <= 0.92 x sum(grid_out)` |
 | Compute, per civilization and month | `Civ.compute_supply`, `Civ.compute_used` | `compute_used(month) <= compute_supply(month - 1)` |
@@ -107,7 +107,7 @@ formations.
 | Recruitment and militia losses | `draw_adults` | the recruits' share of the region's free holders; a qualification lapses in service and is not restored on discharge | `enlisted` | `recruits_and_fallen_militia_take_their_qualifications_with_them` |
 | Settlement, resettlement, migration, drift, relocation of specialists | `move_people`, `relocate_adults` | free holders move in the proportion of the working-age people who move, and keep their qualification | none between a civilization's own regions; `moved_out` / `moved_in` across civilizations | `learners_and_instructors_never_outnumber_the_people_who_exist` |
 | A region changes controller: capture, liberation, cession, settlement of new land | `World::set_controller` | the residents stay; their qualifications change ledger | `moved_out` / `moved_in` | scripted match, all-AI campaigns |
-| Secondment of experts | slice E | - | `seconded_out`, `seconded_in`, `seconded_lost` (zero until then) | - |
+| Secondment of experts under a treaty | `sim/diplomacy.rs` (`activate`, `end_cooperation`), `sim/population.rs` (`second_out`, `second_home`) | free holders (not teaching) of the lender, at most half of them, move with real adults of 20-55 to the borrower's capital and keep their qualification; at the end the survivors (never more than the borrower's free holders, nor more than are still owed) go home with real adults, except on the borrower's breach or war, when a quarter stay as ordinary residents and lose the qualification; experts who die, retire or are enlisted abroad leave through the borrower's ordinary channels and reduce what is owed | lender `seconded_out`, then `seconded_home` (all released) and `seconded_lost` (those kept behind); borrower `seconded_in`, then `seconded_back` | `seconded_experts_leave_the_lender_work_abroad_and_come_home_at_term`, `a_quarter_of_the_experts_stay_behind_when_the_borrower_repudiates_or_war_comes`, `the_audit_notices_experts_who_were_never_sent`, all-AI campaigns |
 
 Learners and instructors are people. Learners die and are enlisted in proportion and
 drop out of their cohorts; when people move, learners and instructors stay with their
@@ -237,16 +237,24 @@ Engine (`crates/bts-engine/src/tests.rs`), scripted, no policy:
   `output_used_in_the_same_region_pays_no_carriage_and_nothing_else_is_spared` and
   `a_congested_region_loses_more_in_carriage_until_transport_is_added` state each
   rule to the unit.
+- `tests/cooperation.rs` (slice E): every month of the secondment tests is audited,
+  and the books are checked across the signing, the repudiation by either party and
+  the declaration of war that settle a secondment. `the_audit_notices_experts_who_were_never_sent`
+  books experts received that nobody sent and requires the audit to name it.
 
 All-AI (`crates/bts-ai/tests/conservation.rs`; the engine cannot depend on the
 policy crate):
 
 - `all_ai_matches_balance_every_month_for_three_hundred_months`: three worlds, 300
   months each.
-- `all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment`: three
-  whole campaigns of 2,880 months (one ends some months early, won), which between them include settlement, recruitment,
+- `all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment`: four
+  whole campaigns of 2,880 months (one may end some months early, won), which between them include settlement, recruitment,
   war, regions changing hands, an elimination, trade, mining, a shared grid, compute,
-  site crews, and site power from the regions' shaft work and from site engines.
+  site crews, site power from the regions' shaft work and from site engines, and
+  (since slice E) experts lent under secondment treaties: native seats seconded
+  30,000-75,000 experts in three of the four campaigns, and in two of them experts
+  were released from service abroad (19,000 and 72,000), under the monthly audit; the
+  test requires that some were lent and some released.
   Every campaign is also required to have had pooled maintenance and output exempt
   from carriage under the audit (5,600-7,800 pooled region-months in each), and the
   three between them congested freight (137, 4 and 2,095 region-months: seats that

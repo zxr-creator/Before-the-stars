@@ -659,7 +659,7 @@ fn jump_preparations_hold_their_crews_and_draw_site_power() {
     let id = r[0].created.unwrap();
     let p = project(&m, id).clone();
     // a loaded round trip: 8,000 jump engineers and 8,000 orbital crew for six months,
-    // 300 units of site power and 400 kt of propellant (design chapter 35, slice E)
+    // 3,000 units of site power a month and 400 kt of propellant (design chapter 35, slice E)
     assert_eq!(p.crew, vec![(vec![Qual::FtlEngineer], 8_000), (vec![Qual::Orbital], 8_000)]);
     assert_eq!((p.power_need, p.min_months), (3_000_000, 6));
     assert_eq!(p.work_needed, 600_000);
