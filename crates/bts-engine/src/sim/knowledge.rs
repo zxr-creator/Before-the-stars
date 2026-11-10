@@ -166,8 +166,9 @@ pub fn step(w: &mut World, seat: SeatId) {
     if crate::sim::culture::belief_share(w, seat, "sky_terraces") > 2000 {
         w.civs[si].tag_activity[Tag::Measure as usize] += 200;
     }
-    let research_staff: i64 = w.civs[si].research_cap.iter().sum::<i64>() / 1000;
-    let trickle = isqrt(research_staff * 10_000) / 5;
+    // one researcher-month of capacity is one person in a research post
+    let research_staff: i64 = w.civs[si].research_cap.iter().sum::<i64>();
+    let trickle = crate::sim::economy::activity_index(research_staff) / 5;
     let cross = w.civs[si].est_id("C030");
     let customs = w.civs[si].est_id("C012");
     let translation = w.civs[si].est_id("C024");

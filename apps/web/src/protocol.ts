@@ -71,6 +71,8 @@ export interface Observation {
   briefing: BriefingItem[];
   chronicle: ChronicleEntry[];
   receipts: Receipt[];
+  /** bts-protocol/1.2: what one integer step of each quantity means. */
+  units?: UnitsView;
 }
 
 export interface WorldFrame {
@@ -94,6 +96,13 @@ export interface GoodLine {
   traded_in: number;
   traded_out: number;
   capacity: number | null;
+  /**
+   * What nobody used last round: spoilage, loss in carriage to the common stock and
+   * abandoned stores. `produced` is gross output where it was made, so over a round
+   * stock change = produced - consumed - lost + traded_in - traded_out.
+   * Absent on referees older than ruleset 2.0 slice B.
+   */
+  lost?: number;
 }
 
 export interface QualCount {
@@ -213,6 +222,17 @@ export interface FacilityView {
   utilization_bp: number;
   runs: RecipeRun[];
   enabled: boolean;
+  /**
+   * The production method the seat chose for this facility in this region: the key of one of
+   * the facility type's recipes (`RecipeView.key`), set with `set_policy` / `method`. Absent or
+   * null while the choice is left to the works. (serde default)
+   */
+  method?: string | null;
+  /**
+   * The method the works actually ran last month, chosen or automatic; for fields, the method
+   * the land was worked by. (serde default)
+   */
+  active_method?: string | null;
 }
 
 export interface BlockView {
@@ -238,7 +258,9 @@ export interface VenueSeats {
 }
 
 export interface OwnRegion {
-  construction_sites?: { work_per_level: number; min_months: number; kind: string; max_level: number; queued_levels: number }[];
+  construction_sites?: { work_per_level: number; min_months: number; kind: string; max_level: number; queued_levels: number; cost_per_level?: GoodQty[]; crew_per_level?: CrewSpec[]; site_power_per_level?: number; first_of_kind?: boolean }[];
+  /** Every project sited in this region, in the order in which it is served. (serde default) */
+  construction_queue?: QueueEntry[];
   population: number;
   children: number;
   working_age: number;
@@ -258,6 +280,8 @@ export interface OwnRegion {
   occupied_since: Month | null;
   /** Teaching places by venue and how many are booked by programmes. (serde default) */
   venues?: VenueSeats[];
+  /** The region's shared infrastructure and what it saves or costs its works. (serde default) */
+  infrastructure?: InfraView;
 }
 
 export interface ForeignRegion {
@@ -452,6 +476,16 @@ export interface RecipeView {
   research?: [ResearchClass, number] | null;
   note: string;
   available: boolean;
+  /**
+   * General posts one level needs under this method, in people, before the saving from shared
+   * support. (serde default)
+   */
+  general_posts?: number;
+  /**
+   * Qualified posts one level needs under this method, in people: the facility's own and those
+   * the method adds; `qual` is the qualification asked for first. (serde default)
+   */
+  skilled_posts?: JobSpec[];
 }
 
 export interface FacilityType {
@@ -476,6 +510,12 @@ export interface FacilityType {
   requirements: KnownRequirement[];
   available: boolean;
   labor_category: LaborCategory | null;
+  /** Qualified site crew per level under construction, in people. (serde default) */
+  build_crew?: CrewSpec[];
+  /** Shaft service a site draws per level in a month of full work, base units of 0.1 MWh. (serde default) */
+  build_power?: number;
+  /** Minimum months of construction before any first-of-kind surcharge. (serde default) */
+  build_months?: number;
 }
 
 export interface CourseType {
@@ -530,6 +570,18 @@ export interface ProjectView {
   blockers: string[];
   eta_months_low: number | null;
   eta_months_high: number | null;
+  /** The qualified site crew the order needs and had reserved last month, in people. (serde default) */
+  crew?: CrewOnSite[];
+  /** Shaft service the site draws in a month of full work, base units of 0.1 MWh. (serde default) */
+  site_power?: number;
+  /** Share of the site power asked for last month that was delivered, basis points. (serde default) */
+  power_bp?: number;
+  /** Share of the goods bill committed so far, basis points. (serde default) */
+  goods_bp?: number;
+  /** Months the project takes at least; 0 where no minimum is recorded. (serde default) */
+  min_months?: number;
+  /** 0-based place in the construction queue of the region the project is sited in. (serde default) */
+  queue_position?: number | null;
 }
 
 export interface ProgramView {
@@ -725,7 +777,13 @@ export type PolicySetting =
   | { kind: 'mobilization'; bp: number }
   | { kind: 'facility'; region: RegionId; facility: string; enabled: boolean }
   | { kind: 'rename'; name: string }
-  | { kind: 'move_capital'; region: RegionId };
+  | { kind: 'move_capital'; region: RegionId }
+  /**
+   * Choose the production method of a facility in a region: the key of one of the facility
+   * type's recipes that is `available`. For fields the choice is a ceiling. `method` null or
+   * absent returns the choice to the works.
+   */
+  | { kind: 'method'; region: RegionId; facility: string; method?: string | null };
 
 export type Action =
   | { kind: 'select_contacts'; seats: SeatId[] }
@@ -737,7 +795,7 @@ export type Action =
   | { kind: 'break_treaty'; treaty: number }
   | { kind: 'set_policy'; setting: PolicySetting }
   | { kind: 'start_project'; spec: ProjectSpec; priority: number | null }
-  | { kind: 'manage_project'; project: number; op: ManageOp; priority: number | null }
+  | { kind: 'manage_project'; project: number; op: ManageOp; priority: number | null; position?: number | null }
   | { kind: 'investigate'; lead: string }
   | { kind: 'propose_reform'; practice: string }
   | { kind: 'start_program'; region: RegionId; course: string; seats: number }
@@ -953,4 +1011,162 @@ export interface AgentLogEntry {
 export interface ApiErrorBody {
   error: string;
   message: string;
+}
+
+// ---------------------------------------------------------------------------
+// bts-protocol/1.2 (ruleset bts-rules/2.0.0): scale and units
+// ---------------------------------------------------------------------------
+//
+// Head counts everywhere in the protocol are real people: populations, labour,
+// qualification holders, `JobSpec.count`, soldiers, and programme `seats`,
+// `enrolled` and `teachers` (these were small integers before 1.2 and are now
+// in the thousands and millions). Goods, work, research and services are
+// integer base units; 1,000 base units make one display unit. Catalog amounts
+// stated per person (`CourseType.materials`, `UnitTier.equipment` and
+// `UnitTier.upkeep`) are per thousand people.
+
+/** Unit and mass of one base unit of a good. */
+export interface GoodUnit {
+  good: Good;
+  /** "t" (tonne), "ration" or "lot". */
+  unit: string;
+  /** Mass of one base unit in kilograms, i.e. thousandths of a tonne. */
+  tonnes_per_unit_milli: number;
+}
+
+/** The unit system of the running ruleset, so a client need not hard-code scale. */
+export interface UnitsView {
+  /** Food base units (rations) one resident or soldier eats in a month. */
+  food_per_person_month: number;
+  /** Base units per display unit for goods, work, research and services. */
+  display_divisor: number;
+  goods: GoodUnit[];
+  /** What one base unit of project work is ("worker-month"). */
+  work_unit: string;
+  /** What one base unit of research work is ("researcher-month"). */
+  research_unit: string;
+  /** What one base unit of shaft or electric service is. */
+  service_unit: string;
+  /** Lower bound, in residents, of each settlement class in ascending order. */
+  settlement_bounds: [SettlementKind, number][];
+  /** Bounds on orders that name a number of people. */
+  limits?: PeopleLimits;
+}
+
+/** Bounds, in people, on the orders that name a head count. */
+export interface PeopleLimits {
+  /** A settling party (`settle`). */
+  settlers_min: number;
+  settlers_max: number;
+  /** A formation (`recruit`). */
+  soldiers_min: number;
+  soldiers_max: number;
+  /** Places one programme may book (`start_program`, `manage_program`). */
+  program_seats_max: number;
+  /** Learners a founding cohort can hold while nobody qualified can teach it. */
+  founding_cohort_max: number;
+}
+
+// ---------------------------------------------------------------------------
+// Construction quotes and regional queues (ruleset 2.0, slice C)
+// ---------------------------------------------------------------------------
+
+/** One group of a qualified site crew: `count` people who hold any of `quals`. */
+export interface CrewSpec {
+  /** Acceptable qualifications, most preferred first. */
+  quals: Qual[];
+  /** People. */
+  count: number;
+}
+
+/** One group of a site crew as it stood last month. */
+export interface CrewOnSite {
+  /** Acceptable qualifications, most preferred first. */
+  quals: Qual[];
+  /** People the order needs in this group, and people reserved for it last month. */
+  needed: number;
+  on_site: number;
+}
+
+/**
+ * The true price of one level of a facility in one region, as charged if ordered
+ * now (the element type of `OwnRegion.construction_sites`). An order of `n` levels
+ * is charged exactly `n` times the goods, work, crew and site power and takes the
+ * same minimum months.
+ */
+export interface BuildSiteView {
+  /** Worker-months per level, including the first-of-kind surcharge where it applies. */
+  work_per_level: number;
+  /** Months the order takes at least, including the first-of-kind surcharge. */
+  min_months: number;
+  kind: string;
+  max_level: number;
+  queued_levels: number;
+  /** Goods per level, base units (rations, tonnes or lots). (serde default) */
+  cost_per_level?: GoodQty[];
+  /** Qualified site crew per level, in people; reserved while the order is active. (serde default) */
+  crew_per_level?: CrewSpec[];
+  /**
+   * Shaft service the site draws per level in a month of full work, base units of
+   * 0.1 MWh. Taken from the region's shaft supply, then from site engines burning
+   * coal (1 t for 5 units), then refined fuel (1 t for 10 units), but never the month
+   * of fuel that mechanized fields and motor boats must find in store. (serde default)
+   */
+  site_power_per_level?: number;
+  /** True when the seat has no installation of this kind: work and months are half as much again. (serde default) */
+  first_of_kind?: boolean;
+}
+
+/** One order in a region's construction queue, in the order of service. */
+export interface QueueEntry {
+  /** Project id, as in `ProjectView.id` and `manage_project`. */
+  project: number;
+  /** 0-based place in the region's service order; `manage_project` with `position` moves it. */
+  position: number;
+  /** Project kind, as in `ProjectView.kind`. */
+  kind: string;
+  title: string;
+  /** Facility kind for a build order. */
+  facility: string | null;
+  /** Levels a build order adds. */
+  levels: number | null;
+  priority: number;
+  paused: boolean;
+  /** Share of the work done, basis points. */
+  progress_bp: number;
+  /** The qualified site crew: needed and reserved last month, in people. */
+  crew: CrewOnSite[];
+  /** Share of the site power asked for last month that was delivered, basis points. */
+  power_bp: number;
+  /** Share of the goods bill committed so far, basis points. */
+  goods_bp: number;
+  /** What the order was short of last month, in words; empty when nothing held it back. */
+  waiting_for: string[];
+  eta_months_low: number | null;
+  eta_months_high: number | null;
+}
+
+/**
+ * A region's shared infrastructure and the economies of scale it carries (ruleset 2.0 slice D;
+ * docs/units-and-scale.md section 7). Every figure is a saving of overhead or a loss in
+ * carriage; none raises what a recipe puts out. Capacity, load and the rates are those that
+ * apply in the coming month with the works as they stand; the quantities are last month's.
+ */
+export interface InfraView {
+  /** Facility levels of industry, extraction and power the region's transport grade can serve. */
+  freight_capacity: number;
+  /** Enabled facility levels of industry, extraction and power in the region. */
+  freight_load: number;
+  /** Share of the load the transport can serve, basis points (10,000 within capacity). */
+  infra_bp: number;
+  /** The most shared support can save of a works' general posts here, basis points (2,000 scaled by `infra_bp`). */
+  support_saving_cap_bp: number;
+  /** Share of the spares and tools upkeep of the region's other industrial, extractive and power works that its repair works save, basis points (at most 1,500). */
+  maintenance_saving_bp: number;
+  /** Further share of the output sent to the common stock that congested freight loses, basis points (at most 2,000; the capital included). */
+  congestion_loss_bp: number;
+  /** Output of last month that paid no carriage loss because works of the same region took as much of that good as inputs: base units by good. */
+  chain_exempt: GoodQty[];
+  /** The carriage loss that exemption avoided last month, base units by good. */
+  chain_loss_saved: GoodQty[];
 }

@@ -51,6 +51,22 @@ pub fn course_visible(w: &World, seat: SeatId, course: usize) -> bool {
     ts.iter().all(|t| civ.tech[*t].state >= ST_DISCOVERED) && ps.iter().all(|p| civ.practice[*p].state >= 1)
 }
 
+/// A settling party, in people, and what the sending region must keep.
+pub const SETTLERS_MIN: u32 = 20_000;
+pub const SETTLERS_MAX: u32 = 400_000;
+const SETTLE_KEEP: u32 = 80_000;
+/// Rations a party carries for each settler, and tool lots for each thousand settlers.
+const SETTLER_RATIONS: i64 = 4;
+const SETTLER_TOOLS_PER_K: i64 = 50;
+/// What a region must keep when people are moved out of it by order.
+const RESETTLE_KEEP: u32 = 50_000;
+/// A formation, in soldiers, and the worker-months to muster a thousand recruits.
+pub const FORMATION_MIN: u32 = 1_000;
+pub const FORMATION_MAX: u32 = 5_000_000;
+const MUSTER_WORK_PER_K: i64 = 150;
+/// Places one programme may book.
+pub const PROGRAM_SEATS_MAX: u32 = 2_000_000;
+
 struct Fail {
     code: &'static str,
     reason: String,
@@ -202,8 +218,51 @@ fn new_project(w: &mut World, seat: SeatId, kind: ProjKind, region: Option<Regio
         last_progress: 0,
         blockers: vec![],
         max_per_month: max_per_month(work, min_months),
+        crew: vec![],
+        crew_on_site: vec![],
+        crew_capped: false,
+        power_need: 0,
+        power_bp: 0,
+        min_months: 0,
+        order_key: 0,
     });
     id
+}
+
+/// An order with a stated minimum duration, a qualified site crew and site power:
+/// construction, and the preparations of the jump programme. Its work is spread
+/// over exactly `months`; nothing lets it finish sooner.
+#[allow(clippy::too_many_arguments)]
+fn new_site_order(w: &mut World, seat: SeatId, kind: ProjKind, region: RegionId, work: i64, inputs: Vec<(Good, i64)>, months: u16, crew: Vec<(Vec<Qual>, u32)>, power: i64, priority: Option<u8>) -> u32 {
+    let id = new_project(w, seat, kind, Some(region), work, inputs, months as i64, priority);
+    let p = w.civs[seat as usize].projects.last_mut().expect("the order just placed");
+    p.max_per_month = crate::sim::projects::monthly_share(work, months as i64);
+    p.min_months = months;
+    p.crew_on_site = vec![0; crew.len()];
+    p.crew = crew.into_iter().filter(|(_, n)| *n > 0).collect();
+    p.crew_on_site.truncate(p.crew.len());
+    p.power_need = power.max(0);
+    id
+}
+
+/// The regions' orders are served by priority, then by place in the queue. Move
+/// one order to the 0-based `position` among the orders sited in its region: the
+/// region's orders are put in the new order and take over, in that order, the
+/// priorities and places they held between them, so nothing changes for the orders
+/// of other regions. An order without a site has no queue to move in.
+fn move_in_queue(w: &mut World, seat: SeatId, project: u32, position: u16) {
+    let civ = &mut w.civs[seat as usize];
+    let Some(region) = civ.projects.iter().find(|p| p.id == project).and_then(|p| p.region) else { return };
+    let mut queue: Vec<usize> = (0..civ.projects.len()).filter(|i| civ.projects[*i].region == Some(region)).collect();
+    queue.sort_by_key(|i| civ.projects[*i].service_key());
+    let slots: Vec<(u8, u32)> = queue.iter().map(|i| { let k = civ.projects[*i].service_key(); (k.0, k.1) }).collect();
+    let Some(from) = queue.iter().position(|i| civ.projects[*i].id == project) else { return };
+    let moved = queue.remove(from);
+    queue.insert((position as usize).min(queue.len()), moved);
+    for (i, slot) in queue.into_iter().zip(slots) {
+        civ.projects[i].priority = slot.0;
+        civ.projects[i].order_key = slot.1;
+    }
 }
 
 fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, Option<u32>), Fail> {
@@ -343,6 +402,25 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     }
                     w.civs[si].capital = region;
                 }
+                PolicySetting::Method { region, facility, method } => {
+                    let ri = own_region(w, seat, region)?;
+                    // a facility that does not exist, one the region does not have, a
+                    // method that does not exist and one the seat cannot yet use are
+                    // all refused in the same words: nothing can be probed for
+                    const NO: &str = "unknown facility or method";
+                    let Some(&kind) = c.fac_ix.get(&facility) else { return fail(UNKNOWN, NO) };
+                    if w.regions[ri].fac(kind).is_none() {
+                        return fail(UNKNOWN, NO);
+                    }
+                    if let Some(key) = &method {
+                        if !crate::sim::economy::method_choosable(w, seat, kind, key) {
+                            return fail(UNKNOWN, NO);
+                        }
+                    }
+                    if let Some(f) = w.regions[ri].fac_mut(kind) {
+                        f.method = method;
+                    }
+                }
             }
             Ok(("Standing policy updated.".into(), None))
         }
@@ -371,15 +449,22 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if existing + pending + levels > cap {
                         return fail("CONFLICTING_ACTIONS", if cap == 0 { format!("{} has no suitable site for {}", w.regions[ri].name, def.name.to_lowercase()) } else { format!("{} can support at most {} level(s) of {} at present", w.regions[ri].name, cap, def.name.to_lowercase()) });
                     }
-                    let first = !crate::sim::projects::civ_has_facility(w, seat, kind);
-                    let mut work = scaled(def.work * levels as i64, pace);
-                    if first {
-                        work = work * 3 / 2; // a first-of-kind installation is also the prototype
+                    // the charge is the quote shown for this site, times the levels ordered:
+                    // goods, work, crew and site power; the minimum months do not grow
+                    // with the levels (they are built side by side)
+                    let quote = crate::sim::projects::build_quote(w, seat, kind);
+                    let n = levels as i64;
+                    let inputs = quote.cost.iter().map(|(g, a)| (*g, a * n)).collect();
+                    let crew = quote.crew.iter().map(|(qs, c)| (qs.clone(), c * levels as u32)).collect();
+                    let id = new_site_order(w, seat, ProjKind::Build { facility: kind, levels }, region, quote.work * n, inputs, quote.months, crew, quote.power * n, priority);
+                    let mut terms = format!("at least {} months", quote.months);
+                    if !quote.crew.is_empty() {
+                        terms.push_str(", with its site crew reserved from this region's qualified residents until it is finished, paused or cancelled");
                     }
-                    let inputs = def.cost.iter().map(|(g, a)| (*g, a * levels as i64)).collect();
-                    let months = if def.work >= 1_000_000 { 12 } else if def.work >= 100_000 { 6 } else { 2 };
-                    let id = new_project(w, seat, ProjKind::Build { facility: kind, levels }, Some(region), work, inputs, months, priority);
-                    Ok((format!("Construction ordered{}.", if first { "; as the first of its kind it will take half as long again" } else { "" }), Some(id)))
+                    if quote.power > 0 {
+                        terms.push_str("; site power comes from the region's shaft supply, then from site engines burning coal, then refined fuel");
+                    }
+                    Ok((format!("Construction ordered: {terms}{}.", if quote.first { ". As the first of its kind it takes half as much work and time again" } else { "" }), Some(id)))
                 }
                 ProjectSpec::Research { tech } => {
                     let Some(ti) = tech_from_handle(w, seat, &tech) else { return fail(UNKNOWN, "unknown method") };
@@ -440,17 +525,18 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.civs[si].memory[ti].owner.is_some() {
                         return fail("CONFLICTING_ACTIONS", "our records show that land is already held");
                     }
-                    if !(20..=400).contains(&people) {
-                        return fail("INVALID_SCHEMA", "a settling party is 20 to 400 people");
+                    if !(SETTLERS_MIN..=SETTLERS_MAX).contains(&people) {
+                        return fail("INVALID_SCHEMA", "a settling party is 20,000 to 400,000 people");
                     }
-                    if w.regions[fi].population() < people + 80 {
+                    if w.regions[fi].population() < people + SETTLE_KEEP {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "the sending region cannot spare that many people");
                     }
                     if w.civs[si].projects.iter().any(|p| matches!(p.kind, ProjKind::Settle { to: t, .. } if t == to)) {
                         return fail("CONFLICTING_ACTIONS", "a party is already preparing to settle there");
                     }
                     let work = scaled(18_000, pace);
-                    let inputs = vec![(Good::Food, people as i64 * 4000), (Good::Tools, people as i64 * 50), (Good::Materials, 10_000)];
+                    // four rations for every settler and fifty tool lots for every thousand
+                    let inputs = vec![(Good::Food, people as i64 * SETTLER_RATIONS), (Good::Tools, people as i64 * SETTLER_TOOLS_PER_K / 1000), (Good::Materials, 10_000)];
                     let id = new_project(w, seat, ProjKind::Settle { from, to, people }, Some(from), work, inputs, 3, priority);
                     Ok(("Settling party is being provisioned.".into(), Some(id)))
                 }
@@ -477,11 +563,11 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 ProjectSpec::Resettle { from, to, people } => {
                     let fi = own_region(w, seat, from)?;
                     let ti = own_region(w, seat, to)?;
-                    if fi == ti || people == 0 || w.regions[fi].population() < people + 50 {
+                    if fi == ti || people == 0 || (w.regions[fi].population() as u64) < people as u64 + RESETTLE_KEEP as u64 {
                         return fail("INVALID_SCHEMA", "the sending region cannot spare that many people");
                     }
                     let work = scaled(6000, pace);
-                    let id = new_project(w, seat, ProjKind::Resettle { from, to, people }, Some(from), work, vec![(Good::Food, people as i64 * 1000)], 2, priority);
+                    let id = new_project(w, seat, ProjKind::Resettle { from, to, people }, Some(from), work, vec![(Good::Food, people as i64 * crate::content::FOOD_PER_PERSON_MONTH)], 2, priority);
                     Ok(("Resettlement organized.".into(), Some(id)))
                 }
                 ProjectSpec::Recruit { region, role, soldiers, tier } => {
@@ -492,19 +578,20 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.regions[ri].owner != Some(seat) {
                         return fail("CONFLICTING_ACTIONS", "occupied populations cannot be recruited");
                     }
-                    if !(10..=5000).contains(&soldiers) {
-                        return fail("INVALID_SCHEMA", "a formation is 10 to 5,000 soldiers");
+                    if !(FORMATION_MIN..=FORMATION_MAX).contains(&soldiers) {
+                        return fail("INVALID_SCHEMA", "a formation is 1,000 to 5,000,000 soldiers");
                     }
                     let room = crate::sim::military::recruit_room(w, seat);
                     if soldiers > room {
-                        return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("at most {room} more people would currently serve"));
+                        return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("at most {} more people would currently serve", group(room as i64)));
                     }
                     if tier >= 1 && w.regions[ri].cap(Cap::Barracks) == 0 {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "this formation needs a barracks in the region");
                     }
                     let def = &c.unit_tiers[tier as usize];
-                    let inputs = def.equipment.iter().map(|(g, a)| (*g, a * soldiers as i64)).collect();
-                    let work = scaled(soldiers as i64 * 150, pace);
+                    // equipment is stated per thousand soldiers
+                    let inputs = def.equipment.iter().map(|(g, a)| (*g, a * soldiers as i64 / 1000)).collect();
+                    let work = scaled(soldiers as i64 * MUSTER_WORK_PER_K / 1000, pace);
                     let id = new_project(w, seat, ProjKind::Recruit { role, soldiers, tier }, Some(region), work, inputs, 2, priority);
                     Ok(("Recruitment and equipment ordered.".into(), Some(id)))
                 }
@@ -556,8 +643,9 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                         return fail("CONFLICTING_ACTIONS", "a trial is already being prepared");
                     }
                     let capital = w.civs[si].capital;
-                    let id = new_project(w, seat, ProjKind::FtlTrial, Some(capital), scaled(300_000, pace), vec![(Good::Fuel, 150_000), (Good::Spares, 40_000), (Good::Electronics, 20_000)], 4, priority);
-                    Ok(("Trial preparation begun.".into(), Some(id)))
+                    let (crew, power) = crate::sim::projects::ftl_terms(&ProjKind::FtlTrial);
+                    let id = new_site_order(w, seat, ProjKind::FtlTrial, capital, scaled(300_000, pace), vec![(Good::Fuel, 150_000), (Good::Spares, 40_000), (Good::Electronics, 20_000)], 4, crew, power, priority);
+                    Ok(("Trial preparation begun. Jump engineers and orbital crews at the capital are held for it, and it draws site power.".into(), Some(id)))
                 }
                 ProjectSpec::FtlDeployment => {
                     if !w.civs[si].knows_id("T167") {
@@ -567,8 +655,9 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                         return fail("CONFLICTING_ACTIONS", "an exercise is already being prepared");
                     }
                     let capital = w.civs[si].capital;
-                    let id = new_project(w, seat, ProjKind::FtlDeployment, Some(capital), scaled(400_000, pace), vec![(Good::Fuel, 200_000), (Good::Spares, 60_000)], 6, priority);
-                    Ok(("Deployment exercise scheduled; it must close within six months of work.".into(), Some(id)))
+                    let (crew, power) = crate::sim::projects::ftl_terms(&ProjKind::FtlDeployment);
+                    let id = new_site_order(w, seat, ProjKind::FtlDeployment, capital, scaled(400_000, pace), vec![(Good::Fuel, 200_000), (Good::Spares, 60_000)], 6, crew, power, priority);
+                    Ok(("Deployment exercise scheduled; it takes at least six months of work. Jump engineers and orbital crews at the capital are held for it, and it draws site power.".into(), Some(id)))
                 }
                 ProjectSpec::FtlReplacement => {
                     if !w.civs[si].knows_id("T167") {
@@ -581,18 +670,27 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                         return fail("CONFLICTING_ACTIONS", "a replacement is already being prepared");
                     }
                     let capital = w.civs[si].capital;
-                    let id = new_project(w, seat, ProjKind::FtlReplacement, Some(capital), scaled(200_000, pace), vec![(Good::Spares, 60_000)], 3, priority);
-                    Ok(("Replacement and relief scheduled.".into(), Some(id)))
+                    let (crew, power) = crate::sim::projects::ftl_terms(&ProjKind::FtlReplacement);
+                    let id = new_site_order(w, seat, ProjKind::FtlReplacement, capital, scaled(200_000, pace), vec![(Good::Spares, 60_000)], 3, crew, power, priority);
+                    Ok(("Replacement and relief scheduled. Jump engineers and orbital crews at the capital are held for it, and it draws site power.".into(), Some(id)))
                 }
             }
         }
-        Action::ManageProject { project, op, priority } => {
+        Action::ManageProject { project, op, priority, position } => {
             let Some(pos) = w.civs[si].projects.iter().position(|p| p.id == project) else { return fail(UNKNOWN, "no such project") };
             if let Some(p) = priority {
                 w.civs[si].projects[pos].priority = p.min(9);
             }
+            if let Some(place) = position {
+                move_in_queue(w, seat, project, place);
+            }
             match op {
-                ManageOp::Pause => w.civs[si].projects[pos].paused = true,
+                ManageOp::Pause => {
+                    // a paused order releases its crew at once
+                    let p = &mut w.civs[si].projects[pos];
+                    p.paused = true;
+                    p.crew_on_site.iter_mut().for_each(|n| *n = 0);
+                }
                 ManageOp::Resume => w.civs[si].projects[pos].paused = false,
                 ManageOp::Cancel => {
                     let p = w.civs[si].projects.remove(pos);
@@ -655,12 +753,12 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
             if !def.req.eval(&CivCtx { world: w, seat }) {
                 return fail("INSUFFICIENT_VISIBLE_BUDGET", "the content of this course is not yet available");
             }
-            if seats == 0 || seats > 2000 {
-                return fail("INVALID_SCHEMA", "choose between 1 and 2,000 places");
+            if seats == 0 || seats > PROGRAM_SEATS_MAX {
+                return fail("INVALID_SCHEMA", "choose between 1 and 2,000,000 places");
             }
             let (cap, reserved) = crate::sim::projects::venue_seats(w, seat, ri, def.venue);
             if reserved + seats as i64 > cap {
-                return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("the venue in {} has {} free places", w.regions[ri].name, (cap - reserved).max(0)));
+                return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("the venue in {} has {} free places", w.regions[ri].name, group((cap - reserved).max(0))));
             }
             if w.civs[si].programs.len() >= 200 {
                 return fail("RATE_LIMITED", "too many programmes");
@@ -677,7 +775,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     (p.course, p.region as usize, p.seats)
                 };
                 let (cap, reserved) = crate::sim::projects::venue_seats(w, seat, region, c.courses[course].venue);
-                if s == 0 || reserved - old as i64 + s as i64 > cap {
+                if s == 0 || s > PROGRAM_SEATS_MAX || reserved - old as i64 + s as i64 > cap {
                     return fail("INSUFFICIENT_VISIBLE_BUDGET", "the venue does not have that many places");
                 }
                 w.civs[si].programs[pos].seats = s;

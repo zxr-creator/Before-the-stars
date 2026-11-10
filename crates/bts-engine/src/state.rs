@@ -68,8 +68,22 @@ impl LinkKind {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DepositState {
     pub kind: Deposit,
+    /// Tonnes still in the ground.
     pub remaining: i64,
     pub quality_bp: u16,
+    /// Tonnes ever drawn from the ground here: ore delivered plus what the workings
+    /// disturbed and left behind as waste. `remaining + drawn` never changes.
+    #[serde(default)]
+    pub drawn: i64,
+    /// Tonnes of ore ever delivered at the pithead from here; never more than `drawn`.
+    #[serde(default)]
+    pub delivered: i64,
+}
+
+impl DepositState {
+    pub fn new(kind: Deposit, remaining: i64, quality_bp: u16) -> Self {
+        DepositState { kind, remaining, quality_bp, drawn: 0, delivered: 0 }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -133,17 +147,127 @@ pub struct Facility {
     pub level: u16,
     pub condition_bp: u16,
     pub enabled: bool,
+    /// Posts filled and posts required last month, in people.
     pub staffed: u32,
     pub staff_needed: u32,
     pub skilled_bp: u16,
     pub run: Option<RunStat>,
     pub operated: bool,
-    /// Progress toward the next jump assembly (milli) for assembly lines.
+    /// Progress toward the next jump assembly, in thousandths, for assembly lines.
     pub assembly_progress: i64,
+    /// The production method the governing seat chose for this facility here: the
+    /// key of one of its recipes, or of one of the field methods for fields. None
+    /// leaves the choice to the works (`sim::economy::choose_recipe`). The choice
+    /// lapses when the region changes hands.
+    #[serde(default)]
+    pub method: Option<String>,
+    /// For fields: how the land was worked last month. `recipe` indexes
+    /// `sim::economy::FIELD_METHODS`, `rate_bp` is the share of the field posts
+    /// that were worked, and `missing` names the chemicals or fuel whose absence
+    /// kept the land on a lower method than the seat allows.
+    #[serde(default)]
+    pub field_run: Option<RunStat>,
+}
+
+impl Facility {
+    /// A new, enabled installation in full repair that has not yet run.
+    pub fn new(kind: usize, level: u16) -> Facility {
+        Facility { kind, level, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0, method: None, field_run: None }
+    }
+}
+
+/// What a region's shared infrastructure did in one month
+/// (`docs/units-and-scale.md`, section 7). The vectors are indexed by `Good`, in
+/// base units, and cover the recipes of the region's works: food grown and
+/// household craft are not in them.
+///
+/// The identities the conservation tests assert, for every good:
+/// `made <= sum over the works of recipe output x level x rate`,
+/// `exempt <= used`, `exempt <= made`, `exempt <= delivered <= made`,
+/// `maint_bp <= 1,500`, `congestion_bp <= 2,000`; and over the regions of one
+/// civilization `sum(made) <= produced` and `sum(made - delivered) <= lost`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InfraMonth {
+    /// The month these figures belong to.
+    pub month: Month,
+    /// Facility levels the transport grade can serve, and enabled levels of
+    /// industry, extraction and power that load it.
+    pub capacity: i64,
+    pub load: i64,
+    /// `min(10,000, capacity x 10,000 / load)`.
+    pub infra_bp: u16,
+    /// Share of spares and tools upkeep the repair works saved the other works.
+    pub maint_bp: u16,
+    /// Extra carriage loss on output sent to the common stock.
+    pub congestion_bp: u16,
+    /// Gross output of the region's recipes.
+    pub made: Vec<i64>,
+    /// What of it reached the common stock.
+    pub delivered: Vec<i64>,
+    /// Inputs the region's recipes took from the common stock.
+    pub used: Vec<i64>,
+    /// Output that paid no carriage loss because as much was used here as input.
+    pub exempt: Vec<i64>,
+    /// The carriage loss the exemption avoided.
+    pub chain_saved: Vec<i64>,
+}
+
+/// Where a region's shaft and electric service came from and went in one month, in
+/// units of 0.1 MWh. Service is never stored: what is not used in the month is gone.
+///
+/// The identities the conservation tests assert:
+/// `shaft_used + site_from_supply <= shaft_made - shaft_to_generators + shaft_from_motors`,
+/// `elec_from_generators <= shaft_to_generators * 9 / 10`,
+/// `shaft_from_motors <= elec_to_motors * 9 / 10`,
+/// `elec_used + elec_to_motors + grid_out <= elec_made + elec_from_generators + grid_in`,
+/// `site_from_engines <= site_coal * 5 + site_fuel * 10`,
+/// and, over the regions of one civilization, `sum(grid_in) <= sum(grid_out) * 92 / 100`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PowerLedger {
+    /// Shaft work delivered by the region's own power sources.
+    pub shaft_made: i64,
+    /// Spare shaft work turned by generator halls.
+    pub shaft_to_generators: i64,
+    /// Shaft work delivered by motors.
+    pub shaft_from_motors: i64,
+    /// Shaft work the region's recipes actually drew.
+    pub shaft_used: i64,
+    /// Electricity delivered by the region's own power sources.
+    pub elec_made: i64,
+    pub elec_from_generators: i64,
+    /// Electricity drawn by motors.
+    pub elec_to_motors: i64,
+    /// Surplus electricity offered to the grid.
+    pub grid_out: i64,
+    /// Electricity received from the grid, after the line loss.
+    pub grid_in: i64,
+    /// Electricity the region's recipes actually drew.
+    pub elec_used: i64,
+    /// Shaft work construction sites drew from the region's own supply.
+    #[serde(default)]
+    pub site_from_supply: i64,
+    /// Service site engines delivered to construction sites, all of it used there.
+    #[serde(default)]
+    pub site_from_engines: i64,
+    /// Tonnes of coal and of refined fuel the site engines burned for it, taken
+    /// from the common stock and booked as consumed.
+    #[serde(default)]
+    pub site_coal: i64,
+    #[serde(default)]
+    pub site_fuel: i64,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct RegionMonth {
+    /// Worker-months the region's projects accepted this month; never more than the
+    /// workers called up (`labor.projects`).
+    #[serde(default)]
+    pub project_work_done: i64,
+    #[serde(default)]
+    pub power: PowerLedger,
+    /// The seat whose economy ran this month here.
+    #[serde(default)]
+    pub seat: Option<SeatId>,
     pub labor: LaborSummary,
     pub shaft_supply: i64,
     pub shaft_demand: i64,
@@ -151,10 +275,20 @@ pub struct RegionMonth {
     pub elec_demand: i64,
     pub compute_supply: i64,
     pub compute_demand: i64,
+    /// Rations.
     pub food_made: i64,
     pub qual_employed: Vec<u32>,
     pub tag_staff: Vec<u32>,
+    /// Worker-months of called-up labour not yet assigned to a project this month.
+    /// Site crews are not in this pool: each works only on its own order.
     pub project_labor_free: i64,
+    /// Shaft work set aside from the region's supply for its construction sites
+    /// this month and not yet drawn by one. What no site draws is not used at all.
+    #[serde(default)]
+    pub site_power_free: i64,
+    /// Freight, maintenance pooling, integrated chains and congestion this month.
+    #[serde(default)]
+    pub infra: InfraMonth,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -170,7 +304,7 @@ pub struct Region {
     pub elevation: u8,
     pub arable: u16,
     pub pasture: u16,
-    /// Wild food the land yields per month at most (milli).
+    /// Wild food the land yields per month at most, in rations.
     pub wild: i64,
     pub fishery: u16,
     pub forest: u16,
@@ -181,6 +315,7 @@ pub struct Region {
     pub owner: Option<SeatId>,
     pub controller: Option<SeatId>,
     pub blocks: Vec<PopBlock>,
+    /// Holders of each qualification resident here, in people.
     pub quals: [u32; NQ],
     pub facilities: Vec<Facility>,
     pub nutrition_debt: i64,
@@ -239,19 +374,35 @@ impl Region {
         self.deposits.iter().find(|x| x.kind == d)
     }
     pub fn settlement(&self) -> SettlementKind {
-        let p = self.population();
-        match p {
-            0 => SettlementKind::Wilderness,
-            1..=399 => SettlementKind::Camp,
-            400..=1999 => SettlementKind::Village,
-            2000..=7999 => SettlementKind::Town,
-            8000..=29999 => SettlementKind::City,
-            _ => SettlementKind::Metropolis,
-        }
+        settlement_class(self.population())
     }
     pub fn avg_bp(hist: &[u16; 12]) -> u16 {
         (hist.iter().map(|v| *v as u32).sum::<u32>() / 12) as u16
     }
+}
+
+/// Lower bound, in residents, of each settlement class (units chapter, section 3).
+/// The classes are descriptive: no rule keys on them.
+pub const SETTLEMENT_BOUNDS: [(SettlementKind, u32); 6] = [
+    (SettlementKind::Wilderness, 0),
+    (SettlementKind::Camp, 1),
+    (SettlementKind::Village, 150_000),
+    (SettlementKind::Town, 1_000_000),
+    (SettlementKind::City, 4_000_000),
+    (SettlementKind::Metropolis, 12_000_000),
+];
+
+/// Residents at which a region counts as urban for cultural drift.
+pub const URBAN_RESIDENTS: u32 = 2_000_000;
+
+pub fn settlement_class(residents: u32) -> SettlementKind {
+    let mut kind = SettlementKind::Wilderness;
+    for (k, lower) in SETTLEMENT_BOUNDS {
+        if residents >= lower {
+            kind = k;
+        }
+    }
+    kind
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -316,8 +467,10 @@ pub struct Project {
     pub id: u32,
     pub kind: ProjKind,
     pub region: Option<RegionId>,
+    /// Worker-months, or researcher-months for research, leads and studies.
     pub work_needed: i64,
     pub work_done: i64,
+    /// `(good, needed, committed)` in base units.
     pub inputs: Vec<(Good, i64, i64)>,
     pub priority: u8,
     pub paused: bool,
@@ -325,6 +478,65 @@ pub struct Project {
     pub last_progress: i64,
     pub blockers: Vec<String>,
     pub max_per_month: i64,
+    /// Qualified site crew the whole order needs, in people: acceptable
+    /// qualifications in order of preference (per level x levels for a build).
+    #[serde(default)]
+    pub crew: Vec<(Vec<Qual>, u32)>,
+    /// People reserved for the order this month, parallel to `crew`. They hold no
+    /// other post, are counted under the region's project labour and each supplies
+    /// one worker-month to this order.
+    #[serde(default)]
+    pub crew_on_site: Vec<u32>,
+    /// The region's call-up was used up before this order's crew was complete this
+    /// month: the crew is short of callable labour, whoever lives there.
+    #[serde(default)]
+    pub crew_capped: bool,
+    /// Shaft service the site draws in a month of full work, base units.
+    #[serde(default)]
+    pub power_need: i64,
+    /// Share of the site power asked for this month that was delivered, basis points.
+    #[serde(default)]
+    pub power_bp: u16,
+    /// Months the order takes at least (0 where the project kind states none).
+    #[serde(default)]
+    pub min_months: u16,
+    /// Place in the service order among orders of equal priority; 0 stands for the
+    /// project's id, so orders are served in the order they were given until moved.
+    #[serde(default)]
+    pub order_key: u32,
+}
+
+impl Project {
+    /// The order in which projects are served: priority, place in the queue, id.
+    pub fn service_key(&self) -> (u8, u32, u32) {
+        (self.priority, if self.order_key == 0 { self.id } else { self.order_key }, self.id)
+    }
+    /// People the site crew needs and people it has this month.
+    pub fn crew_counts(&self) -> (u32, u32) {
+        (self.crew.iter().map(|(_, n)| *n).sum(), self.crew_on_site.iter().sum())
+    }
+    /// The share of the site crew present, basis points: the least over the groups
+    /// of the crew, so a group that is missing altogether stops the site.
+    pub fn crew_bp(&self) -> i64 {
+        let mut bp = 10_000i64;
+        for (i, (_, need)) in self.crew.iter().enumerate() {
+            if *need > 0 {
+                let on = self.crew_on_site.get(i).copied().unwrap_or(0);
+                bp = bp.min(on as i64 * 10_000 / *need as i64);
+            }
+        }
+        bp
+    }
+    /// The share of the goods bill committed, basis points: the least over the goods.
+    pub fn goods_bp(&self) -> i64 {
+        let mut bp = 10_000i64;
+        for (_, needed, committed) in &self.inputs {
+            if *needed > 0 {
+                bp = bp.min(crate::util::ratio_bp(*committed, *needed));
+            }
+        }
+        bp
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -332,10 +544,11 @@ pub struct Program {
     pub id: u32,
     pub course: usize,
     pub region: RegionId,
-    pub seats: u16,
-    pub enrolled: u16,
+    /// Places booked, learners enrolled and instructors occupied, in people.
+    pub seats: u32,
+    pub enrolled: u32,
     pub entrant: Option<Qual>,
-    pub teachers: u16,
+    pub teachers: u32,
     pub teacher_qual: Option<Qual>,
     pub progress: u16,
     pub duration: u16,
@@ -485,20 +698,121 @@ pub struct FtlState {
     pub integration_month: Option<Month>,
 }
 
+/// The goods ledger of one civilization over one decision round, in base units and
+/// indexed by `Good`, with the people it gained and lost.
+///
+/// For every good, over any interval:
+/// `stock_end - stock_start = produced - consumed - lost + traded_in - traded_out`.
+/// `produced` is gross output where it is made; what carriage to the common stock
+/// costs is in `lost`, with spoilage and abandoned stores. Stock changes only
+/// through [`Civ::add`], [`Civ::take`], [`Civ::lose`], [`Civ::trade_out`] and
+/// [`Civ::trade_in`].
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Flows {
     pub produced: Vec<i64>,
     pub consumed: Vec<i64>,
+    /// Spoilage, carriage loss and abandoned stores.
+    #[serde(default = "zeros_ng")]
+    pub lost: Vec<i64>,
     pub traded_in: Vec<i64>,
     pub traded_out: Vec<i64>,
+    /// Births, and deaths of residents and soldiers (battle and militia losses included).
     pub births: u32,
     pub deaths: u32,
     pub migration: i32,
 }
 
+fn zeros_ng() -> Vec<i64> {
+    vec![0; NG]
+}
+
+fn zeros_nq() -> Vec<i64> {
+    vec![0; NQ]
+}
+
 impl Flows {
     pub fn new() -> Self {
-        Flows { produced: vec![0; NG], consumed: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], births: 0, deaths: 0, migration: 0 }
+        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], births: 0, deaths: 0, migration: 0 }
+    }
+}
+
+/// The ledger of qualified people of one civilization, in people and indexed by
+/// `Qual`. Unlike [`Flows`] it is cumulative from the start of the match.
+///
+/// A civilization's holders of a qualification are the `quals` of the regions it
+/// controls. At every moment, for every qualification:
+/// `holders = initial + trained - entered + returned - died - retired - enlisted
+///            + moved_in - moved_out - seconded_out + seconded_in - seconded_lost`.
+/// Learners are not holders: a holder who enrols in a further course leaves through
+/// `entered` and comes back as a graduate (`trained`, under the new qualification) or
+/// when the course is closed (`returned`). Movements between a civilization's own
+/// regions net to zero and are not recorded.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QualFlows {
+    /// The declared starting endowment.
+    #[serde(default = "zeros_nq")]
+    pub initial: Vec<i64>,
+    /// Graduates, under the qualification the course gives.
+    #[serde(default = "zeros_nq")]
+    pub trained: Vec<i64>,
+    /// Holders who became learners of a further course.
+    #[serde(default = "zeros_nq")]
+    pub entered: Vec<i64>,
+    /// Learners sent back to their previous qualification when a course closed.
+    #[serde(default = "zeros_nq")]
+    pub returned: Vec<i64>,
+    #[serde(default = "zeros_nq")]
+    pub died: Vec<i64>,
+    /// Holders who passed working age.
+    #[serde(default = "zeros_nq")]
+    pub retired: Vec<i64>,
+    /// Holders who became soldiers or fell with the militia; a qualification lapses in service.
+    #[serde(default = "zeros_nq")]
+    pub enlisted: Vec<i64>,
+    /// Holders who arrived from, or left for, another civilization: with migrants,
+    /// or because the region they live in changed hands.
+    #[serde(default = "zeros_nq")]
+    pub moved_in: Vec<i64>,
+    #[serde(default = "zeros_nq")]
+    pub moved_out: Vec<i64>,
+    /// Experts lent under a secondment treaty (slice E; zero until then).
+    #[serde(default = "zeros_nq")]
+    pub seconded_out: Vec<i64>,
+    #[serde(default = "zeros_nq")]
+    pub seconded_in: Vec<i64>,
+    #[serde(default = "zeros_nq")]
+    pub seconded_lost: Vec<i64>,
+}
+
+impl Default for QualFlows {
+    fn default() -> Self {
+        let z = || vec![0i64; NQ];
+        QualFlows { initial: z(), trained: z(), entered: z(), returned: z(), died: z(), retired: z(), enlisted: z(), moved_in: z(), moved_out: z(), seconded_out: z(), seconded_in: z(), seconded_lost: z() }
+    }
+}
+
+/// A channel of the qualification ledger through which holders leave for good.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum QualExit {
+    Died,
+    Retired,
+    Enlisted,
+}
+
+impl QualFlows {
+    /// Holders the ledger accounts for.
+    pub fn balance(&self, q: usize) -> i64 {
+        self.initial[q] + self.trained[q] - self.entered[q] + self.returned[q] - self.died[q] - self.retired[q] - self.enlisted[q] + self.moved_in[q] - self.moved_out[q] - self.seconded_out[q]
+            + self.seconded_in[q]
+            - self.seconded_lost[q]
+    }
+    pub fn exit(&mut self, how: QualExit, q: usize, n: u32) {
+        let v = match how {
+            QualExit::Died => &mut self.died,
+            QualExit::Retired => &mut self.retired,
+            QualExit::Enlisted => &mut self.enlisted,
+        };
+        v[q] += n as i64;
     }
 }
 
@@ -520,10 +834,11 @@ pub struct Civ {
     pub status: SeatStatus,
     pub capital: RegionId,
     pub lineage: u16,
+    /// Goods in store, base units (rations, tonnes, lots), indexed by `Good`.
     pub stock: Vec<i64>,
     pub flows: Flows,
     pub last_flows: Flows,
-    /// Smoothed monthly consumption per good (milli), used for stock targets.
+    /// Smoothed monthly consumption per good (base units), used for stock targets.
     pub use_ema: Vec<i64>,
     pub tech: Vec<TechSt>,
     pub practice: Vec<PracSt>,
@@ -547,6 +862,7 @@ pub struct Civ {
     pub stability: u8,
     pub overlord: Option<SeatId>,
     pub tag_activity: Vec<i64>,
+    /// Researcher-months available this month by class: one per staffed research post.
     pub research_cap: Vec<i64>,
     pub research_used: Vec<i64>,
     pub compute_supply: i64,
@@ -562,6 +878,13 @@ pub struct Civ {
     pub eliminated_month: Option<Month>,
     pub army_counter: u32,
     pub pop_peak: u32,
+    /// Cumulative ledger of qualified people (see [`QualFlows`]).
+    #[serde(default)]
+    pub qual_flows: QualFlows,
+    /// Compute the civilization's recipes drew this month; never more than the
+    /// `compute_supply` installed the month before.
+    #[serde(default)]
+    pub compute_used: i64,
 }
 
 impl Civ {
@@ -580,19 +903,44 @@ impl Civ {
     pub fn stock_of(&self, g: Good) -> i64 {
         self.stock[g.index()]
     }
+    /// Put newly made goods in store. Every call site is production by real labour
+    /// from real inputs or a real site (`docs/conservation-audit.md`).
     pub fn add(&mut self, g: Good, amount: i64) {
+        let amount = amount.max(0);
         self.stock[g.index()] += amount;
-        if amount > 0 {
-            self.flows.produced[g.index()] += amount;
-        }
+        self.flows.produced[g.index()] += amount;
     }
-    /// Take up to `amount`; returns what was actually taken.
+    /// Take up to `amount` for use; returns what was actually taken.
     pub fn take(&mut self, g: Good, amount: i64) -> i64 {
         let have = self.stock[g.index()].max(0);
         let t = amount.min(have).max(0);
         self.stock[g.index()] -= t;
         self.flows.consumed[g.index()] += t;
         t
+    }
+    /// Remove up to `amount` that nobody used (spoilage, carriage loss, abandoned
+    /// stores); returns what was actually lost.
+    pub fn lose(&mut self, g: Good, amount: i64) -> i64 {
+        let have = self.stock[g.index()].max(0);
+        let t = amount.min(have).max(0);
+        self.stock[g.index()] -= t;
+        self.flows.lost[g.index()] += t;
+        t
+    }
+    /// Hand over up to `amount` to another civilization; returns what left the stock.
+    /// The receiver books exactly that with [`Civ::trade_in`] (see [`World::transfer`]).
+    pub fn trade_out(&mut self, g: Good, amount: i64) -> i64 {
+        let have = self.stock[g.index()].max(0);
+        let t = amount.min(have).max(0);
+        self.stock[g.index()] -= t;
+        self.flows.traded_out[g.index()] += t;
+        t
+    }
+    /// Receive goods another civilization handed over with [`Civ::trade_out`].
+    pub fn trade_in(&mut self, g: Good, amount: i64) {
+        let amount = amount.max(0);
+        self.stock[g.index()] += amount;
+        self.flows.traded_in[g.index()] += amount;
     }
     pub fn is_native(&self) -> bool {
         matches!(self.controller, ControllerKind::NativeEasy | ControllerKind::NativeMedium | ControllerKind::NativeHard)
@@ -686,6 +1034,47 @@ impl World {
             }
         }
         top
+    }
+    /// Move goods from one civilization's stock to another's; returns what moved.
+    pub fn transfer(&mut self, from: SeatId, to: SeatId, g: Good, amount: i64) -> i64 {
+        if from == to {
+            return 0;
+        }
+        let moved = self.civs[from as usize].trade_out(g, amount);
+        self.civs[to as usize].trade_in(g, moved);
+        moved
+    }
+    /// Hand the government of a region to another seat. Its qualified residents
+    /// change hands with it: they leave the old controller's ledger through
+    /// `moved_out` and enter the new one's through `moved_in`, so the holders of
+    /// each civilization always equal what its ledger accounts for.
+    pub fn set_controller(&mut self, region: usize, to: Option<SeatId>) {
+        let from = self.regions[region].controller;
+        if from == to {
+            return;
+        }
+        for q in 0..NQ {
+            let n = self.regions[region].quals[q] as i64;
+            if n == 0 {
+                continue;
+            }
+            if let Some(f) = from {
+                self.civs[f as usize].qual_flows.moved_out[q] += n;
+            }
+            if let Some(t) = to {
+                self.civs[t as usize].qual_flows.moved_in[q] += n;
+            }
+        }
+        self.regions[region].controller = to;
+        // a choice of method was the old government's, made with what it knew
+        for f in self.regions[region].facilities.iter_mut() {
+            f.method = None;
+        }
+    }
+    /// The qualification ledger that answers for a region's holders: its controller's.
+    pub fn qual_ledger(&mut self, region: usize) -> Option<&mut QualFlows> {
+        let c = self.regions[region].controller?;
+        Some(&mut self.civs[c as usize].qual_flows)
     }
     pub fn link(&self, a: usize, b: usize) -> Option<LinkKind> {
         self.regions[a].neighbors.iter().find(|(n, _)| *n as usize == b).map(|(_, k)| *k)

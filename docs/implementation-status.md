@@ -31,6 +31,7 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Desktop application | Built; Windows unverified | `bts` opens the game in a native window (system WebView) with the referee in-process, full screen, per-user saves and a title screen. `scripts/package.sh` produces a universal macOS disk image and a Windows x64 zip; a GitHub workflow builds both natively plus a Windows installer. The macOS app has been launched here; the Windows executable and the workflow have never been run. Nothing is code-signed |
 | Multicore (technical/03) | Partly | Independent matches run in parallel across cores; a single match is fast enough to settle a full 240-round game in about two seconds single-threaded, so in-match staged parallelism is not implemented |
 | Persistence | Implemented | Full checkpoint saves including controller memory; state hashes; `bts verify` checks repeatability and checkpoint recovery |
+| Conservation (`docs/conservation-audit.md`) | Implemented | Goods, people, qualified people, service, work and deposits each have a ledger and an identity; every source is listed with what backs it. The referee can record its books every month (`Match::record_ledgers`), and scripted and all-AI matches are audited month by month over whole campaigns. Capacities (water, care, storage, venue places, transport grade, generator and grid capacity) still depend on works existing rather than on their staffing |
 
 ## Known calibration gaps
 
@@ -43,5 +44,36 @@ means the mechanism exists in a simpler form with the same strategic feedback;
   by hand.
 - The 3D map has only been rendered with software WebGL in automated runs. Its frame
   rate on real hardware, and on integrated graphics in particular, is unmeasured.
+- The client does not yet show `GoodLine.lost` (spoilage and carriage loss), and its
+  ledger still treats `produced` as what reached the stock; since ruleset 2.0 slice B
+  `produced` is gross output where it is made. The facility descriptions and recipe
+  notes that explain deep and shallow workings are new English strings without
+  translations.
+- Service rationing is strict since slice B: an understaffed, underpowered works runs
+  at the product of the two shares, not the lesser. All-AI matches end with about the
+  same technology and a few percent fewer people than before (`docs/calibration/`).
+- Construction since ruleset 2.0 slice C needs a qualified site crew, site power and
+  a minimum duration besides goods and work (`docs/units-and-scale.md` section 6), and
+  each region has an ordered construction queue. The client does not yet show the
+  quote's crew, site power and minimum months, the queue or the `position` of
+  `manage_project`; the new blockers ("Site crew short: ...", "Site power short: ...")
+  and receipts are English strings without translations. Sites are not fed from the
+  grid, and the native opponents do not move people to a thinly peopled test node
+  whose call-up cannot hold a deployment node's crew. In all-AI matches the last
+  technologies arrive some twenty rounds later than under slice B, because the
+  installations their investigation needs take three to five years each to build
+  (`docs/calibration/`).
+- Production methods can be chosen by region since ruleset 2.0 slice D (`set_policy`
+  / `method`), fields included, and works that stand together share support posts,
+  repair works and carriage within the region's freight capacity
+  (`docs/units-and-scale.md` sections 4 and 7). The client does not yet show or set
+  a method, nor show `OwnRegion.infrastructure` (freight load and capacity, the
+  savings, congestion loss); the fields' catalog entry now carries recipe views,
+  which the client's production screens were not written for. The new method names,
+  the field-method notes and the receipt reason "unknown facility or method" are
+  English strings without translations. The native opponents do not yet move works
+  out of a region congested at the top transport grade; in all-AI matches about a
+  quarter of capitals end above it, losing up to 7% of what they send
+  (`docs/calibration/`).
 - The economy ledger's own estimates (marked as such in the interface) agreed with the
   referee's totals to within about 25% in 41 of 57 comparisons; the rest diverge more.

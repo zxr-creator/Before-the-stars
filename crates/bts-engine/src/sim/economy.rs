@@ -1,57 +1,163 @@
 //! Monthly labour allocation, power, production and upkeep.
 //!
 //! One person works one job. Food comes first; a bounded share of the remaining
-//! labour can be called up for public projects; the rest staffs facilities in
-//! the order of the government's category weights. Inputs are read from stock at
+//! labour can be called up for public projects, the qualified site crews of open
+//! orders before anyone else; the rest staffs facilities in the order of the
+//! government's category weights. A site crew is reserved from the region's
+//! qualified residents for as long as its order is open and holds no other post.
+//! Construction sites ask for shaft work with the region's works and are rationed
+//! with them (`docs/units-and-scale.md`, section 6). Inputs are read from stock at
 //! the start of the month and outputs become available next month, so a recipe
 //! can never consume something produced later in the same month.
+//!
+//! Head counts are real people. Yields and other per-person coefficients are
+//! stored per thousand people and applied as `people * coefficient / 1000`.
+//!
+//! Nothing here comes from nothing (`docs/conservation-audit.md`). Goods are made
+//! only by filled posts from inputs taken out of stock or from the site, and are
+//! booked gross where they are made, with the loss in carriage booked as lost.
+//! Shaft, electric and compute service is rationed: a works asks for the service
+//! of the posts it has filled and receives the same share of that as every other
+//! works, and the account of what is left bounds each rate exactly, so a region
+//! never uses more than it has (`PowerLedger`). Ore is drawn from the deposit at
+//! least tonne for tonne. A called-up worker supplies one worker-month and a
+//! person in a research post one researcher-month.
+//!
+//! Production methods (`docs/units-and-scale.md`, section 4). A works with several
+//! recipes runs the one its seat chose for it in that region, or, left alone, the
+//! first it knows whose inputs are in store. The method of every works is fixed
+//! once, at the start of the month, before anything is taken from stock: the
+//! posts it fills, the service it asks for and the goods it takes and makes all
+//! belong to that method. Fields have methods of their own (`FIELD_METHODS`), which
+//! a seat may cap by region.
+//!
+//! Economies of scale (section 7 of the same chapter) save overhead or loss and
+//! make nothing: shared support posts, maintenance pooled by repair works, output
+//! used where it is made spared its carriage, all bounded by caps and by the
+//! region's freight capacity, and a congestion loss when that capacity is
+//! exceeded. `Region.last.infra` records what each did, for the audit.
 
-use crate::content::{content, Cap, FacDef, Recipe, Tag};
+use crate::content::{content, Cap, FacDef, Recipe, Tag, FOOD_PER_PERSON_MONTH};
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
 
+/// Food methods a civilization uses away from its fields. Yields are rations per
+/// thousand workers per month. Pasture and fishing improve with knowledge alone
+/// and are not chosen by region; only motor boats draw an input.
 pub struct FoodTech {
     pub forage: i64,
-    pub field: i64,
     pub pasture: i64,
     pub fish: i64,
     pub fish_port: i64,
-    pub chem_per_worker: i64,
-    pub fuel_per_worker: i64,
-    pub label: &'static str,
+    /// Tonnes of fuel a thousand fishers working motor boats from a harbour burn
+    /// in a month; zero while boats are not motorized or the fuel is not in store.
+    pub boat_fuel_per_worker: i64,
 }
 
-pub fn food_tech(civ: &Civ, has_pasture: bool) -> FoodTech {
+/// Tonnes of chemicals a thousand field workers apply in a month, and tonnes of
+/// fuel a thousand mechanized field workers or motor-boat fishers burn.
+pub const FIELD_CHEM_PER_K: i64 = 10;
+pub const FIELD_FUEL_PER_K: i64 = 10;
+
+/// One way of working fields. The methods are listed from the lowest yield to the
+/// highest; a seat may hold a region's fields at any one it knows
+/// (`Facility::method`), and the land is then worked by the best method that is
+/// not above the chosen one, draws no input the chosen one does not draw, is
+/// known, and has its month of chemicals and fuel in store.
+pub struct FieldMethod {
+    pub key: &'static str,
+    pub name: &'static str,
+    /// Technologies that must all be understood.
+    pub techs: &'static [&'static str],
+    /// Draught animals: needs herds somewhere under the seat.
+    pub needs_pasture: bool,
+    /// Applies `FIELD_CHEM_PER_K` of chemicals, burns `FIELD_FUEL_PER_K` of fuel.
+    pub chem: bool,
+    pub fuel: bool,
+}
+
+pub const FIELD_METHODS: [FieldMethod; 6] = [
+    FieldMethod { key: "hand", name: "Hand cultivation", techs: &[], needs_pasture: false, chem: false, fuel: false },
+    FieldMethod { key: "traction", name: "Animal traction", techs: &["T020"], needs_pasture: true, chem: false, fuel: false },
+    FieldMethod { key: "inputs", name: "Manufactured inputs", techs: &["T095"], needs_pasture: false, chem: true, fuel: false },
+    FieldMethod { key: "mechanized", name: "Mechanized farming", techs: &["T094"], needs_pasture: false, chem: false, fuel: true },
+    FieldMethod { key: "intensive", name: "Mechanized farming with manufactured inputs", techs: &["T094", "T095"], needs_pasture: false, chem: true, fuel: true },
+    FieldMethod { key: "restorative", name: "Restorative mechanized farming", techs: &["T133", "T094", "T095"], needs_pasture: false, chem: true, fuel: true },
+];
+
+pub fn field_method_index(key: &str) -> Option<usize> {
+    FIELD_METHODS.iter().position(|m| m.key == key)
+}
+
+/// Whether the seat understands everything a field method rests on.
+pub fn field_method_known(civ: &Civ, i: usize) -> bool {
+    FIELD_METHODS[i].techs.iter().all(|t| civ.knows_id(t))
+}
+
+/// Rations a thousand cultivators raise in a month by a field method, before
+/// husbandry, tools, irrigation, condition and unrest.
+pub fn field_yield(civ: &Civ, i: usize) -> i64 {
     let k = |id: &str| civ.knows_id(id);
-    let mut field = 3000;
-    let mut label = "Hand cultivation";
-    if k("T010") {
-        field = 3300;
+    let soils = |y: i64| if k("T056") { y * 11 / 10 } else { y };
+    match i {
+        0 => soils(if k("T010") { 3300 } else { 3000 }),
+        1 => soils(4600),
+        2 => 7200,
+        3 => 9000,
+        4 => 14_000,
+        _ => 20_000,
     }
-    if k("T020") && has_pasture {
-        field = 4600;
-        label = "Animal traction";
+}
+
+/// Whether fields held at `ceiling` (none: left to the cultivators) may be worked
+/// by method `i`: it is not above the ceiling and draws nothing the ceiling does not.
+pub fn field_method_allowed(i: usize, ceiling: Option<usize>) -> bool {
+    match ceiling {
+        None => true,
+        Some(c) => i <= c && (!FIELD_METHODS[i].chem || FIELD_METHODS[c].chem) && (!FIELD_METHODS[i].fuel || FIELD_METHODS[c].fuel),
     }
-    if k("T056") {
-        field = field * 11 / 10;
+}
+
+/// The ceiling a seat set for a region's fields, if it names a method the seat knows.
+pub fn field_ceiling(civ: &Civ, f: &Facility) -> Option<usize> {
+    f.method.as_deref().and_then(field_method_index).filter(|i| field_method_known(civ, *i))
+}
+
+/// The method a region's fields are worked by this month, and the chemicals or
+/// fuel whose absence keeps them below the best method the seat allows there.
+/// `chem_ok` and `fuel_ok` say whether the stores hold a full month of chemicals
+/// and of fuel for every field (and motor boat) that may draw them: a method that
+/// needs an input is used only when the whole month's draw is there to be taken,
+/// so no yield is ever credited to an input that was not delivered.
+pub fn field_method_for(civ: &Civ, has_pasture: bool, ceiling: Option<usize>, chem_ok: bool, fuel_ok: bool) -> (usize, Vec<Good>) {
+    let mut used = 0;
+    let mut best = 0;
+    for (i, m) in FIELD_METHODS.iter().enumerate() {
+        if !field_method_known(civ, i) || !field_method_allowed(i, ceiling) || (m.needs_pasture && !has_pasture) {
+            continue;
+        }
+        best = i;
+        if (!m.chem || chem_ok) && (!m.fuel || fuel_ok) {
+            used = i;
+        }
     }
-    let mut chem = 0;
-    let mut fuel = 0;
-    if k("T095") && civ.stock_of(Good::Chemicals) > 0 {
-        field = 7200;
-        chem = 10;
-        label = "Manufactured inputs";
+    let mut missing = Vec::new();
+    if best > used {
+        if FIELD_METHODS[best].chem && !chem_ok {
+            missing.push(Good::Chemicals);
+        }
+        if FIELD_METHODS[best].fuel && !fuel_ok {
+            missing.push(Good::Fuel);
+        }
     }
-    if k("T094") && civ.stock_of(Good::Fuel) > 0 {
-        field = if chem > 0 { 14_000 } else { 9_000 };
-        fuel = 10;
-        label = "Mechanized farming";
-    }
-    if k("T133") && chem > 0 && fuel > 0 {
-        field = 20_000;
-        label = "Restorative mechanized farming";
-    }
+    (used, missing)
+}
+
+/// Yields of forage, pasture and fishing. `fuel_ok` says whether the stores hold
+/// the month of fuel that the motor boats (and the fields that may burn fuel) need.
+pub fn food_tech(civ: &Civ, fuel_ok: bool) -> FoodTech {
+    let k = |id: &str| civ.knows_id(id);
     let mut pasture = 3200;
     if k("T020") {
         pasture = 3700;
@@ -71,10 +177,12 @@ pub fn food_tech(civ: &Civ, has_pasture: bool) -> FoodTech {
     if k("T028") {
         fish_port = 5200;
     }
-    if k("T094") && fuel > 0 {
+    let mut boat_fuel = 0;
+    if k("T094") && fuel_ok {
         fish_port = 7500;
+        boat_fuel = FIELD_FUEL_PER_K;
     }
-    FoodTech { forage: 2600, field, pasture, fish, fish_port, chem_per_worker: chem, fuel_per_worker: fuel, label }
+    FoodTech { forage: 2600, pasture, fish, fish_port, boat_fuel_per_worker: boat_fuel }
 }
 
 /// Maximum share of non-food labour that can be called up, basis points.
@@ -96,6 +204,14 @@ pub fn mobilization_cap(w: &World, seat: SeatId) -> u16 {
     }
     cap.min(6500) as u16
 }
+
+/// Residents of natural water above which a region without a river can still
+/// carry two levels of river-site works.
+pub const AMPLE_WATER: u32 = 2_500_000;
+/// Idle adults in a region above which they start drifting to regions that hire.
+const JOBLESS_DRIFT_MIN: u32 = 40_000;
+/// Tonnes of building material a thousand idle adults make at home in a month.
+const HOUSEHOLD_CRAFT_PER_K: i64 = 300;
 
 pub fn transport_level(r: &Region) -> u8 {
     (r.cap(Cap::Transport) / 1000).clamp(0, 3) as u8
@@ -144,11 +260,17 @@ pub fn link_efficiencies(w: &World, seat: SeatId) -> Vec<i64> {
 }
 
 struct FoodOpt {
-    yield_milli: i64,
+    /// Rations per thousand workers per month.
+    yield_k: i64,
+    /// Workers the land or works can occupy.
     capacity: u32,
     used: u32,
     tag: Tag,
-    inputs: bool,
+    /// Tonnes of chemicals and of fuel a thousand of its workers draw in a month.
+    chem_k: i64,
+    fuel_k: i64,
+    /// Fields, as against pasture, fishing grounds and the wild.
+    field: bool,
 }
 
 struct RegionPlan {
@@ -158,6 +280,8 @@ struct RegionPlan {
     food_workers: u32,
     food_made: i64,
     max_food_workers: u32,
+    /// How the region's fields are worked this month, if it has any enabled.
+    field_run: Option<RunStat>,
 }
 
 impl RegionPlan {
@@ -168,14 +292,14 @@ impl RegionPlan {
                 break;
             }
             let free = (o.capacity - o.used).min(self.max_food_workers - self.food_workers);
-            if free == 0 || o.yield_milli <= 0 {
+            if free == 0 || o.yield_k <= 0 {
                 continue;
             }
-            let need = ((want + o.yield_milli - 1) / o.yield_milli) as u32;
+            let need = ((want * 1000 + o.yield_k - 1) / o.yield_k).min(u32::MAX as i64) as u32;
             let take = need.min(free);
             o.used += take;
             self.food_workers += take;
-            let m = take as i64 * o.yield_milli;
+            let m = take as i64 * o.yield_k / 1000;
             made += m;
             want -= m;
         }
@@ -186,7 +310,7 @@ impl RegionPlan {
         if self.food_workers >= self.max_food_workers {
             return 0;
         }
-        self.opts.iter().filter(|o| o.used < o.capacity).map(|o| o.yield_milli).max().unwrap_or(0)
+        self.opts.iter().filter(|o| o.used < o.capacity).map(|o| o.yield_k).max().unwrap_or(0)
     }
 }
 
@@ -194,21 +318,113 @@ fn recipe_ok(w: &World, seat: SeatId, r: &Recipe) -> bool {
     r.req.eval(&CivCtx { world: w, seat })
 }
 
+// ---------------------------------------------------------------------------
+// Economies of scale (`docs/units-and-scale.md`, section 7)
+//
+// Works that stand together share infrastructure. Each effect below is a saving
+// of overhead (posts, upkeep) or of loss in carriage, bounded by a stated cap and
+// by a real bottleneck: the region's freight capacity, the repair works' own
+// running, or what the region itself uses. None of them touches what a recipe
+// puts out for its inputs, level and rate.
+// ---------------------------------------------------------------------------
+
+/// Facility levels of industry, extraction and power that a region's transport
+/// can serve, by transport grade 0-3 (none; roads or a harbour; two of them or a
+/// railway; a railway with roads, or a motor depot).
+///
+/// Calibrated against all-native campaigns (`bts-ai/tests/freight_survey.rs`): a
+/// capital carries about 10 levels by year 60, 50 by year 120 and 115-125 by years
+/// 180-240, with the largest tenth at 135-175. The top grade therefore serves the
+/// usual late capital, and only the most concentrated regions stay congested once
+/// every transport work is built; below it, each grade is outgrown and the next
+/// relieves it.
+pub const FREIGHT_CAPACITY: [i64; 4] = [10, 24, 60, 150];
+/// Shared support posts: saving per level beyond the first, and its cap, in basis
+/// points of a works' general posts.
+pub const SUPPORT_SAVING_PER_LEVEL_BP: i64 = 200;
+pub const SUPPORT_SAVING_CAP_BP: i64 = 2000;
+/// Maintenance pooling: the most the repair works save of the spares and tools
+/// upkeep of the other works, and the facility levels one level of them serves.
+pub const MAINT_SAVING_CAP_BP: i64 = 1500;
+pub const REPAIR_WORKS_SERVE: i64 = 12;
+pub const REPAIR_WORKS: &str = "parts_works";
+/// The most that congested freight adds to the loss in carriage, basis points.
+pub const CONGESTION_LOSS_CAP_BP: i64 = 2000;
+
+/// Whether a facility's levels load the region's freight: industry, extraction
+/// and power. Food, civic, education, research and transport works do not.
+pub fn loads_freight(def: &FacDef) -> bool {
+    !def.food && (def.power_source || matches!(def.labor, Some(LaborCategory::Industry | LaborCategory::Extraction)))
+}
+
+/// Whether a works' spares and tools upkeep is pooled by the region's repair works.
+pub fn pools_upkeep(def: &FacDef) -> bool {
+    loads_freight(def) && def.key != REPAIR_WORKS
+}
+
+/// A region's shared infrastructure as it applies to the coming month.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Infra {
+    pub capacity: i64,
+    pub load: i64,
+    /// Share of the load the transport can serve: `min(10,000, capacity x 10,000 / load)`.
+    pub infra_bp: i64,
+    /// Share of the pooled spares and tools upkeep that is saved.
+    pub maint_bp: i64,
+    /// Extra carriage loss on output sent to the common stock.
+    pub congestion_bp: i64,
+}
+
+/// Freight capacity and load of a region, and what follows from them. The repair
+/// works pool maintenance only as far as they themselves ran last month (their
+/// `run` must still be last month's when this is called), so a shop that is not
+/// staffed or supplied saves nothing.
+pub fn region_infra(r: &Region) -> Infra {
+    let c = content();
+    let capacity = FREIGHT_CAPACITY[transport_level(r) as usize];
+    let mut load: i64 = 0;
+    let mut shops: i64 = 0;
+    let mut shop_rate: i64 = 0;
+    for f in r.facilities.iter().filter(|f| f.enabled && f.level > 0) {
+        let def = &c.facilities[f.kind];
+        if loads_freight(def) {
+            load += f.level as i64;
+        }
+        if def.key == REPAIR_WORKS {
+            shops = f.level as i64;
+            shop_rate = f.run.as_ref().map(|x| x.rate_bp as i64).unwrap_or(0).min(10_000);
+        }
+    }
+    let infra_bp = if load <= capacity { 10_000 } else { capacity * 10_000 / load };
+    let maint_bp = if shops > 0 && load > 0 {
+        (MAINT_SAVING_CAP_BP * shops * REPAIR_WORKS_SERVE / load).min(MAINT_SAVING_CAP_BP) * infra_bp / 10_000 * shop_rate / 10_000
+    } else {
+        0
+    };
+    let congestion_bp = (10_000 - infra_bp) * CONGESTION_LOSS_CAP_BP / 10_000;
+    Infra { capacity, load, infra_bp, maint_bp, congestion_bp }
+}
+
 /// Co-located productive buildings share general support posts (stores, hauling,
-/// supervision). Only maintained, enabled levels count; qualified posts, machine
+/// supervision): 2% of a works' general posts for every level beyond the first,
+/// at most 20%, and only as far as the region's freight can serve its works
+/// (`infra_bp`). Only maintained, enabled levels count; qualified posts, machine
 /// capacity and all material/energy flows remain unchanged. No extra output.
-pub fn scale_saving_bp(def: &FacDef, f: &Facility) -> u16 {
+pub fn scale_saving_bp(def: &FacDef, f: &Facility, infra_bp: i64) -> u16 {
     if !f.enabled || f.condition_bp < 7500 || def.food || def.general == 0 || def.recipes.is_empty()
         || !matches!(def.labor, Some(LaborCategory::Industry | LaborCategory::Extraction)) {
         return 0;
     }
-    (f.level.saturating_sub(1) as u32 * 200).min(2000) as u16
+    let full = (f.level.saturating_sub(1) as i64 * SUPPORT_SAVING_PER_LEVEL_BP).min(SUPPORT_SAVING_CAP_BP);
+    (full * infra_bp.clamp(0, 10_000) / 10_000) as u16
 }
 
-fn general_posts(def: &FacDef, f: &Facility) -> u32 {
-    let base = def.general as u32 * f.level as u32;
+/// General posts of a works this month: the facility's, less what the method it
+/// runs does without, less the shared support saving.
+fn general_posts(def: &FacDef, f: &Facility, rec: Option<&Recipe>, infra_bp: i64) -> u32 {
+    let base = def.general as u64 * f.level as u64 * rec.map(|r| r.general_bp).unwrap_or(10_000) as u64;
     // Round requirements up: many tiny buildings cannot exploit fractional posts.
-    (base * (10_000 - scale_saving_bp(def, f) as u32) + 9999) / 10_000
+    ((base * (10_000 - scale_saving_bp(def, f, infra_bp) as u64) + 99_999_999) / 100_000_000) as u32
 }
 
 /// Effective level cap of a facility in a region for a civilization.
@@ -222,7 +438,7 @@ pub fn level_cap(w: &World, seat: SeatId, region: usize, def: &FacDef) -> u16 {
         Site::Fishery => r.fishery,
         Site::Forest => r.forest,
         Site::River => {
-            if r.river { def.max_level } else if r.water >= 2500 { 2 } else { 0 }
+            if r.river { def.max_level } else if r.water >= AMPLE_WATER { 2 } else { 0 }
         }
         Site::Coast => {
             if r.coastal { def.max_level } else { 0 }
@@ -266,22 +482,142 @@ pub fn stock_target(civ: &Civ, g: Good) -> i64 {
     250_000 + civ.use_ema[g.index()] * 18 + need * 3 / 2
 }
 
+/// Posts of the enabled fields that may draw chemicals, of those that may burn
+/// fuel, and of the fishing grounds that work from a harbour, in the regions a
+/// seat governs: the people whose methods can draw chemicals and fuel. Fields
+/// that the seat holds at a method without chemicals, or without fuel, are not
+/// counted for it, and neither are fields of a seat that knows no method drawing it.
+pub fn field_input_posts(w: &World, seat: SeatId) -> (i64, i64, i64) {
+    let c = content();
+    let civ = &w.civs[seat as usize];
+    let (fields_k, fishery_k) = (c.f("fields"), c.f("fishery"));
+    let (field_crew, fishery_crew) = (c.facilities[fields_k].general as i64, c.facilities[fishery_k].general as i64);
+    let (mut chem_posts, mut fuel_posts, mut boat_posts) = (0i64, 0i64, 0i64);
+    for r in w.regions.iter().filter(|r| r.controller == Some(seat)) {
+        if let Some(f) = r.fac(fields_k) {
+            if f.enabled {
+                let ceiling = field_ceiling(civ, f);
+                let may = |draws: fn(&FieldMethod) -> bool| FIELD_METHODS.iter().enumerate().any(|(i, m)| draws(m) && field_method_known(civ, i) && field_method_allowed(i, ceiling));
+                if may(|m| m.chem) {
+                    chem_posts += f.level as i64 * field_crew;
+                }
+                if may(|m| m.fuel) {
+                    fuel_posts += f.level as i64 * field_crew;
+                }
+            }
+        }
+        if let Some(f) = r.fac(fishery_k) {
+            if f.enabled && r.cap(Cap::Port) > 0 {
+                boat_posts += f.level as i64 * fishery_crew;
+            }
+        }
+    }
+    (chem_posts, fuel_posts, boat_posts)
+}
+
+/// Tonnes of fuel that must be in store at the start of a month for the seat's
+/// fields and motor boats to be worked by machine (see [`field_method_for`]);
+/// nothing before mechanized work is understood. Site engines never burn into it.
+pub fn fields_fuel_month(w: &World, seat: SeatId) -> i64 {
+    if !w.civs[seat as usize].knows_id("T094") {
+        return 0;
+    }
+    let (_, fuel_posts, boat_posts) = field_input_posts(w, seat);
+    (fuel_posts + boat_posts) * FIELD_FUEL_PER_K / 1000
+}
+
+/// The method a works runs this month: the one the seat chose for it, if the seat
+/// still meets its requirement, and otherwise the first known method whose inputs
+/// are in store, falling back to the first known one so that what it is short of
+/// is reported. A chosen method runs even when its inputs are short.
+///
+/// `step` calls this once for every works before anything is taken from stock, so
+/// that the posts filled, the service asked for and the goods made in a month
+/// all belong to the same method.
+pub fn choose_recipe(w: &World, seat: SeatId, def: &FacDef, f: &Facility) -> Option<usize> {
+    if let Some(key) = &f.method {
+        if let Some(i) = def.recipes.iter().position(|r| r.key == key) {
+            if recipe_ok(w, seat, &def.recipes[i]) {
+                return Some(i);
+            }
+        }
+    }
+    pick_recipe(w, seat, def)
+}
+
+/// Whether a seat may set `key` as the method of a facility type: one of its
+/// recipes (for fields, one of the field methods) whose knowledge requirement the
+/// seat meets.
+pub fn method_choosable(w: &World, seat: SeatId, kind: usize, key: &str) -> bool {
+    let def = &content().facilities[kind];
+    if def.key == "fields" {
+        return field_method_index(key).map(|i| field_method_known(&w.civs[seat as usize], i) && (!FIELD_METHODS[i].needs_pasture || has_pasture(w, seat))).unwrap_or(false);
+    }
+    def.recipes.iter().any(|r| r.key == key && recipe_ok(w, seat, r))
+}
+
+/// Whether a seat keeps herds anywhere: animal traction needs them.
+pub fn has_pasture(w: &World, seat: SeatId) -> bool {
+    let pasture_k = content().f("pasture");
+    w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(pasture_k).map(|f| f.level > 0).unwrap_or(false))
+}
+
 pub fn step(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
-    if w.civs[si].status == SeatStatus::Eliminated {
-        return;
-    }
     let regs: Vec<usize> = (0..w.regions.len()).filter(|i| w.regions[*i].controller == Some(seat)).collect();
-    if regs.is_empty() {
+    // site crews are reserved afresh every month: an order that is paused, or whose
+    // site we no longer govern, holds nobody
+    for pr in w.civs[si].projects.iter_mut() {
+        pr.crew_on_site = vec![0; pr.crew.len()];
+        pr.crew_capped = false;
+    }
+    if w.civs[si].status == SeatStatus::Eliminated || regs.is_empty() {
+        // a government that runs no region has no labour, no researchers and no
+        // service this month: nothing carries over from the month it last had some
+        let civ = &mut w.civs[si];
+        civ.research_cap = vec![0; ResearchClass::COUNT];
+        civ.compute_supply = 0;
+        civ.compute_demand = 0;
+        civ.compute_used = 0;
+        civ.qual_employed = vec![0; NQ];
+        civ.labor = LaborSummary { soldiers: civ.labor.soldiers, ..Default::default() };
         return;
     }
     let pasture_k = c.f("pasture");
     let fields_k = c.f("fields");
     let fishery_k = c.f("fishery");
+    // cultivators, herders and fishers one level occupies
+    let (field_crew, pasture_crew, fishery_crew) = (c.facilities[fields_k].general, c.facilities[pasture_k].general, c.facilities[fishery_k].general);
     let has_pasture = regs.iter().any(|i| w.regions[*i].fac(pasture_k).map(|f| f.level > 0).unwrap_or(false));
-    let ft = food_tech(&w.civs[si], has_pasture);
+    // a method that needs chemicals or fuel is used only when a full month's draw
+    // for every field and motor boat that may draw it is in store; the draw is
+    // taken before anything else this month, so the yield is never credited
+    // without its inputs
+    let (chem_posts, fuel_posts, boat_posts) = field_input_posts(w, seat);
+    let chem_ok = w.civs[si].stock_of(Good::Chemicals) > 0 && w.civs[si].stock_of(Good::Chemicals) >= chem_posts * FIELD_CHEM_PER_K / 1000;
+    let fuel_ok = w.civs[si].stock_of(Good::Fuel) > 0 && w.civs[si].stock_of(Good::Fuel) >= (fuel_posts + boat_posts) * FIELD_FUEL_PER_K / 1000;
+    let ft = food_tech(&w.civs[si], fuel_ok);
     let link = link_efficiencies(w, seat);
+    // the region's shared infrastructure, from the works as they stand and the
+    // repair works' running last month
+    let infras: Vec<Infra> = regs.iter().map(|ri| region_infra(&w.regions[*ri])).collect();
+    // one decision per works per month: the method each runs is fixed here, from
+    // the stock the month opens with, so that its posts, the service it asks for
+    // and what it makes all belong to the same method
+    let methods: Vec<Vec<Option<usize>>> = regs
+        .iter()
+        .map(|ri| {
+            w.regions[*ri]
+                .facilities
+                .iter()
+                .map(|f| {
+                    let def = &c.facilities[f.kind];
+                    if def.food || !f.enabled || f.level == 0 { None } else { choose_recipe(w, seat, def, f) }
+                })
+                .collect()
+        })
+        .collect();
     let mob_cap = mobilization_cap(w, seat) as i64;
     let mob = mob_cap * w.civs[si].mobilization_bp as i64 / 10_000;
     let tools_ok = w.civs[si].stock_of(Good::Tools) > 0;
@@ -289,47 +625,56 @@ pub fn step(w: &mut World, seat: SeatId) {
     // ---- 1. food plan ------------------------------------------------------
     let soldiers: u32 = w.armies.iter().filter(|a| a.owner == seat).map(|a| a.count()).sum();
     let mut plans: Vec<RegionPlan> = Vec::new();
-    let mut need_total: i64 = soldiers as i64 * 1000;
+    let mut need_total: i64 = soldiers as i64 * FOOD_PER_PERSON_MONTH;
     for &ri in &regs {
         let r = &w.regions[ri];
         let pop = r.population();
-        need_total += pop as i64 * 1000;
+        need_total += pop as i64 * FOOD_PER_PERSON_MONTH;
         let working = r.working();
         let busy = r.students + r.teachers.iter().sum::<u32>();
         let workers = (working as i64 * 92 / 100 - busy as i64).max(0) as u32;
         let mut opts: Vec<FoodOpt> = Vec::new();
         let unrest_factor = 10_000 - r.unrest_bp as i64 * 6 / 10;
         let adj = |y: i64| y * unrest_factor / 10_000;
+        let mut field_run: Option<RunStat> = None;
         if let Some(f) = r.fac(fields_k) {
             if f.enabled && f.level > 0 {
+                // the method this region's fields are worked by: the best the seat
+                // knows and allows here whose month of inputs is in store
+                let (method, missing) = field_method_for(&w.civs[si], has_pasture, field_ceiling(&w.civs[si], f), chem_ok, fuel_ok);
+                let (chem_k, fuel_k) = (if FIELD_METHODS[method].chem { FIELD_CHEM_PER_K } else { 0 }, if FIELD_METHODS[method].fuel { FIELD_FUEL_PER_K } else { 0 });
+                field_run = Some(RunStat { recipe: method, rate_bp: 0, blockers: if missing.is_empty() { 0 } else { 4 }, missing });
+                // full husbandry needs five hundred agronomists for each level of fields
                 let agr = r.quals[Qual::Agronomist.index()] as i64;
-                let skill = 8500 + 1500 * (agr * 2).min(f.level as i64) / (f.level as i64).max(1);
+                let skill = 8500 + 1500 * (agr * 2).min(f.level as i64 * 1000) / (f.level as i64 * 1000).max(1);
                 let tool = if tools_ok { 10_000 } else { 7000 };
-                let y = ft.field * skill / 10_000 * tool / 10_000 * f.condition_bp.max(5000) as i64 / 10_000;
+                let y = field_yield(&w.civs[si], method) * skill / 10_000 * tool / 10_000 * f.condition_bp.max(5000) as i64 / 10_000;
                 let irrigated = ((r.cap(Cap::Irrigation) / 1000) as u16).min(f.level);
                 if irrigated > 0 {
-                    opts.push(FoodOpt { yield_milli: adj(y * 125 / 100), capacity: irrigated as u32 * 10, used: 0, tag: Tag::Farm, inputs: true });
+                    opts.push(FoodOpt { yield_k: adj(y * 125 / 100), capacity: irrigated as u32 * field_crew, used: 0, tag: Tag::Farm, chem_k, fuel_k, field: true });
                 }
                 if f.level > irrigated {
-                    opts.push(FoodOpt { yield_milli: adj(y), capacity: (f.level - irrigated) as u32 * 10, used: 0, tag: Tag::Farm, inputs: true });
+                    opts.push(FoodOpt { yield_k: adj(y), capacity: (f.level - irrigated) as u32 * field_crew, used: 0, tag: Tag::Farm, chem_k, fuel_k, field: true });
                 }
             }
         }
         if let Some(f) = r.fac(pasture_k) {
             if f.enabled && f.level > 0 {
-                opts.push(FoodOpt { yield_milli: adj(ft.pasture), capacity: f.level as u32 * 5, used: 0, tag: Tag::Farm, inputs: false });
+                opts.push(FoodOpt { yield_k: adj(ft.pasture), capacity: f.level as u32 * pasture_crew, used: 0, tag: Tag::Farm, chem_k: 0, fuel_k: 0, field: false });
             }
         }
         if let Some(f) = r.fac(fishery_k) {
             if f.enabled && f.level > 0 {
                 let port = r.cap(Cap::Port) > 0;
                 let y = if port { ft.fish_port } else { ft.fish };
-                opts.push(FoodOpt { yield_milli: adj(y), capacity: f.level as u32 * 8, used: 0, tag: Tag::Sea, inputs: false });
+                // motor boats working from a harbour burn fuel like field machinery
+                opts.push(FoodOpt { yield_k: adj(y), capacity: f.level as u32 * fishery_crew, used: 0, tag: Tag::Sea, chem_k: 0, fuel_k: if port { ft.boat_fuel_per_worker } else { 0 }, field: false });
             }
         }
-        opts.push(FoodOpt { yield_milli: adj(ft.forage), capacity: (r.wild / ft.forage) as u32, used: 0, tag: Tag::Forage, inputs: false });
-        opts.sort_by(|a, b| b.yield_milli.cmp(&a.yield_milli));
-        plans.push(RegionPlan { idx: ri, workers, opts, food_workers: 0, food_made: 0, max_food_workers: workers * 94 / 100 });
+        // the land feeds foragers only up to what grows wild
+        opts.push(FoodOpt { yield_k: adj(ft.forage), capacity: (r.wild * 1000 / ft.forage).min(u32::MAX as i64) as u32, used: 0, tag: Tag::Forage, chem_k: 0, fuel_k: 0, field: false });
+        opts.sort_by(|a, b| b.yield_k.cmp(&a.yield_k));
+        plans.push(RegionPlan { idx: ri, workers, opts, food_workers: 0, food_made: 0, max_food_workers: (workers as u64 * 94 / 100) as u32, field_run });
     }
     let food_stock = w.civs[si].stock_of(Good::Food);
     let reserve = need_total * w.civs[si].food_reserve_months as i64;
@@ -345,8 +690,8 @@ pub fn step(w: &mut World, seat: SeatId) {
     };
     let mut made_total = 0;
     for p in plans.iter_mut() {
-        let pop = w.regions[p.idx].population() as i64 * 1000;
-        made_total += p.add_food(pop * factor / 100);
+        let need = w.regions[p.idx].population() as i64 * FOOD_PER_PERSON_MONTH;
+        made_total += p.add_food(need * factor / 100);
     }
     let mut short = need_total * factor / 100 - made_total;
     while short > 0 {
@@ -361,6 +706,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
         match best {
             Some(i) => {
+                // at most twenty thousand workers' worth at a time, so regions share the shortfall
                 let chunk = short.min(by * 20);
                 let made = plans[i].add_food(chunk);
                 if made <= 0 {
@@ -369,6 +715,30 @@ pub fn step(w: &mut World, seat: SeatId) {
                 short -= made;
             }
             None => break,
+        }
+    }
+    // field chemicals and fuel are drawn now, from the month-start stock that was
+    // checked to cover them, before any other user can take them
+    {
+        let (mut chem, mut fuel) = (0i64, 0i64);
+        for p in &plans {
+            for o in &p.opts {
+                chem += o.used as i64 * o.chem_k;
+                fuel += o.used as i64 * o.fuel_k;
+            }
+        }
+        w.civs[si].take(Good::Chemicals, chem / 1000);
+        w.civs[si].take(Good::Fuel, fuel / 1000);
+    }
+    // how each region's fields were worked, for the seat to read
+    for p in plans.iter_mut() {
+        let (used, capacity) = p.opts.iter().filter(|o| o.field).fold((0u64, 0u64), |a, o| (a.0 + o.used as u64, a.1 + o.capacity as u64));
+        let run = p.field_run.take().map(|mut run| {
+            run.rate_bp = if capacity > 0 { (used * 10_000 / capacity) as u16 } else { 0 };
+            run
+        });
+        if let Some(f) = w.regions[p.idx].fac_mut(fields_k) {
+            f.field_run = run;
         }
     }
 
@@ -384,7 +754,9 @@ pub fn step(w: &mut World, seat: SeatId) {
     let mut qual_employed = vec![0u32; NQ];
     let mut tag_activity = vec![0i64; Tag::COUNT];
     let mut research_cap = vec![0i64; ResearchClass::COUNT];
+    // gross output where it is made, and what of it reaches the common stock
     let mut made = vec![0i64; NG];
+    let mut made_net = vec![0i64; NG];
     let mut compute_demand_total: i64 = 0;
     let mut grid_surplus: i64 = 0;
     let mut grid_deficit: i64 = 0;
@@ -397,30 +769,49 @@ pub fn step(w: &mut World, seat: SeatId) {
     let mut jobless: Vec<(usize, u32)> = Vec::new();
     struct RegionPower {
         ri: usize,
+        /// Share of the shaft and electric service the region's recipes asked for that exists.
         shaft_bp: i64,
         elec_bp: i64,
-        elec_supply: i64,
+        /// Service not yet drawn by a recipe this month.
+        shaft_left: i64,
+        elec_left: i64,
+        /// Electricity the recipes asked for, and what is short of it before the grid helps.
         elec_demand: i64,
+        elec_short: i64,
         grid: bool,
-        motors: bool,
     }
     let mut powers: Vec<RegionPower> = Vec::new();
     let motors = w.civs[si].knows_id("T101");
     let prev_compute = w.civs[si].compute_supply;
+    let month_now = w.month;
 
-    for p in &plans {
+    for (pi, p) in plans.iter().enumerate() {
         let ri = p.idx;
-        // project labour demand in this region
-        let mut demand: i64 = 0;
-        for pr in &w.civs[si].projects {
-            if pr.paused || pr.region != Some(ri as RegionId) || !crate::sim::projects::uses_labor(&pr.kind) {
-                continue;
-            }
-            demand += (pr.work_needed - pr.work_done).min(pr.max_per_month).max(0);
-        }
+        let infra = infras[pi];
+        // the region's active orders, in the order in which they are served
+        let mut queue: Vec<usize> = (0..w.civs[si].projects.len())
+            .filter(|i| {
+                let pr = &w.civs[si].projects[*i];
+                !pr.paused && pr.region == Some(ri as RegionId) && crate::sim::projects::uses_labor(&pr.kind)
+            })
+            .collect();
+        queue.sort_by_key(|i| w.civs[si].projects[*i].service_key());
         let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
         let r = &mut w.regions[ri];
-        let mut month = RegionMonth { qual_employed: vec![0; NQ], tag_staff: vec![0; Tag::COUNT], ..Default::default() };
+        let mut month = RegionMonth { seat: Some(seat), qual_employed: vec![0; NQ], tag_staff: vec![0; Tag::COUNT], ..Default::default() };
+        month.infra = InfraMonth {
+            month: month_now,
+            capacity: infra.capacity,
+            load: infra.load,
+            infra_bp: infra.infra_bp as u16,
+            maint_bp: infra.maint_bp as u16,
+            congestion_bp: infra.congestion_bp as u16,
+            made: vec![0; NG],
+            delivered: vec![0; NG],
+            used: vec![0; NG],
+            exempt: vec![0; NG],
+            chain_saved: vec![0; NG],
+        };
         month.labor.working_age = r.working();
         month.labor.students = r.students;
         month.labor.teachers = r.teachers.iter().sum();
@@ -449,30 +840,51 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
         let mut unskilled = nonfood - qsum;
 
-        // project labour: builders count double
+        // project labour: every called-up worker supplies one worker-month and no more,
+        // and the call-up is bounded by the mobilization the practices allow.
+        // Site crews are called up first, order by order: qualified residents who are
+        // not teaching, each group in its order of preference. They hold no other
+        // post this month and work only on their own order. An order keeps its crew
+        // for as long as it is open, whether or not its goods have arrived.
         let cap_workers = (nonfood as i64 * mob / 10_000) as u32;
-        let mut proj_workers = 0u32;
-        let mut proj_work: i64 = 0;
-        let bi = Qual::Builder.index();
-        while proj_work < demand && proj_workers < cap_workers && avail[bi] > 0 {
-            avail[bi] -= 1;
-            proj_workers += 1;
-            proj_work += 2000;
-            month.qual_employed[bi] += 1;
+        let mut crew_workers = 0u32;
+        let mut demand: i64 = 0;
+        for &pi in &queue {
+            let pr = &mut w.civs[si].projects[pi];
+            let mut on_site = vec![0u32; pr.crew.len()];
+            let mut capped = false;
+            for (e, (quals, need)) in pr.crew.iter().enumerate() {
+                let mut left = *need;
+                for q in quals {
+                    let take = left.min(avail[q.index()]).min(cap_workers - crew_workers);
+                    avail[q.index()] -= take;
+                    month.qual_employed[q.index()] += take;
+                    crew_workers += take;
+                    left -= take;
+                    if left == 0 {
+                        break;
+                    }
+                }
+                on_site[e] = *need - left;
+                if left > 0 && crew_workers < cap_workers {
+                    // qualified people without a post elsewhere will move to the site
+                    vacant.push((ri, quals.clone(), left));
+                } else if left > 0 {
+                    capped = true;
+                }
+            }
+            let own: i64 = on_site.iter().map(|n| *n as i64).sum();
+            pr.crew_on_site = on_site;
+            pr.crew_capped = capped;
+            // the other labour the order can use this month beside its own crew
+            let want = (pr.work_needed - pr.work_done).min(muldiv(pr.max_per_month, pr.crew_bp(), 10_000)).max(0);
+            demand += (want - own * unrest_factor / 10_000).max(0);
         }
-        if proj_work < demand && proj_workers < cap_workers {
-            let want = (((demand - proj_work) + 999) / 1000) as u32;
-            let take = want.min(cap_workers - proj_workers).min(unskilled);
-            unskilled -= take;
-            proj_workers += take;
-            proj_work += take as i64 * 1000;
-        }
-        month.labor.projects = proj_workers;
-        month.project_labor_free = proj_work * unrest_factor / 10_000;
 
         // staffing, in two passes: qualified people take skilled posts everywhere first,
         // then general posts are filled, so a programmer is never spent on a pit crew
-        // while a computing centre stands empty
+        // while a computing centre stands empty. Between the two the orders' other
+        // labour is called up (below).
         let mut fac_workers = 0u32;
         let mut skilled: Vec<(usize, u32, u32)> = Vec::new(); // (facility index, needed, got)
         for &kind in &order {
@@ -488,8 +900,10 @@ pub fn step(w: &mut World, seat: SeatId) {
             let lv = f.level as u32;
             let mut skilled_needed = 0u32;
             let mut skilled_got = 0u32;
-            for (quals, n) in &def.skilled {
-                let need = *n as u32 * lv;
+            // the facility's own qualified posts and those its method adds
+            let rec = methods[pi][fi].map(|i| &def.recipes[i]);
+            for (quals, n) in def.skilled.iter().chain(rec.iter().flat_map(|r| r.extra_skilled.iter())) {
+                let need = *n * lv;
                 skilled_needed += need;
                 let mut left = need;
                 for q in quals {
@@ -508,11 +922,31 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
             skilled.push((fi, skilled_needed, skilled_got));
         }
+        // ordinary labour for what the orders can still use, within what is left of
+        // the call-up: people without a qualification first, then qualified people
+        // whom no qualified post took this month (builders before the others). It is
+        // called up before the general posts of the works are filled.
+        let mut wanted = demand.min((cap_workers - crew_workers) as i64).max(0) as u32;
+        let mut called = wanted.min(unskilled);
+        unskilled -= called;
+        wanted -= called;
+        let builder = Qual::Builder.index();
+        for q in std::iter::once(builder).chain((0..NQ).filter(|q| *q != builder)) {
+            if wanted == 0 {
+                break;
+            }
+            let take = wanted.min(avail[q]);
+            avail[q] -= take;
+            called += take;
+            wanted -= take;
+        }
+        month.labor.projects = crew_workers + called;
+        month.project_labor_free = called as i64 * unrest_factor / 10_000;
         let mut open_general: u32 = 0;
         for (fi, skilled_needed, skilled_got) in skilled {
             let f = &mut r.facilities[fi];
             let def = &c.facilities[f.kind];
-            let positions = skilled_needed + general_posts(def, f);
+            let positions = skilled_needed + general_posts(def, f, methods[pi][fi].map(|i| &def.recipes[i]), infra.infra_bp);
             let mut filled = skilled_got;
             let is_research = def.recipes.iter().any(|r| r.research.is_some());
             if !is_research {
@@ -547,7 +981,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         household_total += leftover as i64;
         if open_general > 0 {
             hiring.push((ri, open_general));
-        } else if leftover > 40 {
+        } else if leftover > JOBLESS_DRIFT_MIN {
             jobless.push((ri, leftover));
         }
         for q in 0..NQ {
@@ -559,24 +993,23 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
 
     // power sources run first (they read month-start stock), then demands are known
-    for p in &plans {
+    for (pi, p) in plans.iter().enumerate() {
         let ri = p.idx;
-        let mut shaft_supply: i64 = 0;
-        let mut elec_supply: i64 = 0;
+        let mut led = PowerLedger::default();
         let mut shaft_demand: i64 = 0;
         let mut elec_demand: i64 = 0;
         let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
         for fi in 0..w.regions[ri].facilities.len() {
-            let (kind, level, staff_bp, cond, enabled) = {
+            let (kind, level, staff_bp, skilled_bp, cond, enabled) = {
                 let f = &w.regions[ri].facilities[fi];
-                (f.kind, f.level as i64, staff_rate(&c.facilities[f.kind], f), f.condition_bp as i64, f.enabled)
+                (f.kind, f.level as i64, staff_rate(&c.facilities[f.kind], f), f.skilled_bp as i64, f.condition_bp as i64, f.enabled)
             };
             let def = &c.facilities[kind];
             if !enabled || level == 0 {
                 continue;
             }
             if def.power_source {
-                let Some(ridx) = pick_recipe(w, seat, def) else { continue };
+                let Some(ridx) = methods[pi][fi] else { continue };
                 let rec = &def.recipes[ridx];
                 let mut rate = staff_bp.min(cond).min(unrest_factor);
                 let mut missing = Vec::new();
@@ -592,10 +1025,12 @@ pub fn step(w: &mut World, seat: SeatId) {
                 }
                 for (g, a) in &rec.inputs {
                     let amt = a * level * rate / 10_000;
-                    w.civs[si].take(*g, amt);
+                    let took = w.civs[si].take(*g, amt);
+                    // fuel burned where it is mined or refined never left the region
+                    w.regions[ri].last.infra.used[g.index()] += took;
                 }
-                shaft_supply += rec.out_shaft * level * rate / 10_000;
-                elec_supply += rec.out_elec * level * rate / 10_000;
+                led.shaft_made += rec.out_shaft * level * rate / 10_000;
+                led.elec_made += rec.out_elec * level * rate / 10_000;
                 let mut blockers = 0u16;
                 if staff_bp < 9000 {
                     blockers |= 1;
@@ -608,66 +1043,103 @@ pub fn step(w: &mut World, seat: SeatId) {
                 if rate >= 5000 {
                     f.operated = true;
                 }
-            } else if let Some(ridx) = pick_recipe(w, seat, def) {
+            } else if let Some(ridx) = methods[pi][fi] {
+                // a works asks for the service of the posts it has filled
                 let rec = &def.recipes[ridx];
-                shaft_demand += rec.shaft * level * staff_bp / 10_000;
-                elec_demand += rec.elec * level * staff_bp / 10_000;
-                compute_demand_total += rec.compute * level * staff_bp / 10_000;
+                let base = if rec.research.is_some() { skilled_bp } else { staff_bp };
+                shaft_demand += rec.shaft * level * base / 10_000;
+                elec_demand += rec.elec * level * base / 10_000;
+                compute_demand_total += rec.compute * level * base / 10_000;
             }
         }
-        // generators convert spare shaft work; motors let electricity drive shafts
+        // construction sites ask for shaft work alongside the region's works: each
+        // open order that has crew on site and goods to work with asks for the share
+        // of its draw that its crew can use
+        let mut site_ask: i64 = 0;
+        for pr in &w.civs[si].projects {
+            if pr.paused || pr.region != Some(ri as RegionId) || pr.power_need <= 0 || pr.work_done >= pr.work_needed {
+                continue;
+            }
+            if crate::sim::projects::goods_allow_work(&w.civs[si], pr) {
+                site_ask += pr.power_need * pr.crew_bp() / 10_000;
+            }
+        }
+        shaft_demand += site_ask;
+        let mut shaft = led.shaft_made;
+        let mut elec = led.elec_made;
+        // generator halls turn spare shaft work into electricity at nine tenths
         let gen_cap = w.regions[ri].cap(Cap::GenCap);
-        if gen_cap > 0 && shaft_supply > shaft_demand {
-            let x = gen_cap.min(shaft_supply - shaft_demand);
-            shaft_supply -= x;
-            elec_supply += x * 9 / 10;
+        if gen_cap > 0 && shaft > shaft_demand {
+            let x = gen_cap.min(shaft - shaft_demand);
+            led.shaft_to_generators = x;
+            led.elec_from_generators = x * 9 / 10;
+            shaft -= x;
+            elec += x * 9 / 10;
         }
+        // motors turn the region's own spare electricity into shaft work at nine tenths
+        if motors && shaft < shaft_demand && elec > elec_demand {
+            let add = (shaft_demand - shaft).min((elec - elec_demand) * 9 / 10);
+            let drawn = (add * 10 + 8) / 9;
+            led.shaft_from_motors = add;
+            led.elec_to_motors = drawn;
+            shaft += add;
+            elec -= drawn;
+        }
+        // what is still spare after the region's own users is offered to the grid
         let grid = w.regions[ri].cap(Cap::GridLink) > 0;
+        let mut elec_short = 0;
         if grid {
-            if elec_supply > elec_demand {
-                grid_surplus += elec_supply - elec_demand;
+            if elec > elec_demand {
+                led.grid_out = elec - elec_demand;
+                grid_surplus += led.grid_out;
+                elec = elec_demand;
             } else {
-                grid_deficit += elec_demand - elec_supply;
+                elec_short = elec_demand - elec;
+                grid_deficit += elec_short;
             }
         }
+        // the sites' share of the region's shaft work is set aside for them: under a
+        // shortage they are rationed like every works, and no works can draw their part
+        let shaft_bp = ratio_bp(shaft, shaft_demand);
+        let site_share = (site_ask * shaft_bp / 10_000).min(shaft.max(0));
         let r = &mut w.regions[ri];
-        r.last.shaft_supply = shaft_supply;
+        r.last.shaft_supply = shaft;
         r.last.shaft_demand = shaft_demand;
-        r.last.elec_supply = elec_supply;
-        r.last.elec_demand = elec_demand;
-        powers.push(RegionPower { ri, shaft_bp: 10_000, elec_bp: 10_000, elec_supply, elec_demand, grid, motors });
+        r.last.elec_supply = led.elec_made + led.elec_from_generators;
+        r.last.elec_demand = elec_demand + led.elec_to_motors;
+        r.last.power = led;
+        r.last.site_power_free = site_share;
+        powers.push(RegionPower { ri, shaft_bp, elec_bp: 10_000, shaft_left: shaft - site_share, elec_left: elec, elec_demand, elec_short, grid });
     }
+    // the grid shares the surplus among linked regions in deficit; 8% is lost on the way
     let grid_pool = grid_surplus * 92 / 100;
     let grid_ratio = if grid_deficit > 0 { ratio_bp(grid_pool, grid_deficit) } else { 10_000 };
     for pw in powers.iter_mut() {
-        let r = &mut w.regions[pw.ri];
-        let mut elec_avail = pw.elec_supply;
-        if pw.grid && pw.elec_supply < pw.elec_demand {
-            elec_avail += (pw.elec_demand - pw.elec_supply) * grid_ratio / 10_000;
+        if pw.grid && pw.elec_short > 0 {
+            let got = pw.elec_short * grid_ratio / 10_000;
+            pw.elec_left += got;
+            let r = &mut w.regions[pw.ri];
+            r.last.power.grid_in = got;
+            r.last.elec_supply += got;
         }
-        let mut shaft_avail = r.last.shaft_supply;
-        let shaft_demand = r.last.shaft_demand;
-        if pw.motors && shaft_avail < shaft_demand && elec_avail > pw.elec_demand {
-            let spare = elec_avail - pw.elec_demand;
-            let add = (shaft_demand - shaft_avail).min(spare * 9 / 10);
-            shaft_avail += add;
-            elec_avail -= add * 10 / 9;
-            r.last.elec_demand += add * 10 / 9;
-        }
-        pw.shaft_bp = if shaft_demand > 0 { ratio_bp(shaft_avail, shaft_demand) } else { 10_000 };
-        pw.elec_bp = if pw.elec_demand > 0 { ratio_bp(elec_avail, pw.elec_demand) } else { 10_000 };
-        r.last.elec_supply = elec_avail.max(r.last.elec_supply);
+        pw.elec_bp = ratio_bp(pw.elec_left, pw.elec_demand);
     }
+    // compute installed last month serves this month
     let compute_bp = if compute_demand_total > 0 { ratio_bp(prev_compute, compute_demand_total) } else { 10_000 };
+    let mut compute_left: i64 = prev_compute.max(0);
+    let mut compute_used: i64 = 0;
     let mut compute_made: i64 = 0;
 
-    // household craft: a little building material, only while stores have room for it
+    // household craft: adults with no post make a little building material at home,
+    // never more than 0.3 t each, and only while stores have room for it
     {
         let t = stock_target(&w.civs[si], Good::Materials);
         let have = w.civs[si].stock_of(Good::Materials);
         if have < 2 * t {
             let bp = if have <= t { 10_000 } else { (2 * t - have) * 10_000 / t };
-            made[Good::Materials.index()] += household_total * 300 * bp / 10_000;
+            let craft = household_total * HOUSEHOLD_CRAFT_PER_K * bp / 10_000 / 1000;
+            made[Good::Materials.index()] += craft;
+            made_net[Good::Materials.index()] += craft;
         }
     }
     // specialists move to where their posts are: a few each month, as real people
@@ -684,6 +1156,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             if take == 0 {
                 continue;
             }
+            // both regions are ours, so the qualification ledger does not change
             let moved = crate::sim::population::relocate_adults(&mut w.regions, *src, sink, take);
             w.regions[*src].quals[*q] -= moved;
             w.regions[sink].quals[*q] += moved;
@@ -708,28 +1181,17 @@ pub fn step(w: &mut World, seat: SeatId) {
             let pop = w.regions[*src].population();
             let working = w.regions[*src].working().max(1);
             let with_family = (go as u64 * pop as u64 / working as u64) as u32;
-            let moved = crate::sim::population::move_people(&mut w.regions, *src, sink, with_family, false);
+            let moved = crate::sim::population::move_people(w, *src, sink, with_family, false);
             let workers = (moved as u64 * working as u64 / pop.max(1) as u64) as u32;
             *n -= workers.min(*n);
             open -= workers.min(open);
         }
     }
 
-    // ---- 3. food output and field inputs -------------------------------------
+    // ---- 3. food output (its chemicals and fuel were drawn with the plan) -------
     for p in &plans {
-        let mut farm_workers = 0i64;
-        for o in &p.opts {
-            if o.inputs {
-                farm_workers += o.used as i64;
-            }
-        }
-        if ft.chem_per_worker > 0 {
-            w.civs[si].take(Good::Chemicals, farm_workers * ft.chem_per_worker);
-        }
-        if ft.fuel_per_worker > 0 {
-            w.civs[si].take(Good::Fuel, farm_workers * ft.fuel_per_worker);
-        }
         made[Good::Food.index()] += p.food_made;
+        made_net[Good::Food.index()] += p.food_made;
     }
 
     // ---- 4. production ---------------------------------------------------------
@@ -737,15 +1199,21 @@ pub fn step(w: &mut World, seat: SeatId) {
     let stock_start: Vec<i64> = w.civs[si].stock.clone();
     for (pi, p) in plans.iter().enumerate() {
         let ri = p.idx;
-        let pw = &powers[pi];
+        let pw = &mut powers[pi];
+        debug_assert_eq!(pw.ri, ri);
         let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
         let link_bp = link[ri];
+        let infra = infras[pi];
+        // gross output of the region's recipes this month, by good
+        let mut region_out = vec![0i64; NG];
         for &kind in &order {
             let def = &c.facilities[kind];
             let Some(fi) = w.regions[ri].facilities.iter().position(|f| f.kind == kind) else { continue };
+            let method = methods[pi][fi];
             let (level, cond, enabled, staff_bp, skilled_bp, skilled_count) = {
                 let f = &w.regions[ri].facilities[fi];
-                let sk: u32 = def.skilled.iter().map(|(_, n)| *n as u32 * f.level as u32).sum();
+                let extra = method.iter().flat_map(|i| def.recipes[*i].extra_skilled.iter());
+                let sk: u32 = def.skilled.iter().chain(extra).map(|(_, n)| *n * f.level as u32).sum();
                 (f.level as i64, f.condition_bp as i64, f.enabled, staff_rate(def, f), f.skilled_bp as i64, sk as i64 * f.skilled_bp as i64 / 10_000)
             };
             if level == 0 {
@@ -754,8 +1222,14 @@ pub fn step(w: &mut World, seat: SeatId) {
             // upkeep and condition
             if enabled {
                 let mut ok = 10_000i64;
+                // the region's repair works keep the other works' machines running on
+                // fewer spares and tools: less is taken, nothing is made
+                let pooled = pools_upkeep(def) && infra.maint_bp > 0;
                 for (g, a) in &def.upkeep {
-                    let need = a * level;
+                    let mut need = a * level;
+                    if pooled && matches!(g, Good::Spares | Good::Tools) {
+                        need = (need * (10_000 - infra.maint_bp) + 9_999) / 10_000;
+                    }
                     let got = w.civs[si].take(*g, need);
                     ok = ok.min(ratio_bp(got, need));
                 }
@@ -777,7 +1251,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 }
                 continue;
             }
-            let Some(ridx) = pick_recipe(w, seat, def) else {
+            let Some(ridx) = method else {
                 w.regions[ri].facilities[fi].run = None;
                 continue;
             };
@@ -785,7 +1259,9 @@ pub fn step(w: &mut World, seat: SeatId) {
             let mut blockers = 0u16;
             let mut missing: Vec<Good> = Vec::new();
             let is_research = rec.research.is_some();
-            let mut rate = if is_research { skilled_bp } else { staff_bp };
+            // the rate the filled posts allow; it is also what the works asked service for
+            let base = if is_research { skilled_bp } else { staff_bp };
+            let mut rate = base;
             if rate < 9000 {
                 blockers |= if is_research || skilled_bp < 9000 { 2 } else { 1 };
             }
@@ -797,16 +1273,18 @@ pub fn step(w: &mut World, seat: SeatId) {
                 rate = unrest_factor;
                 blockers |= 512;
             }
-            if rec.shaft > 0 && pw.shaft_bp < rate {
-                rate = pw.shaft_bp;
+            // service is rationed: each works gets the same share of what it asked for,
+            // so the works of a region never draw more than the region has
+            if rec.shaft > 0 && base * pw.shaft_bp / 10_000 < rate {
+                rate = base * pw.shaft_bp / 10_000;
                 blockers |= 8;
             }
-            if rec.elec > 0 && pw.elec_bp < rate {
-                rate = pw.elec_bp;
+            if rec.elec > 0 && base * pw.elec_bp / 10_000 < rate {
+                rate = base * pw.elec_bp / 10_000;
                 blockers |= 16;
             }
-            if rec.compute > 0 && compute_bp < rate {
-                rate = compute_bp;
+            if rec.compute > 0 && base * compute_bp / 10_000 < rate {
+                rate = base * compute_bp / 10_000;
                 blockers |= 32;
             }
             // storage throttle
@@ -828,15 +1306,21 @@ pub fn step(w: &mut World, seat: SeatId) {
                 rate = 0;
                 blockers |= 128;
             }
-            // deposit
+            // deposit: every tonne raised is drawn from the ground, and wasteful
+            // workings disturb more than they raise
             let mut quality = 10_000i64;
+            // the rate at which the workings take the last of a deposit, if they do this month
+            let mut last_rate: Option<i64> = None;
             if let Some(d) = rec.depletes {
                 match w.regions[ri].deposits.iter().find(|x| x.kind == d) {
                     Some(dep) if dep.remaining > 0 => {
                         quality = dep.quality_bp as i64;
-                        let out: i64 = rec.outputs.iter().map(|(_, a)| a * level).sum::<i64>() * rate / 10_000;
-                        if out > dep.remaining {
-                            rate = rate * dep.remaining / out.max(1);
+                        let raised: i64 = rec.outputs.iter().map(|(_, a)| a * level).sum::<i64>() * rate / 10_000;
+                        let drawn = raised * rec.disturb_bp / 10_000;
+                        if drawn > dep.remaining {
+                            // rounded up, so the crews and the service for the last tonnes are really engaged
+                            rate = (rate * dep.remaining + drawn - 1) / drawn.max(1);
+                            last_rate = Some(rate);
                             blockers |= 256;
                         }
                     }
@@ -847,6 +1331,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 }
             }
             // inputs
+            let before_inputs = rate;
             for (g, a) in &rec.inputs {
                 let need = a * level * rate / 10_000;
                 if need > 0 {
@@ -858,34 +1343,67 @@ pub fn step(w: &mut World, seat: SeatId) {
                     }
                 }
             }
-            let rate = rate.clamp(0, 10_000);
+            let inputs_bp = if rate < before_inputs { ratio_bp(rate, before_inputs) } else { 10_000 };
+            let mut rate = rate.clamp(0, 10_000);
+            // no works draws service that is not there: what is left in the region's
+            // (and for compute the nation's) account bounds the rate exactly
+            for (per_full, left, flag) in [(rec.shaft * level, pw.shaft_left, 8u16), (rec.elec * level, pw.elec_left, 16), (rec.compute * level, compute_left, 32)] {
+                let fitted = fit_rate(rate, per_full, left);
+                if fitted < rate {
+                    rate = fitted;
+                    blockers |= flag;
+                }
+            }
+            let (shaft_used, elec_used, comp_used) = (rec.shaft * level * rate / 10_000, rec.elec * level * rate / 10_000, rec.compute * level * rate / 10_000);
+            pw.shaft_left -= shaft_used;
+            pw.elec_left -= elec_used;
+            compute_left -= comp_used;
+            compute_used += comp_used;
+            w.regions[ri].last.power.shaft_used += shaft_used;
+            w.regions[ri].last.power.elec_used += elec_used;
             for (g, a) in &rec.inputs {
-                w.civs[si].take(*g, a * level * rate / 10_000);
+                let took = w.civs[si].take(*g, a * level * rate / 10_000);
+                w.regions[ri].last.infra.used[g.index()] += took;
             }
             for (g, a) in &rec.outputs {
-                let mut out = a * level * rate / 10_000;
+                // the hard ceiling of every works: its recipe, its levels and its rate
+                let ceiling = a * level * rate / 10_000;
+                let mut out = ceiling;
                 if rec.depletes.is_some() {
-                    if let Some(dep) = w.regions[ri].deposits.iter_mut().find(|x| Some(x.kind) == rec.depletes) {
-                        // drained deep workings reach ore that shallow pits leave behind
-                        let drawn = if rec.key == "deep" { out / 2 } else { out };
-                        dep.remaining = (dep.remaining - drawn).max(0);
+                    match w.regions[ri].deposits.iter_mut().find(|x| Some(x.kind) == rec.depletes) {
+                        Some(dep) => {
+                            // the ground gives up at least what is raised; of what is raised,
+                            // the ore's quality decides how much is worth carrying away
+                            let mut raised = out;
+                            let mut drawn = raised * rec.disturb_bp / 10_000;
+                            // the last of a deposit comes out whole, so a worked-out
+                            // deposit really reaches zero instead of a few tonnes
+                            let last = last_rate == Some(rate) && rec.outputs.len() == 1;
+                            if drawn > dep.remaining || last {
+                                drawn = dep.remaining.max(0);
+                                // never more than the workings raise at this rate
+                                raised = raised.min(drawn * 10_000 / rec.disturb_bp);
+                            }
+                            out = raised * (5000 + quality / 2) / 10_000;
+                            dep.remaining -= drawn;
+                            dep.drawn += drawn;
+                            dep.delivered += out;
+                        }
+                        None => out = 0,
                     }
-                    out = out * (5000 + quality / 2) / 10_000;
                 }
-                made[g.index()] += out * link_bp / 10_000;
+                debug_assert!(out >= 0 && out <= ceiling && ceiling <= a * level, "{} makes {out} of {g:?} above its ceiling {ceiling}", def.key);
+                region_out[g.index()] += out.min(ceiling);
             }
             if let Some((class, pts)) = rec.research {
-                let staff_pts = skilled_count.min(pts * level / 1000) * 1000;
-                let base = if staff_pts > 0 { staff_pts } else { pts * level * skilled_bp / 10_000 };
+                // one researcher-month per staffed research post, up to what the
+                // installation supports; a post nobody holds supplies nothing
+                let staff_pts = skilled_count.min(pts * level);
                 let support = [cond, if rec.elec > 0 { pw.elec_bp } else { 10_000 }, if rec.compute > 0 { compute_bp } else { 10_000 }, unrest_factor]
                     .into_iter()
                     .min()
                     .unwrap();
-                let mut inputs_bp = 10_000;
-                if !rec.inputs.is_empty() && rate < skilled_bp {
-                    inputs_bp = ratio_bp(rate, skilled_bp.max(1));
-                }
-                research_cap[class.index()] += base * support / 10_000 * inputs_bp / 10_000;
+                research_cap[class.index()] += staff_pts * support / 10_000 * inputs_bp / 10_000;
             }
             compute_made += rec.out_compute * level * rate / 10_000;
             let f = &mut w.regions[ri].facilities[fi];
@@ -896,6 +1414,29 @@ pub fn step(w: &mut World, seat: SeatId) {
                 f.operated = true;
             }
             f.run = Some(RunStat { recipe: ridx, rate_bp: rate as u16, blockers, missing });
+        }
+        // carriage to the common stock. Output up to what the region's own recipes
+        // took of the same good this month never leaves the region and pays nothing
+        // (an integrated chain); the rest pays the region's link loss and, when the
+        // region's freight is congested, the congestion loss on top - the capital
+        // included. Nothing here can deliver more than was made.
+        let keep_bp = (link_bp - infra.congestion_bp).clamp(0, 10_000);
+        let month = &mut w.regions[ri].last.infra;
+        for g in 0..NG {
+            let out = region_out[g];
+            if out <= 0 {
+                continue;
+            }
+            let exempt = out.min(month.used[g]).max(0);
+            let delivered = exempt + (out - exempt) * keep_bp / 10_000;
+            debug_assert!(delivered <= out && exempt <= delivered);
+            month.made[g] = out;
+            month.delivered[g] = delivered;
+            month.exempt[g] = exempt;
+            // what the same output would have lost had all of it been carried
+            month.chain_saved[g] = delivered - out * keep_bp / 10_000;
+            made[g] += out;
+            made_net[g] += delivered;
         }
     }
 
@@ -919,10 +1460,13 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
     civ_labor.soldiers = soldiers;
     let civ = &mut w.civs[si];
+    // everything made is booked as production where it was made; what carriage to
+    // the common stock cost is booked as lost
     for g in Good::ALL {
-        let amt = made[g.index()];
-        if amt > 0 {
-            civ.add(*g, amt);
+        let (gross, net) = (made[g.index()], made_net[g.index()].min(made[g.index()]));
+        if gross > 0 {
+            civ.add(*g, gross);
+            civ.lose(*g, gross - net);
         }
     }
     civ.labor = civ_labor;
@@ -930,12 +1474,13 @@ pub fn step(w: &mut World, seat: SeatId) {
     civ.research_cap = research_cap;
     civ.compute_supply = compute_made;
     civ.compute_demand = compute_demand_total;
+    civ.compute_used = compute_used;
     // activities feed the evidence model; square-root so scale helps but saturates
     for t in 0..Tag::COUNT {
-        civ.tag_activity[t] = isqrt(tag_activity[t] * 10_000);
+        civ.tag_activity[t] = activity_index(tag_activity[t]);
     }
-    civ.tag_activity[Tag::War as usize] = isqrt(soldiers as i64 * 10_000);
-    civ.tag_activity[Tag::Teach as usize] += isqrt(civ.labor.students as i64 * 10_000);
+    civ.tag_activity[Tag::War as usize] = activity_index(soldiers as i64);
+    civ.tag_activity[Tag::Teach as usize] += activity_index(civ.labor.students as i64);
 
     // jump assemblies leaving the lines
     let yard = c.f("jump_yard");
@@ -970,16 +1515,30 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
 }
 
-fn staff_rate(def: &FacDef, f: &Facility) -> i64 {
+/// Evidence index of a head count: one hundred times the square root of the
+/// thousands of people engaged (a thousand people give 100, a million 3,162).
+pub fn activity_index(people: i64) -> i64 {
+    isqrt(people.max(0) * 10)
+}
+
+/// The highest rate not above `rate` at which a works drawing `per_full` of a
+/// service at full rate takes no more than the `left` that exists.
+fn fit_rate(rate: i64, per_full: i64, left: i64) -> i64 {
+    if per_full <= 0 || per_full * rate / 10_000 <= left {
+        return rate;
+    }
+    ((left.max(0) as i128 * 10_000 / per_full as i128) as i64).min(rate)
+}
+
+/// The rate the filled posts of a works allow. A works whose qualified posts
+/// (its own and those its method adds) are part empty runs slower than its head
+/// count alone says; one that needs no qualified people has `skilled_bp` at 10,000.
+fn staff_rate(_def: &FacDef, f: &Facility) -> i64 {
     if f.staff_needed == 0 {
         return 10_000;
     }
     let total = f.staffed as i64 * 10_000 / f.staff_needed as i64;
-    if def.skilled.is_empty() {
-        total
-    } else {
-        total * (5000 + f.skilled_bp as i64 / 2) / 10_000
-    }
+    total * (5000 + f.skilled_bp as i64 / 2) / 10_000
 }
 
 /// First recipe whose knowledge requirement holds and whose inputs are in stock;

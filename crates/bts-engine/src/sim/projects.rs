@@ -1,12 +1,25 @@
 //! Projects (construction, research, surveys, settlement, reform, recruitment,
 //! jump trials) and education programmes. Work comes from real labour or real
 //! research staff; inputs are committed from stock and never refunded.
+//!
+//! Construction and the preparations of the jump programme also need a qualified
+//! site crew (reserved in `economy::step`), site power and a minimum duration. An
+//! order advances each month by the least of what its duration accepts, what its
+//! goods allow, the share of its crew that is present, the labour called up in its
+//! region and the site power delivered; whatever held it back is named in its
+//! blockers. Projects are served by priority and then by their place in the queue
+//! of the region they are sited in (`docs/units-and-scale.md`, section 6).
 
 use crate::content::{content, Cap, Tag};
 use crate::sim::chronicle::{brief, moment};
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
+
+/// Learners a founding cohort can hold when nobody qualified can teach it.
+pub const FOUNDING_COHORT_MAX: i64 = 4_000;
+/// Teaching places a precinct of the Teaching Order hosts.
+const TEACHING_ORDER_PLACES: i64 = 16_000;
 
 pub fn uses_labor(kind: &ProjKind) -> bool {
     !matches!(kind, ProjKind::Research { .. } | ProjKind::LeadStudy { .. } | ProjKind::Study { .. })
@@ -47,16 +60,121 @@ pub fn project_title(w: &World, kind: &ProjKind, region: Option<RegionId>) -> St
         ProjKind::Research { tech } => format!("Investigate: {}", c.techs[*tech].name),
         ProjKind::LeadStudy { .. } => "Follow up a lead".to_string(),
         ProjKind::Survey { region } => format!("Survey {}", rn(*region)),
-        ProjKind::Settle { to, people, .. } => format!("Settle {} with {} people", rn(*to), people),
+        ProjKind::Settle { to, people, .. } => format!("Settle {} with {} people", rn(*to), group(*people as i64)),
         ProjKind::Study { tag } => format!("Exploratory study: {}", Tag::ALL[*tag].name()),
-        ProjKind::Resettle { from, to, people } => format!("Move {} people from {} to {}", people, rn(*from), rn(*to)),
-        ProjKind::Recruit { role, soldiers, tier } => format!("Raise {} {} ({})", soldiers, c.unit_tiers[*tier as usize].roles[role.index()], region.map(rn).unwrap_or_default()),
+        ProjKind::Resettle { from, to, people } => format!("Move {} people from {} to {}", group(*people as i64), rn(*from), rn(*to)),
+        ProjKind::Recruit { role, soldiers, tier } => format!("Raise {} {} ({})", group(*soldiers as i64), c.unit_tiers[*tier as usize].roles[role.index()], region.map(rn).unwrap_or_default()),
         ProjKind::Reform { practice } => format!("Reform: {}", c.practices[*practice].name),
         ProjKind::Religion { .. } => "Advance the local movement".to_string(),
         ProjKind::FtlTrial => "Loaded jump round trip".to_string(),
         ProjKind::FtlDeployment => "Three-node deployment exercise".to_string(),
         ProjKind::FtlReplacement => "Assembly replacement and crew relief".to_string(),
     }
+}
+
+/// What one level of a facility is charged a seat that orders it now. An order of
+/// `n` levels is charged `n` times the goods, work, crew and site power and takes
+/// the same minimum months, so the quote shown to the seat is exactly the charge.
+pub struct BuildQuote {
+    /// No installation of this kind exists anywhere under the seat: the first one
+    /// is also the prototype and takes half as much work and time again.
+    pub first: bool,
+    /// Worker-months per level.
+    pub work: i64,
+    /// Months the order takes at least.
+    pub months: u16,
+    /// Goods per level, base units.
+    pub cost: Vec<(Good, i64)>,
+    /// Qualified site crew per level, in people.
+    pub crew: Vec<(Vec<Qual>, u32)>,
+    /// Shaft service per level in a month of full work, base units.
+    pub power: i64,
+}
+
+/// Minimum months of a level before any first-of-kind surcharge: the scenario's
+/// pace shortens or lengthens it with the work.
+pub fn build_months(months: u16, pace_bp: u32) -> i64 {
+    ((months as i64 * pace_bp as i64 + 9_999) / 10_000).max(1)
+}
+
+pub fn build_quote(w: &World, seat: SeatId, kind: usize) -> BuildQuote {
+    let def = &content().facilities[kind];
+    let first = !civ_has_facility(w, seat, kind);
+    let mut work = scaled(def.work, w.cfg.pace_bp);
+    let mut months = build_months(def.build_months, w.cfg.pace_bp);
+    if first {
+        work = work * 3 / 2;
+        months = (months * 3 + 1) / 2;
+    }
+    BuildQuote { first, work, months: months.min(u16::MAX as i64) as u16, cost: def.cost.clone(), crew: def.crew.clone(), power: def.build_power }
+}
+
+/// The crews a jump trial, the deployment exercise and a replacement keep on hand
+/// while they are prepared, and the site power they draw in a month of full work.
+pub fn ftl_terms(kind: &ProjKind) -> (Vec<(Vec<Qual>, u32)>, i64) {
+    let (engineers, orbital, power) = match kind {
+        ProjKind::FtlTrial => (4_000, 4_000, 2_000_000),
+        ProjKind::FtlDeployment => (6_000, 6_000, 1_500_000),
+        ProjKind::FtlReplacement => (2_000, 2_000, 500_000),
+        _ => return (Vec::new(), 0),
+    };
+    (vec![(vec![Qual::FtlEngineer], engineers), (vec![Qual::Orbital], orbital)], power)
+}
+
+/// The most work an order with a stated minimum duration accepts in a month: what
+/// spreads its work over exactly that many months.
+pub fn monthly_share(work: i64, months: i64) -> i64 {
+    let months = months.max(1);
+    ((work + months - 1) / months).max(1)
+}
+
+/// Whether the goods an order has, with what the stores hold now, let any more of
+/// its work be done. Used only to decide whether a site is worth setting power
+/// aside for; what is actually committed is decided when the order is served.
+pub fn goods_allow_work(civ: &Civ, p: &Project) -> bool {
+    let mut frac_bp: i64 = 10_000;
+    for (g, needed, committed) in &p.inputs {
+        if *needed > 0 {
+            let reach = (*committed + civ.stock_of(*g).max(0)).min(*needed);
+            frac_bp = frac_bp.min(ratio_bp(reach, *needed));
+        }
+    }
+    muldiv(p.work_needed, frac_bp, 10_000) > p.work_done
+}
+
+/// Deliver up to `ask` of shaft service to a construction site: first from what
+/// the region set aside for its sites this month, then from site engines burning
+/// coal, then refined fuel, out of the common stock (whole tonnes). Returns what
+/// was delivered; everything is booked in the region's service account.
+fn draw_site_power(w: &mut World, seat: SeatId, ri: usize, ask: i64) -> i64 {
+    use crate::content::{SITE_ENGINE_PER_T_COAL, SITE_ENGINE_PER_T_FUEL};
+    let local = ask.min(w.regions[ri].last.site_power_free.max(0)).max(0);
+    w.regions[ri].last.site_power_free -= local;
+    w.regions[ri].last.power.site_from_supply += local;
+    let mut short = ask - local;
+    let mut engines = 0;
+    // the month of fuel the fields and motor boats must find in store is theirs:
+    // a site stands still before it burns the harvest's fuel
+    let fields_fuel = if short > 0 { crate::sim::economy::fields_fuel_month(w, seat) } else { 0 };
+    for (good, per_tonne) in [(Good::Coal, SITE_ENGINE_PER_T_COAL), (Good::Fuel, SITE_ENGINE_PER_T_FUEL)] {
+        if short <= 0 {
+            break;
+        }
+        let keep = if good == Good::Fuel { fields_fuel } else { 0 };
+        let spare = (w.civs[seat as usize].stock_of(good) - keep).max(0);
+        let burned = w.civs[seat as usize].take(good, ((short + per_tonne - 1) / per_tonne).min(spare));
+        let got = (burned * per_tonne).min(short);
+        short -= got;
+        engines += got;
+        let led = &mut w.regions[ri].last.power;
+        if good == Good::Coal {
+            led.site_coal += burned;
+        } else {
+            led.site_fuel += burned;
+        }
+    }
+    w.regions[ri].last.power.site_from_engines += engines;
+    local + engines
 }
 
 pub fn step(w: &mut World, seat: SeatId) {
@@ -66,7 +184,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
     let c = content();
     let mut order: Vec<usize> = (0..w.civs[si].projects.len()).collect();
-    order.sort_by_key(|i| (w.civs[si].projects[*i].priority, w.civs[si].projects[*i].id));
+    order.sort_by_key(|i| w.civs[si].projects[*i].service_key());
     let mut pools = w.civs[si].research_cap.clone();
     let mut used = vec![0i64; ResearchClass::COUNT];
     let mut done: Vec<u32> = Vec::new();
@@ -78,7 +196,12 @@ pub fn step(w: &mut World, seat: SeatId) {
             (p.kind.clone(), p.region, p.paused)
         };
         if paused {
-            w.civs[si].projects[i].last_progress = 0;
+            // a paused order holds no crew, draws nothing and reports nothing
+            let p = &mut w.civs[si].projects[i];
+            p.last_progress = 0;
+            p.blockers.clear();
+            p.crew_on_site.iter_mut().for_each(|n| *n = 0);
+            p.power_bp = 0;
             continue;
         }
         let mut blockers: Vec<String> = Vec::new();
@@ -143,12 +266,54 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
             progress = got;
         } else if let Some(r) = region {
-            let free = w.regions[r as usize].last.project_labor_free;
-            if free < progress {
-                blockers.push(format!("Little labour can be called up in {}", w.regions[r as usize].name));
+            let ri = r as usize;
+            // the qualified site crew: the site works at the share of its crew that
+            // is present, and a group that is missing altogether stops it
+            let (crew_bp, crew_on, power_need, capped) = {
+                let p = &w.civs[si].projects[i];
+                for (e, (quals, need)) in p.crew.iter().enumerate() {
+                    let on = p.crew_on_site.get(e).copied().unwrap_or(0);
+                    if on < *need {
+                        blockers.push(format!("Site crew short: {} of {} {}", group(on as i64), group(*need as i64), quals.first().map(|q| q.label().to_lowercase()).unwrap_or_default()));
+                    }
+                }
+                (p.crew_bp(), p.crew_counts().1 as i64, p.power_need, p.crew_capped)
+            };
+            // a crew can be short because the region's call-up is used up, whoever lives there
+            let labour_short = format!("Little labour can be called up in {}", w.regions[ri].name);
+            if capped {
+                blockers.push(labour_short.clone());
             }
-            progress = progress.min(free);
-            w.regions[r as usize].last.project_labor_free -= progress;
+            // (a share of the month's full work, so the last of an order is not
+            // rounded away under a crew that is a few people short)
+            progress = progress.min(muldiv(max_pm, crew_bp, 10_000));
+            // work is done only by people called up in the project's region this
+            // month: the site's own crew first, then the region's other workers
+            let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
+            let own = crew_on * unrest_factor / 10_000;
+            let free = w.regions[ri].last.project_labor_free.max(0);
+            if own + free < progress && !blockers.contains(&labour_short) {
+                blockers.push(labour_short);
+            }
+            progress = progress.min(own + free);
+            // site power for the work that can be done this month: from the region's
+            // supply, then from site engines; what is not delivered is work not done
+            let mut power_bp: i64 = 10_000;
+            if power_need > 0 && progress > 0 {
+                let ask = ((power_need as i128 * progress as i128 + max_pm.max(1) as i128 - 1) / max_pm.max(1) as i128) as i64;
+                let got = draw_site_power(w, seat, ri, ask);
+                if got < ask {
+                    power_bp = ratio_bp(got, ask);
+                    blockers.push(format!("Site power short: {}% delivered", power_bp / 100));
+                    progress = muldiv(progress, got, ask);
+                }
+            }
+            w.civs[si].projects[i].power_bp = power_bp as u16;
+            w.regions[ri].last.project_labor_free -= (progress - own).max(0);
+            w.regions[ri].last.project_work_done += progress;
+        } else {
+            // work without a place to do it has nobody to do it
+            progress = 0;
         }
         let p = &mut w.civs[si].projects[i];
         p.work_done += progress;
@@ -190,18 +355,7 @@ fn add_facility(w: &mut World, region: usize, kind: usize, levels: u16) {
     if let Some(f) = r.fac_mut(kind) {
         f.level += levels;
     } else {
-        r.facilities.push(Facility {
-            kind,
-            level: levels,
-            condition_bp: 10_000,
-            enabled: true,
-            staffed: 0,
-            staff_needed: 0,
-            skilled_bp: 10_000,
-            run: None,
-            operated: false,
-            assembly_progress: 0,
-        });
+        r.facilities.push(Facility::new(kind, levels));
         r.facilities.sort_by_key(|f| f.kind);
     }
 }
@@ -325,10 +479,11 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
             if w.regions[ti].owner.is_some() {
                 brief(w, seat, "warning", format!("Settlers turned back from {}", w.regions[ti].name), "Another authority holds the land. The party returned; stores were consumed.".into(), Some(to), "map");
             } else {
-                let moved = crate::sim::population::move_people(&mut w.regions, fi, ti, people, true);
+                // the land is taken into government first, so the settlers and their
+                // qualifications move between two of our own regions
                 w.regions[ti].owner = Some(seat);
-                w.regions[ti].controller = Some(seat);
-                w.civs[si].flows.migration += 0;
+                w.set_controller(ti, Some(seat));
+                let moved = crate::sim::population::move_people(w, fi, ti, people, true);
                 crate::sim::knowledge::refresh_visibility(w, seat);
                 let name = w.regions[ti].name.clone();
                 let count = w.owned(seat).len();
@@ -337,13 +492,13 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                     seat,
                     MomentCategory::Settlement,
                     format!("Settlement at {name}"),
-                    format!("{moved} people from {} established a lasting camp at {name}. The polity now holds {count} regions.", w.regions[fi].name),
+                    format!("{} people from {} established a lasting camp at {name}. The polity now holds {count} regions.", group(moved as i64), w.regions[fi].name),
                     Some(to),
                     "camp",
                     count == 2,
-                    vec![format!("Arrival recorded in month {month}"), format!("{moved} settlers")],
+                    vec![format!("Arrival recorded in month {month}"), format!("{} settlers", group(moved as i64))],
                 );
-                brief(w, seat, "good", format!("Settled {name}"), format!("{moved} people arrived with their stores."), Some(to), "map");
+                brief(w, seat, "good", format!("Settled {name}"), format!("{} people arrived with their stores.", group(moved as i64)), Some(to), "map");
             }
         }
         ProjKind::Study { tag } => {
@@ -357,12 +512,13 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
             }
         }
         ProjKind::Resettle { from, to, people } => {
-            let moved = crate::sim::population::move_people(&mut w.regions, from as usize, to as usize, people, false);
-            brief(w, seat, "info", format!("{moved} people resettled"), format!("They arrived in {}.", w.regions[to as usize].name), Some(to), "population");
+            let moved = crate::sim::population::move_people(w, from as usize, to as usize, people, false);
+            brief(w, seat, "info", format!("{} people resettled", group(moved as i64)), format!("They arrived in {}.", w.regions[to as usize].name), Some(to), "population");
         }
         ProjKind::Recruit { role, soldiers, tier } => {
             let ri = p.region.unwrap() as usize;
-            let got = crate::sim::population::draw_adults(&mut w.regions[ri], soldiers);
+            // recruits take their share of the region's qualified people and learners with them
+            let got = crate::sim::population::draw_adults(w, ri, soldiers);
             if got == 0 {
                 brief(w, seat, "warning", "Recruitment failed".into(), "No eligible adults remained to serve.".into(), p.region, "military");
                 return;
@@ -390,7 +546,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                 move_progress: 0,
                 initial: got,
             });
-            brief(w, seat, "info", format!("Raised: {name}"), format!("{got} recruits begin {} months of training.", def.training_months), p.region, "military");
+            brief(w, seat, "info", format!("Raised: {name}"), format!("{} recruits begin {} months of training.", group(got as i64), def.training_months), p.region, "military");
         }
         ProjKind::Reform { practice } => {
             {
@@ -421,12 +577,12 @@ fn ordinal(n: u32) -> String {
     format!("{n}{suffix}")
 }
 
-/// Seats a venue offers in a region and the seats already reserved by programmes.
+/// Places a venue offers in a region and the places already reserved by programmes, in people.
 pub fn venue_seats(w: &World, seat: SeatId, region: usize, venue: Cap) -> (i64, i64) {
     let c = content();
-    let mut cap = w.regions[region].cap(venue) / 1000;
+    let mut cap = w.regions[region].cap(venue);
     if venue == Cap::SeatsLodge && crate::sim::culture::region_belief(&w.religions, &w.regions[region], "teaching_order") {
-        cap += 16;
+        cap += TEACHING_ORDER_PLACES;
     }
     let reserved: i64 = w.civs[seat as usize]
         .programs
@@ -493,7 +649,7 @@ fn step_programs(w: &mut World, seat: SeatId) {
                 }
             }
             let bootstrap = teacher_avail == 0;
-            let teach_limit = if bootstrap { 4 } else { teacher_avail * class_size };
+            let teach_limit = if bootstrap { FOUNDING_COHORT_MAX } else { teacher_avail * class_size };
             // entrants
             let qsum: u32 = r.quals.iter().sum();
             let unskilled = (working as i64 * 92 / 100 - qsum as i64 - r.students as i64).max(0);
@@ -533,6 +689,10 @@ fn step_programs(w: &mut World, seat: SeatId) {
             if w.civs[si].est_id("C046") && entrant.is_some() {
                 duration = duration * 8 / 10;
             }
+            if let Some(q) = entrant {
+                // a holder who enrols is a learner, not a holder, until the course ends
+                w.civs[si].qual_flows.entered[q.index()] += enrol;
+            }
             let r = &mut w.regions[ri];
             if let Some(q) = entrant {
                 r.quals[q.index()] -= enrol as u32;
@@ -544,9 +704,9 @@ fn step_programs(w: &mut World, seat: SeatId) {
                 }
             }
             let p = &mut w.civs[si].programs[i];
-            p.enrolled = enrol as u16;
+            p.enrolled = enrol as u32;
             p.entrant = entrant;
-            p.teachers = teachers_needed as u16;
+            p.teachers = teachers_needed as u32;
             p.teacher_qual = if bootstrap { None } else { teacher_qual };
             p.progress = 0;
             p.duration = duration as u16;
@@ -555,7 +715,8 @@ fn step_programs(w: &mut World, seat: SeatId) {
             // --- a month of teaching ------------------------------------------------
             let mut ok = true;
             for (g, a) in &course.materials {
-                let need = a * enrolled as i64;
+                // course materials are stated per thousand learners
+                let need = a * enrolled as i64 / 1000;
                 let got = w.civs[si].take(*g, need);
                 if got * 2 < need {
                     ok = false;
@@ -575,14 +736,17 @@ fn step_programs(w: &mut World, seat: SeatId) {
             }
             p.blockers = blockers;
             if p.progress >= p.duration {
-                let grads = p.enrolled as u32;
+                let grads = p.enrolled;
                 let tq = p.teacher_qual;
-                let tn = p.teachers as u32;
+                let tn = p.teachers;
                 p.graduates += grads;
                 let first = p.graduates == grads;
                 p.enrolled = 0;
                 p.teachers = 0;
                 p.progress = 0;
+                // the only way a qualified person comes into being: a learner who was
+                // enrolled here for the whole course
+                w.civs[si].qual_flows.trained[course.output.index()] += grads as i64;
                 let r = &mut w.regions[ri];
                 r.students = r.students.saturating_sub(grads);
                 if let Some(q) = tq {
@@ -605,14 +769,14 @@ fn step_programs(w: &mut World, seat: SeatId) {
                         seat,
                         MomentCategory::Education,
                         format!("First graduates: {}", course.name),
-                        format!("{grads} learners at {rname} completed {} and qualified as {}. Their skills are usable from next month.", course.name.to_lowercase(), course.output.label().to_lowercase()),
+                        format!("{} learners at {rname} completed {} and qualified as {}. Their skills are usable from next month.", group(grads as i64), course.name.to_lowercase(), course.output.label().to_lowercase()),
                         Some(ri as RegionId),
                         "school",
                         course.months >= 36,
-                        vec![format!("Cohort verified in month {month}"), format!("{grads} graduates")],
+                        vec![format!("Cohort verified in month {month}"), format!("{} graduates", group(grads as i64))],
                     );
                 }
-                brief(w, seat, "good", format!("{grads} new {}", course.output.label().to_lowercase()), format!("A cohort of {} graduated at {rname}.", course.name.to_lowercase()), Some(ri as RegionId), "population");
+                brief(w, seat, "good", format!("{} new {}", group(grads as i64), course.output.label().to_lowercase()), format!("A cohort of {} graduated at {rname}.", course.name.to_lowercase()), Some(ri as RegionId), "population");
             }
         }
     }
@@ -623,18 +787,27 @@ fn step_programs(w: &mut World, seat: SeatId) {
 }
 
 /// Return learners and instructors of a cancelled programme to their previous roles.
+/// Learners who had enrolled as holders of a qualification hold it again; they are
+/// booked as `returned` in the ledger of whoever controls the region now.
 pub fn release_program(w: &mut World, p: &Program) {
-    let r = &mut w.regions[p.region as usize];
-    r.students = r.students.saturating_sub(p.enrolled as u32);
+    let ri = p.region as usize;
+    let r = &mut w.regions[ri];
+    let back = p.enrolled.min(r.students);
+    r.students -= back;
     if let Some(q) = p.entrant {
-        r.quals[q.index()] += p.enrolled as u32;
+        r.quals[q.index()] += back;
     }
     if let Some(q) = p.teacher_qual {
-        r.teachers[q.index()] = r.teachers[q.index()].saturating_sub(p.teachers as u32);
+        r.teachers[q.index()] = r.teachers[q.index()].saturating_sub(p.teachers);
+    }
+    if let Some(q) = p.entrant {
+        if let Some(ledger) = w.qual_ledger(ri) {
+            ledger.returned[q.index()] += back as i64;
+        }
     }
 }
 
-/// Monthly cap on useful work for a project of the given size.
+/// Monthly cap on useful work (worker- or researcher-months) for a project of the given size.
 pub fn max_per_month(work: i64, min_months: i64) -> i64 {
     (work / min_months.max(1)).max(4000)
 }

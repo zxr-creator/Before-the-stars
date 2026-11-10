@@ -1,11 +1,14 @@
 //! Fixed-point helpers and addressed deterministic randomness.
 //!
-//! Authoritative arithmetic is integer only. Goods, work and services use
-//! milli-units (1000 = one unit); ratios use basis points (10000 = 1.0).
+//! Authoritative arithmetic is integer only. Head counts are real people. Goods,
+//! work and services are stored in base units (a ration, tonne or lot; a
+//! worker-month; 0.1 MWh) and quoted in display units of 1,000 base units, which
+//! older identifiers call "milli". Ratios use basis points (10000 = 1.0).
 //! Random draws are a pure function of the match secret and a logical address
 //! (stream, entity, month, index), so thread order, retries or renamed
 //! projects can never obtain a different draw.
 
+/// Base units per display unit, and the scale of fixed-point thousandths.
 pub const MILLI: i64 = 1000;
 pub const BP: i64 = 10_000;
 
@@ -76,6 +79,22 @@ pub fn carry_round(value_milli: i64, rem: &mut i64) -> u32 {
     let whole = total.div_euclid(MILLI);
     *rem = total.rem_euclid(MILLI);
     whole.max(0) as u32
+}
+
+/// A head count or quantity with thousands separators, for texts shown to people.
+pub fn group(n: i64) -> String {
+    let digits = n.unsigned_abs().to_string();
+    let mut out = String::with_capacity(digits.len() + digits.len() / 3 + 1);
+    if n < 0 {
+        out.push('-');
+    }
+    for (i, ch) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i) % 3 == 0 {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    out
 }
 
 pub fn stream(name: &str) -> u64 {

@@ -8,3 +8,8 @@ publish.workspace = true
 [dependencies]
 bts-protocol = { path = "../bts-protocol" }
 serde.workspace = true
+
+[dev-dependencies]
+# the referee, to drive all-native matches under audit (tests/conservation.rs); the
+# policy itself still sees only bts-protocol observations
+bts-engine = { path = "../bts-engine" }

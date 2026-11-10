@@ -1,0 +1,9 @@
+match  0  winner None  month 2880  0:77008p/19r/138t  1:79413p/16r/138t  2:15200p/6r/138t  3:47186p/7r/118t
+match  1  winner None  month 2880  0:22717p/10r/138t  1:33676p/14r/138t  2:59156p/17r/138t  3:34492p/6r/138t
+match  2  winner None  month 2880  0:123047p/41r/138t  1:0p/0r/122t  2:11746p/4r/138t  3:21077p/3r/128t
+match  3  winner None  month 2880  0:88515p/19r/138t  1:84290p/15r/138t  2:3230p/5r/138t  3:61331p/9r/138t
+match  4  winner None  month 2880  0:78153p/20r/138t  1:39215p/12r/138t  2:23281p/6r/138t  3:50716p/10r/138t
+match  5  winner None  month 2880  0:146782p/30r/138t  1:51057p/9r/138t  2:45079p/9r/138t  3:0p/0r/123t
+match  6  winner None  month 2880  0:29574p/20r/138t  1:41437p/9r/138t  2:46460p/12r/138t  3:42113p/7r/138t
+match  7  winner None  month 2880  0:23836p/18r/138t  1:18826p/5r/84t  2:52335p/16r/138t  3:55265p/9r/138t
+target/release/bts run --seed eval --matches 8 --rounds 240  29.22s user 0.13s system 724% cpu 4.053 total

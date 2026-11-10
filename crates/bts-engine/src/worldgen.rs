@@ -12,6 +12,44 @@ use bts_protocol::*;
 const W: f64 = 1600.0;
 const H: f64 = 1000.0;
 
+/// Starting population of a seat: `START_POP_MIN` plus up to `START_POP_SPREAD` people.
+pub const START_POP_MIN: u32 = 236_000;
+pub const START_POP_SPREAD: u32 = 12_000;
+/// Relative size of each starting age: a young pyramid that thins evenly to sixty
+/// and quickly after it, with nobody past seventy-four.
+fn start_weight(age: usize) -> u64 {
+    if age < 60 {
+        100 - age as u64
+    } else if age < 75 {
+        30 - (age as u64 - 60) * 2
+    } else {
+        0
+    }
+}
+
+/// `total` people laid out on the starting pyramid: each age gets its exact
+/// proportional share, and the remainder of each division is carried to the next
+/// age, so the cells sum to `total` and no age receives more than one extra person.
+pub fn start_pyramid(total: u32) -> [u32; AGES] {
+    let wsum: u64 = (0..AGES).map(start_weight).sum();
+    let mut ages = [0u32; AGES];
+    let mut rem: u64 = 0;
+    for (age, cell) in ages.iter_mut().enumerate() {
+        let x = total as u64 * start_weight(age) + rem;
+        *cell = (x / wsum) as u32;
+        rem = x % wsum;
+    }
+    ages
+}
+
+/// Lorekeepers and artisans among the first people.
+pub const START_LOREKEEPERS: u32 = 14_000;
+pub const START_ARTISANS: u32 = 8_000;
+/// Residents the natural water of a home region supports at least.
+pub const HOME_WATER_MIN: u32 = 2_600_000;
+/// Natural water is drawn in thousands of residents.
+const WATER_STEP: u32 = 1000;
+
 struct Noise {
     key: u64,
 }
@@ -257,7 +295,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             wild: wild * 1000,
             fishery: if coastal { a(6, 8, 16) as u16 } else { 0 },
             forest: forest as u16,
-            water: water as u32,
+            water: water as u32 * WATER_STEP,
             hydro: hydro as u16,
             deposits: vec![],
             owner: None,
@@ -333,7 +371,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         if regions[i].river {
             let b = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("riverattr"), i as u64, k], lo, hi);
             regions[i].arable += b(0, 6, 12) as u16;
-            regions[i].water += b(1, 1200, 2200) as u32;
+            regions[i].water += b(1, 1200, 2200) as u32 * WATER_STEP;
             regions[i].hydro += b(2, 4, 8) as u16;
             regions[i].fishery += b(3, 3, 6) as u16;
             regions[i].wild += b(4, 40, 90) * 1000;
@@ -421,12 +459,15 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
     }
 
     // --- 6. correlated deposits -------------------------------------------
+    // Kilotonnes in the ground. Extraction draws from a deposit at least what it
+    // delivers, and shallow workings disturb twice what they deliver, so these are
+    // twice the figures of generator 1.1.0, which counted only delivered ore.
     let belts: [(Deposit, u64, f64, i64, i64); 5] = [
-        (Deposit::CopperOre, 40, 0.56, 80_000, 260_000),
-        (Deposit::IronOre, 50, 0.52, 250_000, 800_000),
-        (Deposit::Coal, 60, 0.54, 350_000, 1_200_000),
-        (Deposit::Crude, 70, 0.57, 300_000, 1_000_000),
-        (Deposit::Minerals, 80, 0.58, 40_000, 130_000),
+        (Deposit::CopperOre, 40, 0.56, 160_000, 520_000),
+        (Deposit::IronOre, 50, 0.52, 500_000, 1_600_000),
+        (Deposit::Coal, 60, 0.54, 700_000, 2_400_000),
+        (Deposit::Crude, 70, 0.57, 600_000, 2_000_000),
+        (Deposit::Minerals, 80, 0.58, 80_000, 260_000),
     ];
     for i in 0..nr {
         let (x, y) = (regions[i].center[0] as f64, regions[i].center[1] as f64);
@@ -444,7 +485,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             if v > *threshold {
                 let amount = rng_between(secret, &[stream("deposit"), i as u64, *layer], *lo, *hi);
                 let quality = rng_between(secret, &[stream("depq"), i as u64, *layer], 5500, 9500) as u16;
-                regions[i].deposits.push(DepositState { kind: *kind, remaining: amount * 1000, quality_bp: quality });
+                regions[i].deposits.push(DepositState::new(*kind, amount * 1000, quality));
             }
         }
     }
@@ -452,7 +493,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
     // --- 7. starting positions ---------------------------------------------
     let seats = cfg.controllers.len().clamp(2, 4);
     let score = |r: &Region| -> i64 {
-        let base = r.arable as i64 * 12 + r.wild / 1000 + r.water as i64 / 20 + r.forest as i64 * 6;
+        let base = r.arable as i64 * 12 + r.wild / 1000 + r.water as i64 / (20 * WATER_STEP as i64) + r.forest as i64 * 6;
         let bonus = if r.river { 200 } else { 0 } + if r.coastal { 80 } else { 0 };
         let penalty = match r.terrain {
             Terrain::Mountains | Terrain::Desert | Terrain::Tundra => 600,
@@ -494,7 +535,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             let r = &mut regions[home];
             r.arable = r.arable.max(34);
             r.wild = r.wild.max(560_000);
-            r.water = r.water.max(2600);
+            r.water = r.water.max(HOME_WATER_MIN);
             r.forest = r.forest.max(12);
             r.pasture = r.pasture.max(12);
             r.hydro = r.hydro.max(4);
@@ -515,10 +556,10 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             }
         }
         let needed: [(Deposit, i64); 4] = [
-            (Deposit::CopperOre, 120_000),
-            (Deposit::IronOre, 350_000),
-            (Deposit::Coal, 500_000),
-            (Deposit::Minerals, 60_000),
+            (Deposit::CopperOre, 240_000),
+            (Deposit::IronOre, 700_000),
+            (Deposit::Coal, 1_000_000),
+            (Deposit::Minerals, 120_000),
         ];
         for (k, (kind, amount)) in needed.iter().enumerate() {
             if near.iter().any(|(x, _)| regions[*x].deposit(*kind).is_some()) {
@@ -535,7 +576,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
                 .collect::<Vec<_>>();
             pick.sort();
             let target = pick.first().map(|p| p.1).unwrap_or(home);
-            regions[target].deposits.push(DepositState { kind: *kind, remaining: amount * 1000, quality_bp: 7000 });
+            regions[target].deposits.push(DepositState::new(*kind, amount * 1000, 7000));
         }
     }
 
@@ -591,42 +632,23 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             trait_streak: [0; 8],
         });
 
-        // Starting people: a young age pyramid of roughly 240.
+        // Starting people: a smooth young age pyramid of roughly 240,000. Every age
+        // gets its proportional share of the total; the people the division leaves
+        // over are spread one by one down the pyramid by the running remainder, so
+        // no age stands out (generator 1.1.0 put the whole remainder, about three
+        // founders in twenty, at age twenty).
         let mut block = PopBlock::new(s as u16, None);
-        let total = 236 + rng_between(secret, &[stream("startpop"), s as u64], 0, 12) as u32;
-        let mut weights = [0u32; AGES];
-        let mut wsum = 0u32;
-        for (age, w) in weights.iter_mut().enumerate() {
-            *w = if age < 60 { 100 - age as u32 } else if age < 75 { 30 - (age as u32 - 60) * 2 } else { 0 };
-            wsum += *w;
-        }
-        let mut placed = 0u32;
-        for age in 0..AGES {
-            let nppl = total * weights[age] / wsum;
-            block.ages[age] = nppl;
-            placed += nppl;
-        }
-        block.ages[20] += total - placed;
+        let total = START_POP_MIN + rng_between(secret, &[stream("startpop"), s as u64], 0, START_POP_SPREAD as i64) as u32;
+        block.ages = start_pyramid(total);
         {
             let r = &mut regions[home];
             r.owner = Some(s as SeatId);
             r.controller = Some(s as SeatId);
             r.blocks.push(block);
-            r.quals[Qual::Lorekeeper.index()] = 14;
-            r.quals[Qual::Artisan.index()] = 8;
+            r.quals[Qual::Lorekeeper.index()] = START_LOREKEEPERS;
+            r.quals[Qual::Artisan.index()] = START_ARTISANS;
             for key in ["makers_circle", "camp", "workshop"] {
-                r.facilities.push(Facility {
-                    kind: c.f(key),
-                    level: 1,
-                    condition_bp: 10_000,
-                    enabled: true,
-                    staffed: 0,
-                    staff_needed: 0,
-                    skilled_bp: 10_000,
-                    run: None,
-                    operated: false,
-                    assembly_progress: 0,
-                });
+                r.facilities.push(Facility::new(c.f(key), 1));
             }
         }
 
@@ -643,6 +665,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             p.adoption_bp = 9000;
             p.source = "Inherited custom".into();
         }
+        // the declared initial endowment: 900,000 rations, 90 kt of materials, 45,000 tool lots
         let mut stock = vec![0i64; NG];
         stock[Good::Food.index()] = 900_000;
         stock[Good::Materials.index()] = 90_000;
@@ -698,6 +721,14 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             eliminated_month: None,
             army_counter: 0,
             pop_peak: 0,
+            qual_flows: {
+                // the declared initial endowment of qualified people
+                let mut q = QualFlows::default();
+                q.initial[Qual::Lorekeeper.index()] = START_LOREKEEPERS as i64;
+                q.initial[Qual::Artisan.index()] = START_ARTISANS as i64;
+                q
+            },
+            compute_used: 0,
         });
     }
 

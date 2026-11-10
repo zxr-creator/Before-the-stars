@@ -1,8 +1,28 @@
 //! Aggregate population: food and water access, births with a nine-month lag,
 //! one combined mortality calculation, annual ageing and migration. People are
 //! conserved: every flow moves or removes counts from the same age vectors.
+//!
+//! Qualified people and learners are people too. A region's holders of
+//! qualifications and its enrolled learners are always backed by working-age
+//! residents (`sum(quals) + students <= working`, `teachers[q] <= quals[q]`).
+//! Whenever working-age people leave a region the same share of its free holders
+//! leaves with them, and every holder who leaves is written to the controller's
+//! qualification ledger (`QualFlows`):
+//!
+//! - death and ageing: holders die and retire in proportion; learners die in
+//!   proportion and drop out of their cohorts;
+//! - enlistment (recruits, and militia who fall): the recruits' share of free
+//!   holders lapses, and their share of learners leaves the cohorts;
+//! - departure (settlement, resettlement, migration, drift to work): free holders
+//!   move in proportion and keep their qualification; learners and instructors
+//!   stay with their courses.
+//!
+//! Instructors are replaced from the free holders of their qualification, so the
+//! number teaching falls only when no free holder is left. After every such
+//! change `reconcile_roles` (or the same rule inside `move_people`) removes
+//! whatever rounding or an emptying region left unbacked.
 
-use crate::content::Cap;
+use crate::content::{content, Cap, FOOD_PER_PERSON_MONTH};
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
@@ -10,31 +30,207 @@ use bts_protocol::*;
 /// Monthly baseline deaths per 100,000 by age band.
 const BANDS: [(usize, usize, i64); 6] = [(0, 0, 900), (1, 4, 180), (5, 14, 50), (15, 49, 55), (50, 64, 160), (65, 80, 620)];
 
+/// People who always stay behind when a region sends people elsewhere.
+const MOVE_FLOOR: u32 = 10_000;
+/// Regions smaller than this do not shed people to their neighbours.
+const MIGRATION_MIN_RESIDENTS: u32 = 120_000;
+/// Residents a precinct of the Menders' Order cares for.
+const HEALERS_ORDER_CARE: i64 = 800_000;
+
+/// Residents the natural supply and waterworks of a region support.
 pub fn water_capacity(r: &Region) -> u32 {
-    r.water + (r.cap(Cap::Water) / 1000) as u32
+    (r.water as i64 + r.cap(Cap::Water)).clamp(0, u32::MAX as i64) as u32
+}
+
+/// Learners enrolled in the programmes held in a region, whoever runs them.
+pub fn enrolled_in(w: &World, ri: usize) -> u32 {
+    w.civs.iter().flat_map(|c| c.programs.iter()).filter(|p| p.region as usize == ri).map(|p| p.enrolled).sum()
+}
+
+/// Take `count` learners out of the cohorts held in a region, the same share of
+/// each. They stop being learners and stay ordinary people; a holder who had
+/// enrolled does not get the earlier qualification back. Returns the number shed.
+pub fn shed_students(w: &mut World, ri: usize, count: u32) -> u32 {
+    let total = enrolled_in(w, ri) as u64;
+    let count = (count as u64).min(total);
+    if count == 0 {
+        return 0;
+    }
+    let mut rem: u64 = 0;
+    let mut shed = 0u32;
+    for civ in w.civs.iter_mut() {
+        for p in civ.programs.iter_mut().filter(|p| p.region as usize == ri && p.enrolled > 0) {
+            let x = p.enrolled as u64 * count + rem;
+            let take = (x / total).min(p.enrolled as u64) as u32;
+            rem = x % total;
+            p.enrolled -= take;
+            shed += take;
+            if p.enrolled == 0 {
+                // the cohort is gone: its instructors go back to other work
+                if let Some(q) = p.teacher_qual {
+                    let t = &mut w.regions[ri].teachers[q.index()];
+                    *t = t.saturating_sub(p.teachers);
+                }
+                p.teachers = 0;
+                p.teacher_qual = None;
+                p.entrant = None;
+                p.progress = 0;
+            }
+        }
+    }
+    let r = &mut w.regions[ri];
+    r.students = r.students.saturating_sub(shed);
+    shed
+}
+
+/// Remove up to `count` holders of qualifications from a region, the same share of
+/// each qualification: the free holders, or (`teaching`) the instructors, whose
+/// classes then lose them. Returns what was removed of each qualification; the
+/// caller books it in the ledger channel that explains it.
+fn strip_holders(w: &mut World, ri: usize, count: u32, teaching: bool) -> [u32; NQ] {
+    let mut out = [0u32; NQ];
+    let pool: Vec<u64> = (0..NQ)
+        .map(|q| {
+            let r = &w.regions[ri];
+            let t = r.teachers[q].min(r.quals[q]);
+            if teaching { t as u64 } else { (r.quals[q] - t) as u64 }
+        })
+        .collect();
+    let total: u64 = pool.iter().sum();
+    let take = (count as u64).min(total);
+    if take == 0 {
+        return out;
+    }
+    let mut rem: u64 = 0;
+    for q in 0..NQ {
+        let x = pool[q] * take + rem;
+        let t = (x / total).min(pool[q]) as u32;
+        rem = x % total;
+        if t == 0 {
+            continue;
+        }
+        w.regions[ri].quals[q] -= t;
+        out[q] = t;
+        if teaching {
+            w.regions[ri].teachers[q] -= t;
+            let mut gone = t;
+            for civ in w.civs.iter_mut() {
+                for p in civ.programs.iter_mut().filter(|p| p.region as usize == ri && p.teacher_qual.map(|x| x.index()) == Some(q)) {
+                    let d = gone.min(p.teachers);
+                    p.teachers -= d;
+                    gone -= d;
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Learners and holders a region has beyond its working-age residents.
+fn unbacked_roles(w: &World, ri: usize) -> u32 {
+    let r = &w.regions[ri];
+    let roles = r.quals.iter().map(|n| *n as u64).sum::<u64>() + r.students as u64;
+    roles.saturating_sub(r.working() as u64) as u32
+}
+
+/// Keep a region's learners and holders within its working-age residents after
+/// people have left it for the stated reason. Learners drop out first; holders
+/// beyond that (free holders, then instructors) leave through the stated ledger
+/// channel. With every departure already taking its proportional share this only
+/// settles rounding and the last people of a region that is emptying.
+pub fn reconcile_roles(w: &mut World, ri: usize, how: QualExit) {
+    let mut excess = unbacked_roles(w, ri);
+    if excess == 0 {
+        return;
+    }
+    excess -= shed_students(w, ri, excess);
+    for teaching in [false, true] {
+        if excess == 0 {
+            return;
+        }
+        let gone = strip_holders(w, ri, excess, teaching);
+        excess -= gone.iter().sum::<u32>();
+        if let Some(ledger) = w.qual_ledger(ri) {
+            for q in 0..NQ {
+                ledger.exit(how, q, gone[q]);
+            }
+        }
+    }
+}
+
+/// `left` of the `working_before` working-age residents of a region have left it
+/// for good (death, ageing or enlistment are booked by the caller's `how`): the
+/// same share of its free holders and of its learners goes with them.
+pub fn roles_leave(w: &mut World, ri: usize, left: u32, working_before: u32, how: QualExit) {
+    if left > 0 && working_before > 0 {
+        let left = left.min(working_before) as u64;
+        let mut gone = [0u32; NQ];
+        {
+            let r = &mut w.regions[ri];
+            for q in 0..NQ {
+                let free = r.quals[q].saturating_sub(r.teachers[q]) as u64;
+                let t = (free * left / working_before as u64) as u32;
+                r.quals[q] -= t;
+                gone[q] = t;
+            }
+        }
+        if let Some(ledger) = w.qual_ledger(ri) {
+            for q in 0..NQ {
+                ledger.exit(how, q, gone[q]);
+            }
+        }
+        let learners = (w.regions[ri].students as u64 * left / working_before as u64) as u32;
+        shed_students(w, ri, learners);
+    }
+    reconcile_roles(w, ri, how);
+}
+
+/// Carry holders that moved from one region to another across the two controllers'
+/// ledgers. Between regions of one civilization nothing is recorded.
+fn book_moved(w: &mut World, from: usize, to: usize, moved: &[u32; NQ]) {
+    let (a, b) = (w.regions[from].controller, w.regions[to].controller);
+    if a == b {
+        return;
+    }
+    for q in 0..NQ {
+        let n = moved[q] as i64;
+        if n == 0 {
+            continue;
+        }
+        if let Some(a) = a {
+            w.civs[a as usize].qual_flows.moved_out[q] += n;
+        }
+        if let Some(b) = b {
+            w.civs[b as usize].qual_flows.moved_in[q] += n;
+        }
+    }
 }
 
 /// Move `count` people from one region to another, proportionally across blocks,
 /// ages and qualifications. Returns the number actually moved.
-pub fn move_people(regions: &mut [Region], from: usize, to: usize, count: u32, adults_bias: bool) -> u32 {
+///
+/// The free holders of each qualification move in the proportion of the
+/// working-age people who moved. Learners and instructors stay with their
+/// courses unless the region empties around them.
+pub fn move_people(w: &mut World, from: usize, to: usize, count: u32, adults_bias: bool) -> u32 {
     if from == to {
         return 0;
     }
-    let pop = regions[from].population();
+    let pop = w.regions[from].population();
     if pop == 0 || count == 0 {
         return 0;
     }
-    let count = count.min(pop.saturating_sub(10));
+    let count = count.min(pop.saturating_sub(MOVE_FLOOR));
     if count == 0 {
         return 0;
     }
-    let working_before = regions[from].working();
+    let working_before = w.regions[from].working();
     let mut moved_total = 0u32;
     let mut moved_working = 0u32;
     let mut carried: Vec<PopBlock> = Vec::new();
     // Eligible pool: everyone, or mostly adults of working age and their children for settlers.
     let pool: u32 = if adults_bias {
-        regions[from].blocks.iter().map(|b| b.ages[..50].iter().sum::<u32>()).sum()
+        w.regions[from].blocks.iter().map(|b| b.ages[..50].iter().sum::<u32>()).sum()
     } else {
         pop
     };
@@ -43,7 +239,7 @@ pub fn move_people(regions: &mut [Region], from: usize, to: usize, count: u32, a
     }
     let count = count.min(pool);
     let mut rem: u64 = 0;
-    for b in regions[from].blocks.iter_mut() {
+    for b in w.regions[from].blocks.iter_mut() {
         let mut out = PopBlock::new(b.lineage, b.religion);
         out.birth_hist = b.birth_hist;
         let limit = if adults_bias { 50 } else { AGES };
@@ -66,29 +262,57 @@ pub fn move_people(regions: &mut [Region], from: usize, to: usize, count: u32, a
             carried.push(out);
         }
     }
-    // qualifications follow the working-age people who actually moved
-    if working_before > 0 && moved_working > 0 {
-        for q in 0..NQ {
-            let free = regions[from].quals[q].saturating_sub(regions[from].teachers[q]);
-            let take = (free as u64 * moved_working as u64 / working_before as u64) as u32;
-            regions[from].quals[q] -= take;
-            regions[to].quals[q] += take;
-        }
-    }
     for out in carried {
-        if let Some(b) = regions[to].blocks.iter_mut().find(|b| b.lineage == out.lineage && b.religion == out.religion) {
+        if let Some(b) = w.regions[to].blocks.iter_mut().find(|b| b.lineage == out.lineage && b.religion == out.religion) {
             for age in 0..AGES {
                 b.ages[age] += out.ages[age];
             }
         } else {
-            regions[to].blocks.push(out);
+            w.regions[to].blocks.push(out);
         }
     }
-    regions[from].blocks.retain(|b| b.total() > 0);
+    w.regions[from].blocks.retain(|b| b.total() > 0);
+
+    // qualifications follow the working-age people who actually moved
+    let mut moved_quals = [0u32; NQ];
+    if working_before > 0 && moved_working > 0 {
+        for q in 0..NQ {
+            let free = w.regions[from].quals[q].saturating_sub(w.regions[from].teachers[q]);
+            let take = (free as u64 * moved_working as u64 / working_before as u64) as u32;
+            w.regions[from].quals[q] -= take;
+            moved_quals[q] = take;
+        }
+    }
+    // Learners and instructors stay with their courses: the people who move are the
+    // ones without a place in one. Only when the region can no longer back the
+    // roles left in it do more of them go with the movers - free holders first,
+    // then learners (who drop out and arrive as ordinary people), then instructors.
+    let mut excess = unbacked_roles(w, from);
+    if excess > 0 {
+        let more = strip_holders(w, from, excess, false);
+        for q in 0..NQ {
+            moved_quals[q] += more[q];
+            excess -= more[q];
+        }
+    }
+    if excess > 0 {
+        excess -= shed_students(w, from, excess);
+    }
+    if excess > 0 {
+        let more = strip_holders(w, from, excess, true);
+        for q in 0..NQ {
+            moved_quals[q] += more[q];
+        }
+    }
+    for q in 0..NQ {
+        w.regions[to].quals[q] += moved_quals[q];
+    }
+    book_moved(w, from, to, &moved_quals);
     moved_total
 }
 
 /// Move `count` working adults (aged 20–55) between regions, keeping their lineage and religion.
+/// The caller moves their qualification with them, one for one.
 pub fn relocate_adults(regions: &mut [Region], from: usize, to: usize, count: u32) -> u32 {
     if from == to || count == 0 {
         return 0;
@@ -130,8 +354,14 @@ pub fn relocate_adults(regions: &mut [Region], from: usize, to: usize, count: u3
     moved
 }
 
-/// Remove `count` working-age adults from a region (recruitment). Returns the number removed.
-pub fn draw_adults(r: &mut Region, count: u32) -> u32 {
+/// Remove `count` adults aged 18-40 from a region for military service (recruits,
+/// or militia who fell). Returns the number removed. Their share of the region's
+/// qualified people and learners goes with them: a qualification lapses in
+/// service (ledger channel `enlisted`), and a discharged soldier comes home an
+/// ordinary adult.
+pub fn draw_adults(w: &mut World, ri: usize, count: u32) -> u32 {
+    let working_before = w.regions[ri].working();
+    let r = &mut w.regions[ri];
     let pool: u32 = r.blocks.iter().map(|b| b.ages[18..=40].iter().sum::<u32>()).sum();
     if pool == 0 {
         return 0;
@@ -149,6 +379,7 @@ pub fn draw_adults(r: &mut Region, count: u32) -> u32 {
             taken += take;
         }
     }
+    roles_leave(w, ri, taken, working_before, QualExit::Enlisted);
     taken
 }
 
@@ -179,13 +410,13 @@ pub fn step(w: &mut World, seat: SeatId) {
     let pop: u32 = regs.iter().map(|i| w.regions[*i].population()).sum();
 
     // ---- food ---------------------------------------------------------------
-    let need = (pop + soldiers) as i64 * 1000;
+    let need = (pop as i64 + soldiers as i64) * FOOD_PER_PERSON_MONTH;
     let have = w.civs[si].stock_of(Good::Food).max(0);
     let food_bp = if need == 0 { 10_000 } else { ratio_bp(have, need) };
     w.civs[si].take(Good::Food, need.min(have));
     let shared = w.civs[si].est_id("C004");
     let provision = w.civs[si].est_id("C039");
-    // spoilage on what remains
+    // spoilage on what remains: lost, not eaten
     let storage: i64 = regs.iter().map(|i| w.regions[*i].cap(Cap::Storage) + 400_000).sum::<i64>()
         + if crate::sim::culture::belief_share(w, seat, "grain_oath") > 2000 { 800_000 } else { 0 };
     let left = w.civs[si].stock_of(Good::Food);
@@ -197,7 +428,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     if left > storage {
         spoil += (left - storage) * 12 / 100;
     }
-    w.civs[si].take(Good::Food, spoil);
+    w.civs[si].lose(Good::Food, spoil);
 
     // armies feel shortages too
     for a in w.armies.iter_mut().filter(|a| a.owner == seat) {
@@ -228,156 +459,182 @@ pub fn step(w: &mut World, seat: SeatId) {
 
     for &ri in &regs {
         let secret = w.secret;
-        let r = &mut w.regions[ri];
-        let rpop = r.population();
-        if rpop == 0 {
-            r.food_hist[slot] = 10_000;
-            r.water_hist[slot] = 10_000;
-            continue;
-        }
-        // Without shared stores the shortfall lands hardest on low-access households.
-        let debt_gain = if food_bp >= 10_000 {
-            0
-        } else {
-            let miss = (10_000 - food_bp) * rpop as i64 / 10;
-            if shared { miss } else { miss * 13 / 10 }
-        };
-        r.nutrition_debt += debt_gain;
-        if food_bp >= 10_000 {
-            r.nutrition_debt -= (r.nutrition_debt / 8).max(rpop as i64 * 40).min(r.nutrition_debt);
-        }
-        let wcap = water_capacity(r).max(1);
-        let water_bp = ratio_bp(wcap as i64, rpop as i64);
-        let food_seen = if provision { food_bp.max(food_bp + (10_000 - food_bp) / 4) } else { food_bp };
-        r.food_hist[slot] = food_seen as u16;
-        r.water_hist[slot] = water_bp as u16;
-        food_weighted += food_seen * rpop as i64;
-        water_weighted += water_bp * rpop as i64;
-
-        // health pressure
-        let crowd = rpop as i64 * 10_000 / wcap as i64;
-        let mut pressure = ((crowd - 8000) * 12 / 10).clamp(0, 8000);
-        let debt_pc = r.nutrition_debt / rpop as i64; // milli-months of missed food per person
-        let hcap = (r.cap(Cap::Health) / 1000) as i64 + if crate::sim::culture::region_belief(&w.religions, r, "healers_order") { 800 } else { 0 };
-        let coverage = ratio_bp(hcap * if medicine { 2 } else { 1 }, rpop as i64);
-        pressure = pressure * (10_000 - coverage / 2) / 10_000;
-        r.health_bp = pressure as u16;
-        let hazard = 10_000 + pressure * 15 / 10 + debt_pc * 40;
-
-        // ---- births --------------------------------------------------------
-        let working = r.working().max(1);
-        let educated: u32 = [Qual::Literate, Qual::Scribe, Qual::Teacher, Qual::Scholar, Qual::Researcher, Qual::Scientist, Qual::Mechanic, Qual::Technician, Qual::Electrician, Qual::Programmer, Qual::Physician, Qual::AiEngineer, Qual::Orbital, Qual::FtlEngineer]
-            .iter()
-            .map(|q| r.quals[q.index()])
-            .sum::<u32>()
-            + r.students;
-        let edu_bp = (educated as i64 * 10_000 / working as i64).min(10_000);
-        // thin stores make households cautious well before anyone goes hungry
-        // quadratic in the reserve ratio, so households hold back well before stores run thin
-        let ratio = (reserve_months_milli * 10_000 / reserve_target_milli).clamp(0, 10_000);
-        let secure = (ratio * ratio / 10_000).clamp(300, 10_000);
-        let food_factor = if food_bp >= 10_000 { secure } else { ((food_bp - 6000).max(0) * 10_000 / 4000 * 6 / 10 + 2000).min(secure) };
-        let crowd_factor = if crowd <= 8500 { 10_000 } else { (10_000 - (crowd - 8500) * 2).max(2500) };
-        let dev_factor = (10_000 - edu_bp * 7 / 10).max(2800);
-        let intensity = (food_factor * crowd_factor / 10_000 * dev_factor / 10_000).clamp(400, 10_000) as u16;
-        let health_factor = (10_000 - pressure / 4).max(6000);
-        let mut region_births = 0u32;
-        let mut region_deaths = 0u32;
-        let mut working_deaths = 0u32;
-        for b in r.blocks.iter_mut() {
-            let lagged = b.birth_hist[0] as i64;
-            for i in 0..8 {
-                b.birth_hist[i] = b.birth_hist[i + 1];
+        let mut died = [0u32; NQ];
+        let working_deaths;
+        let working;
+        {
+            let r = &mut w.regions[ri];
+            let rpop = r.population();
+            if rpop == 0 {
+                r.food_hist[slot] = 10_000;
+                r.water_hist[slot] = 10_000;
+                continue;
             }
-            b.birth_hist[8] = intensity;
-            let eq: i64 = b.ages[16..=40].iter().sum::<u32>() as i64 * 500; // milli reproductive equivalents
-            // 0.030 births per equivalent per month at full intensity
-            let expected = eq * 30 / 1000 * lagged / 10_000 * health_factor / 10_000;
-            let births = carry_round(expected, &mut b.birth_rem);
+            // Without shared stores the shortfall lands hardest on low-access households.
+            let debt_gain = if food_bp >= 10_000 {
+                0
+            } else {
+                let miss = (10_000 - food_bp) * rpop as i64 / 10;
+                if shared { miss } else { miss * 13 / 10 }
+            };
+            r.nutrition_debt += debt_gain;
+            if food_bp >= 10_000 {
+                r.nutrition_debt -= (r.nutrition_debt / 8).max(rpop as i64 * 40).min(r.nutrition_debt);
+            }
+            let wcap = water_capacity(r).max(1);
+            let water_bp = ratio_bp(wcap as i64, rpop as i64);
+            let food_seen = if provision { food_bp.max(food_bp + (10_000 - food_bp) / 4) } else { food_bp };
+            r.food_hist[slot] = food_seen as u16;
+            r.water_hist[slot] = water_bp as u16;
+            food_weighted += food_seen * rpop as i64;
+            water_weighted += water_bp * rpop as i64;
 
-            // ---- combined mortality -----------------------------------------
-            for (bi, (lo, hi, base)) in BANDS.iter().enumerate() {
-                let count: u32 = b.ages[*lo..=*hi].iter().sum();
-                if count == 0 {
-                    continue;
+            // health pressure
+            let crowd = rpop as i64 * 10_000 / wcap as i64;
+            let mut pressure = ((crowd - 8000) * 12 / 10).clamp(0, 8000);
+            let debt_pc = r.nutrition_debt / rpop as i64; // thousandths of a month of missed food per person
+            let hcap = r.cap(Cap::Health) + if crate::sim::culture::region_belief(&w.religions, r, "healers_order") { HEALERS_ORDER_CARE } else { 0 };
+            let coverage = ratio_bp(hcap * if medicine { 2 } else { 1 }, rpop as i64);
+            pressure = pressure * (10_000 - coverage / 2) / 10_000;
+            r.health_bp = pressure as u16;
+            let hazard = 10_000 + pressure * 15 / 10 + debt_pc * 40;
+
+            // ---- births --------------------------------------------------------
+            working = r.working().max(1);
+            let educated: u32 = [Qual::Literate, Qual::Scribe, Qual::Teacher, Qual::Scholar, Qual::Researcher, Qual::Scientist, Qual::Mechanic, Qual::Technician, Qual::Electrician, Qual::Programmer, Qual::Physician, Qual::AiEngineer, Qual::Orbital, Qual::FtlEngineer]
+                .iter()
+                .map(|q| r.quals[q.index()])
+                .sum::<u32>()
+                + r.students;
+            let edu_bp = (educated as i64 * 10_000 / working as i64).min(10_000);
+            // thin stores make households cautious well before anyone goes hungry
+            // quadratic in the reserve ratio, so households hold back well before stores run thin
+            let ratio = (reserve_months_milli * 10_000 / reserve_target_milli).clamp(0, 10_000);
+            let secure = (ratio * ratio / 10_000).clamp(300, 10_000);
+            let food_factor = if food_bp >= 10_000 { secure } else { ((food_bp - 6000).max(0) * 10_000 / 4000 * 6 / 10 + 2000).min(secure) };
+            let crowd_factor = if crowd <= 8500 { 10_000 } else { (10_000 - (crowd - 8500) * 2).max(2500) };
+            let dev_factor = (10_000 - edu_bp * 7 / 10).max(2800);
+            let intensity = (food_factor * crowd_factor / 10_000 * dev_factor / 10_000).clamp(400, 10_000) as u16;
+            let health_factor = (10_000 - pressure / 4).max(6000);
+            let mut region_births = 0u32;
+            let mut region_deaths = 0u32;
+            let mut wdeaths = 0u32;
+            for b in r.blocks.iter_mut() {
+                let lagged = b.birth_hist[0] as i64;
+                for i in 0..8 {
+                    b.birth_hist[i] = b.birth_hist[i + 1];
                 }
-                let mult = if *hi <= 14 { child_mult } else { adult_mult };
-                let rate = base * mult / 10_000 * hazard / 10_000; // per 100k
-                let expected = count as i64 * rate / 100; // milli deaths
-                let mut deaths = carry_round(expected, &mut b.death_rem[bi]).min(count);
-                region_deaths += deaths;
-                // take proportionally from the band's cells, oldest first for the remainder
-                let mut rem: u64 = 0;
-                let total = count as u64;
-                let want = deaths as u64;
-                for age in (*lo..=*hi).rev() {
-                    let have = b.ages[age] as u64;
-                    let x = have * want + rem;
-                    let take = (x / total).min(have).min(deaths as u64) as u32;
-                    rem = x % total;
-                    b.ages[age] -= take;
-                    deaths -= take;
-                    if (WORK_MIN_AGE..=WORK_MAX_AGE).contains(&age) {
-                        working_deaths += take;
+                b.birth_hist[8] = intensity;
+                let eq: i64 = b.ages[16..=40].iter().map(|n| *n as i64).sum::<i64>() * 500; // thousandths of reproductive equivalents
+                // 0.030 births per equivalent per month at full intensity
+                let expected = eq * 30 / 1000 * lagged / 10_000 * health_factor / 10_000;
+                let births = carry_round(expected, &mut b.birth_rem);
+
+                // ---- combined mortality -----------------------------------------
+                for (bi, (lo, hi, base)) in BANDS.iter().enumerate() {
+                    let count: u32 = b.ages[*lo..=*hi].iter().sum();
+                    if count == 0 {
+                        continue;
                     }
-                }
-                if deaths > 0 {
+                    let mult = if *hi <= 14 { child_mult } else { adult_mult };
+                    let rate = base * mult / 10_000 * hazard / 10_000; // per 100k
+                    let expected = count as i64 * rate / 100; // thousandths of deaths
+                    let mut deaths = carry_round(expected, &mut b.death_rem[bi]).min(count);
+                    region_deaths += deaths;
+                    // take proportionally from the band's cells, oldest first for the remainder
+                    let mut rem: u64 = 0;
+                    let total = count as u64;
+                    let want = deaths as u64;
                     for age in (*lo..=*hi).rev() {
-                        let take = deaths.min(b.ages[age]);
+                        let have = b.ages[age] as u64;
+                        let x = have * want + rem;
+                        let take = (x / total).min(have).min(deaths as u64) as u32;
+                        rem = x % total;
                         b.ages[age] -= take;
                         deaths -= take;
                         if (WORK_MIN_AGE..=WORK_MAX_AGE).contains(&age) {
-                            working_deaths += take;
+                            wdeaths += take;
+                        }
+                    }
+                    if deaths > 0 {
+                        for age in (*lo..=*hi).rev() {
+                            let take = deaths.min(b.ages[age]);
+                            b.ages[age] -= take;
+                            deaths -= take;
+                            if (WORK_MIN_AGE..=WORK_MAX_AGE).contains(&age) {
+                                wdeaths += take;
+                            }
                         }
                     }
                 }
+                b.ages[0] += births;
+                region_births += births;
             }
-            b.ages[0] += births;
-            region_births += births;
-        }
-        // qualified people die with everybody else
-        if working_deaths > 0 {
-            for q in 0..NQ {
-                let have = r.quals[q] as u64;
-                if have == 0 {
-                    continue;
-                }
-                let x = have * working_deaths as u64 * 1000 / working as u64; // milli
-                let whole = (x / 1000) as u32;
-                let frac = x % 1000;
-                let extra = if draw_range(secret, &[stream("qual-loss"), ri as u64, q as u64, month as u64], 1000) < frac { 1 } else { 0 };
-                let loss = (whole + extra).min(r.quals[q].saturating_sub(r.teachers[q]));
-                r.quals[q] -= loss;
-            }
-        }
-        births_total += region_births;
-        deaths_total += region_deaths;
-
-        // ---- annual ageing ----------------------------------------------------
-        if month % 12 == 0 && month > 0 {
-            let retiring: u32 = r.blocks.iter().map(|b| b.ages[WORK_MAX_AGE]).sum();
-            let working_now = r.working().max(1);
-            for b in r.blocks.iter_mut() {
-                b.ages[80] += b.ages[79];
-                for age in (1..80).rev() {
-                    b.ages[age] = b.ages[age - 1];
-                }
-                b.ages[0] = 0;
-            }
-            if retiring > 0 {
+            // qualified people die with everybody else
+            if wdeaths > 0 {
                 for q in 0..NQ {
                     let have = r.quals[q] as u64;
                     if have == 0 {
                         continue;
                     }
-                    let x = have * retiring as u64 * 1000 / working_now as u64;
+                    let x = have * wdeaths as u64 * 1000 / working as u64; // milli
                     let whole = (x / 1000) as u32;
-                    let extra = if draw_range(secret, &[stream("retire"), ri as u64, q as u64, month as u64], 1000) < x % 1000 { 1 } else { 0 };
+                    let frac = x % 1000;
+                    let extra = if draw_range(secret, &[stream("qual-loss"), ri as u64, q as u64, month as u64], 1000) < frac { 1 } else { 0 };
                     let loss = (whole + extra).min(r.quals[q].saturating_sub(r.teachers[q]));
                     r.quals[q] -= loss;
+                    died[q] = loss;
                 }
             }
+            working_deaths = wdeaths;
+            births_total += region_births;
+            deaths_total += region_deaths;
         }
+        for q in 0..NQ {
+            w.civs[si].qual_flows.died[q] += died[q] as i64;
+        }
+        // and so do learners
+        if working_deaths > 0 {
+            let learners = (w.regions[ri].students as u64 * working_deaths as u64 / working as u64) as u32;
+            shed_students(w, ri, learners);
+        }
+        reconcile_roles(w, ri, QualExit::Died);
+
+        // ---- annual ageing ----------------------------------------------------
+        if month % 12 == 0 && month > 0 {
+            let mut retired = [0u32; NQ];
+            {
+                let r = &mut w.regions[ri];
+                let retiring: u32 = r.blocks.iter().map(|b| b.ages[WORK_MAX_AGE]).sum();
+                let working_now = r.working().max(1);
+                for b in r.blocks.iter_mut() {
+                    b.ages[80] += b.ages[79];
+                    for age in (1..80).rev() {
+                        b.ages[age] = b.ages[age - 1];
+                    }
+                    b.ages[0] = 0;
+                }
+                if retiring > 0 {
+                    for q in 0..NQ {
+                        let have = r.quals[q] as u64;
+                        if have == 0 {
+                            continue;
+                        }
+                        let x = have * retiring as u64 * 1000 / working_now as u64;
+                        let whole = (x / 1000) as u32;
+                        let extra = if draw_range(secret, &[stream("retire"), ri as u64, q as u64, month as u64], 1000) < x % 1000 { 1 } else { 0 };
+                        let loss = (whole + extra).min(r.quals[q].saturating_sub(r.teachers[q]));
+                        r.quals[q] -= loss;
+                        retired[q] = loss;
+                    }
+                }
+            }
+            for q in 0..NQ {
+                w.civs[si].qual_flows.retired[q] += retired[q] as i64;
+            }
+            reconcile_roles(w, ri, QualExit::Retired);
+        }
+        let r = &mut w.regions[ri];
         r.blocks.retain(|b| b.total() > 0);
         if r.blocks.is_empty() {
             r.blocks.push(PopBlock::new(lineage_default, None));
@@ -388,13 +645,14 @@ pub fn step(w: &mut World, seat: SeatId) {
     let migrated = 0i32;
     for &ri in &regs {
         let rpop = w.regions[ri].population();
-        if rpop < 120 {
+        if rpop < MIGRATION_MIN_RESIDENTS {
             continue;
         }
         let crowd = rpop as i64 * 10_000 / water_capacity(&w.regions[ri]).max(1) as i64;
         // food-limited pressure: more people than local livelihoods
-        let foragers_cap = w.regions[ri].wild / 2600;
-        let fields = w.regions[ri].fac_level("fields") as i64 * 10 + w.regions[ri].fac_level("pasture") as i64 * 5 + w.regions[ri].fac_level("fishery") as i64 * 8;
+        let foragers_cap = w.regions[ri].wild * 1000 / 2600;
+        let crew = |key: &str| w.regions[ri].fac_level(key) as i64 * content().facilities[content().f(key)].general as i64;
+        let fields = crew("fields") + crew("pasture") + crew("fishery");
         let livelihoods = (foragers_cap + fields).max(1);
         let food_pressure = w.regions[ri].last.labor.food as i64 * 10_000 / livelihoods;
         let push = crowd.max(if food_pressure > 9500 { 9000 } else { 0 });
@@ -414,11 +672,11 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
         }
         if let Some((_, nb)) = best {
-            let want = rpop as i64 * 12 + w.regions[ri].migr_rem; // 1.2% per month, milli
+            let want = rpop as i64 * 12 + w.regions[ri].migr_rem; // 1.2% per month, in thousandths of a person
             let whole = (want / 1000) as u32;
             w.regions[ri].migr_rem = want % 1000;
             // people moving between our own regions change no national total
-            move_people(&mut w.regions, ri, nb, whole, false);
+            move_people(w, ri, nb, whole, false);
         }
     }
 

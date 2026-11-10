@@ -8,7 +8,10 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: &str = "bts-protocol/1.1";
+/// 1.2: head counts are real people (`JobSpec.count`, programme places and
+/// `start_program`/`manage_program` seats widen to `u32`), quantities are base units,
+/// and `Observation.units` states the unit system.
+pub const PROTOCOL_VERSION: &str = "bts-protocol/1.2";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -35,7 +38,10 @@ macro_rules! public_enum {
 }
 
 public_enum!(
-    /// Storable goods. Quantities are integer milli-units on the wire (1000 = one unit).
+    /// Storable goods. Quantities on the wire are integer base units: one ration for
+    /// food (one person's food for one month, 50 kg grain-equivalent), one tonne for
+    /// bulk goods and one standard lot for manufactures. 1,000 base units make one
+    /// display unit (see [`UnitsView`] for the unit and mass of each good).
     Good {
     Food => "Food",
     Materials => "Timber, stone and clay",
@@ -258,6 +264,58 @@ pub struct Observation {
     pub briefing: Vec<BriefingItem>,
     pub chronicle: Vec<ChronicleEntry>,
     pub receipts: Vec<Receipt>,
+    /// What one integer step of each quantity means under the running ruleset, so a
+    /// client need not hard-code scale. Absent in observations older than protocol 1.2.
+    #[serde(default)]
+    pub units: UnitsView,
+}
+
+/// Unit and mass of one base unit of a good.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GoodUnit {
+    pub good: Good,
+    /// "t" (tonne), "ration" or "lot".
+    pub unit: String,
+    /// Mass of one base unit in kilograms, i.e. thousandths of a tonne:
+    /// 1000 for bulk goods, 50 for a ration, the lot mass for manufactures.
+    pub tonnes_per_unit_milli: i64,
+}
+
+/// The unit system of the running ruleset. Head counts everywhere in the protocol
+/// are real people; nothing is multiplied on the way out of the engine.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UnitsView {
+    /// Food base units (rations) one resident or soldier eats in a month.
+    pub food_per_person_month: i64,
+    /// Base units per display unit for goods, work, research and services (1000).
+    pub display_divisor: i64,
+    pub goods: Vec<GoodUnit>,
+    /// What one base unit of project work is ("worker-month").
+    pub work_unit: String,
+    /// What one base unit of research work is ("researcher-month").
+    pub research_unit: String,
+    /// What one base unit of shaft or electric service is ("0.1 MWh delivered in the month").
+    pub service_unit: String,
+    /// Lower bound, in residents, of each settlement class in ascending order.
+    pub settlement_bounds: Vec<(SettlementKind, u32)>,
+    /// Bounds on orders that name a number of people.
+    #[serde(default)]
+    pub limits: PeopleLimits,
+}
+
+/// Bounds, in people, on the orders that name a head count.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct PeopleLimits {
+    /// A settling party (`settle`).
+    pub settlers_min: u32,
+    pub settlers_max: u32,
+    /// A formation (`recruit`).
+    pub soldiers_min: u32,
+    pub soldiers_max: u32,
+    /// Places one programme may book (`start_program`, `manage_program`).
+    pub program_seats_max: u32,
+    /// Learners a founding cohort can hold while nobody qualified can teach it.
+    pub founding_cohort_max: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -280,13 +338,20 @@ pub struct MatchOutcome {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GoodLine {
     pub good: Good,
+    /// All quantities are base units of the good (rations, tonnes or lots).
     pub stock: i64,
-    /// Totals over the last resolved round.
+    /// Totals over the last resolved round. `produced` is gross output where it was
+    /// made; `consumed` is what was used (eaten, burned, built in, issued).
     pub produced: i64,
     pub consumed: i64,
     pub traded_in: i64,
     pub traded_out: i64,
     pub capacity: Option<i64>,
+    /// What nobody used: spoilage, loss in carriage to the common stock and
+    /// abandoned stores. Over the round,
+    /// `stock change = produced - consumed - lost + traded_in - traded_out`.
+    #[serde(default)]
+    pub lost: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -311,6 +376,7 @@ pub struct LaborSummary {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ResearchLine {
     pub class: ResearchClass,
+    /// Researcher-months available per month: one per staffed research post.
     pub capacity: i64,
     pub used: i64,
 }
@@ -381,6 +447,7 @@ pub struct NeighborLink {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DepositView {
     pub kind: Deposit,
+    /// Tonnes left in the ground.
     pub remaining: i64,
     pub quality_bp: u16,
     pub epistemic: Epistemic,
@@ -390,9 +457,11 @@ pub struct DepositView {
 pub struct SurveyView {
     pub arable: u16,
     pub pasture: u16,
+    /// Wild food the land yields per month at most, in thousands of rations.
     pub wild_food: u32,
     pub fishery: u16,
     pub forest: u16,
+    /// Residents the natural water supply supports.
     pub water: u32,
     pub hydro: u16,
     pub deposits: Vec<DepositView>,
@@ -415,7 +484,9 @@ pub struct RecipeRun {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FacilityView {
-    /// General-post saving from shared support; not a goods/output multiplier.
+    /// General-post saving from shared support, basis points, as it applies in the
+    /// coming month (it shrinks when the region's freight is congested); not a
+    /// goods/output multiplier.
     #[serde(default)]
     pub scale_saving_bp: u16,
     pub kind: String,
@@ -428,6 +499,17 @@ pub struct FacilityView {
     pub utilization_bp: u16,
     pub runs: Vec<RecipeRun>,
     pub enabled: bool,
+    /// The production method the seat chose for this facility in this region: the
+    /// key of one of the facility type's recipes ([`RecipeView::key`]), set with
+    /// `set_policy` / `method`. Absent while the choice is left to the works
+    /// (automatic: the first known method whose inputs are in store).
+    #[serde(default)]
+    pub method: Option<String>,
+    /// The method the works actually ran last month, chosen or automatic. For
+    /// fields it is the method the land was worked by, which is lower than the
+    /// one chosen when the chosen one's chemicals or fuel were not in store.
+    #[serde(default)]
+    pub active_method: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -437,6 +519,9 @@ pub struct BlockView {
     pub count: u32,
 }
 
+/// Services delivered and demanded last month. Shaft and electric figures are base
+/// units of 0.1 MWh delivered in the month (1,000 = 100 MWh); compute is an index
+/// (1,000 = one standard machine-hall-month). None of them can be stored.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PowerView {
     pub shaft_supply: i64,
@@ -451,23 +536,106 @@ pub struct PowerView {
 pub struct VenueSeats {
     /// Facility kind that provides the places ("lodge", "school", "college", "tech_institute").
     pub venue: String,
+    /// Places offered and places booked, in people.
     pub capacity: u32,
     pub reserved: u32,
 }
 
+/// One group of a qualified site crew: `count` people who hold any of `quals`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CrewSpec {
+    /// Acceptable qualifications, most preferred first.
+    pub quals: Vec<Qual>,
+    /// People.
+    pub count: u32,
+}
+
+/// One group of a site crew as it stood last month.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CrewOnSite {
+    /// Acceptable qualifications, most preferred first.
+    pub quals: Vec<Qual>,
+    /// People the order needs in this group, and people reserved for it last month.
+    pub needed: u32,
+    pub on_site: u32,
+}
+
+/// The true price of one level of a facility in one region, as it would be charged
+/// if ordered now. An order of `n` levels is charged exactly `n` times the goods,
+/// work, crew and site power stated here and takes the same minimum months.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BuildSiteView {
+    /// Worker-months per level, including the first-of-kind surcharge where it applies.
     pub work_per_level: i64,
+    /// Months the order takes at least, whatever is supplied, including the
+    /// first-of-kind surcharge where it applies. The same for any number of levels.
     pub min_months: u16,
     pub kind: String,
     pub max_level: u16,
     pub queued_levels: u16,
+    /// Goods per level, base units (rations, tonnes or lots); committed from stock
+    /// as available and never refunded.
+    #[serde(default)]
+    pub cost_per_level: Vec<GoodQty>,
+    /// Qualified site crew per level, in people: reserved from the region's
+    /// qualified residents while the order is active (they hold no other post) and
+    /// returned when it completes, is paused or is cancelled.
+    #[serde(default)]
+    pub crew_per_level: Vec<CrewSpec>,
+    /// Shaft service the site draws per level in a month of full work, base units
+    /// of 0.1 MWh (1,000 = 100 MWh). Taken from the region's shaft supply; what the
+    /// region cannot give is made by site engines burning coal (1 t for 5 units),
+    /// then refined fuel (1 t for 10 units), from the common stock, but never the
+    /// month of fuel that mechanized fields and motor boats must find in store.
+    #[serde(default)]
+    pub site_power_per_level: i64,
+    /// True when the seat has no installation of this kind anywhere: the work and
+    /// the minimum months above are then half as much again.
+    #[serde(default)]
+    pub first_of_kind: bool,
+}
+
+/// One order in a region's construction queue (builds and the other labour
+/// projects sited in the region), in the order in which they are served.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct QueueEntry {
+    /// Project id, as in [`ProjectView::id`] and `manage_project`.
+    pub project: u32,
+    /// 0-based place in the region's service order; `manage_project` with
+    /// `position` moves an order to another place.
+    pub position: u16,
+    /// Project kind, as in [`ProjectView::kind`].
+    pub kind: String,
+    pub title: String,
+    /// Facility kind for a build order.
+    pub facility: Option<String>,
+    /// Levels a build order adds.
+    pub levels: Option<u16>,
+    pub priority: u8,
+    pub paused: bool,
+    /// Share of the work done, basis points.
+    pub progress_bp: u16,
+    /// The qualified site crew: needed and reserved last month, in people.
+    pub crew: Vec<CrewOnSite>,
+    /// Share of the site power asked for last month that was delivered, basis
+    /// points (10,000 when the site needs none or asked for none).
+    pub power_bp: u16,
+    /// Share of the goods bill committed so far, basis points (the least over the goods).
+    pub goods_bp: u16,
+    /// What the order was short of last month, in words; empty when nothing held it back.
+    pub waiting_for: Vec<String>,
+    pub eta_months_low: Option<u32>,
+    pub eta_months_high: Option<u32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OwnRegion {
     #[serde(default)]
     pub construction_sites: Vec<BuildSiteView>,
+    /// Every project sited in this region, in the order in which crews, labour
+    /// and site power are given out: by priority, then by place in the queue.
+    #[serde(default)]
+    pub construction_queue: Vec<QueueEntry>,
     pub population: u32,
     pub children: u32,
     pub working_age: u32,
@@ -478,6 +646,7 @@ pub struct OwnRegion {
     pub facilities: Vec<FacilityView>,
     pub food_fulfillment_bp: u16,
     pub water_fulfillment_bp: u16,
+    /// Residents the natural supply and waterworks together support.
     pub water_capacity: u32,
     pub health_pressure_bp: u16,
     pub unrest_bp: u16,
@@ -488,6 +657,45 @@ pub struct OwnRegion {
     /// Teaching places by venue and how many are booked by programmes.
     #[serde(default)]
     pub venues: Vec<VenueSeats>,
+    /// The region's shared infrastructure and what it saves or costs the works
+    /// that stand together here.
+    #[serde(default)]
+    pub infrastructure: InfraView,
+}
+
+/// A region's shared infrastructure and the economies of scale it carries
+/// (`docs/units-and-scale.md`, section 7). Every figure is a saving of overhead or
+/// a loss in carriage; none raises what a recipe puts out. Capacity, load and the
+/// rates are those that apply in the coming month with the works as they stand;
+/// the quantities are last month's.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct InfraView {
+    /// Facility levels of industry, extraction and power that the region's
+    /// transport grade can serve ([`OwnRegion::transport_level`]).
+    pub freight_capacity: u32,
+    /// Enabled facility levels of industry, extraction and power in the region.
+    pub freight_load: u32,
+    /// Share of the load the transport can serve, basis points: 10,000 while the
+    /// load is within capacity, `capacity / load` beyond it. The savings below
+    /// shrink in this proportion.
+    pub infra_bp: u16,
+    /// The most that shared support can save of a works' general posts here,
+    /// basis points: 2,000 scaled by `infra_bp`.
+    pub support_saving_cap_bp: u16,
+    /// Share of the spares and tools upkeep of the region's other industrial,
+    /// extractive and power works that its repair works save, basis points; at
+    /// most 1,500, scaled by `infra_bp` and by the rate the repair works ran at
+    /// last month.
+    pub maintenance_saving_bp: u16,
+    /// Further share of the output the region sends to the common stock that is
+    /// lost in carriage because its freight is congested, basis points; at most
+    /// 2,000, the capital included.
+    pub congestion_loss_bp: u16,
+    /// Output of last month that paid no carriage loss because the works of the
+    /// same region took as much of that good as inputs: base units by good.
+    pub chain_exempt: Vec<GoodQty>,
+    /// The carriage loss that exemption avoided last month, base units by good.
+    pub chain_loss_saved: Vec<GoodQty>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -565,6 +773,7 @@ pub struct TechCard {
     /// True when the investigators know further knowledge is missing but cannot name it yet.
     pub unknown_requirements: bool,
     pub class: ResearchClass,
+    /// Researcher-months.
     pub work_needed: i64,
     pub work_done: i64,
     pub source: String,
@@ -679,13 +888,15 @@ pub struct CultureView {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GoodQty {
     pub good: Good,
+    /// Base units of the good (rations, tonnes or lots).
     pub amount: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JobSpec {
     pub qual: Option<Qual>,
-    pub count: u16,
+    /// People per facility level.
+    pub count: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -694,21 +905,35 @@ pub struct RecipeView {
     pub name: String,
     pub inputs: Vec<GoodQty>,
     pub outputs: Vec<GoodQty>,
+    /// Services drawn per level per month at full rate: base units of 0.1 MWh for
+    /// shaft and electricity, an index for compute. Inputs and outputs are base
+    /// units of goods per level per month.
     pub shaft: i64,
     pub elec: i64,
     pub compute: i64,
-    /// Services delivered per level per month at full rate (milli).
+    /// Services delivered per level per month at full rate, in the same units.
     #[serde(default)]
     pub out_shaft: i64,
     #[serde(default)]
     pub out_elec: i64,
     #[serde(default)]
     pub out_compute: i64,
-    /// Research work delivered per level per month at full staffing (milli), if any.
+    /// Research work delivered per level per month at full staffing (researcher-months), if any.
     #[serde(default)]
     pub research: Option<(ResearchClass, i64)>,
     pub note: String,
+    /// Whether the seat meets the method's requirement, so that it can run and can
+    /// be chosen with `set_policy` / `method`.
     pub available: bool,
+    /// General posts one level needs under this method, in people, before the
+    /// saving from shared support ([`FacilityView::scale_saving_bp`]).
+    #[serde(default)]
+    pub general_posts: u32,
+    /// Qualified posts one level needs under this method, in people: the
+    /// facility's own and those the method adds. `qual` is the qualification
+    /// asked for first.
+    #[serde(default)]
+    pub skilled_posts: Vec<JobSpec>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -717,9 +942,20 @@ pub struct FacilityType {
     pub name: String,
     pub category: String,
     pub description: String,
+    /// Goods per level, base units.
     pub cost: Vec<GoodQty>,
+    /// Worker-months per level before any first-of-kind surcharge.
     pub work: i64,
+    /// Posts per level, in people, under the facility's base method: the one that
+    /// needs every general post and no added specialists. A method may need fewer
+    /// general posts or further qualified ones; each entry of `recipes` states its
+    /// own `general_posts` and `skilled_posts`.
     pub jobs: Vec<JobSpec>,
+    /// The production methods of the facility that the seat has at least
+    /// discovered. Where there are several, `set_policy` / `method` chooses one
+    /// per region. For fields these are the ways of working the land, with the
+    /// rations one level yields in a month as outputs and the chemicals and fuel
+    /// it draws as inputs.
     pub recipes: Vec<RecipeView>,
     pub provides: Vec<String>,
     pub site: String,
@@ -730,10 +966,22 @@ pub struct FacilityType {
     /// Highest level any region can hold regardless of site.
     #[serde(default)]
     pub max_level: u16,
+    /// Goods per level per month, base units.
     pub upkeep: Vec<GoodQty>,
     pub requirements: Vec<KnownRequirement>,
     pub available: bool,
     pub labor_category: Option<LaborCategory>,
+    /// Qualified site crew per level under construction, in people (see
+    /// [`BuildSiteView`] for the price as charged in a particular region).
+    #[serde(default)]
+    pub build_crew: Vec<CrewSpec>,
+    /// Shaft service a site draws per level in a month of full work, base units of
+    /// 0.1 MWh (1,000 = 100 MWh).
+    #[serde(default)]
+    pub build_power: i64,
+    /// Minimum months of construction before any first-of-kind surcharge.
+    #[serde(default)]
+    pub build_months: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -742,12 +990,14 @@ pub struct CourseType {
     pub name: String,
     pub description: String,
     pub months: u16,
+    /// Learners per instructor.
     pub class_size: u16,
     pub entrants: Vec<Option<Qual>>,
     pub teachers: Vec<Qual>,
     pub output: Qual,
     pub venue: String,
     pub venue_name: String,
+    /// Goods used each month per thousand enrolled learners, base units.
     pub materials: Vec<GoodQty>,
     pub requirements: Vec<KnownRequirement>,
     pub available: bool,
@@ -758,7 +1008,9 @@ pub struct UnitTier {
     pub tier: u8,
     pub name: String,
     pub role_names: Vec<(Role, String)>,
+    /// Goods to equip a thousand soldiers, base units.
     pub equipment: Vec<GoodQty>,
+    /// Goods a thousand soldiers use each month, base units (food is one ration each).
     pub upkeep: Vec<GoodQty>,
     pub training_months: u16,
     pub requirements: Vec<KnownRequirement>,
@@ -781,6 +1033,8 @@ pub struct ProjectView {
     pub title: String,
     pub region: Option<RegionId>,
     pub target: Option<String>,
+    /// Work is in worker-months for labour projects and researcher-months for
+    /// research, leads and studies; inputs are base units of goods.
     pub work_needed: i64,
     pub work_done: i64,
     pub inputs_needed: Vec<GoodQty>,
@@ -792,6 +1046,26 @@ pub struct ProjectView {
     pub blockers: Vec<String>,
     pub eta_months_low: Option<u32>,
     pub eta_months_high: Option<u32>,
+    /// The qualified site crew the order needs and had reserved last month, in
+    /// people. Empty for projects that need none.
+    #[serde(default)]
+    pub crew: Vec<CrewOnSite>,
+    /// Shaft service the site draws in a month of full work, base units of 0.1 MWh.
+    #[serde(default)]
+    pub site_power: i64,
+    /// Share of the site power asked for last month that was delivered, basis points.
+    #[serde(default)]
+    pub power_bp: u16,
+    /// Share of the goods bill committed so far, basis points (the least over the goods).
+    #[serde(default)]
+    pub goods_bp: u16,
+    /// Months the project takes at least (0 where no minimum is recorded).
+    #[serde(default)]
+    pub min_months: u16,
+    /// 0-based place in the construction queue of the region the project is sited
+    /// in; absent for projects without a site.
+    #[serde(default)]
+    pub queue_position: Option<u16>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -800,9 +1074,10 @@ pub struct ProgramView {
     pub course: String,
     pub course_name: String,
     pub region: RegionId,
-    pub seats: u16,
-    pub enrolled: u16,
-    pub teachers: u16,
+    /// Places booked, learners enrolled and instructors occupied, in people.
+    pub seats: u32,
+    pub enrolled: u32,
+    pub teachers: u32,
     pub progress_months: u16,
     pub months: u16,
     pub graduates_total: u32,
@@ -840,7 +1115,7 @@ pub struct ForeignArmyView {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Clause {
-    /// Deliver goods. `months` = 1 for a single delivery.
+    /// Deliver goods. `months` = 1 for a single delivery. `amount_per_month` is base units.
     Goods { from: SeatId, good: Good, amount_per_month: i64, months: u16 },
     /// Hand over records and demonstrations of an understood technology.
     Knowledge { from: SeatId, tech: String },
@@ -1012,6 +1287,7 @@ pub struct SpectatorCiv {
     pub highest_tier: u8,
     pub soldiers: u32,
     pub stability: u8,
+    /// Months of food in store at the present population, in thousandths of a month.
     pub food_months_milli: i64,
     pub sci_method: Option<Month>,
     pub planetary: Option<Month>,
@@ -1085,13 +1361,14 @@ pub enum ProjectSpec {
     Research { tech: String },
     /// Send a supplied survey party into a region adjacent to known land.
     Survey { region: RegionId },
-    /// Found a camp in a neighbouring unclaimed region with real settlers and stores.
+    /// Found a camp in a neighbouring unclaimed region with real settlers and stores
+    /// (20,000 to 400,000 people).
     Settle { from: RegionId, to: RegionId, people: u32 },
     /// Bounded exploratory study of a known domain; yields evidence, not a chosen node.
     Study { domain: String },
     /// Move people between two governed regions.
     Resettle { from: RegionId, to: RegionId, people: u32 },
-    /// Raise and train a formation.
+    /// Raise and train a formation of 1,000 to 5,000,000 soldiers.
     Recruit { region: RegionId, role: Role, soldiers: u32, tier: u8 },
     /// Advance the local religious movement to its next stage.
     Religion { beliefs: Vec<String>, name: Option<String> },
@@ -1135,6 +1412,21 @@ pub enum PolicySetting {
     /// Rename the civilization (cosmetic; history keeps event-time names).
     Rename { name: String },
     MoveCapital { region: RegionId },
+    /// Choose the production method of a facility in a region. `method` is the
+    /// key of one of the facility type's recipes whose requirement the seat meets
+    /// ([`RecipeView::key`] with `available`). A chosen method runs even when its
+    /// inputs are short, and reports the shortage. For fields the choice is a
+    /// ceiling: the land is worked by the best method not above it whose chemicals
+    /// and fuel are in store, and never draws an input the chosen method does not
+    /// use. `method: null`, or leaving it out, returns the choice to the works
+    /// (automatic). A facility the region does not have, a method that does not
+    /// exist and a method the seat cannot yet use are refused alike.
+    Method {
+        region: RegionId,
+        facility: String,
+        #[serde(default)]
+        method: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1150,11 +1442,25 @@ pub enum Action {
     SetPolicy { setting: PolicySetting },
     /// `priority` is 0..=9 and lower numbers are served first (default 5).
     StartProject { spec: ProjectSpec, priority: Option<u8> },
-    ManageProject { project: u32, op: ManageOp, priority: Option<u8> },
+    /// Pause, resume or cancel a project, and optionally set its `priority` or move
+    /// it to `position`, the 0-based place in the construction queue of the region it
+    /// is sited in (see [`OwnRegion::construction_queue`]). Moving an order re-sorts
+    /// that region's orders only: they exchange priorities and places among
+    /// themselves, so orders in other regions are served as before. A project
+    /// without a site ignores `position`. To change only the priority or the place
+    /// of a running order, send `op: resume`. Pausing an order releases its site crew.
+    ManageProject {
+        project: u32,
+        op: ManageOp,
+        priority: Option<u8>,
+        #[serde(default)]
+        position: Option<u16>,
+    },
     Investigate { lead: String },
     ProposeReform { practice: String },
-    StartProgram { region: RegionId, course: String, seats: u16 },
-    ManageProgram { program: u32, op: ManageOp, seats: Option<u16> },
+    /// `seats` are places for learners, in people (1 to 2,000,000).
+    StartProgram { region: RegionId, course: String, seats: u32 },
+    ManageProgram { program: u32, op: ManageOp, seats: Option<u32> },
     Demolish { region: RegionId, facility: String, levels: u16 },
     MilitaryOrder { army: u32, order: ArmyOrder },
     /// Formally withdraw from the match. Irreversible; the seat scores -1.

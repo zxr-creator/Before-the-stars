@@ -9,6 +9,11 @@ use crate::sim::chronicle::{brief, moment, reported};
 use crate::state::*;
 use bts_protocol::*;
 
+/// Jump engineers, and orbital crew, an operating fleet needs with reliefs.
+/// A plain scaling of the ruleset 1.0 rule (thirty-six of each); design chapter 35
+/// replaces it with checks derived from the posts of the installed works.
+const FLEET_CREW: u32 = 36_000;
+
 fn check(label: &str, ok: bool, detail: String) -> Check {
     Check { label: label.to_string(), detail, ok }
 }
@@ -83,7 +88,8 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
     out.push(check("Assembly replacement and crew relief verified", civ.ftl.replacement_done.is_some(), civ.ftl.replacement_done.map(|m| format!("Verified in month {m}")).unwrap_or_else(|| "Not yet verified".into())));
     let quals = |q: Qual| -> u32 { w.regions.iter().filter(|r| r.controller == Some(seat)).map(|r| r.quals[q.index()]).sum() };
     let (eng, orb) = (quals(Qual::FtlEngineer), quals(Qual::Orbital));
-    out.push(check("Qualified jump engineers and orbital crews, with reliefs", eng >= 36 && orb >= 36, format!("{eng} jump engineers (36 needed), {orb} orbital crew (36 needed)")));
+    let g = |n: u32| crate::util::group(n as i64);
+    out.push(check("Qualified jump engineers and orbital crews, with reliefs", eng >= FLEET_CREW && orb >= FLEET_CREW, format!("{} jump engineers ({} needed), {} orbital crew ({} needed)", g(eng), g(FLEET_CREW), g(orb), g(FLEET_CREW))));
     let (spares, fuel) = (civ.stock_of(Good::Spares), civ.stock_of(Good::Fuel));
     out.push(check("Twelve months of maintenance stock on hand", spares >= 240_000 && fuel >= 200_000, format!("{} spares (240 needed), {} fuel (200 needed)", spares / 1000, fuel / 1000)));
     let support = w.regions.iter().any(|r| r.controller == Some(seat) && running(oyard, r));
