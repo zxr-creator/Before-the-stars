@@ -114,7 +114,7 @@ varying vec2 vTex;`)
   float n3 = texture2D(tNoise, vWorld.xz / 2.3).b;
   vec3 base = diffuseColor.rgb;
   // Painterly mottling at three scales.
-  base *= 0.8 + 0.2 * n1 + 0.15 * n2 + 0.09 * n3;
+  base *= 0.9 + 0.1 * n1 + 0.07 * n2 + 0.04 * n3;
   // Wind ripples on dunes, strata on bare rock.
   base *= 1.0 + vTex.x * 0.09 * sin((vWorld.x * 0.8 + vWorld.z * 0.6) * 1.6 + n1 * 7.0);
   base *= 1.0 - vTex.y * 0.09 * step(0.55, fract(vWorld.y * 0.42 + n2 * 1.3));
@@ -223,20 +223,21 @@ void main() {
   float d = s.r * 160.0;
   float kk = smoothstep(0.32, 0.6, s.g + (nA - 0.5) * 0.3 + (nB - 0.5) * 0.12);
   if (kk > 0.001) {
-    vec3 shallow = vec3(0.45, 0.87, 0.82), mid = vec3(0.19, 0.67, 0.80), deep = vec3(0.13, 0.50, 0.72);
+    // A calm, greyed sea: it frames the land and never outshines it.
+    vec3 shallow = vec3(0.66, 0.82, 0.80), mid = vec3(0.47, 0.68, 0.73), deep = vec3(0.38, 0.58, 0.67);
     float t1 = smoothstep(1.0, 26.0, d + (nA - 0.5) * 12.0);
     float t2 = smoothstep(18.0, 105.0, d + (nB - 0.5) * 34.0);
     vec3 sea = mix(mix(shallow, mid, t1), deep, t2);
     sea *= 0.93 + 0.1 * nB + 0.04 * texture2D(tNoise, p / 5.0).b;
     float w1 = texture2D(tNoise, vec2(p.x / 41.0 + uTime * 0.013, p.y / 12.0 - uTime * 0.021)).b;
     float w2 = texture2D(tNoise, vec2(p.x / 27.0 - uTime * 0.011, p.y / 14.0 + uTime * 0.016)).r;
-    sea += smoothstep(0.64, 0.72, w1) * smoothstep(0.56, 0.7, w2) * 0.1;
-    sea = mix(sea, sea * vec3(0.9, 0.95, 1.0), smoothstep(0.45, 0.6, w2) * 0.14);
+    sea += smoothstep(0.64, 0.72, w1) * smoothstep(0.56, 0.7, w2) * 0.035;
+    sea = mix(sea, sea * vec3(0.94, 0.97, 1.0), smoothstep(0.45, 0.6, w2) * 0.07);
     // Foam: a solid lip at the shore, then two rolling swash lines.
     float lip = 1.0 - smoothstep(0.9, 2.7, d + (nB - 0.5) * 1.6);
     float ph = fract(d / 7.5 - uTime * 0.1 + nA * 1.4);
     float roll = smoothstep(0.4, 0.5, ph) * (1.0 - smoothstep(0.5, 0.62, ph)) * (1.0 - smoothstep(3.0, 21.0, d));
-    sea = mix(sea, vec3(0.97, 1.0, 1.0), max(lip * 0.92, roll * 0.5));
+    sea = mix(sea, vec3(0.97, 1.0, 1.0), max(lip * 0.7, roll * 0.16));
     // Pigment pools darker where the wash stops.
     float rim = kk * (1.0 - kk) * 4.0;
     col = mix(col, sea * (1.0 - 0.18 * rim), kk * 0.96);
@@ -286,9 +287,9 @@ varying vec3 vWorld;
 void main() {
   vec4 info = texture2D(tInfo, (vWorld.xz - uRect.xy) * uRect.zw);
   float n = texture2D(tNoise, vec2(vUv.x / 30.0 - uTime * 0.045, vUv.y * 0.3)).r;
-  vec3 c = mix(vec3(0.20, 0.62, 0.80), vec3(0.42, 0.80, 0.88), n);
+  vec3 c = mix(vec3(0.33, 0.58, 0.72), vec3(0.46, 0.70, 0.80), n);
   float glint = smoothstep(0.66, 0.76, texture2D(tNoise, vec2(vUv.x / 11.0 - uTime * 0.1, vUv.y * 0.7 + 0.3)).g);
-  c += glint * 0.14;
+  c += glint * 0.05;
   float av = abs(vUv.y);
   c = mix(c, vec3(0.93, 0.99, 1.0), smoothstep(0.74, 0.94, av) * 0.4);
   // Remembered reaches are drawn in map ink.

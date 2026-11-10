@@ -7,11 +7,12 @@ import type { Good, GoodLine, Observation } from './protocol';
 import { GOOD_LABEL, GOOD_SHORT, RESEARCH_LABEL, compact, int, milli, milliSigned, pct, yearOf } from './format';
 import { Icon } from './icons';
 import { SeatDot, Tick, cx } from './ui';
-import { humanSeatList, openOverlay, openPanel, seatName, setMenu, switchSeat, useApp, viewAsSeat } from './store';
+import { humanSeatList, openOverlay, openPanel, seatName, setMenu, switchSeat, useApp } from './store';
 import type { PanelKey } from './store';
 import { getLocale, t, tc } from './i18n';
 import { Emblem } from './theme/emblem';
 import { GoodIcon } from './theme/goods';
+import { PerspectiveSwitch } from './observer/controls';
 
 const BASIC: Good[] = ['food', 'materials', 'tools'];
 const ADVANCED: Good[] = ['metal', 'components', 'electronics', 'fuel'];
@@ -185,21 +186,7 @@ export function TopBar() {
         <span class="date-round">{t('Round {r} of {n}', { r: int(obs.round), n: int(rounds) })}</span>
       </div>
 
-      {watching ? (
-        <div class="observer-switch" role="group" aria-label={t('Observed civilization')}>
-          {s.spectatorSupported ? (
-            <button type="button" class="obs-world" data-testid="observer-world" title={t('Back to the world view')} onClick={() => void viewAsSeat(null)}>
-              <Icon name="globe" size={14} /><span>{t('World view')}</span>
-            </button>
-          ) : null}
-          {(summary.seats ?? []).map((x) => (
-            <button type="button" class={cx('obs-seat', x.seat === obs.seat && 'is-active')} aria-pressed={x.seat === obs.seat}
-              title={t('View as {name}', { name: tc(x.name) })} data-testid={`observer-seat-${x.seat}`} onClick={() => void viewAsSeat(x.seat)}>
-              <Emblem seat={x.seat} color={x.color} name={x.name} size={18} />
-            </button>
-          ))}
-        </div>
-      ) : null}
+      {watching ? <PerspectiveSwitch compact /> : null}
 
       <div class="yields" data-tut="yields" role="group" aria-label={t('Stocks and capacities')}>
         {shownBasics.map((g) => <GoodYield g={g} obs={obs} />)}

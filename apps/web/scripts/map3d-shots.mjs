@@ -64,7 +64,8 @@ async function open(query, size = [1440, 900], dpr = 1) {
   });
   // Headless Chromium draws WebGL on the CPU, where the map would pick its reduced-cost path;
   // the shots force the full-quality path so they show what a GPU shows.
-  await page.goto(`${base}/dev/map.html?bare=1&${/(^|&)q=/.test(query) ? '' : 'q=high&'}${query}`);
+  // The flat atlas is the default tier, so every 3D shot asks for the 3D tier explicitly.
+  await page.goto(`${base}/dev/map.html?bare=1&${/(^|&)q=/.test(query) ? '' : 'q=high&'}${/(^|&)tier=/.test(query) ? '' : 'tier=3d&'}${query}`);
   await page.waitForSelector('[data-testid="map-canvas"]');
   const flat = new URLSearchParams(query).get('tier') === 'flat';
   await page.waitForFunction((f) => window.__atlas && (f ? window.__atlas.tier() === 'flat' : window.__map3d && window.__map3d.frames > 2), flat, { timeout: 90000 });
@@ -309,7 +310,7 @@ try {
         return orig.call(this, type, ...rest);
       };
     });
-    await page.goto(`${base}/dev/map.html?bare=1&${FX}`);
+    await page.goto(`${base}/dev/map.html?bare=1&tier=3d&${FX}`);
     await page.waitForFunction(() => window.__atlas?.tier() === 'flat', null, { timeout: 30000 }).catch(() => fail('no fallback to the flat atlas when WebGL is unavailable'));
     await page.waitForTimeout(500);
     const note = await page.isVisible('[data-testid="map-tier-note"]');

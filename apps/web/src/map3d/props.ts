@@ -151,6 +151,12 @@ const RECIPES: Record<Terrain, Recipe[]> = {
   ],
 };
 
+/**
+ * Vegetation is a hint of the land's character, not a carpet: the recipes above are
+ * planted at this fraction, which leaves the settlements and works standing clear.
+ */
+const THIN = 0.4;
+
 /** Circles (x, z, r) where nothing may grow: settlements, districts, markers. */
 export type Clearings = Map<number, number[]>;
 
@@ -228,7 +234,7 @@ export class PropLayer {
       if (p.r.terrain === 'forest' && high && kind === 'broadleaf') kind = 'conifer';
       if (remembered && !INK_KINDS.includes(kind)) continue;
       const key = remembered ? kind + ':ink' : kind;
-      const want = Math.round((p.area / 1000) * rc.per1000 * budget * (remembered ? 0.35 : 1));
+      const want = Math.round((p.area / 1000) * rc.per1000 * THIN * budget * (remembered ? 0.35 : 1));
       let got = 0;
       for (let tries = 0; tries < want * 7 && got < want; tries++) {
         let x = x0 + rand() * (x1 - x0), z = z0 + rand() * (z1 - z0);

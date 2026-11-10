@@ -259,6 +259,9 @@ async function partC() {
   log('C: an AI-only match is watched');
   await openTitle();
   await page.click(tid('title-observer'));
+  // the menu entry opens a quick start; the full setup is one link further
+  await page.waitForSelector(tid('title-observer-start'));
+  await page.click(tid('title-observer-custom'));
   await page.waitForSelector(tid('setup-screen'));
   await page.fill(tid('setup-seed'), 'pages-watch');
   await page.click(tid('setup-regions-48'));

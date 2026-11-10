@@ -2,7 +2,8 @@
 // observation actually reports for the region, local tracks and power lines, and
 // the sites where resource badges and beacons stand. Nothing here is invented:
 // a region with no reported facilities gets its settlement and nothing else.
-import type { Deposit, FacilityView, RegionView, SettlementKind } from '../protocol';
+import type { Deposit, RegionView, SettlementKind } from '../protocol';
+import { eraOfFacilities, facilityActive, type Building } from '../map/landuse';
 import { Builder } from './builder';
 import {
   buildDistrict, buildSettlement, districtRadius, pylon, settlementHeight, settlementRadius,
@@ -38,36 +39,7 @@ const CATEGORY_MAP: Record<string, DistrictKind> = {
 const MINE_DEPOSIT: Record<string, Deposit> = {
   mine_copper: 'copper_ore', mine_iron: 'iron_ore', mine_coal: 'coal', mine_minerals: 'minerals', oilwell: 'crude',
 };
-/** Rough technological era implied by a facility that has actually been built. */
-const ERA_OF: Record<string, number> = {
-  workshop: 1, kiln: 1, copper_smelter: 1, bloomery: 1, school: 1, archive: 1, granary: 1, irrigation: 1, port: 1, roads: 1,
-  waterworks: 1, admin: 1, barracks: 1, mine_copper: 1, mine_iron: 1, waterwheel: 1, press: 1, clinic: 1, holy_site: 1,
-  steam: 2, steelworks: 2, machine_shop: 2, parts_works: 2, rail: 2, mine_coal: 2, oilwell: 2, laboratory: 2, institute: 2,
-  college: 2, sewers: 2, instrument_shop: 2, hospital: 2, mine_minerals: 2,
-  generator: 3, grid: 3, hydro: 3, fission: 3, fab: 3, computer_works: 3, datacenter: 3, refinery: 3, chem_plant: 3, diesel: 3,
-  depot: 3, purifier: 3, pharma: 3, advanced_lab: 3, auto_lab: 3, high_energy: 3, synfuel: 3, insulation_works: 3, wire_works: 3,
-  water_treatment: 3, tech_institute: 3,
-  launch_complex: 4, orbital_station: 4, orbital_yard: 4, interferometer: 4, jump_testbed: 4, jump_yard: 4, jump_base: 4,
-  fusion: 4, orbital_power: 4,
-};
-
-export function eraOfFacilities(facilities: FacilityView[]): number {
-  let era = 0;
-  let weight = 0;
-  for (const f of facilities) {
-    if (f.level <= 0) continue;
-    const e = ERA_OF[f.kind] ?? 0;
-    if (e > era) era = e;
-    weight += e;
-  }
-  // One advanced building does not rebuild a whole town: require some breadth for the top eras.
-  if (era >= 3 && weight < era * 3) era -= 1;
-  return era;
-}
-
-function facilityActive(f: FacilityView): boolean {
-  return f.enabled && f.utilization_bp > 0 && (f.staff_needed <= 0 || f.staffed > 0);
-}
+export { eraOfFacilities };
 
 interface Want {
   key: string;
@@ -112,6 +84,27 @@ export interface DecorContext {
   capital: number | null;
   civEra: number;
   categories: Record<string, string>;
+  /** Region → building work in hand, as the viewer knows it. */
+  building?: Record<number, Building>;
+}
+
+/** Work in hand: a scaffolded shell and a jib crane, larger with more levels queued. */
+function scaffold(b: Builder, x: number, y: number, z: number, k: number, rot: number): void {
+  const wood: RGB = [0.74, 0.58, 0.32], amber: RGB = [0.88, 0.62, 0.16];
+  b.push(x, y, z, rot, k);
+  b.box(0, 0, 0, 3.4, 1.5, 2.6, [0.91, 0.88, 0.79]);
+  for (const [px, pz] of [[-2, -1.6], [2, -1.6], [-2, 1.6], [2, 1.6]]) b.beam([px, 0, pz], [px, 4.8, pz], 0.16, wood);
+  for (const yy of [1.7, 3.2, 4.8]) {
+    b.beam([-2, yy, -1.6], [2, yy, -1.6], 0.12, wood);
+    b.beam([-2, yy, 1.6], [2, yy, 1.6], 0.12, wood);
+    b.beam([-2, yy, -1.6], [-2, yy, 1.6], 0.12, wood);
+    b.beam([2, yy, -1.6], [2, yy, 1.6], 0.12, wood);
+  }
+  b.beam([3.4, 0, 0], [3.4, 7.4, 0], 0.24, amber);
+  b.beam([1.2, 7, 0], [6.6, 7.4, 0], 0.2, amber);
+  b.beam([5.9, 7.3, 0], [5.9, 5, 0], 0.07, [0.2, 0.2, 0.22]);
+  b.box(5.9, 4.3, 0, 0.9, 0.7, 0.9, amber);
+  b.pop();
 }
 
 export function settlementEra(r: RegionView, civEra: number): number {
@@ -296,6 +289,17 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
     }
   }
 
+  // --- building work in hand ------------------------------------------------------------
+  const work = ctx.building?.[r.id];
+  if (work && work.levels > 0 && !remembered) {
+    const site = choose('scaffold', 3.6, settR + 5, 'land', 0.6);
+    if (site) {
+      taken.push(site.x, site.z, 3.6);
+      out.clear.push(site.x, site.z, 4);
+      scaffold(b, site.x, G(site.x, site.z), site.z, clamp(1 + work.levels / 5, 1, 2), (hash32(r.id, 77) / 4294967296) * Math.PI * 2);
+    }
+  }
+
   // --- local tracks to each district (only where roads have been built) -----------------
   if (tracks.length) {
     const dirt: RGB = era >= 3 ? [0.5, 0.5, 0.5] : [0.8, 0.7, 0.5];
@@ -389,8 +393,8 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
 }
 
 /** A cheap signature of everything `buildRegionDecor` reads from a region. */
-export function decorSignature(r: RegionView, capital: number | null, civEra: number, colour: string): string {
-  let s = `${r.settlement}|${r.owner}|${r.visibility}|${capital === r.id ? 1 : 0}|${civEra}|${colour}|${r.test_node ? 1 : 0}`;
+export function decorSignature(r: RegionView, capital: number | null, civEra: number, colour: string, building = 0): string {
+  let s = `${r.settlement}|${r.owner}|${r.visibility}|${capital === r.id ? 1 : 0}|${civEra}|${colour}|${r.test_node ? 1 : 0}|${Math.min(6, Math.ceil(building / 2))}`;
   if (r.own) for (const f of r.own.facilities) s += `;${f.kind}:${f.level}:${f.enabled ? (f.utilization_bp > 0 && (f.staff_needed <= 0 || f.staffed > 0) ? 'a' : 'i') : 'x'}`;
   if (r.survey) for (const d of r.survey.deposits) s += `;d${d.kind}`;
   return s;

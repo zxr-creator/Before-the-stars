@@ -40,6 +40,7 @@ import { TechTree, CivicsTree } from './trees';
 import { Almanac } from './tutorial/almanac';
 import { TutorialLayer } from './tutorial';
 import { ObserverConsole } from './observer';
+import { Playback } from './observer/controls';
 
 export const RAIL_W = 58;
 export const INSPECTOR_W = 324;
@@ -265,7 +266,7 @@ export function App() {
         {s.panel === 'chronicle' ? <ChronicleSheet /> : <ChronicleTab />}
         {!s.pick ? <NotifyColumn state={s} max={notifyMax} /> : null}
         {!s.pick ? <MomentBanner state={s} /> : null}
-        <RoundDock state={s} compact={mapW < 620} />
+        {watching ? <Playback state={s} docked /> : <RoundDock state={s} compact={mapW < 620} />}
         {s.overlay ? <Overlay state={s} /> : null}
         <Toasts state={s} />
       </div>

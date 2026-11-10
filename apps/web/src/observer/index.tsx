@@ -14,10 +14,7 @@ import {
 } from '../format';
 import { Icon } from '../icons';
 import { Btn, Tick, cx } from '../ui';
-import {
-  dismissResult, loadAgentLog, observerPlay, observerRun, observerSpeed, openOverlay, setMenu, setScreen, useApp,
-  viewAsSeat,
-} from '../store';
+import { dismissResult, loadAgentLog, openOverlay, setMenu, setScreen, useApp, viewAsSeat } from '../store';
 import type { AppState } from '../store';
 import { t, tc, useLocale } from '../i18n';
 import { MapView } from '../map/MapView';
@@ -29,33 +26,24 @@ import { Emblem } from '../theme/emblem';
 import { GoodIcon } from '../theme/goods';
 import { StatePlate } from '../theme/overlay';
 import { spectatorObservation } from './synthetic';
+import { Compare } from './compare';
+import { Playback, PerspectiveSwitch, clock, useNow, useThinkingClock } from './controls';
+import './history';
 import './observer.css';
 
 const SIDE_W = 532;
 const SIDE_W_NARROW = 484;
+/** Height the playback dock keeps clear at the bottom of the map. */
+const DOCK_H = 128;
 const GOVERNANCE_MONTHS = 96;
 const FTL_MONTHS = 24;
 
-type Tab = 'score' | 'events' | 'agents';
+type Tab = 'score' | 'compare' | 'events' | 'agents';
+
+/** The open tab survives a visit to a civilization's own view and back. */
+let lastTab: Tab = 'score';
 
 // --- small helpers ------------------------------------------------------------------
-
-/** Re-render once a second while `active` (elapsed-time read-outs). */
-function useNow(active: boolean): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!active) return;
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [active]);
-  return now;
-}
-
-function clock(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
 
 const PROVIDER_LABEL: Record<string, string> = {
   'claude-api': 'Claude (API)', claude_api: 'Claude (API)', 'claude-code': 'Claude Code', claude_code: 'Claude Code',
@@ -86,13 +74,6 @@ function everyLabel(n: number): string {
   return n <= 1 ? t('consulted every round') : t('consulted every {n} rounds', { n });
 }
 
-/** Seconds an agent has been thinking: the referee's figure plus the time since it was reported. */
-function useThinkingClock(summary: AppState['summary']): (agent: AgentInfo) => number {
-  const stamp = useRef<{ summary: AppState['summary']; at: number }>({ summary, at: Date.now() });
-  if (stamp.current.summary !== summary) stamp.current = { summary, at: Date.now() };
-  return (agent) => (agent.thinking_seconds ?? 0) + (Date.now() - stamp.current.at) / 1000;
-}
-
 function AgentChip({ agent, seconds, short }: { agent: AgentInfo; seconds: number; short?: boolean }) {
   const full = agent.state === 'thinking' ? t('Thinking {time}', { time: clock(seconds) })
     : agent.state === 'error' ? t('Error · retrying next round')
@@ -113,7 +94,8 @@ export function ObserverConsole() {
   useLocale();
   const sp = s.spectator;
   const summary = s.summary;
-  const [tab, setTab] = useState<Tab>('score');
+  const [tab, setTabState] = useState<Tab>(lastTab);
+  const setTab = (next: Tab) => { lastTab = next; setTabState(next); };
   const [sideOpen, setSideOpen] = useState(true);
   const [selected, setSelected] = useState<RegionId | null>(null);
   const [focus, setFocus] = useState<{ region: RegionId; nonce: number } | null>(null);
@@ -137,25 +119,6 @@ export function ObserverConsole() {
   useEffect(() => {
     for (const x of agentSeats) void loadAgentLog(x.seat);
   }, [round, agentKey, tab === 'agents', summary?.match_id]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null;
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.tagName === 'BUTTON')) return;
-      if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('.menu-scrim, .world-overlay, .overlay')) return;
-      if (e.key === ' ') {
-        observerPlay(!ref.current.playing);
-        e.preventDefault();
-      } else if (e.key === '.' && !ref.current.busy && !ref.current.playing) {
-        observerRun(1);
-        e.preventDefault();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-  const ref = useRef(pb);
-  ref.current = pb;
 
   const mapObs = useMemo(() => (sp ? spectatorObservation(sp, t('Observer')) : null), [sp, t('Observer')]);
 
@@ -199,22 +162,7 @@ export function ObserverConsole() {
           <Icon name={finished ? 'flag' : 'hourglass'} size={13} />
           <span>{sp.phase === 'negotiate' ? t('Negotiation · window {n} of {m}', { n: sp.window, m: NEGOTIATION_WINDOWS }) : t(PHASE_LABEL[sp.phase])}</span>
         </div>
-        <div class="obs-civs" role="group" aria-label={t('Civilizations')}>
-          {sp.civs.map((c) => {
-            const agent = seatOf(c.seat)?.agent ?? null;
-            return (
-              <button type="button" class={cx('obs-civ', c.status !== 'active' && 'is-out', agent && 'is-' + agent.state)} data-testid={`civ-chip-${c.seat}`}
-                title={t('View as {name}', { name: tc(c.name) })} onClick={() => void viewAsSeat(c.seat)}>
-                <Emblem seat={c.seat} color={c.color} name={c.name} size={22} />
-                <span class="obs-civ-text">
-                  <b>{tc(c.name)}</b>
-                  <small>{agent ? <><Icon name="agent" size={10} /> {providerName(agent)}</> : controllerShort(c, undefined)}</small>
-                </span>
-                {agent && agent.state !== 'idle' ? <i class="obs-civ-dot" aria-hidden="true" /> : null}
-              </button>
-            );
-          })}
-        </div>
+        <PerspectiveSwitch />
         <div class="obs-top-tools">
           <button type="button" class="obs-tool" title={`${t('Almanac')} (?)`} aria-label={t('Almanac')} data-testid="observer-almanac" onClick={() => openOverlay('almanac', 'observer')}>
             <Icon name="almanac" size={17} />
@@ -228,17 +176,19 @@ export function ObserverConsole() {
       <div class="obs-stage">
         <div class="map-host">
           <MapView obs={mapObs} selected={selected} onSelect={setSelected} focus={focus}
-            insets={{ left: sideW, right: 0, top: 0, bottom: 104 }} />
+            insets={{ left: sideW, right: 0, top: 0, bottom: DOCK_H }} />
         </div>
 
         <aside class={cx('obs-side', !sideOpen && 'is-closed')} aria-label={t('Observer panels')} data-testid="observer-side">
           <div class="obs-tabs" role="tablist">
             <TabBtn tab="score" now={tab} icon="objectives" label={t('Scoreboard')} onPick={setTab} />
+            <TabBtn tab="compare" now={tab} icon="layers" label={t('Compare')} onPick={setTab} />
             <TabBtn tab="events" now={tab} icon="chronicle" label={t('World events')} count={sp.events.length} onPick={setTab} />
             <TabBtn tab="agents" now={tab} icon="agent" label={t('Agents')} count={agentSeats.length || undefined} alert={errors.length > 0} onPick={setTab} />
           </div>
           <div class="obs-side-body" key={tab}>
             {tab === 'score' ? <Scoreboard sp={sp} seats={seats} finished={finished} thinkingOf={thinkingOf} onAgents={() => setTab('agents')} />
+              : tab === 'compare' ? <Compare sp={sp} />
               : tab === 'events' ? <Events sp={sp} onShow={show} />
               : <Agents state={s} sp={sp} thinkingOf={thinkingOf} />}
           </div>
@@ -249,11 +199,12 @@ export function ObserverConsole() {
         </button>
 
         {selected !== null ? <RegionCard sp={sp} id={selected} onClose={() => setSelected(null)} /> : null}
-        <Playback state={s} sp={sp} finished={finished} thinkingOf={thinkingOf} />
+        <Playback state={s} />
         <MomentBanner state={s} />
       </div>
 
-      {finished && !s.resultDismissed ? <Result sp={sp} seats={seats} /> : null}
+      {/* The result waits for the world snapshot that carries the outcome, not just the summary's "finished". */}
+      {(sp.outcome || sp.phase === 'finished') && !s.resultDismissed ? <Result sp={sp} seats={seats} /> : null}
     </div>
   );
 }
@@ -710,75 +661,6 @@ function RegionCard({ sp, id, onClose }: { sp: SpectatorView; id: RegionId; onCl
         {owner ? <Btn small nav icon="eye" onClick={() => void viewAsSeat(owner.seat)}>{t('View as {name}', { name: tc(owner.name) })}</Btn> : null}
       </div>
     </aside>
-  );
-}
-
-// --- playback -----------------------------------------------------------------------------------
-
-function Playback({ state, sp, finished, thinkingOf }: { state: AppState; sp: SpectatorView; finished: boolean; thinkingOf: (a: AgentInfo) => number }) {
-  const pb = state.playback;
-  const seats = state.summary?.seats ?? [];
-  const thinking = seats.filter((x) => x.agent && x.agent.state === 'thinking');
-  const waitSeats = thinking.length ? thinking : seats.filter((x) => pb.waitingOn.includes(x.seat) && x.agent);
-  const running = pb.busy || pb.playing;
-  const year = yearOf(sp.month);
-  const elapsed = waitSeats.length
-    ? Math.max(...waitSeats.map((x) => (x.agent!.state === 'thinking' ? thinkingOf(x.agent!) : 0)), pb.waitingSince ? (Date.now() - pb.waitingSince) / 1000 : 0)
-    : 0;
-
-  let tone = 'idle';
-  let icon = 'pause';
-  let line: ComponentChildren;
-  if (finished) {
-    tone = 'done'; icon = 'flag';
-    line = t('Match finished');
-  } else if (pb.error) {
-    tone = 'error'; icon = 'warn';
-    line = <>{t('Playback stopped:')} {pb.error}</>;
-  } else if (waitSeats.length) {
-    tone = 'thinking'; icon = 'spark';
-    line = <>{t('Waiting for {names} to think', { names: waitSeats.map((x) => tc(x.name)).join(', ') })} — <b class="pb-clock" data-testid="observer-elapsed">{clock(elapsed)}</b></>;
-  } else if (pb.busy) {
-    tone = 'busy'; icon = 'hourglass';
-    line = <>{t('Resolving year {n}…', { n: year })}{pb.queued > 1 ? <small> · {t('{n} rounds to go', { n: pb.queued })}</small> : null}</>;
-  } else if (pb.playing) {
-    tone = 'busy'; icon = 'play';
-    line = t('Playing at {n}×', { n: pb.speed });
-  } else {
-    line = <>{t('Paused at year {n}', { n: year })}<small> · {t('step, play, or run ten rounds')}</small></>;
-  }
-
-  return (
-    <div class={cx('playback', 'is-' + tone)} role="group" aria-label={t('Playback')} data-testid="observer-playback">
-      <div class="pb-controls">
-        <button type="button" class="pb-btn" disabled={finished || running} data-testid="observer-step"
-          title={t('Step one round (.)')} onClick={() => observerRun(1)}>
-          <Icon name="step" size={17} /><span>{t('Step')}</span>
-        </button>
-        <button type="button" class={cx('pb-play', pb.playing && 'is-playing')} disabled={finished || (pb.busy && !pb.playing)} aria-pressed={pb.playing} data-testid="observer-play"
-          title={pb.playing ? t('Pause (Space)') : t('Play (Space)')} aria-label={pb.playing ? t('Pause') : t('Play')} onClick={() => observerPlay(!pb.playing)}>
-          <Icon name={pb.playing ? 'pause' : 'play'} size={24} />
-        </button>
-        <div class="pb-speed" role="radiogroup" aria-label={t('Speed')}>
-          {[1, 2, 4].map((n) => (
-            <button type="button" role="radio" aria-checked={pb.speed === n} class={cx('pb-speed-opt', pb.speed === n && 'is-active')} data-testid={`observer-speed-${n}`} onClick={() => observerSpeed(n)}>{n}×</button>
-          ))}
-        </div>
-        <button type="button" class="pb-btn" disabled={finished || running} data-testid="observer-run10"
-          title={t('Run ten rounds, then stop')} onClick={() => observerRun(10)}>
-          <Icon name="fast" size={17} /><span>{t('Run 10')}</span>
-        </button>
-        {pb.busy && !pb.playing ? (
-          <button type="button" class="pb-btn is-stop" data-testid="observer-stop" title={t('Stop after the round in hand')} onClick={() => observerPlay(false)}>
-            <Icon name="pause" size={15} /><span>{t('Stop')}</span>
-          </button>
-        ) : null}
-      </div>
-      <div class="pb-status" role="status" aria-live="polite" data-testid="observer-status" data-state={tone}>
-        <span class="pb-status-icon"><Icon name={icon} size={13} /></span>
-        <span class="pb-status-text">{line}</span>
-      </div>
-    </div>
   );
 }
 

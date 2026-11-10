@@ -381,4 +381,85 @@
   .map-mini { display: none; }
 }
 
-.map-construction-key{display:inline-block;width:48px;height:10px;background:linear-gradient(90deg,#e6dfc9,#467b73);border:1px solid #82785f;margin-right:7px}.map-province-plan{position:absolute;left:calc(var(--mi-l) + 16px);top:calc(var(--mi-t) + 16px);padding:16px;width:268px;max-width:calc(100% - var(--mi-l) - var(--mi-r) - 32px);background:#faf4e5f5;border:1px solid #b19b70;border-top:3px solid #66877a;box-shadow:0 4px 18px #2c251b20;border-radius:5px}.map-province-plan>small{letter-spacing:1.5px;text-transform:uppercase;font-size:9px;color:#7c735e}.map-province-plan h3{font:22px var(--serif,Georgia);margin:5px 0}.map-province-plan p{font-size:11px;color:#736a59}.province-sectors{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;border-block:1px solid #b7a58470;padding:10px 0}.province-sectors span{font-size:9px}.province-sectors b{display:block;font-size:19px;color:#41675b}.map-province-plan .btn{width:100%}
+/* --- works key in the legend ----------------------------------------------------- */
+.map-works { display: block !important; border-top: 1px solid var(--line, #cbbd9c); padding-top: 5px; margin-top: 2px; }
+.map-works-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; }
+.map-works-grid span { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.map-works-scale { display: flex; align-items: center; gap: 3px; margin-top: 5px; color: var(--ink-2, #5a5044); font-size: 11px; }
+.map-works-scale span { margin-left: 4px; }
+
+/* --- regional development card (construction mode) --------------------------------- */
+.map-province-plan {
+  position: absolute;
+  left: calc(var(--mi-l) + 14px);
+  top: calc(var(--mi-t) + 14px);
+  width: 286px;
+  max-width: calc(100% - var(--mi-l) - var(--mi-r) - 28px);
+  /* Stops short of the zoom buttons and the mode bar below it. */
+  max-height: calc(100% - var(--mi-t) - var(--mi-b) - 132px);
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 14px 13px;
+  background: var(--paper-3, #f7f1e1);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+  border: 1px solid var(--ink-3, #8a7d6a);
+  border-top: 3px solid #488b80;
+  border-radius: 4px;
+  box-shadow: 0 3px 12px rgba(60, 40, 10, 0.2);
+  user-select: text;
+  -webkit-user-select: text;
+  z-index: 3;
+}
+.map-province-plan > small { letter-spacing: 0.12em; text-transform: uppercase; font-size: 10px; color: var(--ink-3, #8a7d6a); }
+.map-province-plan h3 { font: 600 20px/1.15 var(--serif, Georgia, serif); margin: 0; }
+.map-province-plan p { font-size: 12px; color: var(--ink-2, #5a5044); margin: 0; }
+.dev-note { font-size: 12px; color: var(--ink-2, #5a5044); margin: 0; }
+.dev-bar { display: flex; height: 9px; border: 1px solid var(--ink-2, #5a5044); background: var(--paper, #efe6cf); min-width: 40px; flex: none; }
+.dev-bar i { display: block; height: 100%; min-width: 1px; box-shadow: 1px 0 0 var(--paper-3, #f7f1e1); }
+.dev-sectors { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12px; }
+.dev-sectors li { display: grid; grid-template-columns: 11px 78px 1fr 30px; align-items: center; gap: 7px; }
+.dev-sectors li.is-none { color: var(--ink-3, #8a7d6a); }
+.dev-sectors b { text-align: right; font-variant-numeric: tabular-nums; }
+.dev-sectors li.is-none b { font-weight: 400; }
+.dev-key { width: 11px; height: 11px; border-radius: 2px; border: 1px solid rgba(43, 38, 32, 0.6); }
+.dev-meter { height: 7px; background: rgba(90, 80, 68, 0.12); border-radius: 1px; overflow: hidden; }
+.dev-meter i { display: block; height: 100%; }
+.dev-queue { border-top: 1px solid var(--line, #cbbd9c); padding-top: 6px; font-size: 12px; }
+.dev-queue-head { display: block; font-family: var(--serif, Georgia, serif); font-variant: small-caps; letter-spacing: 0.05em; color: var(--ink-2, #5a5044); margin-bottom: 3px; }
+.dev-queue ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.dev-queue li { display: flex; justify-content: space-between; gap: 8px; }
+.dev-queue li b { color: #8a5a12; }
+.dev-queue li em { font-style: normal; color: var(--ink-2, #5a5044); font-variant-numeric: tabular-nums; }
+.dev-more { color: var(--ink-3, #8a7d6a); }
+.map-province-plan .btn { width: 100%; margin-top: 2px; }
+.dev-link { appearance: none; border: 0; background: none; padding: 0; font: inherit; font-size: 12px; color: var(--accent-2, #2f5d6e); text-decoration: underline; cursor: pointer; text-align: left; }
+.dev-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; min-height: 0; display: grid; gap: 1px; }
+.dev-list button {
+  appearance: none; border: 0; background: transparent; font: inherit; color: inherit; cursor: pointer; width: 100%;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) 76px 30px 26px; align-items: center; gap: 7px; padding: 3px 4px; border-radius: 3px; text-align: left;
+}
+.dev-list button:hover, .dev-list button:focus-visible { background: var(--paper-2, #e6dabd); outline: none; }
+.dev-list .map-chip { margin: 0; }
+.dev-list-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; grid-column: 2; }
+.dev-list button > .dev-list-name:first-child { grid-column: 1 / span 2; }
+.dev-list b { text-align: right; font-variant-numeric: tabular-nums; }
+.dev-list em { font-style: normal; color: #8a5a12; font-size: 11px; font-weight: 700; }
+
+.dev-keys { display: grid; grid-template-columns: repeat(4, auto); gap: 2px 8px; font-size: 11px; color: var(--ink-2, #5a5044); border-top: 1px solid var(--line, #cbbd9c); padding-top: 6px; }
+.dev-keys span { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.dev-keys .dev-key { width: 9px; height: 9px; flex: none; }
+.dev-ramp { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-2, #5a5044); }
+.dev-ramp > span:nth-child(2) { display: flex; flex: 1; height: 9px; border: 1px solid var(--ink-2, #5a5044); }
+.dev-ramp i { flex: 1; }
+/* On a narrow strip of map the card keeps to its headline. */
+.map-province-plan.is-compact { width: 232px; padding: 9px 11px 10px; gap: 5px; }
+.map-province-plan.is-compact h3 { font-size: 16px; }
+.map-province-plan.is-compact .dev-sectors,
+.map-province-plan.is-compact .dev-keys,
+.map-province-plan.is-compact .dev-ramp,
+.map-province-plan.is-compact > .dev-note { display: none; }
+.map-province-plan.is-compact .dev-list { max-height: 148px; }
+/* In the development view the card takes the overview map's corner; its list moves the camera. */
+.map-view.is-3d[data-mode="construction"] .map-mini { display: none; }
