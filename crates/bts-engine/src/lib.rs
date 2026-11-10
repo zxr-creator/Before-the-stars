@@ -5,6 +5,7 @@
 
 pub mod actions;
 pub mod content;
+pub mod curve;
 pub mod ledger;
 pub mod observe;
 pub mod sim;
@@ -25,11 +26,14 @@ pub struct Match {
     /// Referee-side books kept while a conservation audit is running; never saved
     /// and never shown to a seat.
     ledger_trace: Option<Vec<ledger::LedgerSnapshot>>,
+    /// Calibration curve kept while recording (`curve::CurveRecorder`); never saved
+    /// and never shown to a seat.
+    curve: Option<curve::CurveRecorder>,
 }
 
 impl Match {
     pub fn new(cfg: MatchConfig, entropy: u64) -> Match {
-        Match { world: worldgen::generate(cfg, entropy), ledger_trace: None }
+        Match { world: worldgen::generate(cfg, entropy), ledger_trace: None, curve: None }
     }
 
     /// The whole world's books at this moment. Referee-level disclosure for
@@ -50,6 +54,27 @@ impl Match {
     pub fn take_ledger_trace(&mut self) -> Vec<ledger::LedgerSnapshot> {
         match self.ledger_trace.as_mut() {
             Some(t) => std::mem::take(t),
+            None => Vec::new(),
+        }
+    }
+
+    /// Start (or stop) recording the calibration curve: one row per seat at the
+    /// start of every decade resolved from now on (and now, if this is one).
+    /// Referee-level disclosure for calibration only.
+    pub fn record_curve(&mut self, on: bool) {
+        self.curve = if on {
+            let mut rec = self.curve.take().unwrap_or_else(|| curve::CurveRecorder::new(&self.world));
+            rec.sample_if_due(&self.world);
+            Some(rec)
+        } else {
+            None
+        };
+    }
+
+    /// The curve rows recorded since the last call, oldest first.
+    pub fn take_curve(&mut self) -> Vec<curve::CurveRow> {
+        match self.curve.as_mut() {
+            Some(c) => std::mem::take(&mut c.rows),
             None => Vec::new(),
         }
     }
@@ -167,9 +192,15 @@ impl Match {
                     trace.push(ledger::snapshot(w, true));
                 }
                 for _ in 0..w.cfg.months_per_round {
+                    if let Some(c) = self.curve.as_mut() {
+                        c.before_month(w);
+                    }
                     sim::step_month(w);
                     if let Some(trace) = self.ledger_trace.as_mut() {
                         trace.push(ledger::snapshot(w, false));
+                    }
+                    if let Some(c) = self.curve.as_mut() {
+                        c.after_month(w);
                     }
                     if w.outcome.is_some() {
                         break;
@@ -233,7 +264,7 @@ impl Match {
             None => return Err(format!("this save does not record the ruleset that wrote it; this build runs {running} and cannot load it")),
         }
         let world: World = serde_json::from_str(s).map_err(|e| e.to_string())?;
-        Ok(Match { world, ledger_trace: None })
+        Ok(Match { world, ledger_trace: None, curve: None })
     }
 
     /// Referee-side diagnostics for headless evaluation. Never exposed to seats.

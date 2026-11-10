@@ -115,3 +115,16 @@ pub fn fnv(bytes: &[u8]) -> u64 {
     }
     h
 }
+
+/// The date of the month about to be simulated after `month` completed months:
+/// (year, month of the year 1-12). Ruleset 2.0 has no calendar: years count from 1.
+pub fn date(_cfg: &crate::state::MatchConfig, month: u32) -> (i32, u8) {
+    ((month / 12 + 1) as i32, (month % 12 + 1) as u8)
+}
+
+/// Whether the month about to be simulated opens a decade (January of a year
+/// divisible by ten; the start of the match counts).
+pub fn decade_start(cfg: &crate::state::MatchConfig, month: u32) -> bool {
+    let (y, m) = date(cfg, month);
+    month == 0 || (m == 1 && y % 10 == 0)
+}

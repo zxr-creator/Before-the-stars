@@ -33,6 +33,24 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Persistence | Implemented | Full checkpoint saves including controller memory; state hashes; `bts verify` checks repeatability and checkpoint recovery |
 | Conservation (`docs/conservation-audit.md`) | Implemented | Goods, people, qualified people, service, work and deposits each have a ledger and an identity; every source is listed with what backs it. The referee can record its books every month (`Match::record_ledgers`), and scripted and all-AI matches are audited month by month over whole campaigns. Capacities (water, care, storage, venue places, transport grade, generator and grid capacity) still depend on works existing rather than on their staffing |
 
+## Ruleset 3.0 (design chapter 36) progress
+
+Branch `ruleset3`. Slices are recorded here as they land; calibration outputs are in
+`docs/calibration/ruleset3-slice-*.txt`.
+
+- **Slice 0, tooling (done).** `bts run --curve FILE.csv` writes one row per seat at
+  the start of every decade (population, regions, technologies understood by tier,
+  research capacity and use, traded tonnes, births and deaths over the decade, food,
+  soldiers, and the era milestones of design table 2.7) from a referee-side recorder
+  (`bts_engine::curve`, never saved, never served to a seat); `--matches M` runs
+  matches on a worker pool (`--threads`, `--first`) into one CSV. `--checkpoints DIR
+  --at m1,m2,...` saves the match at the first round boundary at or after each month.
+  `cargo run --release -p bts-host --example bench -- SAVE [--rounds N] [--policy]`
+  measures p50/p95 per round and the mean per month from a save.
+  `scripts/curve_summary.py` summarizes a curve (population by date, regions, era
+  milestones, growth checks). The ruleset 2.0 baseline is
+  `docs/calibration/ruleset3-slice-0-baseline.txt`.
+
 ## Known calibration gaps
 
 - All numeric parameters are first-pass values tuned only through all-AI matches.

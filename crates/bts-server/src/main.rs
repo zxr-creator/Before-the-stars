@@ -6,6 +6,7 @@
 //! bts                                   start the game in its own window (packaged use)
 //! bts serve   [--port 7878] [--web apps/web/dist] [--require-tokens]
 //! bts run     [--seed S] [--rounds N] [--ai hard,medium,medium,easy] [--regions 48] [--horizon 2880] [--every 20] [--matches M]
+//!             [--curve out.csv] [--checkpoints DIR --at m1,m2,...] [--save out.json] [--first K] [--threads T]
 //! bts verify  [--seed S] [--rounds N]
 //! bts observe --seat N [--url http://127.0.0.1:7878] [--token T]
 //! bts act     --seat N --file actions.json [--url ...] [--token T]
@@ -334,43 +335,126 @@ fn run_config(args: &Args) -> MatchConfig {
     cfg
 }
 
-fn run(args: &Args) {
-    let matches: u32 = args.num("matches", 1);
-    let rounds: u32 = args.num("rounds", 240);
-    let every: u32 = args.num("every", 20);
-    if matches <= 1 {
-        let mut s = Session::new(run_config(args), 7);
-        let start = std::time::Instant::now();
-        while !s.m.finished() && s.m.round() <= rounds {
-            s.run_rounds(every.max(1));
-            if !args.has("quiet") {
-                print_table(&s);
+/// Calibration checkpoints requested with `--checkpoints DIR --at m1,m2,...`: the
+/// match is saved at the first round boundary at or after each month.
+fn checkpoint_months(args: &Args) -> Vec<u32> {
+    let mut v: Vec<u32> = args.get("at", "").split(',').filter_map(|x| x.trim().parse().ok()).collect();
+    v.sort_unstable();
+    v
+}
+
+/// Run one match to its end or the round limit, recording the curve and writing
+/// checkpoints when asked. Returns the session and its curve rows.
+fn run_one(cfg: MatchConfig, args: &Args, rounds: u32, every: u32, print: bool) -> (Session, Vec<bts_engine::curve::CurveRow>) {
+    let mut s = Session::new(cfg, 7);
+    let want_curve = args.has("curve");
+    if want_curve {
+        s.m.record_curve(true);
+    }
+    let dir = args.flags.get("checkpoints").cloned();
+    let mut pending = checkpoint_months(args);
+    let mut rows = Vec::new();
+    let mut since = 0;
+    while !s.m.finished() && s.m.round() <= rounds {
+        let before = s.m.round();
+        s.run_rounds(1);
+        if s.m.round() == before && !s.m.finished() {
+            break;
+        }
+        since += 1;
+        if let Some(d) = &dir {
+            while let Some(&at) = pending.first() {
+                if s.m.month() < at {
+                    break;
+                }
+                pending.remove(0);
+                let path = Path::new(d).join(format!("{}-m{:05}.json", s.m.config().seed, s.m.month()));
+                std::fs::create_dir_all(d).expect("checkpoint directory");
+                std::fs::write(&path, s.save()).expect("write checkpoint");
             }
         }
+        if want_curve {
+            rows.extend(s.m.take_curve());
+        }
+        if print && since >= every.max(1) {
+            since = 0;
+            print_table(&s);
+        }
+    }
+    if want_curve {
+        rows.extend(s.m.take_curve());
+    }
+    (s, rows)
+}
+
+fn write_curve(path: &str, rows: &[(String, bts_engine::curve::CurveRow)]) {
+    let mut out = format!("seed,{}\n", bts_engine::curve::CurveRow::csv_header());
+    for (seed, r) in rows {
+        out += &format!("{seed},{}\n", r.csv());
+    }
+    std::fs::write(path, out).expect("write curve");
+}
+
+fn run(args: &Args) {
+    let matches: u32 = args.num("matches", 1);
+    let rounds: u32 = args.num("rounds", 100_000);
+    let every: u32 = args.num("every", 20);
+    if matches <= 1 {
+        let start = std::time::Instant::now();
+        let cfg = run_config(args);
+        let seed = cfg.seed.clone();
+        let (s, rows) = run_one(cfg, args, rounds, every, !args.has("quiet"));
         print_table(&s);
         println!("finished: {}  winner: {:?}  elapsed {:.1}s  state hash {:016x}", s.m.finished(), s.m.winner(), start.elapsed().as_secs_f64(), s.m.state_hash());
         if let Some(path) = args.flags.get("save") {
             std::fs::write(path, s.save()).expect("write save");
         }
+        if let Some(path) = args.flags.get("curve") {
+            write_curve(path, &rows.into_iter().map(|r| (seed.clone(), r)).collect::<Vec<_>>());
+        }
         return;
     }
     // Independent matches run in parallel across CPU cores; each match is itself deterministic.
     let base = args.get("seed", "eval");
-    let handles: Vec<_> = (0..matches)
-        .map(|i| {
-            let mut cfg = run_config(args);
-            cfg.seed = format!("{base}-{i}");
+    let first: u32 = args.num("first", 0);
+    let threads: usize = args.num("threads", std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4));
+    let queue = std::sync::Arc::new(std::sync::Mutex::new((first..first + matches).collect::<Vec<u32>>()));
+    let results = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let flags = args.flags.clone();
+    let workers: Vec<_> = (0..threads.max(1))
+        .map(|_| {
+            let queue = queue.clone();
+            let results = results.clone();
+            let flags = flags.clone();
+            let base = base.clone();
             std::thread::spawn(move || {
-                let mut s = Session::new(cfg, 7);
-                s.run_rounds(rounds);
-                (i, s.m.winner(), s.m.month(), s.m.diagnostics())
+                let args = Args { flags };
+                loop {
+                    let Some(i) = queue.lock().unwrap().pop() else { break };
+                    let mut cfg = run_config(&args);
+                    cfg.seed = format!("{base}-{i}");
+                    let seed = cfg.seed.clone();
+                    let start = std::time::Instant::now();
+                    let (s, rows) = run_one(cfg, &args, rounds, u32::MAX, false);
+                    let secs = start.elapsed().as_secs_f64();
+                    results.lock().unwrap().push((i, seed, s.m.winner(), s.m.month(), s.m.diagnostics(), rows, secs));
+                }
             })
         })
         .collect();
-    for h in handles {
-        let (i, winner, month, diag) = h.join().expect("match thread");
+    for w in workers {
+        w.join().expect("match thread");
+    }
+    let mut results = std::mem::take(&mut *results.lock().unwrap());
+    results.sort_by_key(|r| r.0);
+    let mut all_rows = Vec::new();
+    for (i, seed, winner, month, diag, rows, secs) in results {
         let line: Vec<String> = diag.iter().map(|d| format!("{}:{}p/{}r/{}t", d.seat, d.population, d.regions, d.understood)).collect();
-        println!("match {i:>2}  winner {:?}  month {month:>4}  {}", winner, line.join("  "));
+        println!("match {i:>2}  winner {:?}  month {month:>5}  {:.1}s  {}", winner, secs, line.join("  "));
+        all_rows.extend(rows.into_iter().map(|r| (seed.clone(), r)));
+    }
+    if let Some(path) = args.flags.get("curve") {
+        write_curve(path, &all_rows);
     }
 }
 
