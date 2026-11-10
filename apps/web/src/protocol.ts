@@ -247,7 +247,9 @@ export interface VenueSeats {
 }
 
 export interface OwnRegion {
-  construction_sites?: { work_per_level: number; min_months: number; kind: string; max_level: number; queued_levels: number }[];
+  construction_sites?: { work_per_level: number; min_months: number; kind: string; max_level: number; queued_levels: number; cost_per_level?: GoodQty[]; crew_per_level?: CrewSpec[]; site_power_per_level?: number; first_of_kind?: boolean }[];
+  /** Every project sited in this region, in the order in which it is served. (serde default) */
+  construction_queue?: QueueEntry[];
   population: number;
   children: number;
   working_age: number;
@@ -485,6 +487,12 @@ export interface FacilityType {
   requirements: KnownRequirement[];
   available: boolean;
   labor_category: LaborCategory | null;
+  /** Qualified site crew per level under construction, in people. (serde default) */
+  build_crew?: CrewSpec[];
+  /** Shaft service a site draws per level in a month of full work, base units of 0.1 MWh. (serde default) */
+  build_power?: number;
+  /** Minimum months of construction before any first-of-kind surcharge. (serde default) */
+  build_months?: number;
 }
 
 export interface CourseType {
@@ -539,6 +547,18 @@ export interface ProjectView {
   blockers: string[];
   eta_months_low: number | null;
   eta_months_high: number | null;
+  /** The qualified site crew the order needs and had reserved last month, in people. (serde default) */
+  crew?: CrewOnSite[];
+  /** Shaft service the site draws in a month of full work, base units of 0.1 MWh. (serde default) */
+  site_power?: number;
+  /** Share of the site power asked for last month that was delivered, basis points. (serde default) */
+  power_bp?: number;
+  /** Share of the goods bill committed so far, basis points. (serde default) */
+  goods_bp?: number;
+  /** Months the project takes at least; 0 where no minimum is recorded. (serde default) */
+  min_months?: number;
+  /** 0-based place in the construction queue of the region the project is sited in. (serde default) */
+  queue_position?: number | null;
 }
 
 export interface ProgramView {
@@ -746,7 +766,7 @@ export type Action =
   | { kind: 'break_treaty'; treaty: number }
   | { kind: 'set_policy'; setting: PolicySetting }
   | { kind: 'start_project'; spec: ProjectSpec; priority: number | null }
-  | { kind: 'manage_project'; project: number; op: ManageOp; priority: number | null }
+  | { kind: 'manage_project'; project: number; op: ManageOp; priority: number | null; position?: number | null }
   | { kind: 'investigate'; lead: string }
   | { kind: 'propose_reform'; practice: string }
   | { kind: 'start_program'; region: RegionId; course: string; seats: number }
@@ -1016,4 +1036,82 @@ export interface PeopleLimits {
   program_seats_max: number;
   /** Learners a founding cohort can hold while nobody qualified can teach it. */
   founding_cohort_max: number;
+}
+
+// ---------------------------------------------------------------------------
+// Construction quotes and regional queues (ruleset 2.0, slice C)
+// ---------------------------------------------------------------------------
+
+/** One group of a qualified site crew: `count` people who hold any of `quals`. */
+export interface CrewSpec {
+  /** Acceptable qualifications, most preferred first. */
+  quals: Qual[];
+  /** People. */
+  count: number;
+}
+
+/** One group of a site crew as it stood last month. */
+export interface CrewOnSite {
+  /** Acceptable qualifications, most preferred first. */
+  quals: Qual[];
+  /** People the order needs in this group, and people reserved for it last month. */
+  needed: number;
+  on_site: number;
+}
+
+/**
+ * The true price of one level of a facility in one region, as charged if ordered
+ * now (the element type of `OwnRegion.construction_sites`). An order of `n` levels
+ * is charged exactly `n` times the goods, work, crew and site power and takes the
+ * same minimum months.
+ */
+export interface BuildSiteView {
+  /** Worker-months per level, including the first-of-kind surcharge where it applies. */
+  work_per_level: number;
+  /** Months the order takes at least, including the first-of-kind surcharge. */
+  min_months: number;
+  kind: string;
+  max_level: number;
+  queued_levels: number;
+  /** Goods per level, base units (rations, tonnes or lots). (serde default) */
+  cost_per_level?: GoodQty[];
+  /** Qualified site crew per level, in people; reserved while the order is active. (serde default) */
+  crew_per_level?: CrewSpec[];
+  /**
+   * Shaft service the site draws per level in a month of full work, base units of
+   * 0.1 MWh. Taken from the region's shaft supply, then from site engines burning
+   * coal (1 t for 5 units), then refined fuel (1 t for 10 units). (serde default)
+   */
+  site_power_per_level?: number;
+  /** True when the seat has no installation of this kind: work and months are half as much again. (serde default) */
+  first_of_kind?: boolean;
+}
+
+/** One order in a region's construction queue, in the order of service. */
+export interface QueueEntry {
+  /** Project id, as in `ProjectView.id` and `manage_project`. */
+  project: number;
+  /** 0-based place in the region's service order; `manage_project` with `position` moves it. */
+  position: number;
+  /** Project kind, as in `ProjectView.kind`. */
+  kind: string;
+  title: string;
+  /** Facility kind for a build order. */
+  facility: string | null;
+  /** Levels a build order adds. */
+  levels: number | null;
+  priority: number;
+  paused: boolean;
+  /** Share of the work done, basis points. */
+  progress_bp: number;
+  /** The qualified site crew: needed and reserved last month, in people. */
+  crew: CrewOnSite[];
+  /** Share of the site power asked for last month that was delivered, basis points. */
+  power_bp: number;
+  /** Share of the goods bill committed so far, basis points. */
+  goods_bp: number;
+  /** What the order was short of last month, in words; empty when nothing held it back. */
+  waiting_for: string[];
+  eta_months_low: number | null;
+  eta_months_high: number | null;
 }
