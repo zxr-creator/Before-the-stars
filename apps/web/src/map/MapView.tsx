@@ -523,11 +523,13 @@ export function MapView(props: MapViewProps): JSX.Element {
   const losses = useRef(0);
   const tier: MapTier = failed3d ? 'flat' : tierPref;
   // The legend is open while the uncovered map box is roomy, unless the player
-  // has chosen otherwise; it never squats on a narrow strip of map.
+  // has chosen otherwise; it never squats on a narrow strip of map. With the works
+  // key it is a tall card, so "roomy" means a box it can share with the whole known world
+  // (not the map beside an open drawer or the observer's panels).
   const [legendPref, setLegendPref] = useState<boolean | null>(null);
   const roomy = typeof window === 'undefined'
     ? true
-    : window.innerWidth - insets.left - insets.right >= 720 && window.innerHeight - insets.top - insets.bottom >= 470;
+    : window.innerWidth - insets.left - insets.right >= 1000 && window.innerHeight - insets.top - insets.bottom >= 540;
   // In construction mode the development card carries its own key and takes the legend's place.
   const legendOpen = legendPref ?? (roomy && mode !== 'construction');
   const setLegendOpen = (v: boolean) => setLegendPref(v);
