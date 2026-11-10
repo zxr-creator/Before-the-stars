@@ -11,7 +11,7 @@ import type {
   Action, AgentLogEntry, MatchSummary, MomentCategory, NewMatchRequest, Observation, Receipt, RegionId, SeatId,
   SpectatorView,
 } from './protocol';
-import { yearOf } from './format';
+import { setUnits, yearOf } from './format';
 import { t, tc } from './i18n';
 
 export type PanelKey =
@@ -195,6 +195,7 @@ export function getState(): AppState {
 }
 
 function set(patch: Partial<AppState>): void {
+  if (patch.obs?.units) setUnits(patch.obs.units);
   state = { ...state, ...patch };
   listeners.forEach((l) => l());
 }

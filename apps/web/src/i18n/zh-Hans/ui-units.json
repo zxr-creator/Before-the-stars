@@ -1,0 +1,19 @@
+{
+  "{n} tonnes": "{n}吨",
+  "{n} t": "{n}吨",
+  "{n} kt": "{n}千吨",
+  "{n} Mt": "{n}百万吨",
+  "{n} Gt": "{n}十亿吨",
+  "{n} rations": "{n}份口粮",
+  "{n} lots": "{n}批",
+  "rations": "份口粮",
+  "lots": "批",
+  "tonnes": "吨",
+  "{n} worker-months": "{n}人月",
+  "{n} researcher-months": "{n}研究人月",
+  "{n} kWh": "{n}千瓦时",
+  "{n} MWh": "{n}兆瓦时",
+  "{n} GWh": "{n}吉瓦时",
+  "{n} TWh": "{n}太瓦时",
+  "{n} hall-months": "{n}机房月"
+}

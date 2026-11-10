@@ -179,9 +179,119 @@ export function compact(n: number): string {
   return nf2.format(n);
 }
 
-/** Milli-units → display units (900000 → "900"). */
+/** Milli-units → display units (900000 → "900"). Prefer the unit-naming helpers below. */
 export function milli(n: number): string {
   return compact(n / 1000);
+}
+
+// --- units (docs/units-and-scale.md §2) ----------------------------------------------
+// Every quantity on the wire is an integer of base units: one person, one post, one
+// ration (50 kg grain-equivalent), one tonne of bulk goods, one standard lot of
+// manufactures, one worker-month or researcher-month of work, 0.1 MWh of shaft or
+// electric service, and a compute index (1,000 = one machine-hall-month). The helpers
+// below take base units and name the unit. English scales to k/M (kt/Mt, GWh); Chinese
+// counts in 万/亿 (34万吨, 1,500万千瓦时).
+
+export type GoodUnitKind = 'ration' | 't' | 'lot';
+const LOT_GOODS: Good[] = ['tools', 'spares', 'electronics', 'hardware', 'media', 'instruments', 'medicine'];
+const unitOf: Partial<Record<Good, GoodUnitKind>> = {};
+const massOf: Partial<Record<Good, number>> = {};
+
+/** Adopt the running ruleset's unit table (`Observation.units`); the doc's table is the default. */
+export function setUnits(units: { goods: { good: Good; unit: string; tonnes_per_unit_milli: number }[] } | null | undefined): void {
+  for (const g of units?.goods ?? []) {
+    if (g.unit === 'ration' || g.unit === 't' || g.unit === 'lot') unitOf[g.good] = g.unit;
+    massOf[g.good] = g.tonnes_per_unit_milli;
+  }
+}
+
+/** What one base unit of a good is: a ration (food), a tonne (bulk) or a standard lot. */
+export function goodUnit(good: Good): GoodUnitKind {
+  return unitOf[good] ?? (good === 'food' ? 'ration' : LOT_GOODS.includes(good) ? 'lot' : 't');
+}
+
+/** Mass of `n` base units of a good in tonnes (rations 0.05 t, lots 0.04–0.5 t). */
+export function goodTonnes(good: Good, n: number): number {
+  const kg = massOf[good] ?? (good === 'food' ? 50 : good === 'electronics' ? 50 : good === 'hardware' ? 500 : good === 'media' ? 150 : good === 'instruments' ? 400 : good === 'medicine' ? 40 : LOT_GOODS.includes(good) ? 250 : 1000);
+  return (n * kg) / 1000;
+}
+
+function nfShort(v: number): string {
+  const a = Math.abs(v);
+  return a >= 100 ? nf0.format(v) : a >= 10 ? nf1.format(v) : nf2.format(v);
+}
+
+/** Tonnes: "800 t", "12.4 kt", "240 Mt" / "800吨", "1.24万吨", "2.4亿吨". */
+export function tonnes(n: number): string {
+  const a = Math.abs(n);
+  if (isZh()) return t('{n} tonnes', { n: a < 1e4 ? nfShort(n) : compact(n) });
+  if (a >= 1e9) return t('{n} Gt', { n: nfShort(n / 1e9) });
+  if (a >= 1e6) return t('{n} Mt', { n: nfShort(n / 1e6) });
+  if (a >= 1e3) return t('{n} kt', { n: nfShort(n / 1e3) });
+  return t('{n} t', { n: nfShort(n) });
+}
+
+/** Rations of food: "30k rations" / "3万份口粮". */
+export function rations(n: number): string {
+  return t('{n} rations', { n: compact(n) });
+}
+
+/** Standard lots of manufactures: "5,000 lots", "12k lots" / "1.2万批". */
+export function lots(n: number): string {
+  return t('{n} lots', { n: compact(n) });
+}
+
+/** A quantity of a good in its own unit, without the good's name: "30 kt", "30k rations", "5,000 lots". */
+export function qty(good: Good, n: number): string {
+  const u = goodUnit(good);
+  return u === 'ration' ? rations(n) : u === 'lot' ? lots(n) : tonnes(n);
+}
+
+/** Signed quantity of a good: "+12 kt", "−3k rations". */
+export function qtySigned(good: Good, n: number): string {
+  if (n === 0) return '0';
+  return (n > 0 ? '+' : '−') + qty(good, Math.abs(n));
+}
+
+/** The unit word alone, for column heads and axis titles: "kt", "rations", "lots". */
+export function unitLabel(good: Good): string {
+  const u = goodUnit(good);
+  return u === 'ration' ? t('rations') : u === 'lot' ? t('lots') : isZh() ? t('tonnes') : 't';
+}
+
+/** People, compact above ten thousand: "8,400 people", "240k people", "1.2M people" / "24万人". */
+export function people(n: number): string {
+  return t('{n} people', { n: peopleNum(n) });
+}
+
+/** A head count without the word: exact below ten thousand, then 240k / 1.2M (24万 / 1.2亿). */
+export function peopleNum(n: number): string {
+  return Math.abs(n) < 1e4 ? int(Math.round(n)) : compact(Math.round(n));
+}
+
+/** Project work: "120k worker-months" / "12万人月". */
+export function workMonths(n: number): string {
+  return t('{n} worker-months', { n: compact(Math.round(n)) });
+}
+
+/** Research work: "18k researcher-months" / "1.8万研究人月". */
+export function researchMonths(n: number): string {
+  return t('{n} researcher-months', { n: compact(Math.round(n)) });
+}
+
+/** Shaft or electric service (base unit 0.1 MWh): "600 MWh", "15 GWh" / "1,500万千瓦时". */
+export function energy(n: number): string {
+  const mwh = n / 10;
+  const a = Math.abs(mwh);
+  if (isZh()) return t('{n} kWh', { n: compact(Math.round(mwh * 1000)) });
+  if (a >= 1e6) return t('{n} TWh', { n: nfShort(mwh / 1e6) });
+  if (a >= 1e3) return t('{n} GWh', { n: nfShort(mwh / 1e3) });
+  return t('{n} MWh', { n: nfShort(mwh) });
+}
+
+/** Compute service (index; 1,000 = one standard machine-hall-month): "2.5 hall-months". */
+export function computeQty(n: number): string {
+  return t('{n} hall-months', { n: nfShort(n / 1000) });
 }
 
 /** Signed milli-units ("+12.5", "−3"). */

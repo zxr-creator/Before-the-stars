@@ -2,7 +2,7 @@
 import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Icon } from './icons';
-import { GOOD_LABEL, GOOD_SHORT, compact, milli } from './format';
+import { GOOD_LABEL, GOOD_SHORT, compact, qty } from './format';
 import type { Check, Epistemic, GoodQty, KnownRequirement, RegionId } from './protocol';
 import { getState, isReadOnly, selectRegion, useApp } from './store';
 import { t, tc } from './i18n';
@@ -287,22 +287,22 @@ export function Checklist({ items, unknown }: { items: (KnownRequirement | Check
   );
 }
 
-/** "12 Tools · 3.5 Materials" from milli-unit quantities. */
+/** "12 kt Metal · 5,000 lots Tools" from base-unit quantities, each in its own unit. */
 export function GoodsList({ items, per, empty }: { items: GoodQty[]; per?: string; empty?: string }) {
   if (!items.length) return <span class="muted">{empty ?? t('none')}</span>;
   return (
     <span class="goods-list">
       {items.map((g, i) => (
-        <span class="goods-item" title={t(GOOD_LABEL[g.good] ?? g.good)}>{i ? <span class="sep"> · </span> : null}<GoodIcon good={g.good} size={13} /> <b>{milli(g.amount)}</b> {t(GOOD_SHORT[g.good] ?? g.good)}</span>
+        <span class="goods-item" title={t(GOOD_LABEL[g.good] ?? g.good)}>{i ? <span class="sep"> · </span> : null}<GoodIcon good={g.good} size={13} /> <b>{qty(g.good, g.amount)}</b> {t(GOOD_SHORT[g.good] ?? g.good)}</span>
       ))}
       {per ? <span class="muted"> {per}</span> : null}
     </span>
   );
 }
 
-/** Work quantities are milli person-months on the wire. */
+/** Work on the wire is in worker-months (one called-up labourer for a month): the number alone, compact. */
 export function work(n: number): string {
-  return compact(n / 1000);
+  return compact(Math.round(n));
 }
 
 export function RegionLink({ id, children }: Children & { id: RegionId }) {
