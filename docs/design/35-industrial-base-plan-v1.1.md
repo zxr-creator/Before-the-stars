@@ -220,8 +220,10 @@ or differs from the list above:
   burns no coal. `PowerLedger` gains `site_from_supply`, `site_from_engines`,
   `site_coal`, `site_fuel`; the audit checks `shaft_used + site_from_supply` against
   supply and the engines against the coal and fuel burned. Site engines need no
-  technology. Sites are not fed from the grid: a region uses its own shaft work and,
-  through motors, its own spare electricity.
+  technology, and never burn into the month of fuel that mechanized fields and motor
+  boats must find in store (otherwise a large order could switch the fields back to
+  hand work and starve the seat). Sites are not fed from the grid: a region uses its
+  own shaft work and, through motors, its own spare electricity.
 - A crew that is short because the region's call-up is used up also reports "Little
   labour can be called up" (`Project.crew_capped`). Crew vacancies attract qualified
   people without a post from the seat's other regions, as vacant posts do.

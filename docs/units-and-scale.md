@@ -187,8 +187,10 @@ Construction of industrial-era works draws site power in the same unit: shaft wo
 asked of the region alongside its works and rationed with them. What the region
 cannot give is made by site engines out of the common stock, burning coal first
 (5 units per kt, the conversion of the first steam engines) and then refined fuel
-(10 units per kt), in whole tonnes. Site engines need no works and no crew of their
-own; they are what an industrial-era site brings with it (section 6).
+(10 units per kt), in whole tonnes. They never burn into the month of fuel that
+mechanized fields and motor boats must find in store: a site stands still before it
+takes the harvest's fuel. Site engines need no works and no crew of their own; they
+are what an industrial-era site brings with it (section 6).
 
 ## 6. Construction
 

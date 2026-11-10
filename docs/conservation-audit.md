@@ -115,7 +115,7 @@ identities after every such change.
 | Generator halls | same | spare shaft work of the region, at nine tenths | `shaft_to_generators`, `elec_from_generators` | `electricity_is_conserved...` |
 | Motors | same | spare electricity of the region, at nine tenths | `elec_to_motors`, `shaft_from_motors` | monthly audits |
 | Grid | same | the surplus that linked regions offer after their own users, at 92% | `grid_out`, `grid_in` | `electricity_is_conserved...` |
-| Site engines | `sim/projects.rs`, `draw_site_power` | coal (5 units a tonne) and then refined fuel (10 units a tonne) taken from stock in whole tonnes, for the site power an order's work of the month needs beyond what the region set aside for its sites; all of it is used on the site | `site_from_engines`, `site_coal`, `site_fuel`; coal and fuel `consumed` | `site_engines_burn_real_coal_then_fuel_and_local_power_is_used_first`, monthly audits |
+| Site engines | `sim/projects.rs`, `draw_site_power` | coal (5 units a tonne) and then refined fuel (10 units a tonne) taken from stock in whole tonnes (never the month of fuel the fields and motor boats must find in store), for the site power an order's work of the month needs beyond what the region set aside for its sites; all of it is used on the site | `site_from_engines`, `site_coal`, `site_fuel`; coal and fuel `consumed` | `site_engines_burn_real_coal_then_fuel_and_local_power_is_used_first`, monthly audits |
 | Compute | recipes of computing centres | filled posts and electricity; what is made this month serves next month | `compute_supply`, `compute_used` | `compute_used_never_exceeds_what_was_installed_the_month_before` |
 
 Service is rationed. Each works asks for the service of the posts it has filled, and
@@ -222,7 +222,7 @@ policy crate):
 - `all_ai_matches_balance_every_month_for_three_hundred_months`: three worlds, 300
   months each.
 - `all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment`: three
-  whole campaigns of 2,880 months, which between them include settlement, recruitment,
+  whole campaigns of 2,880 months (one ends some months early, won), which between them include settlement, recruitment,
   war, regions changing hands, an elimination, trade, mining, a shared grid, compute,
   site crews, and site power from the regions' shaft work and from site engines.
 

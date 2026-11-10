@@ -35,32 +35,32 @@ round 141  month 1680  phase Contact
   seat 3 Amberfen    Active     pop 34984658 reg  7 tech  89 (tier 7) prac 49 army 40000 stab 95 food 100% sci y65   gov  0 ftl  0
 round 161  month 1920  phase Contact
   seat 0 Farcape     Active     pop 11922050 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 1 Highmere    Active     pop 59997832 reg 16 tech 131 (tier 8) prac 63 army 643788 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 1 Highmere    Active     pop 59997621 reg 16 tech 131 (tier 8) prac 63 army 643788 stab 95 food 100% sci y60   gov  0 ftl  0
   seat 2 Stonewold   Active     pop 60386128 reg 12 tech 124 (tier 8) prac 62 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
   seat 3 Amberfen    Active     pop 36478774 reg  7 tech 109 (tier 7) prac 58 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
 round 181  month 2160  phase Contact
   seat 0 Farcape     Active     pop 12287457 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 1 Highmere    Active     pop 67775375 reg 16 tech 134 (tier 9) prac 63 army 643788 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 2 Stonewold   Active     pop 69870567 reg 12 tech 134 (tier 9) prac 63 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
-  seat 3 Amberfen    Active     pop 45772605 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
+  seat 1 Highmere    Active     pop 67742697 reg 17 tech 134 (tier 9) prac 63 army 733018 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 2 Stonewold   Active     pop 69913155 reg 12 tech 134 (tier 9) prac 63 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
+  seat 3 Amberfen    Active     pop 45717843 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
 round 201  month 2400  phase Contact
   seat 0 Farcape     Active     pop 12452951 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 1 Highmere    Active     pop 69110571 reg 16 tech 138 (tier 9) prac 64 army 643788 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 2 Stonewold   Active     pop 69776997 reg 12 tech 138 (tier 9) prac 64 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
-  seat 3 Amberfen    Active     pop 21799767 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
+  seat 1 Highmere    Active     pop 68872786 reg 18 tech 138 (tier 9) prac 64 army 1533018 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 2 Stonewold   Active     pop 70072291 reg 12 tech 138 (tier 9) prac 64 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
+  seat 3 Amberfen    Active     pop 22108702 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
 round 221  month 2640  phase Contact
-  seat 0 Farcape     Active     pop 12364997 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 1 Highmere    Active     pop 66807431 reg 16 tech 138 (tier 9) prac 64 army 643788 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 2 Stonewold   Active     pop 66864405 reg 12 tech 138 (tier 9) prac 64 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
-  seat 3 Amberfen    Active     pop 22430743 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
+  seat 0 Farcape     Active     pop 12364246 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 1 Highmere    Active     pop 69885674 reg 18 tech 138 (tier 9) prac 64 army 1533018 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 2 Stonewold   Active     pop 67243366 reg 12 tech 138 (tier 9) prac 64 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
+  seat 3 Amberfen    Active     pop 22797499 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
 round 240  month 2880  phase Finished
-  seat 0 Farcape     Active     pop 12289710 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 1 Highmere    Active     pop 63410666 reg 16 tech 138 (tier 9) prac 64 army 643788 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 2 Stonewold   Active     pop 65048987 reg 12 tech 138 (tier 9) prac 64 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
-  seat 3 Amberfen    Active     pop 20968588 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
+  seat 0 Farcape     Active     pop 12290336 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 1 Highmere    Active     pop 76832886 reg 18 tech 138 (tier 9) prac 64 army 1533018 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 2 Stonewold   Active     pop 65259628 reg 12 tech 138 (tier 9) prac 64 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
+  seat 3 Amberfen    Active     pop 21963572 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
 round 240  month 2880  phase Finished
-  seat 0 Farcape     Active     pop 12289710 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 1 Highmere    Active     pop 63410666 reg 16 tech 138 (tier 9) prac 64 army 643788 stab 95 food 100% sci y60   gov  0 ftl  0
-  seat 2 Stonewold   Active     pop 65048987 reg 12 tech 138 (tier 9) prac 64 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
-  seat 3 Amberfen    Active     pop 20968588 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
-finished: true  winner: None  elapsed 2.4s  state hash 7feae0911d7d655e
+  seat 0 Farcape     Active     pop 12290336 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 1 Highmere    Active     pop 76832886 reg 18 tech 138 (tier 9) prac 64 army 1533018 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 2 Stonewold   Active     pop 65259628 reg 12 tech 138 (tier 9) prac 64 army 1291520 stab 95 food 100% sci y55   gov  0 ftl  0
+  seat 3 Amberfen    Active     pop 21963572 reg  7 tech 117 (tier 7) prac 61 army 215781 stab 95 food 100% sci y65   gov  0 ftl  0
+finished: true  winner: None  elapsed 2.5s  state hash 44bc852805353058

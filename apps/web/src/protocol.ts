@@ -1080,7 +1080,8 @@ export interface BuildSiteView {
   /**
    * Shaft service the site draws per level in a month of full work, base units of
    * 0.1 MWh. Taken from the region's shaft supply, then from site engines burning
-   * coal (1 t for 5 units), then refined fuel (1 t for 10 units). (serde default)
+   * coal (1 t for 5 units), then refined fuel (1 t for 10 units), but never the month
+   * of fuel that mechanized fields and motor boats must find in store. (serde default)
    */
   site_power_per_level?: number;
   /** True when the seat has no installation of this kind: work and months are half as much again. (serde default) */
