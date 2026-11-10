@@ -96,6 +96,13 @@ export interface GoodLine {
   traded_in: number;
   traded_out: number;
   capacity: number | null;
+  /**
+   * What nobody used last round: spoilage, loss in carriage to the common stock and
+   * abandoned stores. `produced` is gross output where it was made, so over a round
+   * stock change = produced - consumed - lost + traded_in - traded_out.
+   * Absent on referees older than ruleset 2.0 slice B.
+   */
+  lost?: number;
 }
 
 export interface QualCount {

@@ -148,12 +148,17 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
             progress = got;
         } else if let Some(r) = region {
-            let free = w.regions[r as usize].last.project_labor_free;
+            // work is done only by the workers called up in the project's region this month
+            let free = w.regions[r as usize].last.project_labor_free.max(0);
             if free < progress {
                 blockers.push(format!("Little labour can be called up in {}", w.regions[r as usize].name));
             }
             progress = progress.min(free);
             w.regions[r as usize].last.project_labor_free -= progress;
+            w.regions[r as usize].last.project_work_done += progress;
+        } else {
+            // work without a place to do it has nobody to do it
+            progress = 0;
         }
         let p = &mut w.civs[si].projects[i];
         p.work_done += progress;
@@ -330,10 +335,11 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
             if w.regions[ti].owner.is_some() {
                 brief(w, seat, "warning", format!("Settlers turned back from {}", w.regions[ti].name), "Another authority holds the land. The party returned; stores were consumed.".into(), Some(to), "map");
             } else {
-                let moved = crate::sim::population::move_people(&mut w.regions, fi, ti, people, true);
+                // the land is taken into government first, so the settlers and their
+                // qualifications move between two of our own regions
                 w.regions[ti].owner = Some(seat);
-                w.regions[ti].controller = Some(seat);
-                w.civs[si].flows.migration += 0;
+                w.set_controller(ti, Some(seat));
+                let moved = crate::sim::population::move_people(w, fi, ti, people, true);
                 crate::sim::knowledge::refresh_visibility(w, seat);
                 let name = w.regions[ti].name.clone();
                 let count = w.owned(seat).len();
@@ -362,12 +368,13 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
             }
         }
         ProjKind::Resettle { from, to, people } => {
-            let moved = crate::sim::population::move_people(&mut w.regions, from as usize, to as usize, people, false);
+            let moved = crate::sim::population::move_people(w, from as usize, to as usize, people, false);
             brief(w, seat, "info", format!("{} people resettled", group(moved as i64)), format!("They arrived in {}.", w.regions[to as usize].name), Some(to), "population");
         }
         ProjKind::Recruit { role, soldiers, tier } => {
             let ri = p.region.unwrap() as usize;
-            let got = crate::sim::population::draw_adults(&mut w.regions[ri], soldiers);
+            // recruits take their share of the region's qualified people and learners with them
+            let got = crate::sim::population::draw_adults(w, ri, soldiers);
             if got == 0 {
                 brief(w, seat, "warning", "Recruitment failed".into(), "No eligible adults remained to serve.".into(), p.region, "military");
                 return;
@@ -538,6 +545,10 @@ fn step_programs(w: &mut World, seat: SeatId) {
             if w.civs[si].est_id("C046") && entrant.is_some() {
                 duration = duration * 8 / 10;
             }
+            if let Some(q) = entrant {
+                // a holder who enrols is a learner, not a holder, until the course ends
+                w.civs[si].qual_flows.entered[q.index()] += enrol;
+            }
             let r = &mut w.regions[ri];
             if let Some(q) = entrant {
                 r.quals[q.index()] -= enrol as u32;
@@ -589,6 +600,9 @@ fn step_programs(w: &mut World, seat: SeatId) {
                 p.enrolled = 0;
                 p.teachers = 0;
                 p.progress = 0;
+                // the only way a qualified person comes into being: a learner who was
+                // enrolled here for the whole course
+                w.civs[si].qual_flows.trained[course.output.index()] += grads as i64;
                 let r = &mut w.regions[ri];
                 r.students = r.students.saturating_sub(grads);
                 if let Some(q) = tq {
@@ -629,14 +643,23 @@ fn step_programs(w: &mut World, seat: SeatId) {
 }
 
 /// Return learners and instructors of a cancelled programme to their previous roles.
+/// Learners who had enrolled as holders of a qualification hold it again; they are
+/// booked as `returned` in the ledger of whoever controls the region now.
 pub fn release_program(w: &mut World, p: &Program) {
-    let r = &mut w.regions[p.region as usize];
-    r.students = r.students.saturating_sub(p.enrolled);
+    let ri = p.region as usize;
+    let r = &mut w.regions[ri];
+    let back = p.enrolled.min(r.students);
+    r.students -= back;
     if let Some(q) = p.entrant {
-        r.quals[q.index()] += p.enrolled;
+        r.quals[q.index()] += back;
     }
     if let Some(q) = p.teacher_qual {
         r.teachers[q.index()] = r.teachers[q.index()].saturating_sub(p.teachers);
+    }
+    if let Some(q) = p.entrant {
+        if let Some(ledger) = w.qual_ledger(ri) {
+            ledger.returned[q.index()] += back as i64;
+        }
     }
 }
 

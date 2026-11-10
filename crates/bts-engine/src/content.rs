@@ -22,7 +22,7 @@ pub const CONTENT_VERSION: &str = "bts-content/2.0.0";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`); saves written by earlier rulesets are refused.
 pub const RULESET_VERSION: &str = "bts-rules/2.0.0";
-pub const GENERATOR_VERSION: &str = "bts-worldgen/1.1.0";
+pub const GENERATOR_VERSION: &str = "bts-worldgen/1.2.0";
 
 /// Base units in one display unit of goods, work, research or service.
 pub const DISPLAY_DIVISOR: i64 = 1000;
@@ -812,10 +812,27 @@ pub struct Recipe {
     pub out_elec: i64,
     pub out_compute: i64,
     pub research: Option<(ResearchClass, i64)>,
-    /// Extraction recipes deplete this deposit one-for-one with output.
+    /// Extraction recipes draw on this deposit. The output stated is what the
+    /// workings raise; `disturb_bp` of it is drawn from the ground, and the ore's
+    /// quality decides how much of what is raised is delivered.
     pub depletes: Option<Deposit>,
+    /// Tonnes drawn from the deposit for every 10,000 tonnes raised; never below
+    /// 10,000. Shallow workings take the easy ore and spoil as much again.
+    pub disturb_bp: i64,
     /// Progress toward one jump assembly per month at full rate, in thousandths.
     pub assembly: i64,
+}
+
+impl Recipe {
+    /// Whether the recipe delivers nothing but services, research or assembly progress.
+    pub fn service_only(&self) -> bool {
+        self.outputs.is_empty()
+    }
+}
+
+/// Mass in kilograms of a list of goods (per level-month when taken from a recipe).
+pub fn mass_kg(goods: &[(Good, i64)]) -> i64 {
+    goods.iter().map(|(g, a)| a * good_mass_kg(*g)).sum()
 }
 
 #[derive(Clone, Debug)]
@@ -847,6 +864,11 @@ pub struct FacDef {
     pub scale: Vec<(u16, Req, &'static str)>,
     pub food: bool,
     pub power_source: bool,
+    /// The works take their material out of the site itself: a deposit, a forest
+    /// and its quarries, or the clay under a kiln. Only such works may have a
+    /// recipe that puts out goods without goods going in; every other recipe must
+    /// take in at least the mass it puts out.
+    pub extractive: bool,
 }
 
 impl Cap {
@@ -878,6 +900,7 @@ fn rec(key: &'static str, name: &'static str) -> RB {
         out_compute: 0,
         research: None,
         depletes: None,
+        disturb_bp: 10_000,
         assembly: 0,
     })
 }
@@ -926,6 +949,11 @@ impl RB {
         self.0.depletes = Some(d);
         self
     }
+    /// Tonnes drawn from the deposit per tonne raised (at least one).
+    fn disturbs(mut self, v: f64) -> Self {
+        self.0.disturb_bp = ((v * 10_000.0).round() as i64).max(10_000);
+        self
+    }
     fn assembly(mut self, v: f64) -> Self {
         self.0.assembly = m(v);
         self
@@ -955,6 +983,7 @@ fn fac(key: &'static str, name: &'static str, category: &'static str, desc: &'st
         scale: vec![],
         food: false,
         power_source: false,
+        extractive: false,
     })
 }
 impl FB {
@@ -1027,6 +1056,11 @@ impl FB {
         self.0.power_source = true;
         self
     }
+    /// The works take their material out of the site (see `FacDef::extractive`).
+    fn extracts(mut self) -> Self {
+        self.0.extractive = true;
+        self
+    }
 }
 
 fn facilities() -> Vec<FacDef> {
@@ -1053,35 +1087,35 @@ fn facilities() -> Vec<FacDef> {
             .req("T011").site(Site::River).cost(&[(Materials, 8.0), (Tools, 1.0)]).work(40.0).general(1_000)
             .provides(Cap::Irrigation, 5.0).labor(L::Services).tags(&[Tag::Water, Tag::Farm]).scale(1, "C008"),
         // ---- extraction -------------------------------------------------
-        fac("camp", "Timber and quarry camps", "Extraction", "Felling, quarrying and clay digging for building material.")
+        fac("camp", "Timber and quarry camps", "Extraction", "Felling, quarrying and clay digging for building material, taken from the forest and rock of the site.")
             .site(Site::Forest).cost(&[(Tools, 1.0)]).work(8.0).general(8_000)
             .recipe(rec("materials", "Timber, stone and clay").out(&[(Materials, 16.0)]))
-            .upkeep(&[(Tools, 0.25)]).labor(L::Extraction).tags(&[Tag::Craft, Tag::Build]),
-        fac("mine_copper", "Copper mines", "Extraction", "Workings on a surveyed copper orebody. Output is deducted from the deposit.")
+            .upkeep(&[(Tools, 0.25)]).labor(L::Extraction).tags(&[Tag::Craft, Tag::Build]).extracts(),
+        fac("mine_copper", "Copper mines", "Extraction", "Workings on a surveyed copper orebody. Every tonne raised comes out of the deposit; shallow workings spoil as much again, drained deep workings do not.")
             .req("T014").site(Site::Deposit(Deposit::CopperOre)).cost(&[(Materials, 6.0), (Tools, 3.0)]).work(40.0).general(12_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(10.0).out(&[(CopperOre, 36.0)]).depletes(Deposit::CopperOre))
-            .recipe(rec("shallow", "Shallow workings").out(&[(CopperOre, 18.0)]).depletes(Deposit::CopperOre))
-            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine]),
-        fac("mine_iron", "Iron mines", "Extraction", "Workings on a surveyed iron orebody. Output is deducted from the deposit.")
+            .recipe(rec("shallow", "Shallow workings").out(&[(CopperOre, 18.0)]).depletes(Deposit::CopperOre).disturbs(2.0))
+            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine]).extracts(),
+        fac("mine_iron", "Iron mines", "Extraction", "Workings on a surveyed iron orebody. Every tonne raised comes out of the deposit; shallow workings spoil as much again, drained deep workings do not.")
             .req("T014").site(Site::Deposit(Deposit::IronOre)).cost(&[(Materials, 6.0), (Tools, 3.0)]).work(40.0).general(12_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(10.0).out(&[(IronOre, 36.0)]).depletes(Deposit::IronOre))
-            .recipe(rec("shallow", "Shallow workings").out(&[(IronOre, 18.0)]).depletes(Deposit::IronOre))
-            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine]),
-        fac("mine_coal", "Coal pits", "Extraction", "Coal workings. Output is deducted from the seam.")
+            .recipe(rec("shallow", "Shallow workings").out(&[(IronOre, 18.0)]).depletes(Deposit::IronOre).disturbs(2.0))
+            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine]).extracts(),
+        fac("mine_coal", "Coal pits", "Extraction", "Coal workings. Every tonne raised comes out of the seam; shallow pits spoil as much again, drained deep workings do not.")
             .req("T014").site(Site::Deposit(Deposit::Coal)).cost(&[(Materials, 6.0), (Tools, 3.0)]).work(40.0).general(12_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(10.0).out(&[(Coal, 36.0)]).depletes(Deposit::Coal))
-            .recipe(rec("shallow", "Shallow workings").out(&[(Coal, 18.0)]).depletes(Deposit::Coal))
-            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Steam]),
-        fac("mine_minerals", "Rare-mineral workings", "Extraction", "Small, selective workings for the minerals that analysis has shown to matter.")
+            .recipe(rec("shallow", "Shallow workings").out(&[(Coal, 18.0)]).depletes(Deposit::Coal).disturbs(2.0))
+            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Steam]).extracts(),
+        fac("mine_minerals", "Rare-mineral workings", "Extraction", "Small workings for the minerals that analysis has shown to matter. Selective surface workings spoil as much as they raise; drained deep workings do not.")
             .req("T043").site(Site::Deposit(Deposit::Minerals)).cost(&[(Materials, 8.0), (Tools, 4.0)]).work(60.0).general(10_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(8.0).out(&[(Minerals, 12.0)]).depletes(Deposit::Minerals))
-            .recipe(rec("shallow", "Selective workings").out(&[(Minerals, 6.0)]).depletes(Deposit::Minerals))
-            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Chem]),
-        fac("oilwell", "Oil wells", "Extraction", "Drilled wells and gathering lines on a known field.")
+            .recipe(rec("shallow", "Selective workings").out(&[(Minerals, 6.0)]).depletes(Deposit::Minerals).disturbs(2.0))
+            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Chem]).extracts(),
+        fac("oilwell", "Oil wells", "Extraction", "Drilled wells and gathering lines on a known field. Every tonne pumped comes out of the field.")
             .req("T090").site(Site::Deposit(Deposit::Crude)).cost(&[(Metal, 6.0), (Components, 2.0), (Tools, 2.0)]).work(60.0)
             .skilled(&[Q::Mechanic, Q::Artisan], 1_000).general(6_000)
             .recipe(rec("crude", "Crude extraction").shaft(6.0).out(&[(Crude, 30.0)]).depletes(Deposit::Crude))
-            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Fuel]),
+            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Fuel]).extracts(),
         // ---- craft and industry ----------------------------------------
         fac("workshop", "Craft workshops", "Industry", "Toolmakers. Better metal gives more and better tools from the same hands.")
             .cost(&[(Materials, 4.0)]).work(14.0).skilled(&[Q::Artisan], 2_000).general(4_000)
@@ -1089,10 +1123,10 @@ fn facilities() -> Vec<FacDef> {
             .recipe(rec("copper_tools", "Copper and bronze tools").req("T015").inp(&[(Copper, 1.5), (Materials, 2.0)]).out(&[(Tools, 9.0)]))
             .recipe(rec("stone_tools", "Stone, bone and wood tools").inp(&[(Materials, 4.0)]).out(&[(Tools, 5.0)]))
             .labor(L::Industry).tags(&[Tag::Craft]).scale(3, "C018").scale(10, "C022"),
-        fac("kiln", "Kilns", "Industry", "Fired brick, tile and vessels: building material without a forest.")
+        fac("kiln", "Kilns", "Industry", "Fired brick, tile and vessels from clay dug at the works: building material without a forest.")
             .req("T008").cost(&[(Materials, 5.0)]).work(16.0).skilled(&[Q::Artisan], 1_000).general(5_000)
             .recipe(rec("brick", "Fired building material").out(&[(Materials, 15.0)]))
-            .upkeep(&[(Tools, 0.2)]).labor(L::Industry).tags(&[Tag::Craft, Tag::Build]),
+            .upkeep(&[(Tools, 0.2)]).labor(L::Industry).tags(&[Tag::Craft, Tag::Build]).extracts(),
         fac("copper_smelter", "Copper furnaces", "Industry", "Charcoal furnaces reducing copper ore.")
             .req("T015").cost(&[(Materials, 8.0), (Tools, 2.0)]).work(30.0).skilled(&[Q::Smith, Q::Artisan], 2_000).general(4_000)
             .recipe(rec("copper", "Copper smelting").inp(&[(CopperOre, 8.0), (Materials, 4.0)]).out(&[(Copper, 4.0)]))
@@ -1131,7 +1165,8 @@ fn facilities() -> Vec<FacDef> {
         fac("insulation_works", "Insulation and seal works", "Industry", "Ceramic, rubber and polymer parts with known thermal and electrical limits.")
             .req("T031 | T064").cost(&[(Metal, 6.0), (Materials, 10.0), (Tools, 3.0)]).work(80.0)
             .skilled(&[Q::Technician, Q::Artisan], 2_000).general(4_000)
-            .recipe(rec("polymer", "Polymer insulation").req("T093").inp(&[(Chemicals, 8.0)]).out(&[(Insulation, 10.0)]).shaft(4.0))
+            // eight parts of polymer carry three of mineral filler: ten tonnes out of eleven in
+            .recipe(rec("polymer", "Polymer insulation").req("T093").inp(&[(Chemicals, 8.0), (Materials, 3.0)]).out(&[(Insulation, 10.0)]).shaft(4.0))
             .recipe(rec("ceramic", "Ceramic and natural insulation").inp(&[(Materials, 12.0)]).out(&[(Insulation, 4.0)]))
             .upkeep(&[(Tools, 0.4)]).labor(L::Industry).tags(&[Tag::Chem, Tag::Craft]),
         fac("refinery", "Refinery", "Industry", "Fractionation with composition checks: fuel of known quality plus chemical feedstock.")
@@ -1176,7 +1211,9 @@ fn facilities() -> Vec<FacDef> {
         fac("instrument_shop", "Instrument makers", "Industry", "Balances, gauges, optics and clocks: the equipment that makes measurement repeatable.")
             .req("T040").cost(&[(Materials, 8.0), (Tools, 4.0)]).work(50.0)
             .skilled(&[Q::Artisan, Q::Technician], 3_000)
-            .recipe(rec("precision", "Precision instruments").req("T044").inp(&[(Metal, 1.5), (Tools, 1.0)]).out(&[(Instruments, 5.0)]))
+            // five thousand sets weigh 2 kt: the metal and tooling of the plainer
+            // instruments plus half a kilotonne of glass and fittings
+            .recipe(rec("precision", "Precision instruments").req("T044").inp(&[(Metal, 1.5), (Tools, 1.0), (Materials, 0.5)]).out(&[(Instruments, 5.0)]))
             .recipe(rec("basic_metal", "Measuring instruments").inp(&[(Metal, 1.5), (Tools, 1.0)]).out(&[(Instruments, 3.0)]))
             .recipe(rec("basic_copper", "Copper measuring instruments").inp(&[(Copper, 1.0), (Tools, 1.0)]).out(&[(Instruments, 2.0)]))
             .labor(L::Industry).tags(&[Tag::Measure, Tag::Craft]),

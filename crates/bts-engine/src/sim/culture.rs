@@ -335,14 +335,31 @@ pub fn step(w: &mut World, seat: SeatId) {
             }
         }
     }
-    // copy houses
+    // copy houses: the posts of a staffed precinct copy texts onto writing material.
+    // It is production like the scriptorium's, by the people actually at work there
+    // this month and from material actually taken from stock.
     if belief_share(w, seat, "copy_houses") > 0 {
-        let sites = w.regions.iter().filter(|r| r.controller == Some(seat) && region_belief(&w.religions, r, "copy_houses")).count() as i64;
-        if sites > 0 {
-            w.civs[si].add(Good::Media, sites * 2000);
+        let precinct = c.f("holy_site");
+        let mut want: i64 = 0;
+        for r in w.regions.iter().filter(|r| r.controller == Some(seat) && region_belief(&w.religions, r, "copy_houses")) {
+            if let Some(f) = r.fac(precinct) {
+                if f.enabled && f.level > 0 && f.staff_needed > 0 {
+                    want += COPY_HOUSE_LOTS * f.staffed.min(f.staff_needed) as i64 / f.staff_needed as i64;
+                }
+            }
+        }
+        if want > 0 {
+            let material = (want + COPY_HOUSE_LOTS_PER_TONNE - 1) / COPY_HOUSE_LOTS_PER_TONNE;
+            let got = w.civs[si].take(Good::Materials, material);
+            w.civs[si].add(Good::Media, want * got / material);
         }
     }
 }
+
+/// Media lots a fully staffed precinct with copy houses makes in a month, and the
+/// lots a tonne of writing material gives (the scriptorium's hand-copying ratio).
+pub const COPY_HOUSE_LOTS: i64 = 2000;
+pub const COPY_HOUSE_LOTS_PER_TONNE: i64 = 3;
 
 /// World-level cultural processes: religious spread and lineage drift.
 pub fn step_world(w: &mut World) {

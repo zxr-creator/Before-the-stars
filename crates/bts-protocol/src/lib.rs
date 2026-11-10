@@ -340,12 +340,18 @@ pub struct GoodLine {
     pub good: Good,
     /// All quantities are base units of the good (rations, tonnes or lots).
     pub stock: i64,
-    /// Totals over the last resolved round.
+    /// Totals over the last resolved round. `produced` is gross output where it was
+    /// made; `consumed` is what was used (eaten, burned, built in, issued).
     pub produced: i64,
     pub consumed: i64,
     pub traded_in: i64,
     pub traded_out: i64,
     pub capacity: Option<i64>,
+    /// What nobody used: spoilage, loss in carriage to the common stock and
+    /// abandoned stores. Over the round,
+    /// `stock change = produced - consumed - lost + traded_in - traded_out`.
+    #[serde(default)]
+    pub lost: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -385,10 +385,10 @@ pub fn step(w: &mut World) {
             let loss_def = (1000 * pa / pd.max(1)).clamp(0, 3000);
             let la = apply_losses(w, &att_side, loss_att);
             let ld = apply_losses(w, &def_side, loss_def);
-            let militia_lost = (militia as i64 * loss_def / 10_000) as u32;
-            if militia_lost > 0 {
-                crate::sim::population::draw_adults(&mut w.regions[ri], militia_lost);
-            }
+            // militia who fall are residents who die: exactly as many deaths are
+            // recorded as people leave the region, and their share of its qualified
+            // people is lost with them
+            let militia_lost = crate::sim::population::draw_adults(w, ri, (militia as i64 * loss_def / 10_000) as u32);
             for &ai in &attackers {
                 let a = &mut w.armies[ai];
                 a.morale_bp = (a.morale_bp as i64 + if loss_att > loss_def { -700 } else { 150 }).clamp(500, 10_000) as u16;
@@ -423,7 +423,11 @@ pub fn step(w: &mut World) {
                             w.armies[ai].morale_bp = w.armies[ai].morale_bp.max(3500);
                         }
                         None => {
+                            // with nowhere to withdraw to, the formation is destroyed:
+                            // its soldiers are recorded as dead, not silently removed
+                            let gone = w.armies[ai].count();
                             w.armies[ai].soldiers = [0; 3];
+                            w.civs[owner as usize].flows.deaths += gone;
                         }
                     }
                 }
@@ -443,7 +447,8 @@ pub fn step(w: &mut World) {
             w.regions[ri].capture = Some((lead, progress));
             if progress >= 5 {
                 let old = ctrl;
-                w.regions[ri].controller = Some(lead);
+                // the people stay; their qualifications pass from one ledger to the other
+                w.set_controller(ri, Some(lead));
                 w.regions[ri].capture = None;
                 w.regions[ri].occupied_since = Some(month);
                 w.regions[ri].unrest_bp = 6000;
@@ -511,8 +516,31 @@ pub fn eliminate(w: &mut World, seat: SeatId) {
     w.civs[seat as usize].eliminated_month = Some(month);
     w.civs[seat as usize].overlord = None;
     w.civs[seat as usize].projects.clear();
-    w.civs[seat as usize].programs.clear();
+    // its courses close: learners and instructors go back to what they were, under
+    // whoever governs the region now
+    let programs = std::mem::take(&mut w.civs[seat as usize].programs);
+    for p in &programs {
+        crate::sim::projects::release_program(w, p);
+    }
+    // its soldiers lay down their arms where they stand and live on as residents
+    // (in the old capital if they stand on land nobody governs): nobody vanishes
+    let lineage = w.civs[seat as usize].lineage;
+    let capital = w.civs[seat as usize].capital as usize;
+    for i in 0..w.armies.len() {
+        if w.armies[i].owner != seat {
+            continue;
+        }
+        let n = w.armies[i].count();
+        let here = w.armies[i].region as usize;
+        let home = if w.regions[here].controller.is_some() { here } else { capital };
+        crate::sim::population::return_adults(&mut w.regions[home], lineage, n);
+    }
     w.armies.retain(|a| a.owner != seat);
+    // its stores are abandoned: booked as lost, not left on a dead ledger
+    for g in Good::ALL {
+        let have = w.civs[seat as usize].stock_of(*g);
+        w.civs[seat as usize].lose(*g, have);
+    }
     for t in w.treaties.iter_mut() {
         if t.status == "active" && t.parties.contains(&seat) {
             t.status = "expired".into();

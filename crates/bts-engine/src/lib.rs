@@ -5,6 +5,7 @@
 
 pub mod actions;
 pub mod content;
+pub mod ledger;
 pub mod observe;
 pub mod sim;
 pub mod state;
@@ -21,11 +22,36 @@ pub use state::MatchConfig;
 
 pub struct Match {
     world: World,
+    /// Referee-side books kept while a conservation audit is running; never saved
+    /// and never shown to a seat.
+    ledger_trace: Option<Vec<ledger::LedgerSnapshot>>,
 }
 
 impl Match {
     pub fn new(cfg: MatchConfig, entropy: u64) -> Match {
-        Match { world: worldgen::generate(cfg, entropy) }
+        Match { world: worldgen::generate(cfg, entropy), ledger_trace: None }
+    }
+
+    /// The whole world's books at this moment. Referee-level disclosure for
+    /// conservation audits and tests: it covers every seat and must never be
+    /// served to one.
+    pub fn ledger_snapshot(&self) -> ledger::LedgerSnapshot {
+        ledger::snapshot(&self.world, false)
+    }
+
+    /// Start (or stop) keeping the books of every month resolved from now on: one
+    /// snapshot after the seats' decisions of each round, before its first month,
+    /// and one at the close of every month. Recording changes nothing in the world.
+    pub fn record_ledgers(&mut self, on: bool) {
+        self.ledger_trace = if on { Some(self.ledger_trace.take().unwrap_or_default()) } else { None };
+    }
+
+    /// The snapshots recorded since the last call, oldest first.
+    pub fn take_ledger_trace(&mut self) -> Vec<ledger::LedgerSnapshot> {
+        match self.ledger_trace.as_mut() {
+            Some(t) => std::mem::take(t),
+            None => Vec::new(),
+        }
     }
 
     pub fn config(&self) -> &MatchConfig {
@@ -137,8 +163,14 @@ impl Match {
                     c.briefing.clear();
                     c.receipts.retain(|r| r.round >= round);
                 }
+                if let Some(trace) = self.ledger_trace.as_mut() {
+                    trace.push(ledger::snapshot(w, true));
+                }
                 for _ in 0..w.cfg.months_per_round {
                     sim::step_month(w);
+                    if let Some(trace) = self.ledger_trace.as_mut() {
+                        trace.push(ledger::snapshot(w, false));
+                    }
                     if w.outcome.is_some() {
                         break;
                     }
@@ -201,7 +233,7 @@ impl Match {
             None => return Err(format!("this save does not record the ruleset that wrote it; this build runs {running} and cannot load it")),
         }
         let world: World = serde_json::from_str(s).map_err(|e| e.to_string())?;
-        Ok(Match { world })
+        Ok(Match { world, ledger_trace: None })
     }
 
     /// Referee-side diagnostics for headless evaluation. Never exposed to seats.

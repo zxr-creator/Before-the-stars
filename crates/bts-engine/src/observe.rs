@@ -424,6 +424,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             traded_in: civ.last_flows.traded_in[g.index()],
             traded_out: civ.last_flows.traded_out[g.index()],
             capacity: if *g == Good::Food { Some(storage) } else { None },
+            lost: civ.last_flows.lost.get(g.index()).copied().unwrap_or(0),
         })
         .collect();
     let quals = Qual::ALL
@@ -769,6 +770,16 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
                 }
                 if r.assembly > 0 {
                     note = "One jump assembly per 24 months of full work".into();
+                }
+                if r.depletes.is_some() {
+                    // the stated output is what is raised; the deposit gives up at least that
+                    let raised: i64 = r.outputs.iter().map(|(_, a)| *a).sum();
+                    let drawn = raised * r.disturb_bp / 10_000;
+                    note = if drawn > raised {
+                        format!("Draws {} from the deposit to raise {}: the rest is spoiled in the ground. Poorer ore delivers less of what is raised", drawn / 1000, raised / 1000)
+                    } else {
+                        format!("Draws {} from the deposit, all of it raised. Poorer ore delivers less of what is raised", drawn / 1000)
+                    };
                 }
                 RecipeView { key: r.key.to_string(), name: r.name.to_string(), inputs: qty(&r.inputs), outputs, shaft: r.shaft, elec: r.elec, compute: r.compute, out_shaft: r.out_shaft, out_elec: r.out_elec, out_compute: r.out_compute, research: r.research, note, available: r.req.eval(&ctx) }
             })

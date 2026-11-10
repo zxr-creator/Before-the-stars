@@ -259,7 +259,8 @@ pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
                 let to = if *from == a { b } else { a };
                 let ri = *region as usize;
                 w.regions[ri].owner = Some(to);
-                w.regions[ri].controller = Some(to);
+                // residents and their qualifications change government with the land
+                w.set_controller(ri, Some(to));
                 w.regions[ri].capture = None;
                 w.regions[ri].occupied_since = None;
                 w.regions[ri].unrest_bp = w.regions[ri].unrest_bp.max(1500);
@@ -335,12 +336,8 @@ pub fn step(w: &mut World) {
                         continue;
                     }
                     let to = if *from == a { b } else { a };
-                    let have = w.civs[*from as usize].stock_of(*good).max(0);
-                    let give = have.min(*amount_per_month);
-                    w.civs[*from as usize].stock[good.index()] -= give;
-                    w.civs[*from as usize].flows.traded_out[good.index()] += give;
-                    w.civs[to as usize].stock[good.index()] += give;
-                    w.civs[to as usize].flows.traded_in[good.index()] += give;
+                    // what leaves one stock is exactly what enters the other
+                    let give = w.transfer(*from, to, *good, *amount_per_month);
                     w.treaties[ti].remaining[ci] -= 1;
                     if give < *amount_per_month {
                         let t = &mut w.treaties[ti];
@@ -366,10 +363,8 @@ pub fn step(w: &mut World) {
                             let due = monthly * *tribute_bp as i64 / 10_000;
                             let give = due.min(w.civs[*from as usize].stock_of(g).max(0) / 4);
                             if give > 0 {
-                                w.civs[*from as usize].stock[g.index()] -= give;
-                                w.civs[*from as usize].flows.traded_out[g.index()] += give;
-                                w.civs[over as usize].stock[g.index()] += give;
-                                w.civs[over as usize].flows.traded_in[g.index()] += give;
+                                // tribute is paid out of the subordinate's own stock
+                                w.transfer(*from, over, g, give);
                             }
                         }
                     }
