@@ -213,5 +213,7 @@
  "Works and methods": "設施與方法",
  "all {n} level": "全部 {n} 級",
  "Order +{n} level": "下單擴建 +{n} 級",
- "Order {n} level": "下單 {n} 級"
+ "Order {n} level": "下單 {n} 級",
+ "Construction waits ({n} orders): {reason}": "建設在等待（{n} 項訂單）：{reason}",
+ "Construction waits: {reason}": "建設在等待：{reason}"
 }

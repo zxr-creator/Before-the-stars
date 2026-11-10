@@ -164,6 +164,7 @@ function BottleneckText({ b, onTab }: { b: ReturnType<typeof bottleneck>; onTab?
   if (b.kind === 'freight_near') return <span class="warn-text">{t('Freight nearly full: {load} of {cap} levels', { load: b.load, cap: b.cap })}</span>;
   if (b.kind === 'shaft') return <span class="neg">{t('Shaft power short: {demand} asked, {supply} supplied', { demand: energy(b.demand), supply: energy(b.supply) })}</span>;
   if (b.kind === 'elec') return <span class="neg">{t('Electricity short: {demand} asked, {supply} supplied', { demand: energy(b.demand), supply: energy(b.supply) })}</span>;
+  if (b.kind === 'queue') return <button type="button" class="linklike warn-text" onClick={() => onTab?.('queue')}>{tn(b.orders, 'Construction waits: {reason}', 'Construction waits ({n} orders): {reason}', { n: b.orders, reason: tc(b.text) })}</button>;
   if (b.kind === 'blocker') return <button type="button" class="linklike warn-text" onClick={() => onTab?.('works')}>{tc(b.text)} <small>({joinList(b.works.slice(0, 2).map(tc))}{b.works.length > 2 ? '…' : ''})</small></button>;
   return <span class="muted">{t('Nothing held output back last month')}</span>;
 }

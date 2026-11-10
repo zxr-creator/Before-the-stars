@@ -205,6 +205,7 @@ export function limitsOf(own: OwnRegion): Limit[] {
 export type Bottleneck =
   | { kind: 'freight_over'; load: number; cap: number; infraBp: number; lossBp: number }
   | { kind: 'freight_near'; load: number; cap: number }
+  | { kind: 'queue'; text: string; orders: number }
   | { kind: 'shaft'; supply: number; demand: number }
   | { kind: 'elec'; supply: number; demand: number }
   | { kind: 'blocker'; text: string; works: string[] }
@@ -222,6 +223,8 @@ export function bottleneck(own: OwnRegion): Bottleneck {
   const top = limitsOf(own)[0];
   if (top) return { kind: 'blocker', text: top.text, works: top.works };
   if (inf && inf.freight_capacity - inf.freight_load <= 2 && inf.freight_load > 0) return { kind: 'freight_near', load: inf.freight_load, cap: inf.freight_capacity };
+  const waiting = (own.construction_queue ?? []).filter((e) => !e.paused && e.waiting_for.length);
+  if (waiting.length) return { kind: 'queue', text: waiting[0].waiting_for[0], orders: waiting.length };
   return { kind: 'none' };
 }
 
