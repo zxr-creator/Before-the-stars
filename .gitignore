@@ -12,3 +12,5 @@ dist/release/
 # The browser build: the WebAssembly referee (scripts/build-wasm.sh) and the static site (scripts/build-pages.sh)
 apps/web/wasm/
 dist/pages/
+# Agent worktrees and local assistant state
+.claude/
