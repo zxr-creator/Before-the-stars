@@ -111,6 +111,9 @@ struct Seen {
     chain_exempt: i64,
     /// The match ended before its horizon because a seat completed the victory contract.
     won: bool,
+    /// Experts lent under secondment treaties, and released from them.
+    seconded: i64,
+    seconded_home: i64,
 }
 
 fn audit(seed: &str, controllers: Vec<ControllerKind>, rounds: u32) -> Seen {
@@ -164,6 +167,8 @@ fn audit(seed: &str, controllers: Vec<ControllerKind>, rounds: u32) -> Seen {
         seen.retired += q.retired.iter().sum::<i64>();
         seen.enlisted += q.enlisted.iter().sum::<i64>();
         seen.changed_hands += q.moved_in.iter().sum::<i64>();
+        seen.seconded += q.seconded_out.iter().sum::<i64>();
+        seen.seconded_home += q.seconded_home.iter().sum::<i64>();
         if c.eliminated {
             seen.eliminated += 1;
         }
@@ -191,17 +196,19 @@ fn all_ai_matches_balance_every_month_for_three_hundred_months() {
     }
 }
 
-/// Three whole campaigns (2,880 months each, unless a seat wins sooner), every month
+/// Four whole campaigns (2,880 months each, unless a seat wins sooner), every month
 /// audited. Between them they
 /// include settlement, recruitment, war, regions changing hands, trade, mining,
-/// electricity shared over a grid and compute, so every ledger channel that exists
-/// in this ruleset is exercised under the audit.
+/// electricity shared over a grid, compute and experts lent under secondment
+/// treaties, so every ledger channel that exists in this ruleset is exercised under
+/// the audit.
 #[test]
 fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment() {
     let mut total = Seen::default();
     // (the third world is one in which a war moves borders under this ruleset; a
     // campaign is audited to its horizon, or to the month a seat wins it)
-    for (seed, controllers) in [("riverland", mixed()), ("eval-4", vec![ControllerKind::NativeMedium; 4]), ("war-2", mixed())] {
+    // (the fourth is one in which native seats lend each other experts under this ruleset)
+    for (seed, controllers) in [("riverland", mixed()), ("eval-4", vec![ControllerKind::NativeMedium; 4]), ("war-2", mixed()), ("eval-1", mixed())] {
         let seen = audit(seed, controllers, 240);
         eprintln!("{seed}: {seen:?}");
         if seed == "war-2" {
@@ -228,7 +235,11 @@ fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment()
         total.returned += seen.returned;
         total.grid_shared += seen.grid_shared;
         total.eliminated += seen.eliminated;
+        total.seconded += seen.seconded;
+        total.seconded_home += seen.seconded_home;
     }
+    // experts were lent abroad, and came home, under the audit
+    assert!(total.seconded > 0 && total.seconded_home > 0, "no secondment occurred in any campaign: {total:?}");
     // war that moves a border, trade, closed courses and a shared grid occur in at least one
     assert!(total.changed_hands > 0, "no region changed hands in any campaign: {total:?}");
     assert!(total.grid_shared > 0, "no electricity crossed a grid in any campaign: {total:?}");

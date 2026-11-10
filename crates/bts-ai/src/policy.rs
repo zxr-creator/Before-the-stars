@@ -844,13 +844,6 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
                 out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::NonAggression { months: 120 }], text: Some("Neither of us gains from fighting over this border.".into()) });
                 continue;
             }
-            // a jump programme short of crews or of a launch, orbital or laboratory
-            // service asks a partner it trusts, and pays for it
-            if let Some(a) = cooperation_ask(ai, obs, o) {
-                ai.memory.last_offer_round[s as usize] = obs.round;
-                out.push(a);
-                continue;
-            }
             // buy what we cannot make, paying with what we hold in plenty
             if let Some(g) = ai.memory.imports.first().copied() {
                 let pay: Option<Good> = [Good::Food, Good::Materials, Good::Tools, Good::Copper, Good::Media]
@@ -890,6 +883,14 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
                     clauses: vec![Clause::Knowledge { from: me, tech: pick.handle.clone() }, Clause::Goods { from: s, good: *g, amount_per_month: amount, months: 1 }],
                     text: Some(format!("We will teach what we know of {} for a single delivery.", pick.name.to_lowercase())),
                 });
+                continue;
+            }
+            // a jump programme short of crews or of a launch, orbital or laboratory
+            // service asks a partner it trusts, and pays for it (after trade and teaching, which
+            // the partner may need more)
+            if let Some(a) = cooperation_ask(ai, obs, o) {
+                ai.memory.last_offer_round[s as usize] = obs.round;
+                out.push(a);
                 continue;
             }
             // ask for teaching on a question we have identified but not solved
@@ -1336,11 +1337,10 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         let training: i64 = obs.programs.iter().filter(|g| courses.iter().any(|c| c.key == g.course)).map(|g| g.enrolled as i64).sum();
         let deficit = target - have(*q) - training;
         if deficit <= 0 {
-            // the jump programme's courses keep running: the base needs crews replaced
-            if jump_crews(*q) {
-                continue;
-            }
-            for g in obs.programs.iter().filter(|g| !g.paused && courses.iter().any(|c| c.key == g.course)) {
+            // the jump programme keeps one course of each running: the base needs its
+            // crews replaced, not a surplus of them
+            let keep = if jump_crews(*q) { obs.programs.iter().filter(|g| !g.paused && courses.iter().any(|c| c.key == g.course)).max_by_key(|g| (g.seats, std::cmp::Reverse(g.id))).map(|g| g.id) } else { None };
+            for g in obs.programs.iter().filter(|g| !g.paused && courses.iter().any(|c| c.key == g.course) && Some(g.id) != keep) {
                 p.push(Action::ManageProgram { program: g.id, op: ManageOp::Pause, seats: None });
             }
         } else {
@@ -1662,7 +1662,17 @@ fn power(p: &mut Plan, regions: &[&RegionView]) {
             }
         }
         if pw.elec_demand > pw.elec_supply {
-            let built = p.try_build(r, "hydro", 1, 3) || p.try_build(r, "fission", 1, 3) || p.try_build(r, "fusion", 1, 3) || p.try_build(r, "orbital_power", 1, 3);
+            // a station is worth building only where its fuel is: plants of a kind that
+            // already stand idle for want of it are not added to, and the stations that
+            // burn nothing come first
+            let starved = |kind: &str| regions.iter().any(|x| x.own.as_ref().unwrap().facilities.iter().any(|f| f.kind == kind && f.runs.iter().any(|run| !run.missing.is_empty())));
+            let fed = |g: Good| p.stock(g) > 200_000 || p.produces(g);
+            let fusion = fed(Good::Chemicals) && !starved("fusion");
+            let fission = fed(Good::Minerals) && !starved("fission");
+            if starved("fission") {
+                p.wanted.insert(Good::Minerals);
+            }
+            let built = p.try_build(r, "hydro", 1, 3) || p.try_build(r, "orbital_power", 1, 3) || (fusion && p.try_build(r, "fusion", 1, 3)) || (fission && p.try_build(r, "fission", 1, 3));
             if !built {
                 // electricity from shaft work: a generator hall plus an engine behind it
                 if (p.level(r, "generator") as i64) * 60_000 < pw.elec_demand && p.try_build(r, "generator", 1, 3) {

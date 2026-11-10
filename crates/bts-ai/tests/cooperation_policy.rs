@@ -113,3 +113,51 @@ fn a_programme_short_of_crews_asks_a_partner_with_terms_the_referee_accepts() {
     assert_eq!(receipts[0].status, "accepted", "{}", receipts[0].reason);
     let _ = s;
 }
+
+/// How often native seats agree to cooperation clauses over whole campaigns.
+/// `cargo test -p bts-ai --release --test cooperation_policy -- --ignored --nocapture`
+#[test]
+#[ignore]
+fn cooperation_survey() {
+    let mut handles = Vec::new();
+    for i in 0..8 {
+        handles.push(std::thread::spawn(move || {
+            let controllers = vec![ControllerKind::NativeHard, ControllerKind::NativeMedium, ControllerKind::NativeMedium, ControllerKind::NativeEasy];
+            let mut m = Match::new(MatchConfig { seed: format!("eval-{i}"), controllers, ..Default::default() }, 7);
+            let mut ais: Vec<NativeAi> = (0..m.seats()).map(|s| NativeAi::new(Difficulty::from_controller(m.controller(s as SeatId)).unwrap(), 0x5EED_0000 + s as u64 * 7919)).collect();
+            let (mut asked, mut accepted) = (0, 0);
+            while !m.finished() && m.round() < 240 {
+                for seat in m.waiting_on() {
+                    let obs = m.observe(seat);
+                    let actions = ais[seat as usize].decide(&obs);
+                    for chunk in actions.chunks(MAX_ACTIONS_PER_BATCH) {
+                        let coop = |a: &Action| matches!(a, Action::ProposeTreaty { clauses, .. } if clauses.iter().any(|c| matches!(c, Clause::Secondment { .. } | Clause::JointProgramme { .. })));
+                        let n = chunk.iter().filter(|a| coop(a)).count();
+                        let r = m.act(seat, chunk.to_vec());
+                        asked += n;
+                        accepted += chunk.iter().zip(r.iter()).filter(|(a, r)| coop(a) && r.status == "accepted").count();
+                    }
+                    m.set_ready(seat, false);
+                }
+                assert!(m.try_advance());
+            }
+            let obs = (0..4).map(|s| m.observe(s)).collect::<Vec<_>>();
+            let mut ids = std::collections::HashSet::new();
+            let (mut sec, mut prog) = (0, 0);
+            for o in &obs {
+                for t in &o.diplomacy.treaties {
+                    if ids.insert(t.id) {
+                        sec += t.secondments.len();
+                        prog += t.programmes.len();
+                    }
+                }
+            }
+            (i, asked, accepted, sec, prog)
+        }));
+    }
+    for h in handles {
+        let (i, asked, accepted, sec, prog) = h.join().unwrap();
+        println!("eval-{i}: cooperation proposals {asked} (accepted by the referee {accepted}); signed secondments {sec}, joint programmes {prog}");
+        assert_eq!(asked, accepted, "a native seat proposed a clause the referee refused");
+    }
+}
