@@ -28,6 +28,11 @@ if [ ! -x "$TC/node/bin/node" ]; then
 fi
 # shellcheck disable=SC1091
 source "$ROOT/scripts/env.sh"
+# the browser build compiles the referee to WebAssembly (scripts/build-wasm.sh)
+if ! rustup target list --installed 2>/dev/null | grep -qx wasm32-unknown-unknown; then
+  echo "==> adding the wasm32-unknown-unknown Rust target"
+  rustup target add wasm32-unknown-unknown
+fi
 echo "==> installing web client packages"
 (cd "$ROOT/apps/web" && npm install --no-fund --no-audit)
 echo "==> toolchain ready: $(cargo -V), node $(node -v)"

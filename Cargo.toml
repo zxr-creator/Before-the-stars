@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/bts-protocol", "crates/bts-engine", "crates/bts-ai", "crates/bts-host", "crates/bts-server"]
+members = ["crates/bts-protocol", "crates/bts-engine", "crates/bts-ai", "crates/bts-host", "crates/bts-server", "crates/bts-wasm"]
 
 [workspace.package]
 version = "0.3.0"
@@ -16,3 +16,16 @@ opt-level = 1
 
 [profile.release]
 opt-level = 3
+
+# The browser build of the referee (scripts/build-wasm.sh):
+#   cargo build --profile wasm --target wasm32-unknown-unknown -p bts-wasm
+# Only that command uses this profile; native builds keep `release` as it is.
+[profile.wasm]
+inherits = "release"
+# "s" is a quarter smaller over the wire than 3 (about 0.5 MB against 0.7 MB gzipped) for
+# a fifth more time per round, which is still a few tens of milliseconds late in a match
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,13 @@
+[package]
+name = "bts-wasm"
+description = "The referee as a WebAssembly module for the browser build: the shared host behind a small C ABI, no bindings generator"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+# cdylib is the .wasm; rlib lets the same ABI be tested natively by `cargo test`
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+bts-host = { path = "../bts-host" }
