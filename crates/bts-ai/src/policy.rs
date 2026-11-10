@@ -510,6 +510,16 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
 // ---------------------------------------------------------------------------
 
 fn plan(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
+    plan_domains(ai, obs, None)
+}
+
+/// Domains a human seat can hand to a steward. The steward is this same policy,
+/// restricted to the named areas and working from the seat's own observation.
+pub const DOMAINS: [&str; 6] = ["economy", "research", "education", "culture", "expansion", "military"];
+
+pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]>) -> Vec<Action> {
+    let on = |d: &str| only.map(|list| list.iter().any(|x| x == d)).unwrap_or(true);
+    let full = only.is_none();
     let mut p = Plan::new(obs, ai.difficulty);
     let regions = p.own_regions();
     if regions.is_empty() {
@@ -520,7 +530,7 @@ fn plan(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
     let working = obs.civ.working_age.max(1) as i64;
 
     // standing policy, once
-    if ai.memory.rounds_seen <= 1 {
+    if full && ai.memory.rounds_seen <= 1 {
         let reserve = match ai.difficulty {
             Difficulty::Easy => 4,
             Difficulty::Medium => 6,
@@ -533,7 +543,7 @@ fn plan(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
     }
 
     // proposals still unanswered when the windows close are settled in the plan phase
-    for offer in obs.diplomacy.offers.iter().filter(|o| o.to == obs.seat && o.status == "open") {
+    for offer in obs.diplomacy.offers.iter().filter(|o| full && o.to == obs.seat && o.status == "open") {
         let v = offer_value(ai, obs, offer);
         if v >= offer_margin(ai, obs, offer) {
             p.push(Action::SignTreaty { offer: offer.id });
@@ -580,21 +590,37 @@ fn plan(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
 
     // stale projects that never got their inputs free up what they reserved
     for pr in &obs.projects {
-        if pr.kind == "build" && obs.month > pr.started_month + 180 && pr.work_done * 10 < pr.work_needed {
+        if full && pr.kind == "build" && obs.month > pr.started_month + 180 && pr.work_done * 10 < pr.work_needed {
             p.push(Action::ManageProject { project: pr.id, op: ManageOp::Cancel, priority: None });
         }
     }
 
-    food_and_water(&mut p, &regions);
-    research(ai, &mut p);
-    culture(&mut p, capital);
-    production(&mut p, &regions, capital);
-    power(&mut p, &regions);
-    new_capabilities(&mut p, &regions, capital);
-    education(&mut p, &regions, working);
-    expansion(ai, &mut p, &regions);
-    military(ai, &mut p, &regions, capital, pop);
-    endgame(&mut p, &regions);
+    if on("economy") {
+        food_and_water(&mut p, &regions);
+    }
+    if on("research") {
+        research(ai, &mut p);
+    }
+    if on("culture") {
+        culture(&mut p, capital);
+    }
+    if on("economy") {
+        production(&mut p, &regions, capital);
+        power(&mut p, &regions);
+        new_capabilities(&mut p, &regions, capital);
+    }
+    if on("education") {
+        education(&mut p, &regions, working);
+    }
+    if on("expansion") {
+        expansion(ai, &mut p, &regions);
+    }
+    if on("military") {
+        military(ai, &mut p, &regions, capital, pop);
+    }
+    if on("economy") {
+        endgame(&mut p, &regions);
+    }
     // what we want but cannot make at home is worth asking neighbours for
     let mut imports: Vec<Good> = p
         .wanted

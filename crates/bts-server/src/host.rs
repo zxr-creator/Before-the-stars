@@ -12,6 +12,11 @@ pub struct Session {
     pub m: Match,
     pub ais: Vec<Option<NativeAi>>,
     pub tokens: Vec<String>,
+    /// Domains each external seat has delegated to a steward (the native policy,
+    /// restricted to those domains and to that seat's own observation).
+    pub delegates: Vec<Vec<String>>,
+    pub stewards: Vec<NativeAi>,
+    pub advised_round: Vec<u32>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -20,6 +25,10 @@ struct SaveFile {
     world: String,
     ais: Vec<Option<NativeAi>>,
     tokens: Vec<String>,
+    #[serde(default)]
+    delegates: Vec<Vec<String>>,
+    #[serde(default)]
+    stewards: Vec<NativeAi>,
 }
 
 fn mix(mut z: u64) -> u64 {
@@ -40,7 +49,34 @@ impl Session {
             ais.push(Difficulty::from_controller(kind).map(|d| NativeAi::new(d, mix(entropy ^ (s as u64 + 1) * 0xA5A5_5A5A))));
             tokens.push(format!("{:016x}", mix(entropy.wrapping_mul(31).wrapping_add(s as u64 * 7919 + 13))));
         }
-        Session { m, ais, tokens }
+        let n = m.seats();
+        let stewards = (0..n).map(|s| NativeAi::new(Difficulty::Medium, mix(entropy ^ 0x57E7 ^ s as u64))).collect();
+        Session { m, ais, tokens, delegates: vec![Vec::new(); n], stewards, advised_round: vec![0; n] }
+    }
+
+    pub fn set_delegates(&mut self, seat: SeatId, domains: Vec<String>) {
+        let allowed = NativeAi::steward_domains();
+        self.delegates[seat as usize] = domains.into_iter().filter(|d| allowed.contains(&d.as_str())).collect();
+    }
+
+    /// Stewards act once per round, at the end of the plan phase, for seats that asked for them.
+    fn run_stewards(&mut self) {
+        if self.m.phase() != Phase::Plan {
+            return;
+        }
+        let round = self.m.round();
+        for s in 0..self.m.seats() {
+            if self.ais[s].is_some() || self.delegates[s].is_empty() || self.advised_round[s] == round || self.m.status(s as SeatId) != SeatStatus::Active {
+                continue;
+            }
+            self.advised_round[s] = round;
+            let obs = self.m.observe(s as SeatId);
+            let domains = self.delegates[s].clone();
+            let actions = self.stewards[s].advise(&obs, &domains);
+            for chunk in actions.chunks(MAX_ACTIONS_PER_BATCH) {
+                self.m.act(s as SeatId, chunk.to_vec());
+            }
+        }
     }
 
     /// One host step: native controllers that are due act on their own observation,
@@ -69,7 +105,11 @@ impl Session {
                 None => blocked = true,
             }
         }
-        !blocked && self.m.try_advance()
+        if blocked {
+            return false;
+        }
+        self.run_stewards();
+        self.m.try_advance()
     }
 
     /// Advance until an external seat must act or the match ends.
@@ -95,11 +135,19 @@ impl Session {
     }
 
     pub fn save(&self) -> String {
-        serde_json::to_string(&SaveFile { format: "bts-save/1".into(), world: self.m.save_json(), ais: self.ais.clone(), tokens: self.tokens.clone() }).expect("save serializes")
+        serde_json::to_string(&SaveFile { format: "bts-save/1".into(), world: self.m.save_json(), ais: self.ais.clone(), tokens: self.tokens.clone(), delegates: self.delegates.clone(), stewards: self.stewards.clone() }).expect("save serializes")
     }
 
     pub fn load(s: &str) -> Result<Session, String> {
         let f: SaveFile = serde_json::from_str(s).map_err(|e| e.to_string())?;
-        Ok(Session { m: Match::load_json(&f.world)?, ais: f.ais, tokens: f.tokens })
+        let m = Match::load_json(&f.world)?;
+        let n = m.seats();
+        let mut delegates = f.delegates;
+        delegates.resize(n, Vec::new());
+        let mut stewards = f.stewards;
+        while stewards.len() < n {
+            stewards.push(NativeAi::new(Difficulty::Medium, mix(0x57E7 ^ stewards.len() as u64)));
+        }
+        Ok(Session { m, ais: f.ais, tokens: f.tokens, delegates, stewards, advised_round: vec![0; n] })
     }
 }

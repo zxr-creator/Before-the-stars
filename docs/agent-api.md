@@ -19,6 +19,7 @@ from outside.
 | `GET /api/observation` | `?seat=N&token=T` | The seat's `Observation` |
 | `POST /api/actions` | `{seat, token, actions:[Action…]}` (at most 32) | `{receipts:[Receipt…]}` |
 | `POST /api/ready` | `{seat, token, through_round}` | Match summary after the referee has advanced as far as it can |
+| `POST /api/delegate` | `{seat, token, domains}` | Hands the listed domains of an external seat to a steward; returns the match summary |
 | `GET /api/saves`, `POST /api/save`, `POST /api/load` | `{name}` | Named saves under `saves/` |
 | `GET /api/export/chronicle` | `?seat=N&format=md\|json` | The seat's own chronicle |
 
@@ -69,6 +70,15 @@ Example batch:
   {"kind": "set_policy", "setting": {"kind": "labor_weight", "category": "knowledge", "weight": 8}}
 ]}
 ```
+
+## Stewards
+
+A human or external seat may delegate any of `economy`, `research`, `education`,
+`culture`, `expansion` and `military` to a steward. A steward is the native Medium
+policy restricted to those domains. It acts once per round at the end of the plan
+phase, from that seat's own observation and through ordinary actions, so its receipts
+appear with the seat's own. An empty `domains` list ends the delegation. Diplomacy is
+never delegated.
 
 ## Reading an observation
 

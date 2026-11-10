@@ -77,6 +77,20 @@ impl NativeAi {
         NativeAi { policy_version: POLICY_VERSION.to_string(), difficulty, policy_seed, memory: Memory::default() }
     }
 
+    /// Advice for a human seat that has delegated some domains to a steward.
+    /// Uses the same policy and the same observation; nothing else.
+    pub fn advise(&mut self, obs: &Observation, domains: &[String]) -> Vec<Action> {
+        if obs.phase != Phase::Plan || obs.status == SeatStatus::Eliminated || obs.outcome.is_some() || domains.is_empty() {
+            return Vec::new();
+        }
+        self.memory.rounds_seen += 1;
+        policy::plan_domains(self, obs, Some(domains))
+    }
+
+    pub fn steward_domains() -> &'static [&'static str] {
+        &policy::DOMAINS
+    }
+
     /// Decide this phase's actions from the observation alone.
     pub fn decide(&mut self, obs: &Observation) -> Vec<Action> {
         policy::decide(self, obs)

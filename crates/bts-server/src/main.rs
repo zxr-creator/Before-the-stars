@@ -135,6 +135,8 @@ struct SeatSummary {
     color: String,
     controller: ControllerKind,
     status: SeatStatus,
+    /// Domains this seat has delegated to a steward.
+    delegates: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     token: Option<String>,
 }
@@ -157,6 +159,7 @@ struct MatchSummary {
     waiting_on: Vec<SeatId>,
     seats: Vec<SeatSummary>,
     versions: Vec<String>,
+    steward_domains: Vec<String>,
 }
 
 fn summary(s: &Session, with_tokens: bool) -> MatchSummary {
@@ -187,10 +190,12 @@ fn summary(s: &Session, with_tokens: bool) -> MatchSummary {
                     color: obs_name.civ.color,
                     controller: kind,
                     status: s.m.status(seat),
+                    delegates: s.delegates[i].clone(),
                     token: if with_tokens && matches!(kind, ControllerKind::Human | ControllerKind::External) { Some(s.tokens[i].clone()) } else { None },
                 }
             })
             .collect(),
+        steward_domains: bts_ai::NativeAi::steward_domains().iter().map(|d| d.to_string()).collect(),
         versions: vec![bts_engine::content::RULESET_VERSION.into(), bts_engine::content::CONTENT_VERSION.into(), bts_engine::content::GENERATOR_VERSION.into(), PROTOCOL_VERSION.into(), bts_ai::POLICY_VERSION.into()],
     }
 }
@@ -243,6 +248,14 @@ struct ReadyBody {
     token: String,
     #[serde(default)]
     through_round: bool,
+}
+
+#[derive(Deserialize)]
+struct DelegateBody {
+    seat: SeatId,
+    #[serde(default)]
+    token: String,
+    domains: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -361,6 +374,18 @@ fn serve(args: &Args) {
                             let _ = std::fs::create_dir_all(&saves);
                             let _ = std::fs::write(&autosave, s.save());
                         }
+                        json_response(200, serde_json::to_string(&summary(s, false)).unwrap())
+                    }
+                }
+                (None, _) => err(404, "NO_MATCH", "no match is running"),
+                (_, Err(e)) => err(400, "INVALID_SCHEMA", &e.to_string()),
+            },
+            ("POST", "/api/delegate") => match (&mut session, serde_json::from_str::<DelegateBody>(&body)) {
+                (Some(s), Ok(b)) => {
+                    if !auth(s, b.seat, &b.token) || s.ais[b.seat as usize].is_some() {
+                        err(403, "UNAUTHORIZED", "unknown seat or token")
+                    } else {
+                        s.set_delegates(b.seat, b.domains);
                         json_response(200, serde_json::to_string(&summary(s, false)).unwrap())
                     }
                 }

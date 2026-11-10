@@ -75,6 +75,12 @@ negotiate, plan, and end the round; the world then settles month by month.
 The chronicle records what your civilization actually experienced as an illustrated
 timeline. Its cards grant nothing.
 
+If you would rather not run everything yourself, hand any of economy, research,
+education, culture, expansion or military to a **steward**. A steward is the same
+non-LLM policy the native opponents use, limited to those domains and to what your
+own seat can see; it acts once at the end of each planning phase and you can take a
+domain back at any time. Diplomacy always stays with you.
+
 ## Headless play, evaluation and agents
 
 ```bash
