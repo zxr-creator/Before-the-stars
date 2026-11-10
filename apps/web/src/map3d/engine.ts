@@ -873,6 +873,11 @@ export class Map3D {
           const c = this.rgbOf(r.owner);
           put(wash, i, rem ? mixRgb(sepia(c, 0.45), [0.93, 0.88, 0.74], 0.25) : c, rem ? 0.8 : 1);
         }
+      } else if (mode === 'construction') {
+        if (r.own) {
+          const lv = r.own.facilities.reduce((n, f) => n + f.level, 0);
+          put(wash, i, mixRgb(hexRgb('#e6dfc9'), hexRgb('#467b73'), Math.min(1, lv / 24)), 1);
+        }
       } else if (mode === 'population') {
         const pop = r.own ? r.own.population : r.foreign ? (r.foreign.population_low + r.foreign.population_high) / 2 : -1;
         if (pop >= 0) put(wash, i, hexRgb(POP_RAMP[popClass(pop)]), rem ? 0.6 : 1);
@@ -1499,8 +1504,9 @@ export class Map3D {
     // Far away the picture becomes a strategic map: ownership dominates, detail recedes.
     const far = smoothstep(650, 2200, this.cur.dist);
     const mode = this.overlay.mode;
-    this.groundU.uWashGain.value = mode === 'political' ? lerp(0.08, 0.56, far) : mode === 'population' ? 0.74 : 0;
-    this.groundU.uClouds.value = this.reducedMotion ? 0.6 : 1;
+    this.groundU.uWashGain.value = mode === 'political' ? lerp(0.24, 0.60, far) : mode === 'population' || mode === 'construction' ? 0.74 : 0;
+    this.props.group.visible = mode !== 'construction';
+    this.groundU.uClouds.value = this.reducedMotion || mode === 'construction' ? 0 : 1;
     this.borderU.uGlow.value = (mode === 'political' ? 0.72 : 0.4) * lerp(1, 1.2, far);
     this.borderU.uCore.value = lerp(0.12, 0.26, far);
     this.inkU.uOpacity.value = lerp(0.34, 0.2, far);

@@ -102,7 +102,7 @@ export interface AppState {
   seat: SeatId;
   screen: 'title' | 'setup' | 'game';
   /** How the setup screen was opened: 'tutorial' pre-fills a gentle first match and starts the guided tour. */
-  setupPreset: 'tutorial' | null;
+  setupPreset: 'tutorial' | 'observer' | null;
   panel: PanelKey | null;
   intent: (Intent & { nonce: number }) | null;
   selectedRegion: RegionId | null;
@@ -871,7 +871,7 @@ export function cancelPick(): void {
   if (state.pick) set({ pick: null });
 }
 
-export function setScreen(screen: 'title' | 'setup' | 'game', preset: 'tutorial' | null = null): void {
+export function setScreen(screen: 'title' | 'setup' | 'game', preset: 'tutorial' | 'observer' | null = null): void {
   set({ screen, setupPreset: screen === 'setup' ? preset : null, menuOpen: false, overlay: null, overlayArg: null });
   if (screen !== 'game') void refreshSaves();
 }

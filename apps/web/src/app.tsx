@@ -236,6 +236,7 @@ export function App() {
           <MapView
             obs={obs}
             selected={s.selectedRegion}
+            onBuild={s.mode === 'observe' ? undefined : () => openPanel('economy')}
             onSelect={(id) => selectRegion(id)}
             pick={s.pick ? { prompt: s.pick.prompt, targets: s.pick.targets, onPick: s.pick.onPick, onCancel: cancelPick } : null}
             marked={s.marked}

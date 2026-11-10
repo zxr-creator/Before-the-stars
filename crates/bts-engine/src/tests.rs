@@ -410,3 +410,51 @@ fn a_signed_treaty_delivers_goods_once_and_knowledge_is_not_unlearned() {
     let _ = treaty;
     assert!(m.world.civs[1].tech[t].state >= ST_DISCOVERED);
 }
+
+#[test]
+fn construction_quotes_reserve_every_queued_level_and_prevent_prototype_cancellation_discount() {
+    let mut m = Match::new(cfg("construction-quotes"), 1);
+    let region = m.world.civs[0].capital;
+    let k = content().f("camp");
+    m.world.regions[region as usize].forest = 30;
+    m.world.regions[region as usize].facilities.retain(|f| f.kind != k);
+    let quote = m.observe(0).regions.into_iter().find(|r| r.id == region).unwrap().own.unwrap().construction_sites.into_iter().find(|x| x.kind == "camp").unwrap();
+    let build = || Action::StartProject { spec: ProjectSpec::Build { region, facility: "camp".into(), levels: 2 }, priority: Some(5) };
+    let receipts = m.act(0, vec![build(), build()]);
+    assert!(receipts.iter().all(|r| r.status == "accepted"));
+    // Parallel unproven installations all pay the first-of-kind work. Cancelling
+    // the first order cannot leave a discounted second prototype.
+    assert_eq!(m.world.civs[0].projects[0].work_needed, m.world.civs[0].projects[1].work_needed);
+    assert_eq!(m.world.civs[0].projects[0].work_needed, quote.work_per_level * 2);
+    let obs = m.observe(0);
+    let own = obs.regions.iter().find(|r| r.id == region).unwrap().own.as_ref().unwrap();
+    assert_eq!(own.construction_sites.iter().find(|s| s.kind == "camp").unwrap().queued_levels, 4);
+    assert_eq!(obs.projects.iter().filter(|p| p.target.as_deref() == Some("camp")).map(|p| p.levels.unwrap()).sum::<u16>(), 4);
+}
+
+#[test]
+fn industrial_scale_reduces_general_posts_but_does_not_multiply_goods() {
+    let mut m = Match::new(cfg("industrial-scale"), 1);
+    let region = m.world.civs[0].capital as usize;
+    let k = content().f("camp");
+    for r in m.world.regions.iter_mut().filter(|r| r.controller == Some(0)) { r.facilities.clear(); }
+    let r = &mut m.world.regions[region];
+    r.facilities.clear();
+    r.blocks[0].ages[30] += 1000;
+    r.facilities.push(Facility { kind: k, level: 10, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0 });
+    m.world.civs[0].stock[Good::Tools.index()] = 1_000_000;
+    m.world.civs[0].stock[Good::Materials.index()] = 0;
+    m.world.civs[0].stock[Good::Food.index()] = 1_000_000;
+    crate::sim::economy::step(&mut m.world, 0);
+    let f = m.world.regions[region].fac(k).unwrap();
+    assert!(f.staff_needed < 80); // ten eight-post camps share support
+    let run = f.run.as_ref().unwrap();
+    assert!(run.rate_bp <= 10_000);
+    // Ten levels still have ten levels of physical output, not a throughput bonus.
+    let household = m.world.civs[0].labor.household as i64 * 300;
+    let output = m.world.civs[0].stock[Good::Materials.index()];
+    assert!(output - household <= 160_000);
+    let view = m.observe(0);
+    let fac = view.regions.iter().find(|r| r.id as usize == region).unwrap().own.as_ref().unwrap().facilities.iter().find(|f| f.kind == "camp").unwrap();
+    assert!(fac.scale_saving_bp > 0 && fac.scale_saving_bp <= 2000);
+}

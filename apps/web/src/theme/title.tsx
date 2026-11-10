@@ -69,6 +69,7 @@ export function Title() {
         <nav class="title-menu" aria-label={t('Main menu')}>
           <Item icon="play" label={t('Continue')} sub={resume} testid="title-continue" disabled={!live} onClick={() => setScreen('game')} />
           <Item icon="flag" label={t('New game')} sub={t('Choose seats, world and objective')} testid="title-new" onClick={() => setScreen('setup')} />
+          <Item icon="eye" label={t('Observer mode')} sub={t('Watch four AI civilizations; pause, step and compare')} testid="title-observer" onClick={() => setScreen('setup', 'observer')} />
           <Item icon="save" label={t('Load game')} sub={s.saves.length ? t('{n} saved matches', { n: s.saves.length }) : t('No saved matches yet')} testid="title-load"
             active={pane === 'load'} onClick={() => setPane(pane === 'load' ? 'none' : 'load')} />
           <Item icon="compass" label={t('Tutorial')} sub={t('A guided first match')} testid="title-tutorial" onClick={() => setScreen('setup', 'tutorial')} />

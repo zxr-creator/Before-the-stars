@@ -55,9 +55,9 @@ function savedQuality(): 'auto' | 'high' | 'low' {
 }
 function savedTier(): MapTier {
   try {
-    return localStorage.getItem(TIER_KEY) === 'flat' ? 'flat' : '3d';
+    return localStorage.getItem(TIER_KEY) === '3d' ? '3d' : 'flat';
   } catch {
-    return '3d';
+    return 'flat';
   }
 }
 
@@ -85,6 +85,7 @@ export interface MapViewProps {
   /** Optional controlled map mode. Uncontrolled (internal state) when omitted. */
   mode?: MapMode;
   onModeChange?(mode: MapMode): void;
+  onBuild?(region: RegionId): void;
 }
 
 declare global {
@@ -110,6 +111,7 @@ const MODES: { key: MapMode; label: string; hint: string }[] = [
   { key: 'terrain', label: 'Terrain', hint: 'Landforms, rivers and passes' },
   { key: 'resources', label: 'Resources', hint: 'Deposits and survey coverage' },
   { key: 'population', label: 'Population', hint: 'People per region' },
+  { key: 'construction', label: 'Construction', hint: 'Regional buildings and expansion' },
 ];
 /** Ground colours of the 3D tier, for the terrain legend. */
 const TERRAIN_TINT_3D: Record<Terrain, string> = {
@@ -324,6 +326,8 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
     if (regions.some((r) => r.survey && !r.survey.detailed)) {
       rows.push(<li class="map-legend-note">{t('Wide faint hatch: surface observations only')}</li>);
     }
+  } else if (mode === 'construction') {
+    rows.push(<li><span class="map-construction-key" />{t('Light to dark: 0–24+ built levels')}</li>, <li class="map-legend-note">{t('Select a region to plan its city, rural works, mines and factories. Foreign construction is not disclosed.')}</li>);
   } else {
     const labels = [t('under 100'), '100–500', '500–2,000', '2,000–10,000', '10,000–50,000', '50,000–250,000', t('over 250,000')];
     rows.push(
@@ -854,6 +858,15 @@ export function MapView(props: MapViewProps): JSX.Element {
         role="application"
         aria-label={canvasLabel}
       />
+      {mode === 'construction' && props.selected !== null && (() => {
+        const region = obs.regions.find(r => r.id === props.selected);
+        if (!region?.own) return null;
+        const own = region.own;
+        return <aside class="map-province-plan" data-testid="province-plan"><small>{t('Regional development')}</small><h3>{tc(region.name)}</h3><p>{tc(SETTLEMENT_LABEL[region.settlement])} · {int(own.population)} {t('people')}</p><div class="province-sectors">{['Food', 'Extraction', 'Industry', 'Knowledge'].map(category => {
+          const kinds = new Set(obs.catalog.facilities.filter(f => f.category === category || (category === 'Knowledge' && ['Education', 'Research'].includes(f.category)) || (category === 'Food' && f.site_key === 'arable')).map(f => f.kind));
+          return <span><b>{own.facilities.filter(f => kinds.has(f.kind)).reduce((n, f) => n + f.level, 0)}</b>{tc(category)}</span>;
+        })}</div><p>{t('{n} projects under construction', { n: obs.projects.filter(p => p.kind === 'build' && p.region === region.id).length })}</p>{props.onBuild ? <button class="btn btn-primary" data-testid="province-build" onClick={() => props.onBuild?.(region.id)}>{t('Plan buildings')}</button> : null}</aside>;
+      })()}
       {is3d && <div ref={labelsRef} class="m3-labels" aria-hidden="true" />}
       {is3d && !mod3d && <div class="map-loading" role="status">{t('Preparing the 3D map…')}</div>}
 

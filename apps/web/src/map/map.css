@@ -380,3 +380,5 @@
 @media (max-width: 900px), (max-height: 560px) {
   .map-mini { display: none; }
 }
+
+.map-construction-key{display:inline-block;width:48px;height:10px;background:linear-gradient(90deg,#e6dfc9,#467b73);border:1px solid #82785f;margin-right:7px}.map-province-plan{position:absolute;left:calc(var(--mi-l) + 16px);top:calc(var(--mi-t) + 16px);padding:16px;width:268px;max-width:calc(100% - var(--mi-l) - var(--mi-r) - 32px);background:#faf4e5f5;border:1px solid #b19b70;border-top:3px solid #66877a;box-shadow:0 4px 18px #2c251b20;border-radius:5px}.map-province-plan>small{letter-spacing:1.5px;text-transform:uppercase;font-size:9px;color:#7c735e}.map-province-plan h3{font:22px var(--serif,Georgia);margin:5px 0}.map-province-plan p{font-size:11px;color:#736a59}.province-sectors{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;border-block:1px solid #b7a58470;padding:10px 0}.province-sectors span{font-size:9px}.province-sectors b{display:block;font-size:19px;color:#41675b}.map-province-plan .btn{width:100%}

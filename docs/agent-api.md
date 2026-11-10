@@ -10,6 +10,34 @@ Start the referee with `scripts/run.sh` (or `target/release/bts serve`). It list
 returned when the match was created; native-AI seats cannot be observed or driven
 from outside.
 
+## Integrated MCP decision exchange
+
+Run `node tools/mcp.mjs` as a stdio MCP server (Node 22 or newer). Configure
+`BTS_URL`, `BTS_SEAT` (0–3), and `BTS_SEAT_TOKEN` in the MCP server environment.
+Credentials are never tool arguments. The adapter exposes only `get_turn` and
+`submit_turn`; it cannot create matches, export saves, or read a spectator view.
+Its newline-delimited JSON-RPC transport follows the
+[official stdio specification](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports).
+
+`get_turn` returns one complete permission-filtered observation, a cursor, receipts, public action templates,
+communication/action limits and the seats the referee is waiting on. `submit_turn`
+takes `{cursor, request_id, actions, advance}` and returns the same complete packet
+after applying the batch. `advance` is `none`, `phase`, or `round`; the MCP default
+is `phase`. Use `round` for a whole-round plan that intentionally passes remaining
+negotiation. Negotiating adaptively still requires one exchange per window: future
+replies cannot appear in an earlier round packet.
+
+The HTTP equivalents are `GET /api/turn?seat=N&token=T` and `POST /api/turn` with
+those fields plus `seat, token`. At most 32 actions are accepted in one batch.
+Receipts remain per action: accepted actions stay applied when another fails,
+and any rejection prevents automatic advance. `STALE_TURN` rejects a changed
+observation before applying anything. An exact `request_id` retry returns its
+original packet, while changing its payload returns `IDEMPOTENCY_CONFLICT`.
+The latest 128 request results, bounded to 16 MiB of encoded payload, are cached in the running server; a single response exceeding that cap is not cached; reload/new-match
+starts a new generation and process restart loses that cache. Read a fresh packet
+after either event. Do not invent a new request ID merely because a response timed
+out. Native/model-driven seats remain protected by the same authority checks.
+
 ## Endpoints
 
 | Method and path | Body or query | Returns |

@@ -58,7 +58,7 @@ autosave).
 
 Each of the four seats can be a human, a built-in opponent (Easy / Medium / Hard), or
 a language-model agent: Claude over the API, the local Claude Code or Codex
-command-line tools using their own logins, or any OpenAI-compatible endpoint. With no
+command-line tools using their own logins, or any OpenAI-compatible endpoint. Choose **Observer mode** on the title screen to set up an AI-only match. With no
 human seat you are an **observer**: you see the whole world, a scoreboard, every
 civilization's own view and each model's stated reasoning, and you control playback.
 The interface is available in English, 简体中文 and 繁體中文, switchable on the title
@@ -80,6 +80,7 @@ after three consecutive failures; the match continues without it.
 - **Technology and civics trees** (`T`, `C`). They show only what your civilization
   has discovered: the tree grows as leads are followed, and nothing undiscovered is
   drawn, named or counted.
+- **Regional construction** (Economy). Choose a region, build or expand real installations, and inspect queued levels, input costs, staffing and operating bottlenecks. Maintained industrial levels share general support posts, capped at 20%; this does not multiply goods or waive skilled staffing. The map’s Construction lens shows development by large region.
 - **Economy ledger** (`L`). Market balance per good, production by facility and
   region, production chains, workforce and a balance sheet. Figures the referee
   reported are marked apart from the ledger's own estimates.
@@ -165,7 +166,8 @@ node scripts/lategame-shots.mjs      # 170 delegated rounds against the AI, then
 ```
 
 External agents (Claude Code, Codex, scripts) play through the same HTTP API as the
-browser, or through the `bts observe | act | ready` commands. They receive only their
+browser, through the `bts observe | act | ready` commands, or the integrated
+`get_turn` / `submit_turn` stdio MCP adapter (`node tools/mcp.mjs`). They receive only their
 seat's observation. See [docs/agent-api.md](docs/agent-api.md).
 
 ## Repository layout
@@ -223,7 +225,7 @@ In short:
   runs use software rendering, so frame rate is unmeasured); the Windows build (it
   compiles, it has never been started); the `release` workflow; the Chinese text by a
   native-speaking reviewer.
-- Not built: an MCP adapter, multi-match server rooms, generated SDKs, and post-match
+- Not built: multi-match server rooms, generated SDKs, and post-match
   counterfactual replay.
 
 Numbers are provisional calibration, as the design states, tuned only through all-AI

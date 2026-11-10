@@ -169,7 +169,7 @@ function regionOptions(regions: RegionView[]) {
 }
 
 /** What the survey says this site can carry, from the catalog's structured site rule. `basis` is display text. */
-function siteCapacity(fac: FacilityType, r: RegionView): { levels: number; basis: string } | null {
+export function siteCapacity(fac: FacilityType, r: RegionView): { levels: number; basis: string } | null {
   const max = fac.max_level && fac.max_level > 0 ? fac.max_level : null;
   const key = fac.site_key;
   if (!key) return null;
@@ -245,10 +245,10 @@ function BuildForm({ obs, preset, onDone }: { obs: Observation; preset: Preset; 
   }
   const fac = obs.catalog.facilities.find((f) => f.kind === kind) ?? null;
   const existing = fac ? r.own!.facilities.find((f) => f.kind === fac.kind) : undefined;
-  const pending = fac ? obs.projects.filter((p) => p.kind === 'build' && p.region === r.id && p.target === fac.kind).length : 0;
+  const pending = fac ? obs.projects.filter((p) => p.kind === 'build' && p.region === r.id && p.target === fac.kind).reduce((n, p) => n + (p.levels ?? 1), 0) : 0;
   const site = fac ? siteCapacity(fac, r) : null;
-  const cap = existing ? existing.max_level : site?.levels ?? null;
-  const room = cap !== null ? Math.max(0, cap - (existing?.level ?? 0)) : null;
+  const cap = r.own!.construction_sites?.find(x => x.kind === fac?.kind)?.max_level ?? (existing ? existing.max_level : site?.levels ?? null);
+  const room = cap !== null ? Math.max(0, cap - (existing?.level ?? 0) - pending) : null;
   const why = !fac ? t('Choose what to build') : !fac.available ? (unmet(fac.requirements) ?? t('A known requirement is unmet')) : room === 0 ? (cap === 0 ? t('{region} has no suitable site: {site}', { region: r.name, site: isZh() ? tc(fac.site) : fac.site.toLowerCase() }) : t('{region} cannot carry more levels of this at present', { region: r.name })) : null;
   const maxLevels = Math.max(1, Math.min(20, room ?? 20));
   const lv = Math.min(levels, maxLevels);
@@ -296,7 +296,7 @@ function BuildForm({ obs, preset, onDone }: { obs: Observation; preset: Preset; 
                 ? tn(cap, ' · {region} can carry {n} level ({basis})', ' · {region} can carry {n} levels ({basis})', { n: cap, region: r.name, basis: site.basis })
                 : tn(cap, ' · {region} can carry {n} level', ' · {region} can carry {n} levels', { n: cap, region: r.name })}</small> : null}</dd></div>
             <div class="kv"><dt>{t('Cost per level')}</dt><dd><GoodsList items={fac.cost} empty={t('no stores')} /></dd></div>
-            <div class="kv"><dt>{t('Work per level')}</dt><dd>{tx('{n} work', { n: <b>{work(fac.work)}</b> })}</dd></div>
+            <div class="kv"><dt>{t('Work per level')}</dt><dd>{tx('{n} work', { n: <b>{work(r.own!.construction_sites?.find(x => x.kind === fac.kind)?.work_per_level ?? fac.work)}</b> })}</dd></div>
             <div class="kv"><dt>{t('Posts per level')}</dt><dd>{fac.jobs.length ? fac.jobs.map((j, i) => <span>{i ? ' · ' : ''}<b>{j.count}</b> {j.qual ? lc(QUAL_LABEL[j.qual]) : t('general labour')}</span>) : <span class="muted">{t('none')}</span>}</dd></div>
             {fac.upkeep.length ? <div class="kv"><dt>{t('Upkeep')}</dt><dd><GoodsList items={fac.upkeep} per={t('per level each month')} empty={t('none')} /></dd></div> : null}
             {fac.provides.length ? <div class="kv"><dt>{t('Provides')}</dt><dd>{tcAll(fac.provides).join(' · ')}</dd></div> : null}

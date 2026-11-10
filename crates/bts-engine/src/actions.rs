@@ -371,7 +371,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if existing + pending + levels > cap {
                         return fail("CONFLICTING_ACTIONS", if cap == 0 { format!("{} has no suitable site for {}", w.regions[ri].name, def.name.to_lowercase()) } else { format!("{} can support at most {} level(s) of {} at present", w.regions[ri].name, cap, def.name.to_lowercase()) });
                     }
-                    let first = !crate::sim::projects::civ_has_facility(w, seat, kind) && pending == 0;
+                    let first = !crate::sim::projects::civ_has_facility(w, seat, kind);
                     let mut work = scaled(def.work * levels as i64, pace);
                     if first {
                         work = work * 3 / 2; // a first-of-kind installation is also the prototype

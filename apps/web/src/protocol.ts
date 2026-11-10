@@ -202,6 +202,7 @@ export interface RecipeRun {
 }
 
 export interface FacilityView {
+  scale_saving_bp?: number;
   kind: string;
   name: string;
   level: number;
@@ -237,6 +238,7 @@ export interface VenueSeats {
 }
 
 export interface OwnRegion {
+  construction_sites?: { work_per_level: number; min_months: number; kind: string; max_level: number; queued_levels: number }[];
   population: number;
   children: number;
   working_age: number;
@@ -511,6 +513,7 @@ export interface CatalogView {
 }
 
 export interface ProjectView {
+  levels?: number | null;
   id: number;
   kind: string;
   title: string;

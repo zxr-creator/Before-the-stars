@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 pub const CONTENT_VERSION: &str = "bts-content/1.0.0";
-pub const RULESET_VERSION: &str = "bts-rules/1.0.0";
+pub const RULESET_VERSION: &str = "bts-rules/1.0.1";
 pub const GENERATOR_VERSION: &str = "bts-worldgen/1.0.0";
 
 // ---------------------------------------------------------------------------

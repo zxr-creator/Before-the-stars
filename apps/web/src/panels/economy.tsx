@@ -1,5 +1,6 @@
 // Economy: stores and flows, how labour is spent, standing policy, works by
 // region, power and research capacity.
+import { Construction } from '../economy/Construction';
 import { useState } from 'preact/hooks';
 import type { LaborSummary, Observation, RegionView } from '../protocol';
 import { GOOD_LABEL, GOOD_SHORT, LABOR_LABEL, RESEARCH_LABEL, int, joinList, lc, milli, milliSigned, pct, tx } from '../format';
@@ -72,6 +73,8 @@ export function EconomyPanel() {
   return (
     <div class="panel economy">
       <p class="panel-lede">{t('Which missing input, post or service is holding useful output back?')}</p>
+
+      <Construction obs={obs} />
 
       <Section title={t('Stores and flows')} aside={<small class="muted">{t('units · totals over last round')}</small>}>
         <table class="table goods-table" data-testid="goods-table">

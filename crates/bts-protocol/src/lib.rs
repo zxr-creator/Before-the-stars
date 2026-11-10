@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const PROTOCOL_VERSION: &str = "bts-protocol/1.0";
+pub const PROTOCOL_VERSION: &str = "bts-protocol/1.1";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -415,6 +415,9 @@ pub struct RecipeRun {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FacilityView {
+    /// General-post saving from shared support; not a goods/output multiplier.
+    #[serde(default)]
+    pub scale_saving_bp: u16,
     pub kind: String,
     pub name: String,
     pub level: u16,
@@ -453,7 +456,18 @@ pub struct VenueSeats {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BuildSiteView {
+    pub work_per_level: i64,
+    pub min_months: u16,
+    pub kind: String,
+    pub max_level: u16,
+    pub queued_levels: u16,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OwnRegion {
+    #[serde(default)]
+    pub construction_sites: Vec<BuildSiteView>,
     pub population: u32,
     pub children: u32,
     pub working_age: u32,
@@ -760,6 +774,8 @@ pub struct CatalogView {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProjectView {
+    #[serde(default)]
+    pub levels: Option<u16>,
     pub id: u32,
     pub kind: String,
     pub title: String,

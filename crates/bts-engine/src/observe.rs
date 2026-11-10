@@ -245,6 +245,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
             (f.staffed, f.staff_needed)
         };
         facilities.push(FacilityView {
+            scale_saving_bp: economy::scale_saving_bp(def, f),
             kind: def.key.to_string(),
             name: def.name.to_string(),
             level: f.level,
@@ -264,6 +265,16 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
         .collect();
     let slot = (w.month % 12) as usize;
     OwnRegion {
+        construction_sites: c.facilities.iter().enumerate().filter(|(k, _)| facility_visible(w, seat, *k)).map(|(k, def)| BuildSiteView {
+            kind: def.key.to_string(),
+            work_per_level: { let base = projects::scaled(def.work, w.cfg.pace_bp); if projects::civ_has_facility(w, seat, k) { base } else { base * 3 / 2 } },
+            min_months: if def.work >= 1_000_000 { 12 } else if def.work >= 100_000 { 6 } else { 2 },
+            max_level: economy::level_cap(w, seat, ri, def),
+            queued_levels: w.civs[seat as usize].projects.iter().filter(|p| p.region == Some(ri as RegionId)).map(|p| match p.kind {
+                ProjKind::Build { facility, levels } if facility == k => levels,
+                _ => 0,
+            }).sum(),
+        }).collect(),
         population: r.population(),
         children: r.children(),
         working_age: r.working(),
@@ -824,6 +835,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             let remaining = (p.work_needed - p.work_done).max(0);
             let eta = if p.last_progress > 0 { Some(((remaining + p.last_progress - 1) / p.last_progress) as u32) } else { None };
             ProjectView {
+                levels: match p.kind { ProjKind::Build { levels, .. } => Some(levels), _ => None },
                 id: p.id,
                 kind: match &p.kind {
                     ProjKind::Build { .. } => "build",

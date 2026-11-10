@@ -194,6 +194,23 @@ fn recipe_ok(w: &World, seat: SeatId, r: &Recipe) -> bool {
     r.req.eval(&CivCtx { world: w, seat })
 }
 
+/// Co-located productive buildings share general support posts (stores, hauling,
+/// supervision). Only maintained, enabled levels count; qualified posts, machine
+/// capacity and all material/energy flows remain unchanged. No extra output.
+pub fn scale_saving_bp(def: &FacDef, f: &Facility) -> u16 {
+    if !f.enabled || f.condition_bp < 7500 || def.food || def.general == 0 || def.recipes.is_empty()
+        || !matches!(def.labor, Some(LaborCategory::Industry | LaborCategory::Extraction)) {
+        return 0;
+    }
+    (f.level.saturating_sub(1) as u32 * 200).min(2000) as u16
+}
+
+fn general_posts(def: &FacDef, f: &Facility) -> u32 {
+    let base = def.general as u32 * f.level as u32;
+    // Round requirements up: many tiny buildings cannot exploit fractional posts.
+    (base * (10_000 - scale_saving_bp(def, f) as u32) + 9999) / 10_000
+}
+
 /// Effective level cap of a facility in a region for a civilization.
 pub fn level_cap(w: &World, seat: SeatId, region: usize, def: &FacDef) -> u16 {
     use crate::content::Site;
@@ -495,8 +512,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         for (fi, skilled_needed, skilled_got) in skilled {
             let f = &mut r.facilities[fi];
             let def = &c.facilities[f.kind];
-            let lv = f.level as u32;
-            let positions = skilled_needed + def.general as u32 * lv;
+            let positions = skilled_needed + general_posts(def, f);
             let mut filled = skilled_got;
             let is_research = def.recipes.iter().any(|r| r.research.is_some());
             if !is_research {

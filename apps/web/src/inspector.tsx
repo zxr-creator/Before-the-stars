@@ -188,6 +188,7 @@ function OwnDetails({ obs, r, own }: { obs: Observation; r: RegionView; own: Own
 
 function FacilityRow({ regionId, f }: { regionId: number; f: FacilityView }) {
   useLocale();
+  const readOnly = useApp().mode === 'observe';
   const [confirm, setConfirm] = useState(false);
   const blockers = f.runs.flatMap((x) => x.blockers);
   const missing = Array.from(new Set(f.runs.flatMap((x) => x.missing ?? [])));
@@ -209,15 +210,15 @@ function FacilityRow({ regionId, f }: { regionId: number; f: FacilityView }) {
       {blockers.length ? <ul class="blockers">{Array.from(new Set(blockers)).slice(0, 3).map((b) => <li><Icon name="warn" size={11} /> {tc(b)}</li>)}</ul> : null}
       {missing.length ? <p class="short-of">{t('Ran short of {goods} last month.', { goods: joinList(missing.map((g) => lc(GOOD_SHORT[g]))) })}</p> : null}
       <div class="fac-actions">
-        <button type="button" class="linklike" data-testid={`fac-toggle-${f.kind}`} onClick={() => void act({ kind: 'set_policy', setting: { kind: 'facility', region: regionId, facility: f.kind, enabled: !f.enabled } }, tag, { quiet: true })}>
+        <button type="button" class="linklike" disabled={readOnly} data-testid={`fac-toggle-${f.kind}`} onClick={() => void act({ kind: 'set_policy', setting: { kind: 'facility', region: regionId, facility: f.kind, enabled: !f.enabled } }, tag, { quiet: true })}>
           {f.enabled ? t('Idle it') : t('Put back to work')}
         </button>
         {confirm ? (
           <>
-            <button type="button" class="linklike is-danger" data-testid={`fac-demolish-confirm-${f.kind}`} onClick={() => { setConfirm(false); void act({ kind: 'demolish', region: regionId, facility: f.kind, levels: 1 }, tag); }}>{t('Confirm: remove 1 level')}</button>
+            <button type="button" class="linklike is-danger" disabled={readOnly} data-testid={`fac-demolish-confirm-${f.kind}`} onClick={() => { setConfirm(false); void act({ kind: 'demolish', region: regionId, facility: f.kind, levels: 1 }, tag); }}>{t('Confirm: remove 1 level')}</button>
             <button type="button" class="linklike" onClick={() => setConfirm(false)}>{t('Keep')}</button>
           </>
-        ) : <button type="button" class="linklike" data-testid={`fac-demolish-${f.kind}`} onClick={() => setConfirm(true)}>{t('Demolish…')}</button>}
+        ) : <button type="button" class="linklike" disabled={readOnly} data-testid={`fac-demolish-${f.kind}`} onClick={() => setConfirm(true)}>{t('Demolish…')}</button>}
       </div>
     </li>
   );

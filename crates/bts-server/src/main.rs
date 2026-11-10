@@ -17,6 +17,7 @@ mod agents;
 mod desktop;
 mod host;
 mod providers;
+mod turn;
 
 use bts_engine::MatchConfig;
 use bts_protocol::*;
@@ -491,6 +492,7 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
         }
     }
 
+    let mut turn_cache = turn::Cache::default();
     let log_requests = std::env::var("BTS_LOG_REQUESTS").is_ok();
     for mut req in server.incoming_requests() {
         let (path, q) = query(req.url());
@@ -532,6 +534,20 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
                 }
                 Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
             },
+            ("GET", "/api/turn") => {
+                let seat = q.get("seat").and_then(|x| x.parse().ok()).unwrap_or(0);
+                match turn::get(st, seat, q.get("token").map(String::as_str).unwrap_or(""), require_tokens) {
+                    Ok(v) => json_response(200, v.to_string()),
+                    Err((status, code, message)) => err(status, code, &message),
+                }
+            }
+            ("POST", "/api/turn") => match serde_json::from_str::<turn::Submission>(&body) {
+                Ok(b) => match turn::submit(st, &mut turn_cache, b, require_tokens) {
+                    Ok(v) => json_response(200, v.to_string()),
+                    Err((status, code, message)) => err(status, code, &message),
+                },
+                Err(_) => err(400, "INVALID_SCHEMA", "invalid request fields or action; use the public action reference"),
+            },
             ("GET", "/api/observation") => match &st.session {
                 Some(s) => {
                     let seat: SeatId = q.get("seat").and_then(|v| v.parse().ok()).unwrap_or(0);
@@ -554,7 +570,7 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
             ("POST", "/api/advance") => {
                 let rounds = serde_json::from_str::<serde_json::Value>(&body).ok().and_then(|v| v["rounds"].as_u64()).unwrap_or(1).clamp(0, 20) as u32;
                 match &mut st.session {
-                    Some(s) if s.m.observer_allowed() => {
+                    Some(s) if s.m.observer_allowed() && !require_tokens => {
                         let has_agents = st.agents.iter().any(|a| a.is_some());
                         let target = s.m.round().saturating_add(rounds);
                         st.autoplay_until = if rounds == 0 { s.m.round() } else { target };
@@ -592,7 +608,7 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
                         json_response(200, serde_json::json!({ "receipts": receipts }).to_string())
                     }
                 },
-                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
+                Err(_) => err(400, "INVALID_SCHEMA", "invalid request fields or action; use the public action reference"),
             },
             ("POST", "/api/ready") => match serde_json::from_str::<ReadyBody>(&body) {
                 Ok(b) => match &st.session {

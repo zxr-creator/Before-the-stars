@@ -1,5 +1,6 @@
 // Match setup: language, seed, who plays each seat (a person, a built-in AI or
 // an LLM agent), world size, length, objective mode, and saved matches.
+import './economy/construction.css';
 import { useState } from 'preact/hooks';
 import type { AgentOptions, AgentProvider, NewMatchRequest, SetupController } from './protocol';
 import { Btn, Field, cx } from './ui';
@@ -80,10 +81,11 @@ export function Setup() {
   const s = useApp();
   useLocale();
   const tutorial = s.setupPreset === 'tutorial';
+  const observerPreset = s.setupPreset === 'observer';
   const [seed, setSeed] = useState(() => (tutorial ? 'first-light' : randomSeed()));
   const [seats, setSeats] = useState<SeatConfig[]>(() => (tutorial
     ? [seatDefault('human'), seatDefault('easy'), seatDefault('easy'), seatDefault('easy')]
-    : [seatDefault('human'), seatDefault('medium'), seatDefault('medium'), seatDefault('medium')]));
+    : [seatDefault(observerPreset ? 'medium' : 'human'), seatDefault('medium'), seatDefault('medium'), seatDefault('medium')]));
   const [regions, setRegions] = useState<24 | 48 | 72>(tutorial ? 24 : 48);
   const [length, setLength] = useState<'standard' | 'short'>('standard');
   const [disclosed, setDisclosed] = useState(false);
@@ -154,7 +156,7 @@ export function Setup() {
           <div class="setup-heading">
             <BrandMark size={40} />
             <div>
-              <h1>{tutorial ? t('Tutorial match') : t('New game')}</h1>
+              <h1>{tutorial ? t('Tutorial match') : observerPreset ? t('Observer mode') : t('New game')}</h1>
               <p>{t('Every round is twelve months; every number you see is something your own people could know.')}</p>
             </div>
           </div>
@@ -164,6 +166,11 @@ export function Setup() {
           <p class="setup-tutorial" data-testid="setup-tutorial-note"><Icon name="compass" size={15} /> <span><b>{t('A gentle first match.')}</b> {t('A small world, three cautious neighbours, and a guided tour that starts as soon as the world is drawn. You can change anything below.')}</span></p>
         ) : null}
 
+        <div class="setup-mode" role="group" aria-label={t('Match mode')}>
+          <button type="button" class={cx('btn', humans > 0 && 'btn-primary')} data-testid="setup-mode-play" onClick={() => patchSeat(0, { kind: 'human' })}>{t('Play a civilization')}</button>
+          <button type="button" class={cx('btn', humans === 0 && 'btn-primary')} data-testid="setup-mode-observe" onClick={() => setSeats(seats.map(c => c.kind === 'human' ? { ...c, kind: 'medium' } : c))}>{t('Observer mode')}</button>
+          <p class="muted small">{humans === 0 ? t('Watch the whole world or a civilization’s own view. Pause, advance a round, or run continuously.') : t('Play with fog of war. Whole-world observation is available in an AI-only match.')}</p>
+        </div>
         <div class="setup-grid">
           <section class="setup-col">
             <h2>{t('World and seats')}</h2>

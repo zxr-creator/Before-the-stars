@@ -10,7 +10,7 @@ import type {
 } from '../protocol';
 import { hash32, rng } from '../format';
 
-export type MapMode = 'political' | 'terrain' | 'resources' | 'population';
+export type MapMode = 'political' | 'terrain' | 'resources' | 'population' | 'construction';
 export type FacilityIcon = 'mine' | 'workshop' | 'industry' | 'school' | 'lab' | 'power' | 'port' | 'launch' | 'jump';
 
 export interface AtlasData {
@@ -1131,6 +1131,11 @@ export class Atlas {
       ctx.globalAlpha = 1;
     }
 
+    if (mode === 'construction' && r.own) {
+      const lv = r.own.facilities.reduce((n, f) => n + f.level, 0);
+      ctx.fillStyle = mix('#e6dfc9', '#467b73', Math.min(1, lv / 24));
+      ctx.fill(p.path);
+    }
     if (mode === 'population') {
       let people: number | null = null;
       let estimate = false;
@@ -1155,8 +1160,8 @@ export class Atlas {
       else if (!r.survey.detailed) this.hatch(p, px, 12, 1, alpha(INK_3, 0.12), 0.8);
     }
 
-    if (ownerCol && mode !== 'population') {
-      const wash = mode === 'political' ? (remembered ? 0.1 : 0.24) : remembered ? 0.04 : 0.07;
+    if (ownerCol && mode !== 'population' && mode !== 'construction') {
+      const wash = mode === 'political' ? (remembered ? 0.1 : 0.38) : remembered ? 0.04 : 0.07;
       ctx.fillStyle = alpha(ownerCol, wash);
       ctx.fill(p.path);
     }
