@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Before the Stars</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { display: grid; place-items: center; background: #efe4c8; color: #2c2620; font: 16px/1.5 Georgia, 'Times New Roman', serif; }
+      main { text-align: center; padding: 24px; }
+      h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: 0.02em; }
+      a { color: #9c3d2a; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Before the Stars</h1>
+      <p>There is nothing at this address.</p>
+      <p><a id="home" href="./">Open the game</a></p>
+    </main>
+    <script>
+      // The game is a single page. On a project site (https://user.github.io/repository/...)
+      // it lives under the first path segment; anywhere else it lives at the root.
+      (function () {
+        var parts = location.pathname.split('/').filter(Boolean);
+        var project = /\.github\.io$/.test(location.hostname) && parts.length > 0;
+        document.getElementById('home').href = project ? '/' + parts[0] + '/' : '/';
+      })();
+    </script>
+  </body>
+</html>
