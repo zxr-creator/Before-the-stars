@@ -11,7 +11,7 @@
 // ≈ and dotted beneath (see ./model.ts for the arithmetic).
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Good, Observation, RegionId } from '../protocol';
-import { fmtYear, int } from '../format';
+import { fmtNow } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { cx } from '../ui';
@@ -117,7 +117,7 @@ export function EconomyLedger(props: { obs: Observation; onClose: () => void }) 
   const badgeTip: Record<TabKey, string> = {
     market: short ? t('{n} goods in shortage', { n: short }) : t('{n} goods running tight', { n: tight }),
     production: t('{n} works held back', { n: held }),
-    workforce: t('{n} posts standing empty', { n: int(vacancies) }),
+    workforce: t('{n} posts standing empty', { n: people(vacancies) }),
     balance: serious ? t('{n} serious findings', { n: serious }) : t('{n} findings to look at', { n: warns }),
   };
 
@@ -127,7 +127,7 @@ export function EconomyLedger(props: { obs: Observation; onClose: () => void }) 
         <div class="ledger-brand">
           <span class="ledger-crest" aria-hidden="true"><Icon name="balance" size={20} /></span>
           <div>
-            <span class="ledger-kicker">{tc(obs.civ.name)} · {fmtYear(obs.month)} · {t('round {n}', { n: obs.round })}</span>
+            <span class="ledger-kicker">{tc(obs.civ.name)} · {fmtNow(obs)} · {t('round {n}', { n: obs.round })}</span>
             <h2>{t('Economy ledger')}</h2>
           </div>
         </div>

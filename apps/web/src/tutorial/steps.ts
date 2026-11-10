@@ -59,9 +59,9 @@ export const STEPS: Step[] = [
   },
   {
     key: 'dock', icon: 'hourglass', mode: 'info', anchors: ['[data-tut="dock"]'], side: 'left',
-    title: 'A round is one year',
+    title: 'A round is twelve months of lived time',
     body: [
-      'Every round runs the same way for all four civilizations: contact selection, five negotiation windows, then planning. The referee then resolves twelve months at once.',
+      'Every round runs the same way for all four civilizations: contact selection, five negotiation windows, then planning. The referee then resolves twelve months at once; the date in the top bar shows where history stands.',
       'The ring shows where you are. “End round” passes every remaining phase; you are never required to negotiate.',
       'The number on the orb counts things worth a look before you end the round.',
     ],
@@ -140,7 +140,7 @@ export const STEPS: Step[] = [
     key: 'after', icon: 'briefing', mode: 'info', anchors: [tid('panel-briefing')], side: 'right', panel: 'briefing',
     title: 'Read what happened',
     body: [
-      'A year has passed. Developments are listed by importance; the receipts below show what became of each order you gave.',
+      'A round has passed. Developments are listed by importance; the receipts below show what became of each order you gave.',
       'Reading this first, every round, is the habit that matters most.',
     ],
   },

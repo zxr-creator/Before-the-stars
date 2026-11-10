@@ -6,7 +6,7 @@ import { useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import type { SeatId, SpectatorCiv, SpectatorView } from '../protocol';
 import { FTL_MONTHS, GOVERNANCE_MONTHS } from '../protocol';
-import { compact, int, yearOf } from '../format';
+import { compact, histYear, int, peopleNum, tonnes, yearOf } from '../format';
 import { Icon } from '../icons';
 import { cx } from '../ui';
 import { t, tc } from '../i18n';
@@ -29,10 +29,12 @@ interface MetricDef {
 
 const whole = (v: number) => (v >= 10000 ? compact(Math.round(v)) : int(Math.round(v)));
 const loose = (v: number) => compact(v >= 100 ? Math.round(v) : Math.round(v * 10) / 10);
+/** Head counts: exact below ten thousand, then 240k / 1.2M (24万 / 1.2亿). */
+const heads = (v: number) => peopleNum(v);
 
 function metricDefs(): MetricDef[] {
   return [
-    { key: 'population', icon: 'people', label: t('Population'), unit: t('people'), hint: t('Everyone living under each government.'), fmt: whole, whole: true },
+    { key: 'population', icon: 'people', label: t('Population'), unit: t('people'), hint: t('Everyone living under each government.'), fmt: heads, whole: true },
     { key: 'regions', icon: 'pin', label: t('Regions'), unit: t('regions held'), hint: t('Regions each civilization governs.'), fmt: whole, whole: true },
     { key: 'techs', icon: 'knowledge', label: t('Technologies'), unit: t('technologies understood'), hint: t('Technologies understood, not merely discovered.'), fmt: whole, whole: true },
     { key: 'stability', icon: 'balance', label: t('Stability'), unit: t('score, 0–100'), hint: t('How far people accept being governed.'), fmt: (v) => String(Math.round(v)), max: 100, whole: true },
@@ -42,15 +44,25 @@ function metricDefs(): MetricDef[] {
       fmt: (v) => (v >= FOOD_CAP_MONTHS ? `${FOOD_CAP_MONTHS}+` : v.toFixed(1)),
     },
     { key: 'works', icon: 'hammer', label: t('Works built'), unit: t('facility levels'), hint: t('Built levels of every facility: farms, mines, workshops, schools, power and the rest.'), fmt: whole, whole: true },
-    { key: 'goods', icon: 'box', label: t('Manufactured goods'), unit: t('units in store'), hint: t('Tools, metal, components, electronics, fuel and other made goods held in store.'), fmt: loose },
-    { key: 'research', icon: 'flask', label: t('Research'), unit: t('work per month'), hint: t('Work per month qualified people can put into investigations'), fmt: loose },
-    { key: 'soldiers', icon: 'military', label: t('Military strength'), unit: t('soldiers under arms'), hint: t('People under arms. Equipment tiers are on the scoreboard.'), fmt: whole, whole: true },
+    { key: 'goods', icon: 'box', label: t('Manufactured goods'), unit: t('tonnes in store'), hint: t('Tools, metal, components, electronics, fuel and other made goods held in store, added up by mass (a lot of tools is 0.25 t, of devices 0.05 t).'), fmt: (v) => tonnes(v) },
+    { key: 'research', icon: 'flask', label: t('Research'), unit: t('researcher-months per month'), hint: t('Researcher-months a month that staffed research posts can put into investigations.'), fmt: loose },
+    { key: 'soldiers', icon: 'military', label: t('Military strength'), unit: t('soldiers under arms'), hint: t('People under arms. Equipment tiers are on the scoreboard.'), fmt: heads, whole: true },
     {
       key: 'objective', icon: 'rocket', label: t('Objective progress'), unit: t('% of the road to the final objective'),
       hint: t('Five equal steps: scientific method, planetary reach, interstellar reach, the governance streak ({g} months) and the jump-service streak ({f} months).', { g: GOVERNANCE_MONTHS, f: FTL_MONTHS }),
       fmt: (v) => Math.round(v) + '%', max: 100,
     },
   ];
+}
+
+/** A sample's date: the historical year where the referee keeps a calendar, else the game year. */
+function when(s: { month: number; year?: number | null }): string {
+  return s.year != null ? histYear(s.year) : String(yearOf(s.month));
+}
+
+/** The same as a phrase: "5000 BC" or "Year 4". */
+function whenLong(s: { month: number; year?: number | null }): string {
+  return s.year != null ? histYear(s.year) : t('Year {n}', { n: yearOf(s.month) });
 }
 
 function seriesFor(h: History, civs: SpectatorCiv[], metric: MetricKey, only?: SeatId[]): ChartSeries[] {
@@ -60,7 +72,7 @@ function seriesFor(h: History, civs: SpectatorCiv[], metric: MetricKey, only?: S
     if (only && !only.includes(seat)) return;
     const c = civs.find((x) => x.seat === seat);
     if (!c) return;
-    out.push({ seat, name: tc(c.name), color: c.color, points: h.samples.map((s) => ({ x: s.month, y: s.values[ci]?.[mi] ?? 0, round: s.round })) });
+    out.push({ seat, name: tc(c.name), color: c.color, points: h.samples.map((s) => ({ x: s.month, y: s.values[ci]?.[mi] ?? 0, round: s.round, year: s.year ?? null })) });
   });
   return out;
 }
@@ -80,10 +92,10 @@ function Coverage({ h, sp }: { h: History; sp: SpectatorView }) {
       <Icon name={partial ? 'info' : 'clock'} size={13} />
       <span>
         {partial
-          ? t('History covers only the rounds watched here: years {a}–{b}. This console began watching in year {a}; the referee keeps no earlier record to show.', { a: yearOf(first.month), b: yearOf(last.month) })
+          ? t('History covers only the rounds watched here: {a} to {b}. This console began watching in {a}; the referee keeps no earlier record to show.', { a: whenLong(first), b: whenLong(last) })
           : h.samples.length < 2
             ? t('The record starts now. Step or play the match and the lines will grow, one point per round watched.')
-            : t('Recorded by this console while watching: years {a}–{b}, {n} rounds.', { a: yearOf(first.month), b: yearOf(last.month), n: h.samples.length })}
+            : t('Recorded by this console while watching: {a} to {b}, {n} rounds.', { a: whenLong(first), b: whenLong(last), n: h.samples.length })}
         {gaps && h.samples.length > 1 ? ' ' + t('Some rounds passed between snapshots; lines join the rounds that were sampled.') : ''}
         {sp.round !== last.round ? ' ' + t('Waiting for the next snapshot…') : ''}
       </span>
@@ -103,7 +115,7 @@ function DataTable({ h, series, def }: { h: History; series: ChartSeries[]; def:
       <thead><tr><th>{t('Year')}</th>{series.map((s) => <th><SeriesKey seat={s.seat} color={s.color} width={18} />{s.name}</th>)}</tr></thead>
       <tbody>
         {rows.map((i) => (
-          <tr><th scope="row">{yearOf(h.samples[i].month)}</th>{series.map((s) => <td>{def.fmt(s.points[i]?.y ?? 0)}</td>)}</tr>
+          <tr><th scope="row">{when(h.samples[i])}</th>{series.map((s) => <td>{def.fmt(s.points[i]?.y ?? 0)}</td>)}</tr>
         ))}
       </tbody>
     </table>

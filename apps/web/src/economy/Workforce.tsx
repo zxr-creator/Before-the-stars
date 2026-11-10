@@ -33,7 +33,7 @@ function LaborStack({ list, height = 26, labels }: { list: Part[]; height?: numb
     <span class="ledger-stack" style={{ height: height + 'px' }} role="img" aria-label={list.filter((p) => p.n > 0).map((p) => `${t(p.label)} ${p.n}`).join(', ')}>
       {list.filter((p) => p.n > 0).map((p) => (
         <i class={cx('ledger-stack-seg', p.cls)} style={{ width: ((p.n / total) * 100).toFixed(2) + '%' }}
-          {...tip(t('{label}: {n} people, {pct} of the total.', { label: t(p.label), n: int(p.n), pct: ((p.n / total) * 100).toFixed(1) + '%' }) + '\n' + t(p.hint) + '\n' + t('As counted last month. Verified by the referee.'))}>
+          {...tip(t('{label}: {n} people, {pct} of the total.', { label: t(p.label), n: people(p.n), pct: ((p.n / total) * 100).toFixed(1) + '%' }) + '\n' + t(p.hint) + '\n' + t('As counted last month. Verified by the referee.'))}>
           {labels && p.n / total > 0.07 ? <b>{people(p.n)}</b> : null}
         </i>
       ))}
@@ -66,7 +66,7 @@ export function WorkforceTab({ obs, ledger, nav }: { obs: Observation; ledger: L
         <section class="ledger-panel ledger-wf-stack">
           <header class="ledger-panel-head">
             <h3>{t('Working-age people last month')}</h3>
-            <span class="ledger-panel-aside"><V tipText={t('People of working age across our regions, plus soldiers. Verified by the referee.')}>{int(total)}</V> {t('people')}</span>
+            <span class="ledger-panel-aside"><V tipText={t('People of working age across our regions, plus soldiers. Verified by the referee.')}>{people(total)}</V> {t('people')}</span>
           </header>
           {tallied ? (
             <>
@@ -74,7 +74,7 @@ export function WorkforceTab({ obs, ledger, nav }: { obs: Observation; ledger: L
               <ul class="ledger-legend">
                 {list.map((p) => (
                   <li class={p.n === 0 ? 'is-zero' : undefined} {...tip(t(p.hint))}>
-                    <i class={cx('ledger-key', p.cls)} /><span>{t(p.label)}</span><b>{int(p.n)}</b><small>{total ? ((p.n / total) * 100).toFixed(p.n / total < 0.1 ? 1 : 0) + '%' : ''}</small>
+                    <i class={cx('ledger-key', p.cls)} /><span>{t(p.label)}</span><b>{people(p.n)}</b><small>{total ? ((p.n / total) * 100).toFixed(p.n / total < 0.1 ? 1 : 0) + '%' : ''}</small>
                   </li>
                 ))}
               </ul>
@@ -85,7 +85,7 @@ export function WorkforceTab({ obs, ledger, nav }: { obs: Observation; ledger: L
             <div class="ledger-callup-head">
               <h4>{t('Callable labour')}</h4>
               <span>
-                <V tipText={t('Share of non-food labour that projects actually took last month: {n} of {total} people. Verified by the referee.', { n: int(labor.projects), total: int(nonFood) })}>{pct(usedBp, usedBp < 100 && usedBp > 0 ? 1 : 0)}</V> {t('called up')} ·{' '}
+                <V tipText={t('Share of non-food labour that projects actually took last month: {n} of {total} people. Verified by the referee.', { n: people(labor.projects), total: people(nonFood) })}>{pct(usedBp, usedBp < 100 && usedBp > 0 ? 1 : 0)}</V> {t('called up')} ·{' '}
                 <V tipText={t('Policy: the state uses {pct} of what custom allows.', { pct: pct(civ.policies.mobilization_bp) })}>{pct(limitBp)}</V> {t('allowed by policy')} ·{' '}
                 <V tipText={t('The most that custom and institutions let the state direct, as a share of labour left after food. Verified by the referee.')}>{pct(capBp)}</V> {t('cap')}
               </span>
@@ -100,16 +100,16 @@ export function WorkforceTab({ obs, ledger, nav }: { obs: Observation; ledger: L
           </div>
           <div class="ledger-kpis ledger-wf-kpis">
             <div class={cx('ledger-kpi', vacancies > 0 && 'is-warn')} {...tip(t('Posts filled of posts offered in works that are switched on, farms aside. Verified by the referee.'))}>
-              <small>{t('Posts filled')}</small><b>{int(posts - vacancies)}<small> / {int(posts)}</small></b>
-              <span>{vacancies > 0 ? t('{n} standing empty', { n: int(vacancies) }) : t('none standing empty')}</span>
+              <small>{t('Posts filled')}</small><b>{people(posts - vacancies)}<small> / {people(posts)}</small></b>
+              <span>{vacancies > 0 ? t('{n} standing empty', { n: people(vacancies) }) : t('none standing empty')}</span>
             </div>
             <div class="ledger-kpi" {...tip(t('People holding a qualification, and how many of them were in a qualified post or teaching last month. Verified by the referee.'))}>
-              <small>{t('Qualified people')}</small><b>{int(qualified)}</b>
-              <span>{t('{n} in post', { n: int(qualifiedInPost) })}</span>
+              <small>{t('Qualified people')}</small><b>{people(qualified)}</b>
+              <span>{t('{n} in post', { n: people(qualifiedInPost) })}</span>
             </div>
             <div class="ledger-kpi" {...tip(t('Students enrolled in running programmes, and the teachers they occupy. From the programme list and the labour tally.'))}>
-              <small>{t('In training')}</small><b>{int(labor.students)}</b>
-              <span>{t('{n} courses running, {teachers} teachers', { n: running, teachers: int(labor.teachers) })}</span>
+              <small>{t('In training')}</small><b>{people(labor.students)}</b>
+              <span>{t('{n} courses running, {teachers} teachers', { n: running, teachers: people(labor.teachers) })}</span>
             </div>
           </div>
         </section>
@@ -168,12 +168,12 @@ export function WorkforceTab({ obs, ledger, nav }: { obs: Observation; ledger: L
                 {quals.map((q) => (
                   <tr>
                     <th scope="row">{t(QUAL_LABEL[q.qual])}</th>
-                    <td class="num"><V>{int(q.count)}</V></td>
-                    <td class="num"><V>{int(q.employed)}</V></td>
-                    <td class="num">{q.idle ? int(q.idle) : <span class="muted">–</span>}</td>
-                    <td class="num">{q.training ? int(q.training) : <span class="muted">–</span>}</td>
-                    <td class="num">{q.posts ? <E>{int(q.posts)}</E> : <span class="muted">–</span>}</td>
-                    <td class={cx('num', q.vacancies > 0 && 'neg')}>{q.vacancies ? <E>{int(q.vacancies)}</E> : <span class="muted">–</span>}</td>
+                    <td class="num"><V>{people(q.count)}</V></td>
+                    <td class="num"><V>{people(q.employed)}</V></td>
+                    <td class="num">{q.idle ? people(q.idle) : <span class="muted">–</span>}</td>
+                    <td class="num">{q.training ? people(q.training) : <span class="muted">–</span>}</td>
+                    <td class="num">{q.posts ? <E>{people(q.posts)}</E> : <span class="muted">–</span>}</td>
+                    <td class={cx('num', q.vacancies > 0 && 'neg')}>{q.vacancies ? <E>{people(q.vacancies)}</E> : <span class="muted">–</span>}</td>
                     <td class="ledger-tbl-bar"><Bar parts={[{ value: q.employed, cls: 'is-works' }, { value: q.idle, cls: 'is-idle' }]} max={Math.max(1, q.count, q.posts)} mark={q.posts > 0 ? q.posts : undefined} height={7}
                       tipText={t('Employed (solid) and idle (dotted) against posts (tick).')} /></td>
                   </tr>
@@ -186,7 +186,7 @@ export function WorkforceTab({ obs, ledger, nav }: { obs: Observation; ledger: L
         <section class="ledger-panel">
           <header class="ledger-panel-head">
             <h3>{t('Regions')}</h3>
-            <span class="ledger-panel-aside"><E tipText={t('Posts standing empty in works that are switched on, of all such posts. From the referee’s staffing counts.')}>{int(vacancies)}</E> {t('open posts of {n}', { n: int(posts) })}</span>
+            <span class="ledger-panel-aside"><E tipText={t('Posts standing empty in works that are switched on, of all such posts. From the referee’s staffing counts.')}>{people(vacancies)}</E> {t('open posts of {n}', { n: people(posts) })}</span>
           </header>
           <table class="table ledger-tbl">
             <thead>
@@ -204,11 +204,11 @@ export function WorkforceTab({ obs, ledger, nav }: { obs: Observation; ledger: L
               {ledger.regions.map((r) => (
                 <tr>
                   <th scope="row"><button type="button" class="linklike" onClick={() => nav.toRegion(r.region.id)} {...tip(t('Open this region’s works.'))}>{tc(r.region.name)}</button></th>
-                  <td class="num"><V>{int(r.own.population)}</V></td>
-                  <td class="num"><V>{int(r.own.working_age)}</V></td>
-                  <td class="num"><V>{int(r.filled)}</V><small class="muted">/{int(r.posts)}</small></td>
-                  <td class={cx('num', r.vacancies > 0 && 'neg')}>{r.vacancies ? int(r.vacancies) : <span class="muted">–</span>}</td>
-                  <td class="num"><V>{int(r.household)}</V></td>
+                  <td class="num"><V>{people(r.own.population)}</V></td>
+                  <td class="num"><V>{people(r.own.working_age)}</V></td>
+                  <td class="num"><V>{people(r.filled)}</V><small class="muted">/{people(r.posts)}</small></td>
+                  <td class={cx('num', r.vacancies > 0 && 'neg')}>{r.vacancies ? people(r.vacancies) : <span class="muted">–</span>}</td>
+                  <td class="num"><V>{people(r.household)}</V></td>
                   <td class="ledger-tbl-bar is-wide"><LaborStack list={parts(r.own.labor, 0)} height={10} /></td>
                 </tr>
               ))}

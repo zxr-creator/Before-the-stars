@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { NEGOTIATION_WINDOWS } from '../protocol';
 import type { BriefingItem, Observation } from '../protocol';
-import { CATEGORY_LABEL, PHASE_LABEL, RESEARCH_LABEL, yearOf } from '../format';
+import { CATEGORY_LABEL, PHASE_LABEL, RESEARCH_LABEL, fmtNow, fmtYear, yearOf } from '../format';
 import { Icon } from '../icons';
 import { Btn, cx } from '../ui';
 import {
@@ -132,8 +132,9 @@ export function RoundDock({ state, compact }: { state: AppState; compact: boolea
   );
   const face = (label: string, icon?: string) => (
     <span class="orb-text">
-      <span class="orb-kicker">{t('Year')}</span>
-      <span class="orb-year">{yearOf(obs.month)}</span>
+      {/* a calendar referee names the era and the year; otherwise the game year from the month */}
+      <span class="orb-kicker">{obs.date ? (obs.date.year <= 0 ? t('BC') : t('AD')) : t('Year')}</span>
+      <span class="orb-year" title={fmtNow(obs)}>{obs.date ? Math.abs(obs.date.year) || 1 : yearOf(obs.month)}</span>
       <span class="orb-label">{icon ? <Icon name={icon} size={11} /> : null}{label}</span>
     </span>
   );
@@ -273,7 +274,7 @@ export function MomentBanner({ state }: { state: AppState }) {
       <div class="banner-art"><Vignette art={b.art} /></div>
       <div class="banner-text">
         <span class="banner-kicker">
-          <Icon name="star" size={11} /> {t('Historic moment')} · {t('Year {n}', { n: yearOf(b.month) })} · {t(CATEGORY_LABEL[b.category] ?? 'Chronicle')}
+          <Icon name="star" size={11} /> {t('Historic moment')} · {fmtYear(b.month)} · {t(CATEGORY_LABEL[b.category] ?? 'Chronicle')}
           {civ ? <span class="banner-civ"><Emblem seat={civ.seat} color={civ.color} name={civ.name} size={13} /> {tc(civ.name)}</span> : null}
         </span>
         <b class="banner-title">{tc(b.title)}</b>

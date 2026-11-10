@@ -4,7 +4,7 @@
 import type { ComponentChildren, JSX } from 'preact';
 import { useCallback, useRef, useState } from 'preact/hooks';
 import type { Good } from '../protocol';
-import { GOOD_LABEL, GOOD_SHORT, compact, int } from '../format';
+import { GOOD_LABEL, GOOD_SHORT, computeQty, energy, peopleNum, qty, qtySigned, int } from '../format';
 import { isZh } from '../i18n';
 import { t } from '../i18n';
 import { Icon } from '../icons';
@@ -47,20 +47,19 @@ export function useTips(): { handlers: JSX.HTMLAttributes<HTMLDivElement>; layer
 
 // --- figures ---------------------------------------------------------------------------
 
-/**
- * Milli-units → display units. As the shared helper, except that millions keep two
- * decimals in English, so a supply of 1.00M can be told from a demand of 1.03M.
- */
-export function milli(n: number): string {
-  const v = n / 1000;
-  if (!isZh() && Math.abs(v) >= 1e6 && Math.abs(v) < 1e9) return (v / 1e6).toFixed(2) + 'M';
-  return compact(v);
+/** A quantity of a good in its own unit (rations, t/kt/Mt, lots): docs/units-and-scale.md §2. */
+export function amt(good: Good, n: number): string {
+  return qty(good, n);
 }
 
-/** Signed milli-units ("+12.5", "−3"). */
-export function milliSigned(n: number): string {
-  if (n === 0) return '0';
-  return (n > 0 ? '+' : '−') + milli(Math.abs(n));
+/** Signed quantity of a good ("+12 kt", "−3k rations"). */
+export function amtSigned(good: Good, n: number): string {
+  return qtySigned(good, n);
+}
+
+/** A service quantity: shaft or electric work in MWh/GWh, compute in machine-hall-months. */
+export function svc(kind: 'shaft' | 'elec' | 'compute', n: number): string {
+  return kind === 'compute' ? computeQty(n) : energy(n);
 }
 
 /** Lower-case a server-supplied name for use mid-sentence (left alone in Chinese). */
@@ -70,12 +69,12 @@ export function lcs(text: string): string {
 
 /** "artisans × 2": a count of qualified posts or people, safe for 1 as well as many. */
 export function qualCount(label: string, n: number): string {
-  return t('{qual} × {n}', { qual: label, n: int(n) });
+  return t("{qual} × {n}", { qual: label, n: peopleNum(n) });
 }
 
-/** "12/mo" — a monthly rate from milli-units. */
-export function perMo(n: number): string {
-  return t('{n}/mo', { n: milli(n) });
+/** "12 kt/mo" — a monthly rate of a good, in its unit. */
+export function perMo(n: number, good: Good): string {
+  return t('{n}/mo', { n: qty(good, n) });
 }
 
 /** Months of cover: "1.8", "23", "99+". */
@@ -117,7 +116,7 @@ export function GoodQtyChip({ good, amount, est, missing, tipText, unit }: { goo
   return (
     <span class={cx('ledger-qty', missing && 'is-missing', est && 'is-est')} {...tip(tipText ?? t(GOOD_LABEL[good]))}>
       <GoodIcon good={good} size={16} />
-      <b>{est ? <i class="ledger-approx">≈</i> : null}{milli(amount)}</b>{unit ? <small>{unit}</small> : null}
+      <b>{est ? <i class="ledger-approx">≈</i> : null}{qty(good, amount)}</b>{unit ? <small>{unit}</small> : null}
       {missing ? <Icon name="warn" size={10} /> : null}
     </span>
   );
@@ -129,13 +128,13 @@ export function GoodQtyChip({ good, amount, est, missing, tipText, unit }: { goo
  * Supply over demand for one round on a shared scale. Each bar is split into its
  * home part (made / used) and its traded part (hatched).
  */
-export function BalanceBar({ made, tradedIn, used, tradedOut, scale, tipText }: {
-  made: number; tradedIn: number; used: number; tradedOut: number; scale?: number; tipText?: string;
+export function BalanceBar({ good, made, tradedIn, used, tradedOut, scale, tipText }: {
+  good: Good; made: number; tradedIn: number; used: number; tradedOut: number; scale?: number; tipText?: string;
 }) {
   const max = Math.max(1, scale ?? Math.max(made + tradedIn, used + tradedOut));
   const w = (n: number) => (n <= 0 ? '0' : Math.max(1.5, (n / max) * 100).toFixed(1) + '%');
   return (
-    <span class="ledger-bal" role="img" aria-label={t('Supply {s} against demand {d}', { s: milli(made + tradedIn), d: milli(used + tradedOut) })} {...tip(tipText)}>
+    <span class="ledger-bal" role="img" aria-label={t('Supply {s} against demand {d}', { s: qty(good, made + tradedIn), d: qty(good, used + tradedOut) })} {...tip(tipText)}>
       <span class="ledger-bal-row">
         {made > 0 ? <i class="ledger-bal-seg is-supply" style={{ width: w(made) }} /> : null}
         {tradedIn > 0 ? <i class="ledger-bal-seg is-supply is-trade" style={{ width: w(tradedIn) }} /> : null}
@@ -225,9 +224,9 @@ export function Glyph({ name, size = 16, class: cls }: { name: string; size?: nu
 
 export const CATEGORY_ORDER = ['Extraction', 'Industry', 'Power', 'Research', 'Space', 'Food', 'Transport', 'Civic', 'Education', 'Other'];
 
-/** Compact people count. */
+/** Compact people count (exact below ten thousand). */
 export function people(n: number): string {
-  return n >= 10000 ? compact(n) : int(n);
+  return peopleNum(n);
 }
 
 export function Seg<T extends string>({ value, options, onChange, label, testid }: {

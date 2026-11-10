@@ -73,7 +73,12 @@ export interface Observation {
   receipts: Receipt[];
   /** bts-protocol/1.2: what one integer step of each quantity means. */
   units?: UnitsView;
+  /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
+  date?: HistoricalDate | null;
 }
+
+/** A historical year: negative is BC, positive AD; there is no year zero. */
+export interface HistoricalDate { year: number }
 
 export interface WorldFrame {
   width: number;
@@ -863,6 +868,8 @@ export interface AgentInfo {
 }
 
 export interface MatchSummary {
+  /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
+  date?: HistoricalDate | null;
   exists: boolean;
   match_id?: string;
   seed?: string;
@@ -978,6 +985,8 @@ export interface SpectatorOutcome {
 }
 
 export interface SpectatorView {
+  /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
+  date?: HistoricalDate | null;
   match_id: string;
   month: Month;
   round: number;

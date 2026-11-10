@@ -68,8 +68,13 @@ const TINT: Record<Terrain, string> = {
 const LAND_BASE = '#ece2c4';
 const GREY_PAPER = '#e2dccb';
 
-/** Population classes (people per region) and their wash colours. */
-export const POP_BREAKS = [100, 500, 2000, 10000, 50000, 250000];
+/**
+ * Population classes (people per region) and their wash colours. The breaks follow the
+ * settlement classes of docs/units-and-scale.md §3 (camp under 150,000; village to 1
+ * million; town to 4 million; city to 12 million; metropolis beyond), with the camp and
+ * village classes split once more so the opening (236,000-248,000 a seat) reads.
+ */
+export const POP_BREAKS = [50_000, 150_000, 500_000, 1_000_000, 4_000_000, 12_000_000];
 export const POP_RAMP = ['#efe3c2', '#e7d09f', '#deb87d', '#d09a5d', '#be7a44', '#a45a31', '#803e23'];
 export const DEPOSIT_COLOR: Record<Deposit, string> = {
   copper_ore: '#b9743a',
@@ -863,7 +868,8 @@ export class Atlas {
     if (rank > 0) {
       const base = [0, 4, 6.5, 10, 14, 18][rank];
       const pop = r.own ? r.own.population : r.foreign ? (r.foreign.population_low + r.foreign.population_high) / 2 : 0;
-      const grow = pop > 0 ? clamp((Math.log10(pop) - 2) / 4, 0, 1) : 0.3;
+      // within its class a town grows with its people: ~30,000 to ~30 million (units-and-scale §3)
+      const grow = pop > 0 ? clamp((Math.log10(pop) - 4.5) / 3, 0, 1) : 0.3;
       const rad = Math.min(base * (0.8 + 0.5 * grow), Math.max(3.5, inR * 0.4));
       const cell = 2.3;
       const blocks: number[] = [];
@@ -1924,7 +1930,8 @@ export class Atlas {
         total += n;
         if (n > best) { best = n; role = ro; }
       }
-      const rad = (6.5 + clamp(Math.log10(Math.max(10, total)) - 1, 0, 3) * 0.9) * k;
+      // a formation is 1,000 to 5,000,000 soldiers (units-and-scale §3): the marker grows from 1,000 to 1,000,000
+      const rad = (6.5 + clamp(Math.log10(Math.max(1000, total)) - 3, 0, 3) * 0.9) * k;
       this.drawArmy(role, x + (20 + i * 17) * k, y - 17 * k, rad, this.colorOf(d.mySeat), {
         training: a.training_months_left > 0, battle: a.in_battle, lowSupply: a.supply_bp < 5000,
       });

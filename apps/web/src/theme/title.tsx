@@ -7,7 +7,7 @@ import type { SetupController } from '../protocol';
 import { api } from '../api';
 import { fmtWhen, openSaveManager, saveLabel, useVault } from '../saves/ui';
 import { t, tc, useLocale } from '../i18n';
-import { yearOf } from '../format';
+import { fmtYear } from '../format';
 import { LanguageSwitch } from '../setup';
 import { Almanac } from '../tutorial/almanac';
 import { TitleBackdrop } from './backdrop';
@@ -118,8 +118,8 @@ function ObserverQuickStart({ live, busy, onClose }: { live: boolean; busy: bool
         { value: 72, label: t('{n} regions', { n: 72 }), hint: t('Large: long isolation, long frontiers.') },
       ]} />
       <Seg label={t('Length')} value={q.short} testid="quick-short" onPick={(short) => pick({ short })} options={[
-        { value: false, label: t('Standard · 240 rounds'), hint: t('240 years at the standard pace.') },
-        { value: true, label: t('Short · 80 rounds'), hint: t('Work is paced about three times faster to fit 80 years.') },
+        { value: false, label: t('Standard · 240 rounds'), hint: t('240 rounds of twelve months each, at the standard pace.') },
+        { value: true, label: t('Short · 80 rounds'), hint: t('Work is paced about three times faster to fit 80 rounds.') },
       ]} />
       <button type="button" class="title-btn is-primary tq-start" disabled={busy} data-testid="title-observer-start" onClick={() => void start()}>
         <Icon name="eye" size={15} /> {busy ? t('Drawing the world…') : t('Start watching')}
@@ -141,11 +141,12 @@ export function Title() {
   const live = hasLiveMatch();
   const desktop = desktopShell();
   const summary = s.summary;
-  const year = yearOf(s.obs?.month ?? s.spectator?.month ?? summary?.month ?? 0);
+  // the date of the match on offer: the referee's calendar year where it keeps one, else "Year N"
+  const when = fmtYear(s.obs?.month ?? s.spectator?.month ?? summary?.month ?? 0, s.obs?.date ?? s.spectator?.date ?? summary?.date ?? null);
   const vault = useVault();
   const resumeMatch = !live ? t('No match in progress')
-    : s.mode === 'observe' ? t('Observer match · Year {n}', { n: year })
-    : t('{name} · Year {n}', { name: s.obs ? tc(s.obs.civ.name) : '', n: year });
+    : s.mode === 'observe' ? t('Observer match · {date}', { date: when })
+    : t('{name} · {date}', { name: s.obs ? tc(s.obs.civ.name) : '', date: when });
   // browser build: the match on offer was brought back from an autosave; say which
   const restored = live && vault.restored && vault.restored.matchId === summary?.match_id ? vault.restored : null;
   const resume = restored ? t('{match} · autosaved {when}', { match: resumeMatch, when: fmtWhen(restored.created) }) : resumeMatch;

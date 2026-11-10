@@ -10,7 +10,7 @@ import { BUILT_RAMP, POP_RAMP, builtClass, popClass } from '../map/atlas';
 import { SECTORS, SECTOR_COLOR, landUse } from '../map/landuse';
 import { chipDataUrl, chipRadius, sectorChips } from '../map/sites';
 import type { Deposit, RegionId, RegionView, Role } from '../protocol';
-import { compact, int, milli, range } from '../format';
+import { compact, peopleNum, range, tonnes } from '../format';
 import { Builder } from './builder';
 import { buildRegionDecor, decorSignature, eraOfFacilities, type DecorContext, type RegionDecor } from './decor';
 import { armyStandard, depositBadge, standardKey, YIELD_SVG, type StandardSpec } from './icons';
@@ -1176,7 +1176,8 @@ export class Map3D {
       const r = p.r;
       const pop = r.own ? r.own.population : r.foreign ? (r.foreign.population_low + r.foreign.population_high) / 2 : -1;
       if (pop < 0) continue;
-      const hgt = 5 + 10.5 * Math.log10(pop + 1);
+      // people per region run from tens of thousands to tens of millions (units-and-scale §1, §3)
+      const hgt = 5 + 10.5 * clamp(Math.log10(pop + 1) - 3, 0, 5);
       const rad = clamp(p.inradius * 0.2, 5, 9);
       const g = new THREE.CylinderGeometry(rad * 0.9, rad, hgt, 6, 1, false);
       g.translate(0, hgt / 2, 0);
@@ -1289,7 +1290,8 @@ export class Map3D {
       if (!at) continue;
       let role: Role = 'assault', best = -1, total = 0;
       for (const [ro, n] of a.soldiers) { total += n; if (n > best) { best = n; role = ro; } }
-      const scale = 0.85 + 0.12 * clamp(Math.log10(total + 1), 0, 3.4);
+      // a formation is 1,000 to 5,000,000 soldiers (units-and-scale §3): weigh it in thousands
+      const scale = 0.85 + 0.12 * clamp(Math.log10(total / 1000 + 1), 0, 3.4);
       const training = a.training_months_left > 0;
       const col = training ? mixRgb(mine, [0.95, 0.92, 0.84], 0.5) : mine;
       const dark = mixRgb(mine, [0.1, 0.07, 0.05], 0.55);
@@ -1308,7 +1310,7 @@ export class Map3D {
         b.cyl(0, 2.5, 0, 1.85, 1.85, 0.6, 9, [0.97, 0.93, 0.8], col);
       }
       b.pop();
-      const frac = clamp(Math.log10(total + 1) / 3.2, 0.06, 1);
+      const frac = clamp(Math.log10(total / 1000 + 1) / 3.2, 0.06, 1);
       standard(at[0], at[1], at[2], { color: this.colorOf(d.mySeat), role, tier: a.tier, strength: frac, training, battle: a.in_battle, lowSupply: a.supply_bp < 5000 }, scale);
       if (a.target != null && a.target !== a.region) {
         const to = topo.byId.get(a.target);
@@ -1337,7 +1339,7 @@ export class Map3D {
       const stale = d.month - a.observed_month > 12;
       const col = mixRgb(base, [0.95, 0.92, 0.84], stale ? 0.55 : 0.2);
       const mid = (a.strength_low + a.strength_high) / 2;
-      const scale = 0.85 + 0.12 * clamp(Math.log10(mid + 1), 0, 3.4);
+      const scale = 0.85 + 0.12 * clamp(Math.log10(mid / 1000 + 1), 0, 3.4);
       b.push(at[0], at[1], at[2], 0, scale);
       b.cyl(0, 0, 0, 2.5, 2.3, 0.5, 10, mixRgb(base, [0.1, 0.07, 0.05], 0.55), col);
       // A plain pawn: seen, composition unknown.
@@ -1346,7 +1348,7 @@ export class Map3D {
       b.pop();
       standard(at[0], at[1], at[2], {
         color: this.colorOf(a.owner), role: null, tier: a.tier_estimate,
-        strength: clamp(Math.log10(a.strength_low + 1) / 3.2, 0.06, 1), strengthHi: clamp(Math.log10(a.strength_high + 1) / 3.2, 0.06, 1), stale,
+        strength: clamp(Math.log10(a.strength_low / 1000 + 1) / 3.2, 0.06, 1), strengthHi: clamp(Math.log10(a.strength_high / 1000 + 1) / 3.2, 0.06, 1), stale,
       }, scale);
     }
     for (const [region, n] of hidden) {
@@ -1432,7 +1434,7 @@ export class Map3D {
           const est = dp.epistemic !== 'verified';
           specs.push({
             key: `d${r.id}:${i}`, x: site.x, y: site.y - 0.4, z: site.z,
-            html: `<span class="${est ? 'm3-est' : ''}">${est ? '≈ ' : ''}${esc(milli(dp.remaining))}</span>`,
+            html: `<span class="${est ? 'm3-est' : ''}">${est ? '≈ ' : ''}${esc(tonnes(dp.remaining))}</span>`,
             cls: 'm3-amount', priority: 8 - i, minZoom: 0.9, anchor: 'below',
           });
         });
@@ -1457,7 +1459,7 @@ export class Map3D {
         const id = c.userData.id as number;
         const r = topo.byId.get(id)?.r;
         if (!r) continue;
-        const txt = r.own ? int(r.own.population) : r.foreign ? range(r.foreign.population_low, r.foreign.population_high) : '';
+        const txt = r.own ? peopleNum(r.own.population) : r.foreign ? range(r.foreign.population_low, r.foreign.population_high) : '';
         specs.push({
           key: 'p' + id, x: c.position.x, y: c.position.y + (c.userData.h as number) + 1.5, z: c.position.z,
           html: `<span class="${r.own ? '' : 'm3-est'}">${esc(txt)}</span>`, cls: 'm3-popnum', priority: 40, minZoom: 0.45, anchor: 'above', free: true,

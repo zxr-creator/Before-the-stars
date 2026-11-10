@@ -7,7 +7,7 @@ import { t, tc } from '../i18n';
 import { GoodIcon } from '../theme/goods';
 import { cx } from '../ui';
 import { buildChain, type Ledger, type Stage } from './model';
-import { Glyph, lcs, milli, tip } from './parts';
+import { Glyph, amt, lcs, tip } from './parts';
 import type { Nav } from './Ledger';
 
 const ROW_MIN = 54;
@@ -21,8 +21,8 @@ const DELIVERS: Record<string, string> = {
 };
 
 function stageTip(s: Stage): string {
-  const ins = [...s.ins].map(([g, e]) => `${t(GOOD_SHORT[g])} ${milli(e.now)}${e.starved ? ' (' + t('short') + ')' : ''}`);
-  const outs = [...s.outs].map(([g, e]) => `${t(GOOD_SHORT[g])} ${milli(e.now)}`);
+  const ins = [...s.ins].map(([g, e]) => `${t(GOOD_SHORT[g])} ${amt(g, e.now)}${e.starved ? ' (' + t('short') + ')' : ''}`);
+  const outs = [...s.outs].map(([g, e]) => `${t(GOOD_SHORT[g])} ${amt(g, e.now)}`);
   const lines = [
     t('{works} — {recipe}', { works: tc(s.name), recipe: tc(s.recipeName) }),
     t('{n} works, {levels} levels in all, running at {pct} of full output.', { n: s.works, levels: s.levels, pct: pct(s.rateBp) }),
@@ -52,7 +52,8 @@ export function ChainView({ ledger, nav }: { ledger: Ledger; nav: Nav }) {
   const pos = new Map<string, { x: number; y: number; col: number }>();
   for (const g of chain.goods) pos.set('g:' + g.good, { x: x(g.col), y: y(g.col, g.row), col: g.col });
   for (const s of chain.stages) pos.set(s.id, { x: x(s.col), y: y(s.col, s.row), col: s.col });
-  const width = (flow: number) => (flow <= 0 ? 1.2 : 1.6 + 7 * Math.sqrt(flow / chain.maxFlow));
+  // thickness follows mass (tonnes a month), so rations, tonnes and lots are drawn on one scale
+  const width = (tonnes: number) => (tonnes <= 0 ? 1.2 : 1.6 + 7 * Math.sqrt(tonnes / chain.maxFlow));
   const leftPct = (col: number) => ((col + 0.5) / cols) * 100 + '%';
   const nodeW = `calc(${100 / cols}% - 10px)`;
   const stageOf = new Map(chain.stages.map((s) => [s.id, s]));
@@ -61,7 +62,7 @@ export function ChainView({ ledger, nav }: { ledger: Ledger; nav: Nav }) {
   return (
     <div class="ledger-chain-wrap" data-testid="ledger-chain">
       <p class="ledger-chain-lede">
-        {t('What our works turn into what, left to right. Thickness is the estimated flow per month; every figure here is an estimate from recipes and last month’s rates.')}
+        {t('What our works turn into what, left to right. Thickness is the estimated flow per month by mass; every figure here is an estimate from recipes and last month’s rates.')}
         {starvedStages ? <span class="ledger-chain-alert"> {t('Stages that ran short of an input: {n}.', { n: starvedStages })}</span> : null}
       </p>
       <div class="ledger-chain-scroll">
@@ -74,11 +75,11 @@ export function ChainView({ ledger, nav }: { ledger: Ledger; nav: Nav }) {
               const d = `M${a.x.toFixed(1)} ${a.y.toFixed(1)}C${mid.toFixed(1)} ${a.y.toFixed(1)} ${mid.toFixed(1)} ${b.y.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
               const s = stageOf.get(e.kind === 'in' ? e.to : e.from)!;
               const text = e.kind === 'in'
-                ? t('{good} into {works}: ≈ {n}/mo of {full} at full rate.', { good: t(GOOD_LABEL[e.good]), works: lcs(tc(s.name)), n: milli(e.flow), full: milli(e.full) }) + (e.starved ? '\n' + t('The works ran short of it last month.') : '')
-                : t('{good} out of {works}: ≈ {n}/mo of {full} at full rate.', { good: t(GOOD_LABEL[e.good]), works: lcs(tc(s.name)), n: milli(e.flow), full: milli(e.full) }) + (e.starved ? '\n' + t('Held down because the works ran short of an input.') : '');
+                ? t('{good} into {works}: ≈ {n}/mo of {full} at full rate.', { good: t(GOOD_LABEL[e.good]), works: lcs(tc(s.name)), n: amt(e.good, e.flow), full: amt(e.good, e.full) }) + (e.starved ? '\n' + t('The works ran short of it last month.') : '')
+                : t('{good} out of {works}: ≈ {n}/mo of {full} at full rate.', { good: t(GOOD_LABEL[e.good]), works: lcs(tc(s.name)), n: amt(e.good, e.flow), full: amt(e.good, e.full) }) + (e.starved ? '\n' + t('Held down because the works ran short of an input.') : '');
               return (
                 <g class={cx('ledger-link', e.kind === 'in' ? 'is-in' : 'is-out', e.starved && 'is-starved', e.flow <= 0 && 'is-idle', hot !== null && (e.from === hot || e.to === hot) && 'is-hot')}>
-                  <path d={d} fill="none" stroke-width={width(e.flow)} vector-effect="non-scaling-stroke" />
+                  <path d={d} fill="none" stroke-width={width(e.tonnes)} vector-effect="non-scaling-stroke" />
                   <path d={d} fill="none" class="ledger-link-hit" stroke-width="12" vector-effect="non-scaling-stroke" {...tip(text)} />
                 </g>
               );
@@ -90,7 +91,7 @@ export function ChainView({ ledger, nav }: { ledger: Ledger; nav: Nav }) {
             return (
               <button type="button" class={cx('ledger-node is-good', row && 'is-' + row.status, hot === 'g:' + g.good && 'is-hot')} style={{ left: leftPct(g.col), top: p.y + 'px', maxWidth: nodeW }}
                 onClick={() => nav.toGood(g.good)} onMouseEnter={() => setHot('g:' + g.good)} onFocus={() => setHot('g:' + g.good)} onBlur={() => setHot(null)}
-                {...tip(t(GOOD_LABEL[g.good]) + '\n' + (row ? t('In store {n}. Click to see who makes and uses it.', { n: milli(row.line.stock) }) : ''))}>
+                {...tip(t(GOOD_LABEL[g.good]) + '\n' + (row ? t('In store {n}. Click to see who makes and uses it.', { n: amt(g.good, row.line.stock) }) : ''))}>
                 <GoodIcon good={g.good} size={18} /><span>{t(GOOD_SHORT[g.good])}</span>
               </button>
             );

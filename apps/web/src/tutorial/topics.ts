@@ -63,7 +63,7 @@ export const GLOSSARY: [string, string][] = [
   ['Referee', 'The rules engine. It checks every order and resolves the twelve months of each round.'],
   ['Reform', 'The project that enacts a recognized practice once its real requirements exist.'],
   ['Reported', 'A claim received from someone else. It may be false, and is marked as unverified.'],
-  ['Research capacity', 'Work per month that qualified people can put into investigations. Unused capacity is lost.'],
+  ['Research capacity', 'Researcher-months a month that staffed research posts can put into investigations. Unused capacity is lost.'],
   ['Round', 'Twelve simulated months: contact selection, five negotiation windows, planning, then resolution.'],
   ['Seat', 'One of the four civilizations, played by a person, a built-in AI or an LLM agent.'],
   ['Stability', 'How far people accept being governed, from 0 to 100.'],
@@ -95,7 +95,7 @@ export const TOPICS: Topic[] = [
   {
     key: 'round', group: 'Basics', icon: 'hourglass', art: 'measure:1',
     title: 'The round and its phases',
-    lede: 'Each round is twelve simulated months for everybody. You read, optionally negotiate, plan, and end the round.',
+    lede: 'Each round is twelve simulated months for everybody; the top bar shows the date it has reached. You read, optionally negotiate, plan, and end the round.',
     blocks: [
       steps(
         'Contact selection. Privately pick up to three counterparts. A channel opens only where the choice is mutual.',
@@ -134,7 +134,7 @@ export const TOPICS: Topic[] = [
     title: 'Facilities and blockers',
     lede: 'Facilities turn labour and inputs into goods, services, teaching places and research. Each one reports what holds it back.',
     blocks: [
-      p('A facility has levels, posts to staff and one or more recipes. Inputs are read from the store at the start of a month and outputs arrive the next month.'),
+      p('A facility has levels, posts to staff and one or more production methods. One level is an establishment employing thousands of people: a level of fields is worked by 10,000 cultivators, a level of workshops by 4,000 workers and 2,000 artisans. Inputs are read from the store at the start of a month and outputs arrive the next month.'),
       h('What bounds output'),
       list(
         'Staff, and staff with the qualification a post requires.',
@@ -154,7 +154,14 @@ export const TOPICS: Topic[] = [
     lede: 'Twenty-two goods, from food to instruments. Each is something real that is produced, stored, consumed and traded.',
     blocks: [
       { kind: 'goods' },
-      p('Quantities are in the units your stores count. The economy panel shows, for every good, what was produced, consumed and traded last round and how much the store can hold.'),
+      p('Every good is counted in a real unit. The economy panel shows, for every good, what was produced, consumed, lost and traded last round and how much the store can hold.'),
+      list(
+        'Food in rations: one person’s food for a month, 50 kg of grain-equivalent. Everyone eats one ration a month, so a people of 240,000 eats 240k rations.',
+        'Bulk goods in tonnes, shown as kt (thousand tonnes) or Mt: timber and stone, ores, coal, metals, fuel, chemicals.',
+        'Manufactures in standard lots: a set of tools for one worker-year (0.25 t), a device lot, a computing rack, a maintenance kit.',
+        'Construction in worker-months: one called-up labourer for a month. Research in researcher-months.',
+        'Shaft and electric power in MWh delivered within the month; it cannot be stored.',
+      ),
       note('Later goods appear in the top bar once your civilization actually has them.'),
     ],
     actions: [{ label: 'Open the economy', panel: 'economy' }, { label: 'Open the economy ledger', overlay: 'ledger' }],

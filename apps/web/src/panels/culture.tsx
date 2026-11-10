@@ -1,7 +1,7 @@
 // Culture: practices and reforms, peoples, religions and the local movement.
 import { useState } from 'preact/hooks';
 import type { BeliefOption, MovementView, Observation, PracticeCard, PracticeState } from '../protocol';
-import { PSTATE_LABEL, fmtDate, int, joinList, pct, tcAs, tcChecks, tx } from '../format';
+import { PSTATE_LABEL, fmtDate, int, joinList, pct, peopleNum, tcAs, tcChecks, tx, workMonths } from '../format';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { ActionNote, Badge, Btn, Checklist, Empty, Est, Meter, RegionLink, SeatDot, Section, Tabs, Why, cx, work } from '../ui';
@@ -91,7 +91,7 @@ function Practice({ obs, p }: { obs: Observation; p: PracticeCard }) {
           {p.state === 'recognized' ? (
             <div class="form-actions">
               <Btn small kind="primary" why={why} disabled={s.busy} testid="propose-reform" onClick={() => void act({ kind: 'propose_reform', practice: p.handle }, 'reform')}>{t('Propose reform')}</Btn>
-              <span class="muted small">{t('{n} work at the capital', { n: work(p.reform_work) })}</span>
+              <span class="muted small">{t('{n} at the capital', { n: workMonths(p.reform_work) })}</span>
               {why ? <Why>{why}</Why> : null}
             </div>
           ) : null}
@@ -99,7 +99,7 @@ function Practice({ obs, p }: { obs: Observation; p: PracticeCard }) {
             project ? (
               <div class="progress-line">
                 <Meter value={project.work_done} max={Math.max(1, project.work_needed)} tone="gold" label={t('Reform progress')} />
-                <span class="progress-num"><b>{work(project.work_done)}</b> / {work(project.work_needed)} <small>{t('work')}</small> · <button type="button" class="linklike" onClick={() => openPanel('projects')}>{t('project')}</button></span>
+                <span class="progress-num"><b>{work(project.work_done)}</b> / {work(project.work_needed)} <small>{t('worker-months')}</small> · <button type="button" class="linklike" onClick={() => openPanel('projects')}>{t('project')}</button></span>
               </div>
             ) : <p class="muted small">{t('The reform is being carried through.')}</p>
           ) : null}
@@ -118,7 +118,7 @@ function Peoples({ obs }: { obs: Observation }) {
       <ul class="lineage-list">
         {obs.culture.lineages.map((l) => (
           <li class="card lineage">
-            <div class="row-between"><b class="detail-title">{tc(l.name)}</b><span><b>{int(l.population)}</b> <small class="muted">{t('people · {pct}%', { pct: Math.round((l.population / total) * 100) })}</small></span></div>
+            <div class="row-between"><b class="detail-title">{tc(l.name)}</b><span><b>{peopleNum(l.population)}</b> <small class="muted">{t('people · {pct}%', { pct: Math.round((l.population / total) * 100) })}</small></span></div>
             <Meter value={l.population} max={total} tone="accent" height={5} />
             <p class="muted small">{tc(l.origin)}</p>
             {l.traits.length ? (
@@ -146,7 +146,7 @@ function Religion({ obs }: { obs: Observation }) {
           <ul class="religion-list">
             {c.religions.map((r) => (
               <li class="card religion">
-                <div class="row-between"><b class="detail-title">{tc(r.name)}</b><Est title={t('Followers we know of; the true number may differ')}>{t('≈ {n} known followers', { n: int(r.followers_known) })}</Est></div>
+                <div class="row-between"><b class="detail-title">{tc(r.name)}</b><Est title={t('Followers we know of; the true number may differ')}>{t('≈ {n} known followers', { n: peopleNum(r.followers_known) })}</Est></div>
                 <p class="muted small">
                   {r.founder !== null
                     ? tx('Founded {date} by {who}', { date: fmtDate(r.founded_month), who: <><SeatDot color={civColor(obs, r.founder)} /> {tc(civName(obs, r.founder))}</> })
@@ -190,7 +190,7 @@ function Movement({ obs, m }: { obs: Observation; m: MovementView }) {
       {stageIx < 0 ? <p><b>{tc(m.stage)}</b></p> : null}
       <dl class="kvs">
         <div class="kv"><dt>{t('Where')}</dt><dd><RegionLink id={m.region} /></dd></div>
-        <div class="kv"><dt>{t('Participants')}</dt><dd><b>{int(m.participants)}</b> {t('people')}</dd></div>
+        <div class="kv"><dt>{t('Participants')}</dt><dd><b>{peopleNum(m.participants)}</b> {t('people')}</dd></div>
         <div class="kv"><dt>{t('Devotion')}</dt><dd class="util-cell"><Meter value={m.devotion} max={Math.max(1, m.devotion_needed)} tone={devotionShort ? 'gold' : 'ok'} height={6} label={t('Devotion {done} of {needed}', { done: work(m.devotion), needed: work(m.devotion_needed) })} /> <small>{work(m.devotion)} / {work(m.devotion_needed)}</small></dd></div>
         <div class="kv"><dt>{t('Founding places')}</dt><dd>{t('{n} left in the world', { n: m.slots_remaining })}</dd></div>
       </dl>

@@ -2,7 +2,7 @@
 // foreign forces as they were last observed.
 import { useEffect, useState } from 'preact/hooks';
 import type { ArmyView, Observation, RegionId, Role, UnitTier } from '../protocol';
-import { ROLES, ROLE_LABEL, fmtDate, fmtMonths, int, joinList, lc, pct, range, tcChecks, tn, tx } from '../format';
+import { ROLES, ROLE_LABEL, fmtDate, fmtMonths, int, joinList, lc, pct, peopleNum, range, tcChecks, tn, tx } from '../format';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import {
@@ -47,7 +47,7 @@ export function MilitaryPanel() {
       <p class="panel-lede">{t('Can the force operate, and can the government still govern while it does?')}</p>
       {wars.length ? <p class="note is-bad"><Icon name="warn" size={12} /> {t('At war with {names}.', { names: joinList(wars.map((w) => tc(civName(obs, w)))) })}</p> : null}
 
-      <Section title={t('Armies')} aside={<span class="row"><small class="muted">{t('{n} soldiers under arms', { n: int(soldiers) })}</small><Btn small kind="primary" icon="plus" testid="recruit-open" onClick={() => { setPresetRegion(s.selectedRegion ?? undefined); setRecruiting(!recruiting); }}>{recruiting ? t('Close') : t('Recruit')}</Btn></span>}>
+      <Section title={t('Armies')} aside={<span class="row"><small class="muted">{t('{n} soldiers under arms', { n: peopleNum(soldiers) })}</small><Btn small kind="primary" icon="plus" testid="recruit-open" onClick={() => { setPresetRegion(s.selectedRegion ?? undefined); setRecruiting(!recruiting); }}>{recruiting ? t('Close') : t('Recruit')}</Btn></span>}>
         {recruiting ? <RecruitForm obs={obs} presetRegion={presetRegion} onDone={() => setRecruiting(false)} /> : null}
         {training.length ? <p class="note"><Icon name="clock" size={12} /> {tn(training.length, '{n} formation is being raised: {titles}.', '{n} formations are being raised: {titles}.', { titles: training.map((p) => tc(p.title)).join(isZh() ? '；' : '; ') })}</p> : null}
         {obs.armies.length === 0 ? <Empty>{t('No formation is under arms.')}</Empty> : (
@@ -90,8 +90,8 @@ function TierCard({ t: ut }: { t: UnitTier }) {
         {ut.role_names.map(([role, name]) => <li title={t(ROLE_HINT[role])}><RoleMark role={role} /> <span class="kicker">{t(ROLE_LABEL[role])}</span> {tc(name)}</li>)}
       </ul>
       <dl class="kvs">
-        <div class="kv"><dt>{t('Equipment')}</dt><dd><GoodsList items={ut.equipment} per={t('per soldier')} empty={t('none')} /></dd></div>
-        <div class="kv"><dt>{t('Upkeep')}</dt><dd><GoodsList items={ut.upkeep} per={t('per soldier each month')} empty={t('none')} /></dd></div>
+        <div class="kv"><dt>{t('Equipment')}</dt><dd><GoodsList items={ut.equipment} per={t('per thousand soldiers')} empty={t('none')} /></dd></div>
+        <div class="kv"><dt>{t('Upkeep')}</dt><dd><GoodsList items={ut.upkeep} per={t('per thousand soldiers each month')} empty={t('none')} /></dd></div>
         <div class="kv"><dt>{t('Training')}</dt><dd>{fmtMonths(ut.training_months)}</dd></div>
       </dl>
       {ut.requirements.length ? <Checklist items={tcChecks(ut.requirements)} /> : null}
@@ -105,12 +105,15 @@ function RecruitForm({ obs, presetRegion, onDone }: { obs: Observation; presetRe
   const available = obs.catalog.unit_tiers.filter((x) => x.available);
   const [region, setRegion] = useState<RegionId | undefined>(presetRegion !== undefined && regions.some((r) => r.id === presetRegion) ? presetRegion : (regions.find((r) => r.id === obs.civ.capital) ?? regions[0])?.id);
   const [role, setRole] = useState<Role>('assault');
-  const [soldiers, setSoldiers] = useState(20);
+  // a formation is real people: 1,000 to 5,000,000 soldiers (Observation.units.limits; units-and-scale §3)
+  const smin = obs.units?.limits?.soldiers_min ?? 1_000;
+  const smax = obs.units?.limits?.soldiers_max ?? 5_000_000;
+  const [soldiers, setSoldiers] = useState(Math.max(smin, Math.min(smax, 10_000)));
   const [tier, setTier] = useState<number>(available.length ? available[available.length - 1].tier : 0);
   if (!regions.length || region === undefined) return <Empty>{t('We govern no region to recruit in.')}</Empty>;
   const ut = obs.catalog.unit_tiers.find((x) => x.tier === tier);
   const room = obs.civ.recruit_room;
-  const why = !ut ? t('No formation type is available') : !ut.available ? t('This formation type is not yet available') : soldiers < 10 || soldiers > 5000 ? t('A formation is 10 to 5,000 soldiers') : room !== undefined && soldiers > room ? t('At most {n} more people would currently serve', { n: int(room) }) : null;
+  const why = !ut ? t('No formation type is available') : !ut.available ? t('This formation type is not yet available') : soldiers < smin || soldiers > smax ? t('A formation is {min} to {max} soldiers', { min: int(smin), max: int(smax) }) : room !== undefined && soldiers > room ? t('At most {n} more people would currently serve', { n: int(room) }) : null;
   const roleName = (r: Role) => {
     const named = ut?.role_names.find((x) => x[0] === r)?.[1];
     return named ? tc(named) : t(ROLE_LABEL[r]);
@@ -123,7 +126,7 @@ function RecruitForm({ obs, presetRegion, onDone }: { obs: Observation; presetRe
     <div class="card form recruit-form" data-testid="recruit-form">
       <b class="detail-title">{t('Raise a formation')}</b>
       <div class="form-row">
-        <Field label={t('Region')}><Select value={region} options={regions.map((r) => ({ value: r.id, label: t('{name} ({n} working age)', { name: r.name, n: int(r.own!.working_age) }) }))} onChange={(v) => setRegion(v)} label={t('Recruiting region')} testid="recruit-region" /></Field>
+        <Field label={t('Region')}><Select value={region} options={regions.map((r) => ({ value: r.id, label: t('{name} ({n} working age)', { name: r.name, n: peopleNum(r.own!.working_age) }) }))} onChange={(v) => setRegion(v)} label={t('Recruiting region')} testid="recruit-region" /></Field>
         <Field label={t('Type')}><Select value={tier} options={obs.catalog.unit_tiers.map((x) => ({ value: x.tier, label: t('Tier {n} · {name}', { n: x.tier, name: tc(x.name) }), disabled: !x.available }))} onChange={(v) => setTier(v)} label={t('Formation type')} /></Field>
       </div>
       <div class="field">
@@ -137,12 +140,13 @@ function RecruitForm({ obs, presetRegion, onDone }: { obs: Observation; presetRe
         </div>
         <span class="field-hint">{t('{role}: {hint}.', { role: t(ROLE_LABEL[role]), hint: lc(ROLE_HINT[role]) })}</span>
       </div>
-      <Field label={t('Soldiers')} hint={room !== undefined ? t('Soldiers leave the workforce while they serve. About {n} more people would currently agree to serve; custom, institutions and danger change that.', { n: int(room) }) : t('Soldiers leave the workforce while they serve.')}>
-        <NumInput value={soldiers} min={10} max={5000} step={10} unit={t('soldiers')} label={t('Soldiers')} onChange={setSoldiers} testid="recruit-soldiers" />
+      <Field label={t('Soldiers')} hint={room !== undefined ? t('Soldiers leave the workforce while they serve. About {n} more people would currently agree to serve; custom, institutions and danger change that.', { n: peopleNum(room) }) : t('Soldiers leave the workforce while they serve.')}>
+        <NumInput value={soldiers} min={smin} max={smax} step={1000} unit={t('soldiers')} label={t('Soldiers')} width={110} onChange={setSoldiers} testid="recruit-soldiers" />
       </Field>
       {ut ? <p class="total-line">{tx('Equipment: {equipment} · upkeep {upkeep} · {months} training', {
-        equipment: <GoodsList items={ut.equipment.map((g) => ({ good: g.good, amount: g.amount * soldiers }))} empty={t('none')} />,
-        upkeep: <GoodsList items={ut.upkeep.map((g) => ({ good: g.good, amount: g.amount * soldiers }))} per={t('each month')} empty={t('none')} />,
+        // catalog equipment and upkeep are per thousand soldiers
+        equipment: <GoodsList items={ut.equipment.map((g) => ({ good: g.good, amount: Math.round((g.amount * soldiers) / 1000) }))} empty={t('none')} />,
+        upkeep: <GoodsList items={ut.upkeep.map((g) => ({ good: g.good, amount: Math.round((g.amount * soldiers) / 1000) }))} per={t('each month')} empty={t('none')} />,
         months: fmtMonths(ut.training_months),
       })}</p> : null}
       <div class="form-actions">
@@ -183,9 +187,9 @@ function ArmyCard({ obs, a }: { obs: Observation; a: ArmyView }) {
       </div>
       <ul class="army-roles">
         {a.soldiers.map(([role, n]) => (
-          <li class={n === 0 ? 'is-zero' : undefined}><RoleMark role={role} /> <b>{int(n)}</b> <span>{roleName(role)}</span></li>
+          <li class={n === 0 ? 'is-zero' : undefined}><RoleMark role={role} /> <b>{peopleNum(n)}</b> <span>{roleName(role)}</span></li>
         ))}
-        <li class="army-total">{tx('{n} soldiers', { n: <b>{int(total)}</b> })}</li>
+        <li class="army-total">{tx('{n} soldiers', { n: <b>{peopleNum(total)}</b> })}</li>
       </ul>
       <div class="mini-meters three">
         <div class="mini-meter"><span class="mini-label">{t('Proficiency')}</span><Meter value={a.proficiency_bp} max={10000} tone={toneOfBp(a.proficiency_bp, 7000, 4000)} height={6} label={t('Proficiency {pct}', { pct: pct(a.proficiency_bp) })} /><span class="mini-val">{pct(a.proficiency_bp)}</span></div>

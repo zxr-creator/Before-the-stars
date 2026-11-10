@@ -3,7 +3,7 @@
 // are no empty slots, counts or silhouettes for anything not yet discovered.
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { KnowledgeState, Lead, Observation, TechCard } from '../protocol';
-import { KSTATE_LABEL, KSTATE_ORDER, RESEARCH_LABEL, fmtDate, pct, tcAll, tcChecks, tn, tx, yearOf } from '../format';
+import { KSTATE_LABEL, KSTATE_ORDER, RESEARCH_LABEL, fmtDate, pct, researchMonths, tcAll, tcChecks, tn, tx, yearOf } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { ActionNote, Badge, Btn, Checklist, Empty, Est, Meter, Section, Tabs, Why, cx, work } from '../ui';
@@ -109,7 +109,7 @@ function Frontier({ obs, onOpen }: { obs: Observation; onOpen: (h: string) => vo
       <p class="panel-lede">{t('Current questions and clues. Nothing here promises a result: a lead may come to little, and a question may need knowledge nobody has named yet.')}</p>
       {cap.length ? (
         <p class="cap-inline">
-          {cap.map((l, i) => <span>{i ? ' · ' : ''}{tx('{label}: {used}/{capacity} {unit}', { label: t(RESEARCH_LABEL[l.class]), used: <b>{work(l.used)}</b>, capacity: work(l.capacity), unit: <small>{t('work per month in use')}</small> })}</span>)}
+          {cap.map((l, i) => <span>{i ? ' · ' : ''}{tx('{label}: {used}/{capacity} {unit}', { label: t(RESEARCH_LABEL[l.class]), used: <b>{work(l.used)}</b>, capacity: work(l.capacity), unit: <small>{t('researcher-months a month in use')}</small> })}</span>)}
         </p>
       ) : <p class="note is-warn">{t('No research capacity yet: investigations will not advance until qualified people staff a makers’ circle or institute.')}</p>}
       {k.scientific_method ? <p class="note is-ok"><Icon name="good" size={13} /> {t('The scientific method is established: technology can be pursued as an explicit agenda.')}</p> : null}
@@ -137,9 +137,9 @@ function Frontier({ obs, onOpen }: { obs: Observation; onOpen: (h: string) => vo
                     <p class="question-cap">{tc(q.capability)}</p>
                     <div class="question-meta">
                       <StateBadge state={q.state} /> <LabelBadge label={q.label} />
-                      <span class="muted small">{t('{label} · {n} work', { label: t(RESEARCH_LABEL[q.class]), n: work(q.work_needed) })}</span>
+                      <span class="muted small">{t('{label} · {n}', { label: t(RESEARCH_LABEL[q.class]), n: researchMonths(q.work_needed) })}</span>
                     </div>
-                    {q.work_done > 0 || active ? <Meter value={q.work_done} max={Math.max(1, q.work_needed)} tone="gold" height={6} label={t('{done} of {needed} work done', { done: work(q.work_done), needed: work(q.work_needed) })} /> : null}
+                    {q.work_done > 0 || active ? <Meter value={q.work_done} max={Math.max(1, q.work_needed)} tone="gold" height={6} label={t('{done} of {needed} done', { done: work(q.work_done), needed: researchMonths(q.work_needed) })} /> : null}
                   </div>
                   <div class="question-act">
                     {active ? <Badge tone="gold" icon="clock">{t('Under way')}</Badge> : (
@@ -168,10 +168,10 @@ function LeadCard({ l, following, busy }: { l: Lead; following: boolean; busy: b
       <div class="lead-main">
         <b>{tc(l.title)}</b>
         <p>{tc(l.detail)}</p>
-        <p class="muted small">{tx('{source} · reported {date} · {confidence} · {label}, {n} work', {
+        <p class="muted small">{tx('{source} · reported {date} · {confidence} · {label}, {n}', {
           source: tc(l.source), date: fmtDate(l.month),
           confidence: <Est title={t('How strongly the reports point at something real')}>{t('confidence ≈ {pct}', { pct: pct(l.confidence_bp) })}</Est>,
-          label: t(RESEARCH_LABEL[l.class]), n: work(l.study_work),
+          label: t(RESEARCH_LABEL[l.class]), n: researchMonths(l.study_work),
         })}</p>
       </div>
       {following ? <Badge tone="gold" icon="clock">{t('Being followed')}</Badge> : (
@@ -416,8 +416,8 @@ function TechDetail({ obs, t: card, onBack, onOpen }: { obs: Observation; t: Tec
       </Section>
       <Section title={t('Investigation')} aside={<small class="muted">{t(RESEARCH_LABEL[card.class])}</small>}>
         <div class="progress-line">
-          <Meter value={card.work_done} max={Math.max(1, card.work_needed)} tone={card.state === 'investigating' ? 'gold' : 'ok'} label={t('{done} of {needed} work', { done: work(card.work_done), needed: work(card.work_needed) })} />
-          <span class="progress-num"><b>{work(card.work_done)}</b> / {work(card.work_needed)} <small>{t('work')}</small></span>
+          <Meter value={card.work_done} max={Math.max(1, card.work_needed)} tone={card.state === 'investigating' ? 'gold' : 'ok'} label={t('{done} of {needed} done', { done: work(card.work_done), needed: researchMonths(card.work_needed) })} />
+          <span class="progress-num"><b>{work(card.work_done)}</b> / {work(card.work_needed)} <small>{t('researcher-months')}</small></span>
         </div>
         {project && project.blockers.length ? <ul class="blockers">{tcAll(project.blockers).map((b) => <li><Icon name="warn" size={11} /> {b}</li>)}</ul> : null}
         {canAct ? (

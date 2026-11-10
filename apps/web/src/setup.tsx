@@ -291,7 +291,7 @@ export function Setup() {
                   <button type="button" role="radio" aria-checked={length === 'standard'} class={cx('seg', length === 'standard' && 'is-active')} data-testid="setup-length-standard" onClick={() => setLength('standard')}>{t('Standard · 240 rounds')}</button>
                   <button type="button" role="radio" aria-checked={length === 'short'} class={cx('seg', length === 'short' && 'is-active')} data-testid="setup-length-short" onClick={() => setLength('short')}>{t('Short · 80 rounds')}</button>
                 </div>
-                <span class="field-hint">{length === 'short' ? t('Work is paced about three times faster to fit 80 years.') : t('240 years at the standard pace.')}</span>
+                <span class="field-hint">{length === 'short' ? t('Work is paced about three times faster to fit 80 rounds.') : t('240 rounds of twelve months each, at the standard pace.')}</span>
               </div>
             </div>
 

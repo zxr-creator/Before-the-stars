@@ -7,11 +7,11 @@ import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Deposit, DepositView, Observation, RegionId, RegionView, Terrain } from '../protocol';
 import {
-  DEPOSIT_LABEL, EPISTEMIC_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, fmtDate, fmtDateShort, int, milli, pct, range,
+  DEPOSIT_LABEL, EPISTEMIC_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, fmtDate, fmtDateShort, int, peopleNum, pct, range, tonnes,
 } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import {
-  Atlas, BUILT_RAMP, DEPOSIT_COLOR, POP_RAMP, TERRAIN_TINT,
+  Atlas, BUILT_RAMP, DEPOSIT_COLOR, POP_BREAKS, POP_RAMP, TERRAIN_TINT,
   type AtlasOverlay, type Insets, type MapMode,
 } from './atlas';
 import type { DepositHit, Map3D, Map3DData } from '../map3d';
@@ -372,13 +372,15 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
       <li class="map-legend-note">{t('The bar under a name splits its built levels by sector. Building in regions you do not govern is not disclosed.')}</li>,
     );
   } else {
-    const labels = [t('under 100'), '100–500', '500–2,000', '2,000–10,000', '10,000–50,000', '50,000–250,000', t('over 250,000')];
+    // classes from docs/units-and-scale.md §3 (see POP_BREAKS)
+    const b = POP_BREAKS.map((n) => peopleNum(n));
+    const labels = [t('under {n}', { n: b[0] }), ...b.slice(1).map((hi, i) => `${b[i]}–${hi}`), t('{n} or more', { n: b[b.length - 1] })];
     rows.push(
       <li class="map-ramp">
         {POP_RAMP.map((c, i) => <span style={{ background: c }} title={t('{n} people', { n: labels[i] })} />)}
       </li>,
-      <li class="map-ramp-ends"><span>{t('under 100')}</span><span>{t('over 250,000')}</span></li>,
-      <li class="map-legend-note">{t('People per region (steps at 100, 500, 2k, 10k, 50k, 250k)')}</li>,
+      <li class="map-ramp-ends"><span>{labels[0]}</span><span>{labels[labels.length - 1]}</span></li>,
+      <li class="map-legend-note">{t('People per region (steps at {list}). Camp under 150k, village to 1M, town to 4M, city to 12M, metropolis beyond.', { list: b.join(', ') })}</li>,
     );
     if (regions.some((r) => r.foreign)) {
       rows.push(<li><HatchSwatch color="#f7f1e1" bg="#deb87d" dotted />{t('Foreign: estimated range')}</li>);
@@ -406,7 +408,7 @@ function Tooltip({ obs, region, mode, pick, deposit, building }: { obs: Observat
               <span class="map-tip-vis">{t(EPISTEMIC_LABEL[deposit.epistemic])}</span>
             </div>
             <div class={deposit.epistemic === 'verified' ? '' : 'map-est'}>
-              {t('{amount} remaining', { amount: milli(deposit.remaining) })} · {t('quality {pct}', { pct: pct(deposit.quality_bp) })}
+              {t('{amount} remaining', { amount: tonnes(deposit.remaining) })} · {t('quality {pct}', { pct: pct(deposit.quality_bp) })}
             </div>
           </div>
         </div>
@@ -431,7 +433,7 @@ function Tooltip({ obs, region, mode, pick, deposit, building }: { obs: Observat
       {r.visibility === 'remembered' && (
         <div class="map-tip-row map-tip-muted">{t('Last seen {date} — may have changed', { date: fmtDate(r.last_seen) })}</div>
       )}
-      {r.own && <div class="map-tip-row">{t('{n} people', { n: int(r.own.population) })}</div>}
+      {r.own && <div class="map-tip-row">{t('{n} people', { n: peopleNum(r.own.population) })}</div>}
       {r.own && mode === 'construction' && (
         <div class="map-tip-row">
           {t('{n} built levels', { n: int(r.own.facilities.reduce((n, f) => n + f.level, 0)) })}
@@ -445,7 +447,7 @@ function Tooltip({ obs, region, mode, pick, deposit, building }: { obs: Observat
       {mode === 'resources' && (
         sv ? (
           <div class="map-tip-row map-tip-block">
-            <div>{t('Arable {a} plots · water for {w} people', { a: int(sv.arable), w: int(sv.water) })}</div>
+            <div>{t('Arable {a} plots · water for {w} people', { a: int(sv.arable), w: peopleNum(sv.water) })}</div>
             {sv.deposits.length > 0 ? (
               <div>
                 {sv.deposits.map((d, i) => (

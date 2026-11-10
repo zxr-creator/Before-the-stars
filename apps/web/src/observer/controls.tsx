@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { AgentInfo, SeatId } from '../protocol';
-import { int, yearOf } from '../format';
+import { fmtYear, int, yearOf } from '../format';
 import { Icon } from '../icons';
 import { cx } from '../ui';
 import { getState, observerPlay, observerRun, observerSpeed, useApp, viewAsSeat } from '../store';
@@ -207,6 +207,9 @@ export function Playback({ state, docked }: { state: AppState; docked?: boolean 
   const rounds = Math.max(1, Math.round(horizon / per));
   const finished = !!summary?.finished || !!sp?.outcome || sp?.phase === 'finished' || obs?.phase === 'finished';
   const year = yearOf(month);
+  // the referee's calendar, when it keeps one, for the date now shown; never derived from the round
+  const date = (docked ? obs?.date : sp?.date) ?? sp?.date ?? obs?.date ?? summary?.date ?? null;
+  const nowText = fmtYear(month, date);
   const elapsed = waitSeats.length
     ? Math.max(...waitSeats.map((x) => (x.agent!.state === 'thinking' ? thinkingOf(x.agent!) : 0)), pb.waitingSince ? (now - pb.waitingSince) / 1000 : 0)
     : 0;
@@ -236,7 +239,7 @@ export function Playback({ state, docked }: { state: AppState; docked?: boolean 
   } else if (pb.busy || pb.queued > 0) {
     tone = 'busy'; icon = 'hourglass';
     label = pb.queued > 1 ? t('Running') : t('Stepping');
-    detail = pb.queued > 1 ? t('{n} rounds to go, then it pauses.', { n: pb.queued }) : t('Resolving year {n}…', { n: year });
+    detail = pb.queued > 1 ? t('{n} rounds to go, then it pauses.', { n: pb.queued }) : date ? t('Resolving the round after {date}…', { date: nowText }) : t('Resolving year {n}…', { n: year });
   } else {
     label = t('Paused');
     detail = t('Step, play, or run {n} rounds.', { n: runN });
@@ -261,7 +264,7 @@ export function Playback({ state, docked }: { state: AppState; docked?: boolean 
       <div class="pb-status" data-testid="observer-status" data-state={tone}>
         <span class="pb-state" role="status" aria-live="polite"><Icon name={icon} size={13} /><span>{label}</span></span>
         <span class="pb-when">
-          <b data-testid="observer-year">{t('Year {n}', { n: year })}</b>
+          <b data-testid="observer-year">{nowText}</b>
           <small>{t('round {r} of {n}', { r: int(round), n: int(rounds) })}</small>
         </span>
         <span class={cx('pb-rate', rate === null && 'is-none')} data-testid="observer-rate" title={t('Rounds resolved per second, measured over the last few seconds')}>

@@ -5,10 +5,16 @@
 // read-out) and is named at the end of its line.
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { yearOf } from '../format';
+import { histYear, yearOf } from '../format';
 import { t } from '../i18n';
 
-export interface ChartPoint { x: number; y: number; round: number }
+/** `x` is the month; `year` the historical year of that sample when the referee keeps a calendar. */
+export interface ChartPoint { x: number; y: number; round: number; year?: number | null }
+
+/** The label of a sample's date: the historical year where known, else "Year N" from the month. */
+export function pointDate(p: ChartPoint): string {
+  return p.year != null ? histYear(p.year) : t('Year {n}', { n: yearOf(p.x) });
+}
 export interface ChartSeries { seat: number; name: string; color: string; points: ChartPoint[] }
 
 const SURFACE = '#fbf5e4';
@@ -65,7 +71,7 @@ interface Scale {
   y: (v: number) => number;
   x0: number; x1: number; yMax: number;
   yTicks: number[];
-  xTicks: { x: number; year: number }[];
+  xTicks: { x: number; label: string }[];
 }
 
 function makeScale(series: ChartSeries[], w: number, h: number, m: { l: number; r: number; t: number; b: number }, fixedMax: number | undefined, whole: boolean, yTarget: number): Scale {
@@ -84,12 +90,19 @@ function makeScale(series: ChartSeries[], w: number, h: number, m: { l: number; 
   // Whole years on the x-axis, about one label per 70 px.
   const y0 = yearOf(x0), y1 = yearOf(x1);
   const ystep = Math.max(1, Math.round(niceStep(Math.max(1, y1 - y0), Math.max(2, Math.floor(iw / 70)))));
-  const xTicks: { x: number; year: number }[] = [];
-  for (let yr = Math.ceil(y0 / ystep) * ystep; yr <= y1; yr += ystep) {
-    const month = (yr - 1) * 12;
-    if (yr >= 1 && month >= x0 - 0.5 && month <= x1 + 0.5) xTicks.push({ x: x(month), year: yr });
+  const xTicks: { x: number; label: string }[] = [];
+  const pts = series[0]?.points ?? [];
+  if (pts.length && pts.every((p) => p.year != null)) {
+    // a historical calendar: years per round vary, so label the samples themselves, about one per 70 px
+    const every = Math.max(1, Math.ceil(pts.length / Math.max(2, Math.floor(iw / 70))));
+    for (let i = 0; i < pts.length; i += every) xTicks.push({ x: x(pts[i].x), label: histYear(pts[i].year!) });
+  } else {
+    for (let yr = Math.ceil(y0 / ystep) * ystep; yr <= y1; yr += ystep) {
+      const month = (yr - 1) * 12;
+      if (yr >= 1 && month >= x0 - 0.5 && month <= x1 + 0.5) xTicks.push({ x: x(month), label: String(yr) });
+    }
+    if (!xTicks.length) xTicks.push({ x: x(x0), label: String(y0) });
   }
-  if (!xTicks.length) xTicks.push({ x: x(x0), year: y0 });
   return { x, y, x0, x1, yMax, yTicks, xTicks };
 }
 
@@ -195,7 +208,7 @@ export function LineChart({ series, fmt, fmtAxis, unit, height = 212, max, whole
         {sc.xTicks.map((k) => (
           <g>
             <path d={`M${k.x.toFixed(1)} ${height - m.b}v4`} stroke={INK_3} stroke-width="1" />
-            <text class="ch-tick" x={k.x} y={height - m.b + 15} text-anchor="middle">{k.year}</text>
+            <text class="ch-tick" x={k.x} y={height - m.b + 15} text-anchor="middle">{k.label}</text>
           </g>
         ))}
         <text class="ch-unit" x={W - m.r + 20} y={height - m.b + 15}>{t('year')}</text>
@@ -222,7 +235,7 @@ export function LineChart({ series, fmt, fmtAxis, unit, height = 212, max, whole
       </svg>
       {idx !== null ? (
         <div class="ch-tip" role="status" style={tipLeft ? { right: Math.round(W - hx + 12) + 'px', top: '34px' } : { left: Math.round(hx + 12) + 'px', top: '34px' }}>
-          <div class="ch-tip-head">{t('Year {n}', { n: yearOf(xs[idx].x) })} <small>{t('round {n}', { n: xs[idx].round })}</small></div>
+          <div class="ch-tip-head">{pointDate(xs[idx])} <small>{t('round {n}', { n: xs[idx].round })}</small></div>
           {rows.map((r) => (
             <div class="ch-tip-row"><SeriesKey seat={r.s.seat} color={r.s.color} width={20} /><b>{fmt(r.v)}</b><span>{r.s.name}</span></div>
           ))}

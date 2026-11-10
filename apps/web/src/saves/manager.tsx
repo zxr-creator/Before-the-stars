@@ -230,7 +230,11 @@ export function SaveManager({ notice }: { notice: string | null }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: 'ok' | 'bad'; text: string; path?: string; file?: string } | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [saveName, setSaveName] = useState(() => `year-${Math.floor((app.obs?.month ?? app.summary?.month ?? 0) / 12) + 1}`);
+  const [saveName, setSaveName] = useState(() => {
+    // the calendar year where the referee keeps one ("5000bc"), else the game year
+    const date = app.obs?.date ?? app.summary?.date ?? null;
+    return date ? `${Math.abs(date.year) || 1}${date.year <= 0 ? 'bc' : 'ad'}` : `year-${Math.floor((app.obs?.month ?? app.summary?.month ?? 0) / 12) + 1}`;
+  });
   const [budgetText, setBudgetText] = useState(() => String(Math.round((vault.settings.budgetBytes / MIB) * 100) / 100));
   const [dragging, setDragging] = useState(false);
   const picker = useRef<HTMLInputElement>(null);

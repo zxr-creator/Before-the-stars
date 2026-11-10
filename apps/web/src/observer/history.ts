@@ -9,6 +9,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { Good, SeatId, SpectatorCiv, SpectatorView } from '../protocol';
 import { GOVERNANCE_MONTHS, FTL_MONTHS } from '../protocol';
 import { getState, subscribe } from '../store';
+import { goodTonnes } from '../format';
 
 export type MetricKey =
   | 'population' | 'regions' | 'techs' | 'stability' | 'food' | 'works' | 'goods' | 'research' | 'soldiers' | 'objective';
@@ -31,6 +32,8 @@ export interface Sample {
   at: number;
   /** values[civ index][metric index], in `History.seats` and `METRIC_KEYS` order. */
   values: number[][];
+  /** Historical year of the sample when the referee keeps a calendar (`SpectatorView.date`). */
+  year?: number | null;
 }
 
 export interface History {
@@ -42,6 +45,8 @@ export interface History {
 /** One sample per round fits a standard 240-round match; anything longer is thinned. */
 export const MAX_SAMPLES = 320;
 const STORE_KEY = 'bts.observer.history';
+/** Stored with the samples: what the numbers mean. Goods in tonnes and research in researcher-months since ruleset 2.0. */
+const METRICS_SIG = METRIC_KEYS.join(',') + ';units-2';
 
 let history: History = { matchId: '', seats: [], samples: [] };
 let version = 0;
@@ -58,8 +63,9 @@ export function objectiveProgress(c: SpectatorCiv): number {
 
 /** The numbers kept for one civilization, in `METRIC_KEYS` order. */
 export function measure(c: SpectatorCiv, works: number): number[] {
+  // made goods are counted in tonnes, so lots of devices and tonnes of metal add up honestly
   let made = 0;
-  for (const g of c.goods) if (!RAW.includes(g.good)) made += g.amount;
+  for (const g of c.goods) if (!RAW.includes(g.good)) made += goodTonnes(g.good, g.amount);
   return [
     c.population,
     c.regions,
@@ -67,8 +73,8 @@ export function measure(c: SpectatorCiv, works: number): number[] {
     c.stability,
     Math.min(FOOD_CAP_MONTHS, c.food_months_milli / 1000),
     works,
-    made / 1000,
-    c.research_capacity / 1000,
+    made,
+    c.research_capacity,
     c.soldiers,
     objectiveProgress(c),
   ];
@@ -92,6 +98,7 @@ export function sampleOf(sp: SpectatorView, seats: SeatId[], at: number): Sample
     round: sp.round,
     month: sp.month,
     at,
+    year: sp.date?.year ?? null,
     values: seats.map((seat) => {
       const c = sp.civs.find((x) => x.seat === seat);
       return c ? measure(c, works.get(seat) ?? 0) : METRIC_KEYS.map(() => 0);
@@ -111,9 +118,9 @@ function restore(matchId: string): Sample[] {
   try {
     const raw = sessionStorage.getItem(STORE_KEY);
     if (!raw) return [];
-    const saved = JSON.parse(raw) as { matchId?: string; metrics?: string; samples?: [number, number, number[][]][] };
-    if (saved.matchId !== matchId || saved.metrics !== METRIC_KEYS.join(',') || !Array.isArray(saved.samples)) return [];
-    return saved.samples.map(([round, month, values]) => ({ round, month, at: 0, values }));
+    const saved = JSON.parse(raw) as { matchId?: string; metrics?: string; samples?: [number, number, number[][], (number | null)?][] };
+    if (saved.matchId !== matchId || saved.metrics !== METRICS_SIG || !Array.isArray(saved.samples)) return [];
+    return saved.samples.map(([round, month, values, year]) => ({ round, month, at: 0, values, year: year ?? null }));
   } catch {
     return [];
   }
@@ -127,8 +134,8 @@ function writeNow(): void {
     const round2 = (v: number) => Math.round(v * 100) / 100;
     sessionStorage.setItem(STORE_KEY, JSON.stringify({
       matchId: history.matchId,
-      metrics: METRIC_KEYS.join(','),
-      samples: history.samples.map((s) => [s.round, s.month, s.values.map((row) => row.map(round2))]),
+      metrics: METRICS_SIG,
+      samples: history.samples.map((s) => [s.round, s.month, s.values.map((row) => row.map(round2)), s.year ?? null]),
     }));
   } catch {
     /* storage unavailable or full: the record simply lasts for this page */

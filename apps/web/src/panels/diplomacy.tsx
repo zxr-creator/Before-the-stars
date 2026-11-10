@@ -9,7 +9,7 @@ import type {
 import { MAX_CONTACTS, MAX_MESSAGE_CHARS, NEGOTIATION_WINDOWS } from '../protocol';
 import {
   CONTROLLER_LABEL, GOODS, GOOD_LABEL, GOOD_SHORT, INTENTS, INTENT_LABEL, STATUS_LABEL, fmtDate, fmtDateShort, fmtMonths, int,
-  joinList, lc, milli, pct, range, titleCase, tn,
+  displayUnit, joinList, lc, pct, qty, range, titleCase, tn,
 } from '../format';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
@@ -78,8 +78,8 @@ export function describeClause(obs: Observation, c: Clause, other: SeatId): stri
   switch (c.kind) {
     case 'goods':
       return c.months <= 1
-        ? t('{who} delivers {amount} {good} to {to}, once', { who: who(c.from), amount: milli(c.amount_per_month), good: lc(GOOD_SHORT[c.good]), to: to(c.from) })
-        : t('{who} delivers {amount} {good} to {to} every month for {term}', { who: who(c.from), amount: milli(c.amount_per_month), good: lc(GOOD_SHORT[c.good]), to: to(c.from), term: fmtMonths(c.months) });
+        ? t('{who} delivers {amount} {good} to {to}, once', { who: who(c.from), amount: qty(c.good, c.amount_per_month), good: lc(GOOD_SHORT[c.good]), to: to(c.from) })
+        : t('{who} delivers {amount} {good} to {to} every month for {term}', { who: who(c.from), amount: qty(c.good, c.amount_per_month), good: lc(GOOD_SHORT[c.good]), to: to(c.from), term: fmtMonths(c.months) });
     case 'knowledge': {
       const tech = obs.knowledge.techs.find((x) => x.handle === c.tech);
       return tech ? t('{who} hands over “{name}”', { who: who(c.from), name: tc(tech.name) }) : t('{who} hands over a method not known to us', { who: who(c.from) });
@@ -510,7 +510,7 @@ function ClauseFields({ obs, other, c, parties, onChange }: {
         <div class="clause-fields">
           {fromSel(c.from, (from) => onChange({ ...c, from }), t('Delivered by'))}
           <label class="inline-field"><span>{t('Good')}</span><Select<Good> value={c.good} options={GOODS.map((g) => ({ value: g, label: t(GOOD_LABEL[g]) }))} onChange={(good) => onChange({ ...c, good })} label={t('Good')} /></label>
-          <label class="inline-field"><span>{t('Amount')}</span><NumInput value={c.amount_per_month / 1000} min={1} max={1_000_000} unit={c.months > 1 ? t('units / month') : t('units')} label={t('Amount')} onChange={(v) => onChange({ ...c, amount_per_month: Math.round(v * 1000) })} testid="clause-amount" /></label>
+          <label class="inline-field"><span>{t('Amount')}</span><NumInput value={c.amount_per_month / 1000} min={1} max={1_000_000} unit={c.months > 1 ? t('{unit} / month', { unit: displayUnit(c.good) }) : displayUnit(c.good)} width={96} label={t('Amount')} onChange={(v) => onChange({ ...c, amount_per_month: Math.round(v * 1000) })} testid="clause-amount" /></label>
           <label class="inline-field"><span>{t('Months')}</span><NumInput value={c.months} min={1} max={240} unit={c.months > 1 ? t('months') : t('single delivery')} label={t('Months')} width={64} onChange={(v) => onChange({ ...c, months: Math.round(v) })} /></label>
         </div>
       );

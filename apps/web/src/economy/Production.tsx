@@ -4,7 +4,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Good, Observation, Qual } from '../protocol';
-import { GOOD_LABEL, GOOD_SHORT, QUAL_LABEL, RESEARCH_LABEL, int, joinList, lc, pct } from '../format';
+import { GOOD_LABEL, GOOD_SHORT, QUAL_LABEL, RESEARCH_LABEL, int, joinList, lc, pct, researchMonths } from '../format';
 import { t, tc } from '../i18n';
 import { Icon } from '../icons';
 import { GoodIcon } from '../theme/goods';
@@ -14,7 +14,7 @@ import {
   B_COMPUTE, B_DEPOSIT, B_ELEC, B_FULL, B_QUALIFIED, B_SHAFT, B_UNREST, B_WORKERS, B_WORN, isShortOf,
   type FacCard, type Ledger, type RegionSum,
 } from './model';
-import { Bar, CATEGORY_ORDER, lcs, qualCount, E, Glyph, GoodQtyChip, Ring, Seg, V, people, perMo, tip, milli } from './parts';
+import { Bar, CATEGORY_ORDER, lcs, qualCount, E, Glyph, GoodQtyChip, Ring, Seg, V, amt, people, perMo, svc, tip } from './parts';
 import { ChainView } from './Chain';
 import type { Nav } from './Ledger';
 
@@ -68,18 +68,18 @@ function advise(c: FacCard, ledger: Ledger, obs: Observation, nav: Nav): Advice[
     } else if (b === B_WORKERS) {
       out.push({
         tone: 'warn',
-        text: t('Not enough workers: {have} of {need} posts filled. {region} has no one free; people without posts elsewhere drift in slowly.', { have: int(c.f.staffed), need: int(c.f.staff_needed), region }),
+        text: t('Not enough workers: {have} of {need} posts filled. {region} has no one free; people without posts elsewhere drift in slowly.', { have: people(c.f.staffed), need: people(c.f.staff_needed), region }),
         action: { label: t('Labour priorities'), run: () => nav.toTab('workforce') },
       });
     } else if (b === B_QUALIFIED) {
       const quals = c.jobs.filter((j) => j.qual).map((j) => qualCount(lc(QUAL_LABEL[j.qual as Qual]), j.posts));
       out.push({ tone: 'warn', text: t('Qualified staff are missing: the posts call for {quals}.', { quals: joinList(quals) }), action: { label: t('Start a course'), run: () => nav.train(c.region.id) } });
     } else if (b === B_SHAFT) {
-      out.push({ tone: 'warn', text: t('Not enough shaft power: {region} supplies {s} of the {d} its works call for.', { region, s: milli(p.shaft_supply), d: milli(p.shaft_demand) }), action: { label: t('Add power here'), run: () => nav.build(c.region.id) } });
+      out.push({ tone: 'warn', text: t('Not enough shaft power: {region} supplies {s} of the {d} its works call for.', { region, s: svc('shaft', p.shaft_supply), d: svc('shaft', p.shaft_demand) }), action: { label: t('Add power here'), run: () => nav.build(c.region.id) } });
     } else if (b === B_ELEC) {
-      out.push({ tone: 'warn', text: t('Not enough electricity: {region} supplies {s} of the {d} its works call for.', { region, s: milli(p.elec_supply), d: milli(p.elec_demand) }), action: { label: t('Add power here'), run: () => nav.build(c.region.id) } });
+      out.push({ tone: 'warn', text: t('Not enough electricity: {region} supplies {s} of the {d} its works call for.', { region, s: svc('elec', p.elec_supply), d: svc('elec', p.elec_demand) }), action: { label: t('Add power here'), run: () => nav.build(c.region.id) } });
     } else if (b === B_COMPUTE) {
-      out.push({ tone: 'warn', text: t('Not enough computing: the realm supplies {s} of {d}.', { s: milli(ledger.compute.supply), d: milli(ledger.compute.demand) }), action: { label: t('Build a computing centre'), run: () => nav.build() } });
+      out.push({ tone: 'warn', text: t('Not enough computing: the realm supplies {s} of {d}.', { s: svc('compute', ledger.compute.supply), d: svc('compute', ledger.compute.demand) }), action: { label: t('Build a computing centre'), run: () => nav.build() } });
     } else if (b === B_WORN) {
       const goods = c.upkeep.map((u) => lc(GOOD_SHORT[u.good]));
       out.push({ tone: 'warn', text: goods.length ? t('Worn equipment: upkeep ({goods}) was missed. Condition recovers 3% a month once it is supplied.', { goods: joinList(goods) }) : t('Worn equipment: condition is {pct} and caps output. It recovers 3% a month.', { pct: pct(c.f.condition_bp) }), action: c.upkeep[0] ? { label: t('See the good'), run: () => nav.toGood(c.upkeep[0].good) } : undefined });
@@ -95,7 +95,7 @@ function advise(c: FacCard, ledger: Ledger, obs: Observation, nav: Nav): Advice[
     }
   }
   if (!c.blockers.length && c.f.enabled && !c.isFood && c.f.staff_needed > 0 && c.f.staffed < c.f.staff_needed) {
-    out.push({ tone: 'warn', text: t('Not enough workers: {have} of {need} posts filled.', { have: int(c.f.staffed), need: int(c.f.staff_needed) }), action: { label: t('Labour priorities'), run: () => nav.toTab('workforce') } });
+    out.push({ tone: 'warn', text: t('Not enough workers: {have} of {need} posts filled.', { have: people(c.f.staffed), need: people(c.f.staff_needed) }), action: { label: t('Labour priorities'), run: () => nav.toTab('workforce') } });
   }
   if (!c.blockers.includes(B_WORN) && c.f.enabled && c.f.condition_bp < 8000) {
     out.push({ tone: 'warn', text: t('Condition is {pct}. It recovers while upkeep is fully supplied.', { pct: pct(c.f.condition_bp) }) });
@@ -104,7 +104,7 @@ function advise(c: FacCard, ledger: Ledger, obs: Observation, nav: Nav): Advice[
 }
 
 function PowerChip({ kind, amount, out, tipText }: { kind: 'shaft' | 'elec' | 'compute'; amount: number; out?: boolean; tipText: string }) {
-  return <span class={cx('ledger-qty is-power', out && 'is-out')} {...tip(tipText)}><Glyph name={kind} size={14} /><b><i class="ledger-approx">≈</i>{milli(amount)}</b></span>;
+  return <span class={cx('ledger-qty is-power', out && 'is-out')} {...tip(tipText)}><Glyph name={kind} size={14} /><b><i class="ledger-approx">≈</i>{svc(kind, amount)}</b></span>;
 }
 
 const POWER_NAME = { shaft: 'shaft power', elec: 'electricity', compute: 'computing' } as const;
@@ -154,10 +154,10 @@ function FacilityCard({ c, ledger, obs, nav, flash, busy }: { c: FacCard; ledger
         <div class="ledger-card-meters">
           <div class="ledger-meter-row" {...tip(c.isFood
             ? t('Food workers on this land last month, of the posts it offers. Set by the food plan, not by labour weights. Verified by the referee.')
-            : t('Posts filled last month. Verified by the referee.') + (quals.length ? '\n' + t('Posts by kind: {quals}; {n} general.', { quals: joinList(quals.map((j) => qualCount(lc(QUAL_LABEL[j.qual as Qual]), j.posts))), n: int(general) }) : ''))}>
+            : t('Posts filled last month. Verified by the referee.') + (quals.length ? '\n' + t('Posts by kind: {quals}; {n} general.', { quals: joinList(quals.map((j) => qualCount(lc(QUAL_LABEL[j.qual as Qual]), j.posts))), n: people(general) }) : ''))}>
             <span class="ledger-meter-label">{t('Staff')}</span>
             <Bar parts={[{ value: f.staffed, cls: f.staffed >= f.staff_needed ? 'is-ok' : 'is-warn' }]} max={Math.max(1, f.staff_needed)} mark={quals.length && f.staff_needed ? c.skilledPosts : undefined} height={7} />
-            <span class="ledger-meter-val">{f.staff_needed ? <><b>{int(f.staffed)}</b>/{int(f.staff_needed)}</> : <span class="muted">–</span>}</span>
+            <span class="ledger-meter-val">{f.staff_needed ? <><b>{people(f.staffed)}</b>/{people(f.staff_needed)}</> : <span class="muted">–</span>}</span>
           </div>
           {quals.length ? (
             <div class={cx('ledger-quals', c.blockers.includes(B_QUALIFIED) && 'is-missing')}
@@ -178,18 +178,18 @@ function FacilityCard({ c, ledger, obs, nav, flash, busy }: { c: FacCard; ledger
         <div class="ledger-flow" data-rate={c.rateBp}>
           <span class="ledger-flow-side">
             {c.inputs.map((i) => <GoodQtyChip good={i.good} amount={i.now} est missing={i.missing}
-              tipText={t(GOOD_LABEL[i.good]) + (i.missing ? ' — ' + t('ran short last month') : '') + '\n' + flowNote.replace('{full}', milli(i.full)) + ' ' + t('Estimate.')} />)}
-            {drawn.map((k) => <PowerChip kind={k} amount={c.draw[k]} tipText={t('Draws about {n} {power} a month at its present staffing. Estimate from the recipe.', { n: milli(c.draw[k]), power: t(POWER_NAME[k]) })} />)}
+              tipText={t(GOOD_LABEL[i.good]) + (i.missing ? ' — ' + t('ran short last month') : '') + '\n' + flowNote.replace('{full}', amt(i.good, i.full)) + ' ' + t('Estimate.')} />)}
+            {drawn.map((k) => <PowerChip kind={k} amount={c.draw[k]} tipText={t('Draws about {n} {power} a month at its present staffing. Estimate from the recipe.', { n: svc(k, c.draw[k]), power: t(POWER_NAME[k]) })} />)}
             {!c.inputs.length && !drawn.length ? <span class="ledger-flow-none">{c.isFood ? t('land and labour') : t('labour only')}</span> : null}
           </span>
           <span class="ledger-flow-arrow" aria-hidden="true"><svg width="26" height="12" viewBox="0 0 26 12"><path d="M1 6h22M18 1.500 23.500 6 18 10.500" fill="none" stroke="currentColor" stroke-width="1.600" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
           <span class="ledger-flow-side is-out">
-            {c.outputs.map((o) => <GoodQtyChip good={o.good} amount={o.now} est
-              tipText={t(GOOD_LABEL[o.good]) + '\n' + flowNote.replace('{full}', milli(o.full)) + ' ' + t('After carriage to the common store ({pct}). Estimate.', { pct: pct(c.own.link_efficiency_bp) })} />)}
-            {out.map((k) => <PowerChip kind={k} out amount={c.deliver[k]} tipText={t('Delivers about {n} {power} a month at last month’s rate. Estimate from the recipe.', { n: milli(c.deliver[k]), power: t(POWER_NAME[k]) })} />)}
+            {c.outputs.filter(() => !c.isFood).map((o) => <GoodQtyChip good={o.good} amount={o.now} est
+              tipText={t(GOOD_LABEL[o.good]) + '\n' + flowNote.replace('{full}', amt(o.good, o.full)) + ' ' + t('After carriage to the common store ({pct}). Estimate.', { pct: pct(c.own.link_efficiency_bp) })} />)}
+            {out.map((k) => <PowerChip kind={k} out amount={c.deliver[k]} tipText={t('Delivers about {n} {power} a month at last month’s rate. Estimate from the recipe.', { n: svc(k, c.deliver[k]), power: t(POWER_NAME[k]) })} />)}
             {c.research ? (
-              <span class="ledger-qty is-research" {...tip(t('Up to {n} {cls} work a month at full staffing. What the realm actually had is on the balance sheet.', { n: milli(c.research.full), cls: lc(RESEARCH_LABEL[c.research.cls]) }))}>
-                <Glyph name="Research" size={14} /><b>{milli(c.research.full)}</b><small>{t('max')}</small>
+              <span class="ledger-qty is-research" {...tip(t('Up to {n} of {cls} a month at full staffing. What the realm actually had is on the balance sheet.', { n: researchMonths(c.research.full), cls: lc(RESEARCH_LABEL[c.research.cls]) }))}>
+                <Glyph name="Research" size={14} /><b>{researchMonths(c.research.full)}</b><small>{t('max')}</small>
               </span>
             ) : null}
             {c.isFood ? <span class="ledger-qty" {...tip(t('Food grown here is part of the realm’s harvest; the referee reports it only as a national total (see the market).'))}><GoodIcon good="food" size={16} /><b>{t('harvest')}</b></span> : null}
@@ -204,9 +204,9 @@ function FacilityCard({ c, ledger, obs, nav, flash, busy }: { c: FacCard; ledger
       <footer class="ledger-card-foot">
         <span class="ledger-upkeep" {...tip(t('Upkeep per month while switched on: catalogue amount per level × level. Missing it wears the plant down.'))}>
           <Glyph name="upkeep" size={13} />
-          {c.upkeep.length ? c.upkeep.map((u) => <span class="ledger-upkeep-item"><GoodIcon good={u.good} size={13} />{milli(u.perMonth)}</span>) : <span class="muted">{off ? t('none while off') : t('no upkeep')}</span>}
+          {c.upkeep.length ? c.upkeep.map((u) => <span class="ledger-upkeep-item"><GoodIcon good={u.good} size={13} />{amt(u.good, u.perMonth)}</span>) : <span class="muted">{off ? t('none while off') : t('no upkeep')}</span>}
         </span>
-        {c.run ? <span class="ledger-recipe" {...tip(t('The recipe this works ran last month. It picks the best one whose inputs are in stock.'))}>{tc(c.run.name)}</span> : null}
+        {c.run ? <span class="ledger-recipe" {...tip(f.method ? t('The production method this works ran last month. It was chosen for this region; change it in the regional works view.') : t('The production method this works ran last month, left to the works: the first known one whose inputs are in stock.'))}>{tc(c.run.name)}</span> : null}
       </footer>
 
       {advice.length || off ? (
@@ -231,10 +231,10 @@ function PowerLine({ kind, supply, demand }: { kind: 'shaft' | 'elec' | 'compute
   const short = demand > supply;
   return (
     <span class={cx('ledger-power', short && 'is-short')}
-      {...tip(t('{power}: works called for {d}, {s} was delivered last month. Verified by the referee.', { power: t(POWER_NAME[kind]), d: milli(demand), s: milli(supply) }) + (kind === 'compute' ? '\n' + t('Computing is pooled across the realm; every region shows the same figures.') : ''))}>
+      {...tip(t('{power}: works called for {d}, {s} was delivered last month. Verified by the referee.', { power: t(POWER_NAME[kind]), d: svc(kind, demand), s: svc(kind, supply) }) + (kind === 'compute' ? '\n' + t('Computing is pooled across the realm; every region shows the same figures.') : ''))}>
       <Glyph name={kind} size={13} />
       <Bar parts={[{ value: demand, cls: short ? 'is-bad' : 'is-supply' }]} max={Math.max(supply, demand, 1)} mark={short ? supply : undefined} height={6} />
-      <span class="ledger-power-num">{t('{d} of {s}', { d: milli(demand), s: milli(supply) })}</span>
+      <span class="ledger-power-num">{t('{d} of {s}', { d: svc(kind, demand), s: svc(kind, supply) })}</span>
     </span>
   );
 }
@@ -255,7 +255,7 @@ function RegionTile({ r, onClick, active }: { r: RegionSum; onClick?: () => void
           <Glyph name="carriage" size={13} /><b>{pct(r.own.link_efficiency_bp)}</b>
         </span>
         <span {...tip(t('People of working age without a post last month. Verified by the referee.'))}><Glyph name="idle" size={13} /><b>{people(r.household)}</b></span>
-        <span class={cx(r.vacancies > 0 && 'is-warn')} {...tip(t('Open posts: {n} of {posts} posts in works that are switched on stood empty last month. Verified by the referee.', { n: int(r.vacancies), posts: int(r.posts) }))}><Icon name="labour" size={12} /><b>{int(r.vacancies)}</b></span>
+        <span class={cx(r.vacancies > 0 && 'is-warn')} {...tip(t('Open posts: {n} of {posts} posts in works that are switched on stood empty last month. Verified by the referee.', { n: people(r.vacancies), posts: people(r.posts) }))}><Icon name="labour" size={12} /><b>{people(r.vacancies)}</b></span>
       </span>
     </>
   );

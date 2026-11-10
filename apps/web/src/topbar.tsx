@@ -4,7 +4,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Good, GoodLine, Observation } from './protocol';
-import { GOOD_LABEL, GOOD_SHORT, RESEARCH_LABEL, compact, int, milli, milliSigned, pct, yearOf } from './format';
+import { GOOD_LABEL, GOOD_SHORT, RESEARCH_LABEL, compact, goodTonnes, goodUnit, int, pct, people, peopleNum, qty, qtySigned, researchMonths, tonnes, fmtNow } from './format';
 import { Icon } from './icons';
 import { SeatDot, Tick, cx } from './ui';
 import { humanSeatList, openOverlay, openPanel, seatName, setMenu, switchSeat, useApp } from './store';
@@ -30,7 +30,7 @@ const GOOD_BLURB: Partial<Record<Good, string>> = {
 // i18n-end
 
 function netOf(g: GoodLine): number {
-  return g.produced - g.consumed + g.traded_in - g.traded_out;
+  return g.produced - g.consumed - (g.lost ?? 0) + g.traded_in - g.traded_out;
 }
 
 interface YieldProps {
@@ -66,9 +66,9 @@ function Yield({ id, icon, label, value, sub, tone, panel, onClick, right, testi
   );
 }
 
-function Flow({ label, value, sign }: { label: string; value: number; sign: 1 | -1 }) {
+function Flow({ good, label, value, sign }: { good: Good; label: string; value: number; sign: 1 | -1 }) {
   if (!value) return null;
-  return <div class="tip-row"><span>{label}</span><b class={sign > 0 ? 'pos' : 'neg'}>{milliSigned(sign * value)}</b></div>;
+  return <div class="tip-row"><span>{label}</span><b class={sign > 0 ? 'pos' : 'neg'}>{qtySigned(good, sign * value)}</b></div>;
 }
 
 function GoodYield({ g, obs, right }: { g: GoodLine; obs: Observation; right?: boolean }) {
@@ -79,24 +79,26 @@ function GoodYield({ g, obs, right }: { g: GoodLine; obs: Observation; right?: b
   const falling = net < 0 && g.stock + net * 2 <= 0;
   const full = g.capacity !== null && g.capacity > 0 && g.stock >= g.capacity;
   const tone = low || (falling && g.stock > 0) ? 'bad' : net < 0 ? 'warn' : undefined;
-  const delta = net === 0 ? null : <em class={net < 0 ? 'neg' : 'pos'}>{milliSigned(net)}</em>;
+  const delta = net === 0 ? null : <em class={net < 0 ? 'neg' : 'pos'}>{qtySigned(g.good, net)}</em>;
   return (
     <Yield id={g.good} icon={<GoodIcon good={g.good} size={21} />} label={t(GOOD_SHORT[g.good])} panel="economy" tone={tone} right={right}
-      value={<><Tick value={g.stock} format={(n) => milli(Math.round(n / 100) * 100)} />{delta}</>}
+      value={<><Tick value={g.stock} format={(n) => qty(g.good, Math.round(n / 100) * 100)} />{delta}</>}
       sub={g.good === 'food' && months !== null ? t('{n} mo in store', { n: months >= 100 ? '99+' : months.toFixed(1) }) : undefined}>
       <p class="tip-lede">{t(GOOD_BLURB[g.good] ?? '')}</p>
       <div class="tip-rows">
-        <div class="tip-row"><span>{t('In store')}</span><b>{milli(g.stock)}{g.capacity !== null ? <small> / {milli(g.capacity)}</small> : null}</b></div>
+        <div class="tip-row"><span>{t('In store')}</span><b>{qty(g.good, g.stock)}{g.capacity !== null ? <small> / {qty(g.good, g.capacity)}</small> : null}</b></div>
+        {goodUnit(g.good) !== 't' && g.stock > 0 ? <div class="tip-row"><span>{t('Mass')}</span><b>{tonnes(goodTonnes(g.good, g.stock))}</b></div> : null}
         {months !== null ? <div class="tip-row"><span>{t('Lasts about')}</span><b>{t('{n} months', { n: months.toFixed(1) })}</b></div> : null}
       </div>
       <p class="tip-kicker">{t('Last round')}</p>
       <div class="tip-rows">
-        <Flow label={t('Produced')} value={g.produced} sign={1} />
-        <Flow label={t('Consumed')} value={g.consumed} sign={-1} />
-        <Flow label={t('Received in trade')} value={g.traded_in} sign={1} />
-        <Flow label={t('Sent in trade')} value={g.traded_out} sign={-1} />
+        <Flow good={g.good} label={t('Produced')} value={g.produced} sign={1} />
+        <Flow good={g.good} label={t('Consumed')} value={g.consumed} sign={-1} />
+        <Flow good={g.good} label={t('Lost (spoiled, carriage, abandoned)')} value={g.lost ?? 0} sign={-1} />
+        <Flow good={g.good} label={t('Received in trade')} value={g.traded_in} sign={1} />
+        <Flow good={g.good} label={t('Sent in trade')} value={g.traded_out} sign={-1} />
         {!g.produced && !g.consumed && !g.traded_in && !g.traded_out ? <div class="tip-row"><span class="muted">{t('Nothing moved yet.')}</span></div> : null}
-        <div class="tip-row is-total"><span>{t('Net')}</span><b class={net < 0 ? 'neg' : net > 0 ? 'pos' : ''}>{milliSigned(net)}</b></div>
+        <div class="tip-row is-total"><span>{t('Net')}</span><b class={net < 0 ? 'neg' : net > 0 ? 'pos' : ''}>{qtySigned(g.good, net)}</b></div>
       </div>
       {low ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('Less than two months of food in store. Hunger costs lives and stability.')}</p>
         : falling && g.stock > 0 ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('At this rate the store runs out within two rounds.')}</p>
@@ -182,7 +184,7 @@ export function TopBar() {
       </div>
 
       <div class="topbar-date" title={t('Month {m} of {h}', { m: obs.month, h: obs.horizon })}>
-        <span class="date-year" data-testid="year">{t('Year {n}', { n: yearOf(obs.month) })}</span>
+        <span class="date-year" data-testid="year">{fmtNow(obs)}</span>
         <span class="date-round">{t('Round {r} of {n}', { r: int(obs.round), n: int(rounds) })}</span>
       </div>
 
@@ -193,18 +195,19 @@ export function TopBar() {
         {shownAdvanced.map((g) => <GoodYield g={g} obs={obs} />)}
         <span class="yield-sep" aria-hidden="true" />
         <Yield id="population" icon={<Icon name="people" size={20} />} label={t('Population')} panel="people" right
-          value={<><span data-testid="population"><Tick value={civ.population} format={(n) => int(Math.round(n))} /></span>{growth ? <em class={growth < 0 ? 'neg' : 'pos'}>{(growth > 0 ? '+' : '−') + int(Math.abs(growth))}</em> : null}</>}>
+          value={<><span data-testid="population" data-exact={civ.population}><Tick value={civ.population} format={(n) => peopleNum(n)} /></span>{growth ? <em class={growth < 0 ? 'neg' : 'pos'}>{(growth > 0 ? '+' : '−') + peopleNum(Math.abs(growth))}</em> : null}</>}>
           <p class="tip-lede">{t('Everyone your government answers for. Only people of working age can work, study, teach or serve.')}</p>
           <div class="tip-rows">
-            <div class="tip-row"><span>{t('Children')}</span><b>{int(civ.children)}</b></div>
-            <div class="tip-row"><span>{t('Working age')}</span><b>{int(civ.working_age)}</b></div>
-            <div class="tip-row"><span>{t('Elders')}</span><b>{int(civ.elders)}</b></div>
+            <div class="tip-row is-total"><span>{t('Residents')}</span><b>{t('{n} people', { n: int(civ.population) })}</b></div>
+            <div class="tip-row"><span>{t('Children')}</span><b>{people(civ.children)}</b></div>
+            <div class="tip-row"><span>{t('Working age')}</span><b>{people(civ.working_age)}</b></div>
+            <div class="tip-row"><span>{t('Elders')}</span><b>{people(civ.elders)}</b></div>
           </div>
           <p class="tip-kicker">{t('Last round')}</p>
           <div class="tip-rows">
-            <div class="tip-row"><span>{t('Births')}</span><b class="pos">+{int(civ.births_last_round)}</b></div>
-            <div class="tip-row"><span>{t('Deaths')}</span><b class="neg">−{int(civ.deaths_last_round)}</b></div>
-            {civ.migration_last_round ? <div class="tip-row"><span>{t('Migration')}</span><b class={civ.migration_last_round < 0 ? 'neg' : 'pos'}>{(civ.migration_last_round > 0 ? '+' : '−') + int(Math.abs(civ.migration_last_round))}</b></div> : null}
+            <div class="tip-row"><span>{t('Births')}</span><b class="pos">+{peopleNum(civ.births_last_round)}</b></div>
+            <div class="tip-row"><span>{t('Deaths')}</span><b class="neg">−{peopleNum(civ.deaths_last_round)}</b></div>
+            {civ.migration_last_round ? <div class="tip-row"><span>{t('Migration')}</span><b class={civ.migration_last_round < 0 ? 'neg' : 'pos'}>{(civ.migration_last_round > 0 ? '+' : '−') + peopleNum(Math.abs(civ.migration_last_round))}</b></div> : null}
           </div>
           {civ.food_fulfillment_bp < 9500 ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('Only {p} of food needs were met. People are going hungry.', { p: pct(civ.food_fulfillment_bp) })}</p> : null}
           {civ.water_fulfillment_bp < 9500 ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('Only {p} of water needs were met.', { p: pct(civ.water_fulfillment_bp) })}</p> : null}
@@ -222,30 +225,30 @@ export function TopBar() {
           <p class="tip-foot">{t('Click to open politics')}</p>
         </Yield>
         <Yield id="research" icon={<Icon name="flask" size={20} />} label={t('Research')} tone={idle ? 'warn' : undefined} right onClick={() => openOverlay('tech')}
-          value={resCap > 0 ? <>{compact(resUsed / 1000)}<small> / {compact(resCap / 1000)}</small></> : <span class="yield-none">—</span>}
-          sub={resCap > 0 ? t('research in use') : undefined}>
+          value={resCap > 0 ? <>{compact(resUsed)}<small> / {compact(resCap)}</small></> : <span class="yield-none">—</span>}
+          sub={resCap > 0 ? t('researcher-months in use') : undefined}>
           <p class="tip-lede">{t('Work per month that qualified people can put into investigations. It is not a currency: unused capacity is simply lost.')}</p>
           {research.length ? (
             <div class="tip-rows">
-              {research.map((l) => <div class="tip-row"><span>{t(RESEARCH_LABEL[l.class])}</span><b class={l.capacity > 0 && l.used === 0 ? 'warn-text' : ''}>{compact(l.used / 1000)} / {compact(l.capacity / 1000)}</b></div>)}
+              {research.map((l) => <div class="tip-row"><span>{t(RESEARCH_LABEL[l.class])}</span><b class={l.capacity > 0 && l.used === 0 ? 'warn-text' : ''}>{compact(l.used)} / {researchMonths(l.capacity)}</b></div>)}
             </div>
           ) : <p class="tip-risk is-soft"><Icon name="info" size={12} /> {t('No research capacity yet. Qualified people staffing a makers’ circle or an institute provide it.')}</p>}
           {idle ? <p class="tip-risk"><Icon name="warn" size={12} /> {t('Some capacity is idle. Start an investigation or follow up a lead.')}</p> : null}
           <p class="tip-foot">{t('Click to open the technology tree')}</p>
         </Yield>
         {spare >= 1 ? null : <Yield id="labour" icon={<Icon name="labour" size={20} />} label={t('Callable labour')} panel="economy" right
-          value={<><Tick value={lab.projects} format={(n) => int(Math.round(n))} /><small> / {int(Math.max(callable, lab.projects))}</small></>}
-          sub={t('on projects')}>
+          value={<><Tick value={lab.projects} format={(n) => peopleNum(n)} /><small> / {peopleNum(Math.max(callable, lab.projects))}</small></>}
+          sub={t('people on projects')}>
           <p class="tip-lede">{t('Food comes first. Of the labour left over, custom lets the government call up only a share for public projects; the rest staffs facilities.')}</p>
           <div class="tip-rows">
-            <div class="tip-row"><span>{t('Growing and gathering food')}</span><b>{int(lab.food)}</b></div>
-            <div class="tip-row"><span>{t('Staffing facilities')}</span><b>{int(lab.facilities)}</b></div>
-            <div class="tip-row"><span>{t('On public projects')}</span><b>{int(lab.projects)}</b></div>
-            <div class="tip-row"><span>{t('Students and teachers')}</span><b>{int(lab.students + lab.teachers)}</b></div>
-            <div class="tip-row"><span>{t('Soldiers')}</span><b>{int(lab.soldiers)}</b></div>
-            <div class="tip-row"><span>{t('Household and unassigned')}</span><b>{int(lab.household)}</b></div>
+            <div class="tip-row"><span>{t('Growing and gathering food')}</span><b>{people(lab.food)}</b></div>
+            <div class="tip-row"><span>{t('Staffing facilities')}</span><b>{people(lab.facilities)}</b></div>
+            <div class="tip-row"><span>{t('On public projects')}</span><b>{people(lab.projects)}</b></div>
+            <div class="tip-row"><span>{t('Students and teachers')}</span><b>{people(lab.students + lab.teachers)}</b></div>
+            <div class="tip-row"><span>{t('Soldiers')}</span><b>{people(lab.soldiers)}</b></div>
+            <div class="tip-row"><span>{t('Household and unassigned')}</span><b>{people(lab.household)}</b></div>
             <div class="tip-row is-total"><span>{t('Call-up cap by custom')}</span><b>{pct(civ.mobilization_cap_bp)}</b></div>
-            <div class="tip-row"><span>{t('Callable now (estimate)')}</span><b>≈ {int(callable)}</b></div>
+            <div class="tip-row"><span>{t('Callable now (estimate)')}</span><b>≈ {people(callable)}</b></div>
           </div>
           <p class="tip-foot">{t('Click to open the economy')}</p>
         </Yield>}

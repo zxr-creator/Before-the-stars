@@ -9,8 +9,8 @@ import type {
 } from '../protocol';
 import { NEGOTIATION_WINDOWS } from '../protocol';
 import {
-  CATEGORY_LABEL, GOOD_SHORT, PHASE_LABEL, SETTLEMENT_LABEL, STATUS_LABEL, TERRAIN_LABEL, compact, fmtYear, int,
-  milli, yearOf,
+  CATEGORY_LABEL, GOOD_SHORT, PHASE_LABEL, SETTLEMENT_LABEL, STATUS_LABEL, TERRAIN_LABEL, compact, fmtNow, fmtYear, int,
+  peopleNum, qty, researchMonths, yearOf,
 } from '../format';
 import { Icon } from '../icons';
 import { Btn, Tick, cx } from '../ui';
@@ -155,7 +155,7 @@ export function ObserverConsole() {
           </div>
         </div>
         <div class="topbar-date" title={t('Month {m} of {h}', { m: sp.month, h: sp.horizon })}>
-          <span class="date-year" data-testid="year">{fmtYear(sp.month)}</span>
+          <span class="date-year" data-testid="year">{fmtNow(sp)}</span>
           <span class="date-round" data-testid="observer-round" data-round={sp.round}>{t('Round {r} of {n}', { r: int(sp.round), n: int(rounds) })}</span>
         </div>
         <div class="obs-phase" data-testid="phase" data-phase={sp.phase}>
@@ -260,7 +260,7 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
   const seatOf = (seat: SeatId) => seats.find((x) => x.seat === seat);
   const civOf = (seat: SeatId) => civs.find((c) => c.seat === seat);
   const rows: Row[] = [
-    { key: 'population', icon: 'people', label: t('Population'), rank: (c) => c.population, cell: (c) => <Tick value={c.population} format={(n) => int(Math.round(n))} /> },
+    { key: 'population', icon: 'people', label: t('Population'), rank: (c) => c.population, cell: (c) => <span title={t('{n} people', { n: int(c.population) })}><Tick value={c.population} format={(n) => peopleNum(n)} /></span> },
     { key: 'regions', icon: 'pin', label: t('Regions'), rank: (c) => c.regions, cell: (c) => <Tick value={c.regions} format={(n) => String(Math.round(n))} /> },
     {
       key: 'techs', icon: 'knowledge', label: t('Technologies'), hint: t('Understood, and how many more are discovered but not yet understood'),
@@ -269,7 +269,7 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
     { key: 'practices', icon: 'culture', label: t('Practices'), rank: (c) => c.practices, cell: (c) => <Tick value={c.practices} format={(n) => String(Math.round(n))} /> },
     {
       key: 'soldiers', icon: 'military', label: t('Soldiers'), hint: t('People under arms, and the highest equipment tier fielded'),
-      rank: (c) => c.soldiers, cell: (c) => <><Tick value={c.soldiers} format={(n) => int(Math.round(n))} />{c.soldiers || c.highest_tier ? <small> · {t('tier {n}', { n: c.highest_tier })}</small> : null}</>,
+      rank: (c) => c.soldiers, cell: (c) => <><Tick value={c.soldiers} format={(n) => peopleNum(n)} />{c.soldiers || c.highest_tier ? <small> · {t('tier {n}', { n: c.highest_tier })}</small> : null}</>,
     },
     {
       key: 'stability', icon: 'balance', label: t('Stability'), rank: (c) => c.stability,
@@ -285,12 +285,12 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
       cell: (c) => {
         const have = SHOWN_GOODS.map((g) => c.goods.find((x) => x.good === g)).filter((x): x is { good: Good; amount: number } => !!x && x.amount > 0);
         if (!have.length) return <span class="muted">—</span>;
-        return <span class="sb-goodlist">{have.map((g) => <span title={t(GOOD_SHORT[g.good])}><GoodIcon good={g.good} size={13} />{milli(g.amount)}</span>)}</span>;
+        return <span class="sb-goodlist">{have.map((g) => <span title={t(GOOD_SHORT[g.good])}><GoodIcon good={g.good} size={13} />{qty(g.good, g.amount)}</span>)}</span>;
       },
     },
     {
-      key: 'research', icon: 'flask', label: t('Research capacity'), hint: t('Work per month qualified people can put into investigations'),
-      rank: (c) => c.research_capacity, cell: (c) => <Tick value={c.research_capacity / 1000} format={(n) => compact(Math.round(n * 10) / 10)} />,
+      key: 'research', icon: 'flask', label: t('Research capacity'), hint: t('Researcher-months a month that staffed research posts can put into investigations'),
+      rank: (c) => c.research_capacity, cell: (c) => <Tick value={c.research_capacity} format={(n) => researchMonths(n)} />,
     },
     {
       key: 'milestones', icon: 'star', label: t('Milestones'), hint: t('Scientific method, planetary reach, interstellar reach'),
@@ -375,7 +375,7 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
       <table class="sb-table">
         <thead>
           <tr>
-            <th class="sb-corner"><span>{fmtYear(sp.month)}</span></th>
+            <th class="sb-corner"><span>{fmtNow(sp)}</span></th>
             {civs.map((c) => {
               const seat = seatOf(c.seat);
               const agent = seat?.agent ?? null;
@@ -628,8 +628,8 @@ function RegionCard({ sp, id, onClose }: { sp: SpectatorView; id: RegionId; onCl
         {r.test_node ? <p class="rc-node"><Icon name="rocket" size={12} /> {t('Deployment test node')}</p> : null}
         {r.own ? (
           <dl class="rc-kvs">
-            <div><dt>{t('Population')}</dt><dd>{int(r.own.population)}</dd></div>
-            <div><dt>{t('Working age')}</dt><dd>{int(r.own.working_age)}</dd></div>
+            <div><dt>{t('Population')}</dt><dd title={int(r.own.population)}>{t('{n} people', { n: peopleNum(r.own.population) })}</dd></div>
+            <div><dt>{t('Working age')}</dt><dd title={int(r.own.working_age)}>{t('{n} people', { n: peopleNum(r.own.working_age) })}</dd></div>
             <div><dt>{t('Unrest')}</dt><dd class={r.own.unrest_bp > 3000 ? 'neg' : ''}>{Math.round(r.own.unrest_bp / 100)}%</dd></div>
           </dl>
         ) : null}
@@ -651,7 +651,7 @@ function RegionCard({ sp, id, onClose }: { sp: SpectatorView; id: RegionId; onCl
                   <li class={a.in_battle ? 'is-battle' : ''}>
                     {c ? <Emblem seat={c.seat} color={c.color} name={c.name} size={14} /> : null}
                     <span>{tc(a.name)}</span>
-                    <small>{t('{n} soldiers · tier {k}', { n: int(a.soldiers), k: a.tier })}{a.in_battle ? ' · ' + t('in battle') : ''}</small>
+                    <small>{t('{n} soldiers · tier {k}', { n: peopleNum(a.soldiers), k: a.tier })}{a.in_battle ? ' · ' + t('in battle') : ''}</small>
                   </li>
                 );
               })}
@@ -677,7 +677,7 @@ function Result({ sp, seats }: { sp: SpectatorView; seats: SeatSummary[] }) {
         <div class="result-crest" aria-hidden="true">
           {winner ? <Emblem seat={winner.seat} color={winner.color} name={winner.name} size={68} /> : <BrandMark size={64} />}
         </div>
-        <p class="eyebrow">{t('{year} · the match has ended', { year: fmtYear(month) })}</p>
+        <p class="eyebrow">{t('{year} · the match has ended', { year: fmtYear(month, month === sp.month ? sp.date : null) })}</p>
         <h2>{winner ? t('{name} prevails', { name: tc(winner.name) }) : t('No civilization prevailed')}</h2>
         {out ? <p class="result-reason">{tc(out.reason)}</p> : null}
         <table class="result-table">

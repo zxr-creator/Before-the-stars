@@ -5,7 +5,7 @@
 import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Lead, Observation, PracticeCard, ProjectView, TechCard } from '../protocol';
-import { KSTATE_LABEL, PSTATE_LABEL, RESEARCH_LABEL, fmtDate, pct, tcAll, tcChecks } from '../format';
+import { KSTATE_LABEL, PSTATE_LABEL, RESEARCH_LABEL, fmtDate, pct, researchMonths, tcAll, tcChecks, workMonths } from '../format';
 import { Icon } from '../icons';
 import { ActionNote, Badge, Btn, Checklist, Est, Meter, Why, cx, work } from '../ui';
 import { act, openOverlay, useApp } from '../store';
@@ -181,7 +181,7 @@ function techEstimate(obs: Observation, card: TechCard, project: ProjectView | u
   const left = Math.max(0, card.work_needed - card.work_done);
   if (cap <= 0) return { text: t('No capacity yet'), title: t('There is no {label} capacity yet, so this would not advance. Qualified people staffing a place of inquiry provide it.', { label }), warn: true };
   const rounds = Math.max(1, Math.ceil(left / cap / mpr));
-  return { text: roundsText(rounds, rounds), title: t('Estimate: {n} work left at the full {label} capacity of {cap} work per month. Sharing that capacity, or shortages, make it slower.', { n: work(left), label, cap: work(cap) }) };
+  return { text: roundsText(rounds, rounds), title: t('Estimate: {n} left at the full {label} capacity of {cap} a month. Sharing that capacity, or shortages, make it slower.', { n: researchMonths(left), label, cap: researchMonths(cap) }) };
 }
 
 function techWhy(card: TechCard, under: boolean): string | null {
@@ -340,7 +340,7 @@ export function TechTree() {
                     <span class="tcard-name">{tc(l.title)}</span>
                     <span class="tcard-state">
                       <span class="tcard-state-label"><Est title={t('How strongly the reports point at something real')}>{t('confidence ≈ {pct}', { pct: pct(l.confidence_bp) })}</Est></span>
-                      <span class="tcard-class">{t('{n} work', { n: work(l.study_work) })}</span>
+                      <span class="tcard-class">{researchMonths(l.study_work)}</span>
                     </span>
                     <span class="tcard-foot">
                       {following.has(l.handle) ? <Badge tone="gold" icon="clock">{t('Being followed')}</Badge> : (
@@ -387,7 +387,7 @@ function ResearchQueue({ obs, techs, onOpen }: { obs: Observation; techs: TechCa
           const full = t(RESEARCH_LABEL[l.class]);
           const idle = l.capacity > 0 && l.used === 0;
           return (
-            <span class={cx('tree-cap', idle && 'is-idle')} title={t('{label}: {used} of {capacity} work per month in use', { label: full, used: work(l.used), capacity: work(l.capacity) }) + (idle ? ' — ' + t('none of it is in use') : '')}>
+            <span class={cx('tree-cap', idle && 'is-idle')} title={t('{label}: {used} of {capacity} a month in use', { label: full, used: work(l.used), capacity: researchMonths(l.capacity) }) + (idle ? ' — ' + t('none of it is in use') : '')}>
               <span>{full.split(' ')[0]}</span><b>{work(l.used)}<small>/{work(l.capacity)}</small></b>
             </span>
           );
@@ -423,8 +423,8 @@ function TechDrawer({ obs, card, project, busy, onClose, onOpen }: {
       </Block>
       <Block title={t('Investigation')} aside={t(RESEARCH_LABEL[card.class])}>
         <div class="progress-line">
-          <Meter value={card.work_done} max={Math.max(1, card.work_needed)} tone={under ? 'gold' : 'ok'} label={t('{done} of {needed} work', { done: work(card.work_done), needed: work(card.work_needed) })} />
-          <span class="progress-num"><b>{work(card.work_done)}</b> / {work(card.work_needed)} <small>{t('work')}</small></span>
+          <Meter value={card.work_done} max={Math.max(1, card.work_needed)} tone={under ? 'gold' : 'ok'} label={t('{done} of {needed} done', { done: work(card.work_done), needed: researchMonths(card.work_needed) })} />
+          <span class="progress-num"><b>{work(card.work_done)}</b> / {work(card.work_needed)} <small>{t('researcher-months')}</small></span>
         </div>
         {est && canAct ? <p class={cx('tree-est-line', est.warn && 'is-warn')}><Icon name={est.warn ? 'warn' : 'clock'} size={12} /> <Est title={est.title}>{est.text}</Est> <span class="muted">· {t('an estimate, not a promise')}</span></p> : null}
         {project && project.blockers.length ? <ul class="blockers">{tcAll(project.blockers).map((b) => <li><Icon name="warn" size={11} /> {b}</li>)}</ul> : null}
@@ -460,7 +460,7 @@ function LeadDrawer({ lead, following, busy, onClose }: { lead: Lead; following:
         <dl class="kvs">
           <div class="kv"><dt>{t('First reported')}</dt><dd>{fmtDate(lead.month)}</dd></div>
           <div class="kv"><dt>{t('Confidence')}</dt><dd><Est title={t('How strongly the reports point at something real')}>≈ {pct(lead.confidence_bp)}</Est></dd></div>
-          <div class="kv"><dt>{t('Study')}</dt><dd>{t('{n} work', { n: work(lead.study_work) })}</dd></div>
+          <div class="kv"><dt>{t('Study')}</dt><dd>{researchMonths(lead.study_work)}</dd></div>
         </dl>
         <div class="form-actions">
           {following ? <Badge tone="gold" icon="clock">{t('Being followed')}</Badge> : (
@@ -586,7 +586,7 @@ export function CivicsTree() {
                         c.can_reform ? (
                           <>
                             <Btn small kind="primary" icon="scroll" disabled={s.busy} testid="tree-reform" onClick={proposeReform(c.handle)}>{t('Propose reform')}</Btn>
-                            <span class="tcard-est">{t('{n} work', { n: work(c.reform_work) })}</span>
+                            <span class="tcard-est">{workMonths(c.reform_work)}</span>
                           </>
                         ) : <span class="tcard-lock" title={why ?? undefined}><Icon name="lock" size={11} /><span>{why}</span></span>
                       ) : (
@@ -674,11 +674,11 @@ function PracticeDrawer({ obs, card, project, busy, onClose, onOpen }: {
           : <p class="muted small">{t('None that we know of.')}</p>}
       </Block>
       {card.state === 'recognized' || under ? (
-        <Block title={t('Reform')} aside={t('{n} work at the capital', { n: work(card.reform_work) })}>
+        <Block title={t('Reform')} aside={t('{n} at the capital', { n: workMonths(card.reform_work) })}>
           {project ? (
             <div class="progress-line">
-              <Meter value={project.work_done} max={Math.max(1, project.work_needed)} tone="gold" label={t('{done} of {needed} work', { done: work(project.work_done), needed: work(project.work_needed) })} />
-              <span class="progress-num"><b>{work(project.work_done)}</b> / {work(project.work_needed)} <small>{t('work')}</small></span>
+              <Meter value={project.work_done} max={Math.max(1, project.work_needed)} tone="gold" label={t('{done} of {needed} done', { done: work(project.work_done), needed: workMonths(project.work_needed) })} />
+              <span class="progress-num"><b>{work(project.work_done)}</b> / {work(project.work_needed)} <small>{t('worker-months')}</small></span>
             </div>
           ) : null}
           {project && project.blockers.length ? <ul class="blockers">{tcAll(project.blockers).map((b) => <li><Icon name="warn" size={11} /> {b}</li>)}</ul> : null}

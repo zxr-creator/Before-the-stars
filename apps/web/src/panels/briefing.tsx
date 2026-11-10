@@ -2,7 +2,7 @@
 import { useState } from 'preact/hooks';
 import type { BriefingItem, Observation, Receipt } from '../protocol';
 import { NEGOTIATION_WINDOWS } from '../protocol';
-import { fmtYear, titleCase, tn } from '../format';
+import { fmtNow, titleCase, tn } from '../format';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { Badge, Btn, Empty, Section, cx } from '../ui';
@@ -81,7 +81,7 @@ export function BriefingPanel() {
 
   return (
     <div class="panel briefing">
-      <p class="panel-lede">{t('{year} · what changed, and what needs a decision.', { year: fmtYear(obs.month) })}</p>
+      <p class="panel-lede">{t('{year} · what changed, and what needs a decision.', { year: fmtNow(obs) })}</p>
 
       <div class="phase-card">
         <div>

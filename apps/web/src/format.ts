@@ -161,18 +161,21 @@ export function int(n: number): string {
   return nf0.format(n);
 }
 
-/** Compact number: 1,240 / 12.4k / 3.1M — in Chinese 1,240 / 1.24万 / 310万 / 1.2亿. */
+/** Compact number, up to tens of billions: 1,240 / 12.4K / 3.1M / 24.5B — in Chinese 1,240 / 1.24万 / 310万 / 1.2亿 / 245亿. */
 export function compact(n: number): string {
   const a = Math.abs(n);
   if (isZh()) {
+    if (a >= 1e10) return t('{n} yi', { n: nf0.format(n / 1e8) });
+    if (a >= 1e9) return t('{n} yi', { n: nf1.format(n / 1e8) });
     if (a >= 1e8) return t('{n} yi', { n: nf2.format(n / 1e8) });
     if (a >= 1e7) return t('{n} wan', { n: nf0.format(n / 1e4) });
     if (a >= 1e5) return t('{n} wan', { n: nf1.format(n / 1e4) });
     if (a >= 1e4) return t('{n} wan', { n: nf2.format(n / 1e4) });
   } else {
+    if (a >= 1e11) return nf0.format(n / 1e9) + 'B';
     if (a >= 1e9) return nf1.format(n / 1e9) + 'B';
     if (a >= 1e6) return nf1.format(n / 1e6) + 'M';
-    if (a >= 1e4) return nf1.format(n / 1e3) + 'k';
+    if (a >= 1e4) return nf1.format(n / 1e3) + 'K';
   }
   if (a >= 100 || Number.isInteger(n)) return nf0.format(n);
   if (a >= 10) return nf1.format(n);
@@ -259,6 +262,12 @@ export function unitLabel(good: Good): string {
   return u === 'ration' ? t('rations') : u === 'lot' ? t('lots') : isZh() ? t('tonnes') : 't';
 }
 
+/** The display unit (1,000 base units) of a good, for inputs that count in it: "kt", "thousand rations", "thousand lots". */
+export function displayUnit(good: Good): string {
+  const u = goodUnit(good);
+  return u === 'ration' ? t('thousand rations') : u === 'lot' ? t('thousand lots') : t('kt');
+}
+
 /** People, compact above ten thousand: "8,400 people", "240k people", "1.2M people" / "24万人". */
 export function people(n: number): string {
   return t('{n} people', { n: peopleNum(n) });
@@ -310,19 +319,43 @@ export function yearOf(month: Month): number {
   return Math.floor(month / 12) + 1;
 }
 
-/** "Year 4" / "第4年" */
-export function fmtYear(month: Month): string {
+// --- dates ------------------------------------------------------------------------------
+// One formatter for every year the interface shows. A referee with a historical calendar
+// sends `date: { year }` (a signed year: negative is BC, there is no year zero) on the
+// observation, the spectator view and the match summary; until then the campaign year
+// ("Year N", counted from the first month) is shown. Pass the record's own `date` when it
+// has one; `month` is always the fallback.
+
+/** A historical date as the referee states it. */
+export interface HistDate { year: number }
+
+/** "5000 BC" / "AD 1850" — "公元前5000年" / "公元1850年". Year 0 does not exist; it is read as 1 BC. */
+export function histYear(year: number): string {
+  const y = Math.trunc(year);
+  return y <= 0 ? t('{y} BC', { y: String(y === 0 ? 1 : -y) }) : t('AD {y}', { y: String(y) });
+}
+
+/** "Year 4" / "第4年", or the historical year when a date is given. */
+export function fmtYear(month: Month, date?: HistDate | null): string {
+  if (date && Number.isFinite(date.year)) return histYear(date.year);
   return t('Year {y}', { y: yearOf(month) });
 }
 
-/** "Year 4, month 7" / "第4年7月" */
-export function fmtDate(month: Month): string {
+/** "Year 4, month 7" / "第4年7月", or the historical year when a date is given. */
+export function fmtDate(month: Month, date?: HistDate | null): string {
+  if (date && Number.isFinite(date.year)) return histYear(date.year);
   return t('Year {y}, month {m}', { y: yearOf(month), m: (month % 12) + 1 });
 }
 
-/** "Y4·m7" for tight spaces / "4年7月". */
-export function fmtDateShort(month: Month): string {
+/** "Y4·m7" for tight spaces / "4年7月", or the historical year when a date is given. */
+export function fmtDateShort(month: Month, date?: HistDate | null): string {
+  if (date && Number.isFinite(date.year)) return histYear(date.year);
   return t('Y{y}·m{m}', { y: yearOf(month), m: (month % 12) + 1 });
+}
+
+/** The current date of a record that carries `month` and, from a calendar referee, `date`. */
+export function fmtNow(x: { month: Month; date?: HistDate | null }): string {
+  return fmtYear(x.month, x.date);
 }
 
 /** Duration in months as "8 months" / "2 years 3 months"; "8个月" / "2年3个月". */

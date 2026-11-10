@@ -4,7 +4,8 @@ import type { Observation } from '../protocol';
 import { GOOD_SHORT, QUAL_LABEL, RESEARCH_LABEL, int, lc, pct } from '../format';
 import { t, tc } from '../i18n';
 import { B_QUALIFIED, B_WORKERS, type Ledger } from './model';
-import { coverText, milli } from './parts';
+import { amt, coverText, people, svc } from './parts';
+import { researchMonths } from '../format';
 import type { Nav } from './Ledger';
 
 export type Severity = 'bad' | 'warn' | 'info' | 'ok';
@@ -44,7 +45,7 @@ export function buildFindings(obs: Observation, ledger: Ledger, nav: Nav): Findi
         label: t('See who makes it'), go: () => nav.toGood(r.good),
       });
     } else if (r.why === 'owed') {
-      out.push({ sev: 'bad', text: t('Open projects need {need} {good}; only {have} is in store.', { need: milli(r.owed), good: lc(GOOD_SHORT[r.good]), have: milli(r.line.stock) }), label: t('See the good'), go: () => nav.toGood(r.good) });
+      out.push({ sev: 'bad', text: t('Open projects need {need} {good}; only {have} is in store.', { need: amt(r.good, r.owed), good: lc(GOOD_SHORT[r.good]), have: amt(r.good, r.line.stock) }), label: t('See the good'), go: () => nav.toGood(r.good) });
     } else if (r.good !== 'food' && r.why === 'cover2') {
       out.push({ sev: 'bad', text: t('{good} in store covers only {n} months of use.', { good: name, n: coverText(r.cover) }), label: t('See the good'), go: () => nav.toGood(r.good) });
     } else if (r.why === 'runway') {
@@ -54,11 +55,11 @@ export function buildFindings(obs: Observation, ledger: Ledger, nav: Nav): Findi
 
   for (const r of ledger.regions) {
     const p = r.own.power;
-    if (p.shaft_demand > p.shaft_supply) out.push({ sev: 'warn', text: t('{region} is short of shaft power: {d} called for, {s} delivered.', { region: tc(r.region.name), d: milli(p.shaft_demand), s: milli(p.shaft_supply) }), label: t('See the region'), go: () => nav.toRegion(r.region.id) });
-    if (p.elec_demand > p.elec_supply) out.push({ sev: 'warn', text: t('{region} is short of electricity: {d} called for, {s} delivered.', { region: tc(r.region.name), d: milli(p.elec_demand), s: milli(p.elec_supply) }), label: t('See the region'), go: () => nav.toRegion(r.region.id) });
+    if (p.shaft_demand > p.shaft_supply) out.push({ sev: 'warn', text: t('{region} is short of shaft power: {d} called for, {s} delivered.', { region: tc(r.region.name), d: svc('shaft', p.shaft_demand), s: svc('shaft', p.shaft_supply) }), label: t('See the region'), go: () => nav.toRegion(r.region.id) });
+    if (p.elec_demand > p.elec_supply) out.push({ sev: 'warn', text: t('{region} is short of electricity: {d} called for, {s} delivered.', { region: tc(r.region.name), d: svc('elec', p.elec_demand), s: svc('elec', p.elec_supply) }), label: t('See the region'), go: () => nav.toRegion(r.region.id) });
   }
   if (ledger.compute.demand > ledger.compute.supply) {
-    out.push({ sev: 'warn', text: t('Computing is short across the realm: {d} called for, {s} delivered.', { d: milli(ledger.compute.demand), s: milli(ledger.compute.supply) }), label: t('See works'), go: () => nav.toTab('production') });
+    out.push({ sev: 'warn', text: t('Computing is short across the realm: {d} called for, {s} delivered.', { d: svc('compute', ledger.compute.demand), s: svc('compute', ledger.compute.supply) }), label: t('See works'), go: () => nav.toTab('production') });
   }
 
   const on = ledger.cards.filter((c) => c.f.enabled);
@@ -67,7 +68,7 @@ export function buildFindings(obs: Observation, ledger: Ledger, nav: Nav): Findi
     out.push({
       sev: 'warn',
       text: civ.labor.household > 0
-        ? t('Workers are short at {k} works while {n} people have no post: they live in other regions.', { k: understaffed.length, n: int(civ.labor.household) })
+        ? t('Workers are short at {k} works while {n} people have no post: they live in other regions.', { k: understaffed.length, n: people(civ.labor.household) })
         : t('Workers are short at {k} works and no one is without a post.', { k: understaffed.length }),
       label: t('See workforce'), go: () => nav.toTab('workforce'),
     });
@@ -78,7 +79,7 @@ export function buildFindings(obs: Observation, ledger: Ledger, nav: Nav): Findi
     out.push({
       sev: 'warn',
       text: worst && worst.vacancies > 0
-        ? t('Qualified staff are missing at {k} works; the widest gap is about {n} {qual}.', { k: unqualified.length, n: int(worst.vacancies), qual: lc(QUAL_LABEL[worst.qual]) })
+        ? t('Qualified staff are missing at {k} works; the widest gap is about {n} {qual}.', { k: unqualified.length, n: people(worst.vacancies), qual: lc(QUAL_LABEL[worst.qual]) })
         : t('Qualified staff are missing at {k} works.', { k: unqualified.length }),
       label: t('See workforce'), go: () => nav.toTab('workforce'),
     });
@@ -88,7 +89,7 @@ export function buildFindings(obs: Observation, ledger: Ledger, nav: Nav): Findi
 
   for (const l of civ.research) {
     if (l.capacity > 0 && l.used === 0) {
-      out.push({ sev: 'info', text: t('{cls}: {n} work a month went unused.', { cls: t(RESEARCH_LABEL[l.class]), n: milli(l.capacity) }), label: t('Open knowledge'), go: () => nav.open('knowledge', { kind: 'knowledge-view', view: 'frontier' }) });
+      out.push({ sev: 'info', text: t('{cls}: {n} a month went unused.', { cls: t(RESEARCH_LABEL[l.class]), n: researchMonths(l.capacity) }), label: t('Open knowledge'), go: () => nav.open('knowledge', { kind: 'knowledge-view', view: 'frontier' }) });
     }
   }
   const off = ledger.cards.filter((c) => !c.f.enabled);
@@ -96,7 +97,7 @@ export function buildFindings(obs: Observation, ledger: Ledger, nav: Nav): Findi
   const throttled = on.filter((c) => c.throttled);
   if (throttled.length) out.push({ sev: 'info', text: t('Output is held back at {k} works because stores are above target. That is by design.', { k: throttled.length }) });
   if (civ.labor.working_age > 0 && civ.labor.household * 10 >= civ.labor.working_age * 3) {
-    out.push({ sev: 'info', text: t('{n} of {total} working-age people have no post.', { n: int(civ.labor.household), total: int(civ.labor.working_age) }), label: t('See workforce'), go: () => nav.toTab('workforce') });
+    out.push({ sev: 'info', text: t('{n} of {total} working-age people have no post.', { n: people(civ.labor.household), total: people(civ.labor.working_age) }), label: t('See workforce'), go: () => nav.toTab('workforce') });
   }
   if (!out.some((f) => f.sev === 'bad' || f.sev === 'warn')) {
     out.push({ sev: 'ok', text: t('No shortage, and no works held back for want of staff, inputs or power.') });

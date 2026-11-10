@@ -6,7 +6,10 @@
 //   verified  - the referee's own per-round totals (GoodLine) and counts;
 //   estimate  - recipe amount x level x last month's rate (x carriage, x ore
 //               grade for workings), i.e. what the ledger can reconstruct.
-// Wire units: goods, work and power are integer milli-units; shares are basis points.
+// Wire units (docs/units-and-scale.md §2): goods are integer base units (rations, tonnes,
+// standard lots), work is worker-months, service 0.1 MWh; head counts are people; shares
+// are basis points. Catalog amounts per person (course materials, army upkeep) are per
+// thousand people.
 import type {
   FacilityType, FacilityView, Good, GoodLine, Observation, OwnRegion, Qual, RecipeRun, RecipeView, RegionId,
   RegionView, ResearchClass,
@@ -73,13 +76,13 @@ export interface FacCard {
 }
 
 export type FlowKind =
-  | 'recipe' | 'food' | 'household' | 'treaty' | 'upkeep' | 'teaching' | 'army' | 'people' | 'spoilage' | 'fieldinputs'
+  | 'recipe' | 'food' | 'household' | 'treaty' | 'upkeep' | 'teaching' | 'army' | 'people' | 'spoilage' | 'lost' | 'fieldinputs'
   | 'othermake' | 'otheruse' | 'rest';
 
 export interface FlowLine {
   key: string;
   kind: FlowKind;
-  /** Milli-units per month. */
+  /** Base units of the good per month. */
   perMonth: number;
   /** False only for treaty clauses (a signed amount, not a reconstruction). */
   estimate: boolean;
@@ -189,8 +192,12 @@ export function buildCards(obs: Observation): FacCard[] {
       const missing = run?.missing ?? [];
       const blockers = run?.blockers ?? [];
       const inputs: Qty[] = (recipe?.inputs ?? []).map((x) => ({ good: x.good, full: x.amount * f.level, now: x.amount * f.level * rate, missing: missing.includes(x.good) }));
-      const outputs: Qty[] = (recipe?.outputs ?? []).map((x) => ({ good: x.good, full: x.amount * f.level * link * q, now: x.amount * f.level * rate * link * q, missing: false }));
-      const jobs = (type?.jobs ?? []).map((j) => ({ qual: j.qual, posts: j.count * f.level }));
+      // food is not carried in this model and pays no carriage (units-and-scale §7)
+      const outputs: Qty[] = (recipe?.outputs ?? []).map((x) => { const l = x.good === 'food' ? 1 : link; return { good: x.good, full: x.amount * f.level * l * q, now: x.amount * f.level * rate * l * q, missing: false }; });
+      // posts of the method that ran (ruleset 2.0 slice D), else the base method's crew
+      const jobs = recipe && (recipe.general_posts || recipe.skilled_posts?.length)
+        ? [...(recipe.skilled_posts ?? []).map((j) => ({ qual: j.qual, posts: j.count * f.level })), ...(recipe.general_posts ? [{ qual: null, posts: recipe.general_posts * f.level }] : [])]
+        : (type?.jobs ?? []).map((j) => ({ qual: j.qual, posts: j.count * f.level }));
       const throttled = blockers.includes(B_FULL);
       const real = blockers.filter((b) => b !== B_FULL);
       cards.push({
@@ -216,7 +223,7 @@ export function buildCards(obs: Observation): FacCard[] {
 
 /** Collapse many small lines so a breakdown stays readable; the tail becomes one "rest" line. */
 function top(lines: FlowLine[], keep = 9): FlowLine[] {
-  const order = (l: FlowLine) => (l.kind === 'otheruse' || l.kind === 'othermake' || l.kind === 'spoilage' ? 1 : 0);
+  const order = (l: FlowLine) => (l.kind === 'otheruse' || l.kind === 'othermake' || l.kind === 'spoilage' || l.kind === 'lost' ? 1 : 0);
   const sorted = [...lines].sort((a, b) => order(a) - order(b) || b.perMonth - a.perMonth);
   if (sorted.length <= keep + 1) return sorted;
   const head = sorted.slice(0, keep);
@@ -231,7 +238,9 @@ export function buildLedger(obs: Observation): Ledger {
   const cards = buildCards(obs);
   const ownRegions = obs.regions.filter((r) => r.own);
   const soldiers = obs.armies.reduce((a, x) => a + x.soldiers.reduce((b, [, n]) => b + n, 0), 0);
-  const foodNeed = (civ.population + soldiers) * 1000;
+  // one ration per resident and soldier a month (Observation.units.food_per_person_month)
+  const perHead = obs.units?.food_per_person_month ?? 1;
+  const foodNeed = (civ.population + soldiers) * perHead;
 
   const makers = new Map<Good, FlowLine[]>();
   const users = new Map<Good, FlowLine[]>();
@@ -241,7 +250,9 @@ export function buildLedger(obs: Observation): Ledger {
   for (const c of cards) {
     const base = { region: c.region.id, regionName: c.region.name, facility: c.f.kind, facilityName: c.f.name, level: c.f.level, rateBp: c.rateBp, cardKey: c.key };
     if (c.recipe) {
-      for (const o of c.outputs) push(makers, o.good, { ...base, key: 'm:' + c.key, kind: 'recipe', perMonth: o.now, estimate: true, recipeName: c.recipe.name, blocked: c.troubled, off: !c.f.enabled });
+      // fields report the method the land was worked by: their chemicals and fuel are real
+      // inputs, but the harvest is shared out from the verified total below, not estimated twice
+      if (!c.isFood) for (const o of c.outputs) push(makers, o.good, { ...base, key: 'm:' + c.key, kind: 'recipe', perMonth: o.now, estimate: true, recipeName: c.recipe.name, blocked: c.troubled, off: !c.f.enabled });
       for (const i of c.inputs) push(users, i.good, { ...base, key: 'u:' + c.key, kind: 'recipe', perMonth: i.now, estimate: true, recipeName: c.recipe.name, starved: i.missing, off: !c.f.enabled });
     } else if (!c.f.enabled && c.type) {
       // switched off: no run is reported, so show what its first known recipe would handle
@@ -266,7 +277,7 @@ export function buildLedger(obs: Observation): Ledger {
     for (const m of courses.get(p.course)?.materials ?? []) {
       const k = `${m.good}:${p.region}`;
       const l = teach.get(k) ?? { key: `teach:${p.region}`, kind: 'teaching' as const, perMonth: 0, estimate: true, region: p.region, regionName: obs.regions.find((r) => r.id === p.region)?.name, count: 0 };
-      l.perMonth += m.amount * p.enrolled;
+      l.perMonth += (m.amount * p.enrolled) / 1000;
       l.count = (l.count ?? 0) + p.enrolled;
       teach.set(k, l);
     }
@@ -279,14 +290,14 @@ export function buildLedger(obs: Observation): Ledger {
     const tier = obs.catalog.unit_tiers.find((t) => t.tier === a.tier);
     for (const u of tier?.upkeep ?? []) {
       const l = army.get(u.good) ?? { key: 'army', kind: 'army' as const, perMonth: 0, estimate: true, count: 0 };
-      l.perMonth += u.amount * n;
+      l.perMonth += (u.amount * n) / 1000;
       l.count = (l.count ?? 0) + n;
       army.set(u.good, l);
     }
   }
   for (const [g, l] of army) push(users, g, l);
-  // people eat one unit a month each
-  for (const r of ownRegions) push(users, 'food', { key: `pop:${r.id}`, kind: 'people', perMonth: r.own!.population * 1000, estimate: true, region: r.id, regionName: r.name, count: r.own!.population });
+  // people eat one ration a month each
+  for (const r of ownRegions) push(users, 'food', { key: `pop:${r.id}`, kind: 'people', perMonth: r.own!.population * perHead, estimate: true, region: r.id, regionName: r.name, count: r.own!.population });
   // treaties: signed monthly deliveries
   for (const tr of obs.diplomacy.treaties) {
     if (tr.status !== 'active') continue;
@@ -304,7 +315,9 @@ export function buildLedger(obs: Observation): Ledger {
     const g = line.good;
     const supply = line.produced + line.traded_in;
     const demand = line.consumed + line.traded_out;
-    const net = supply - demand;
+    // stock change = produced − consumed − lost + traded in − traded out (lost: ruleset 2.0 slice B)
+    const lost = line.lost ?? 0;
+    const net = supply - demand - lost;
     const madePerMonth = line.produced / months;
     const usePerMonth = demand / months;
     // food cover is measured against what people must eat, not against spoilage
@@ -325,21 +338,25 @@ export function buildLedger(obs: Observation): Ledger {
     const useDerived = us.reduce((a, l) => a + (l.kind !== 'treaty' ? l.perMonth : 0), 0);
     const mkSum = mk.reduce((a, l) => a + l.perMonth, 0);
     if (g === 'materials') {
-      // people without posts make a little building material while stores have room (0.3 each at most)
+      // people without posts make a little building material while stores have room (0.3 t each at most)
       const household = civ.labor.household;
-      const rest = Math.min(household * 300, Math.max(0, madePerMonth - mkSum));
+      const rest = Math.min(household * 0.3, Math.max(0, madePerMonth - mkSum));
       if (rest > 0) mk.push({ key: 'household', kind: 'household', perMonth: rest, estimate: true, count: household });
     }
     let usSum = us.reduce((a, l) => a + l.perMonth, 0);
     const usedPerMonth = line.consumed / months;
-    if (g === 'food') {
+    // the referee books what nobody used apart from what was consumed: one verified line
+    if (lost > 0) us.push({ key: 'lost', kind: 'lost', perMonth: lost / months, estimate: false });
+    if (g === 'food' && line.lost === undefined) {
+      // older referees count spoilage as consumption: it is the remainder after what people eat
       const rest = usedPerMonth - usSum;
       if (rest > 0) us.push({ key: 'spoilage', kind: 'spoilage', perMonth: rest, estimate: true });
     } else {
-      if ((g === 'chemicals' || g === 'fuel') && fieldWorkers > 0) {
-        // improved farming draws 0.01 a month per field worker; the method in use is not on the wire,
-        // so it is recognised only when the unexplained remainder is large enough to be it
-        const cap = fieldWorkers * 10;
+      const fieldsReported = cards.some((c) => c.isFood && c.f.kind === 'fields' && c.recipe);
+      if ((g === 'chemicals' || g === 'fuel') && fieldWorkers > 0 && !fieldsReported) {
+        // older referees: improved farming draws 0.01 t a month per field worker and the method is not
+        // on the wire, so it is recognised only when the unexplained remainder is large enough to be it
+        const cap = fieldWorkers * 0.01;
         const rest = usedPerMonth - usSum;
         if (rest >= cap * 0.5) { us.push({ key: 'fieldinputs', kind: 'fieldinputs', perMonth: Math.min(cap, rest), estimate: true, count: fieldWorkers }); usSum += Math.min(cap, rest); }
       }
@@ -444,8 +461,12 @@ export interface Stage {
   row: number;
 }
 export interface ChainGood { good: Good; level: number; col: number; row: number }
-export interface ChainEdge { from: string; to: string; good: Good; flow: number; full: number; starved: boolean; kind: 'in' | 'out' }
-export interface Chain { stages: Stage[]; goods: ChainGood[]; edges: ChainEdge[]; cols: number; rows: number; maxFlow: number }
+export interface ChainEdge { from: string; to: string; good: Good; flow: number; full: number; starved: boolean; kind: 'in' | 'out'; /** Flow in tonnes a month, so goods counted in rations, tonnes and lots compare. */ tonnes: number }
+
+/** Kilograms in one base unit of each good (docs/units-and-scale.md §2: rations 50 kg, bulk 1 t, lots 40-500 kg). */
+export const KG_PER_UNIT: Partial<Record<Good, number>> = { food: 50, tools: 250, spares: 250, electronics: 50, hardware: 500, media: 150, instruments: 400, medicine: 40 };
+const tonnesOf = (g: Good, n: number) => (n * (KG_PER_UNIT[g] ?? 1000)) / 1000;
+export interface Chain { stages: Stage[]; goods: ChainGood[]; edges: ChainEdge[]; cols: number; rows: number; /** Largest edge flow, tonnes a month. */ maxFlow: number }
 
 export function buildChain(cards: FacCard[]): Chain {
   const stages = new Map<string, Stage>();
@@ -502,8 +523,8 @@ export function buildChain(cards: FacCard[]): Chain {
   }
   const edges: ChainEdge[] = [];
   for (const s of list) {
-    for (const [g, e] of s.ins) edges.push({ from: 'g:' + g, to: s.id, good: g, flow: e.now, full: e.full, starved: e.starved, kind: 'in' });
-    for (const [g, e] of s.outs) edges.push({ from: s.id, to: 'g:' + g, good: g, flow: e.now, full: e.full, starved: s.starved, kind: 'out' });
+    for (const [g, e] of s.ins) edges.push({ from: 'g:' + g, to: s.id, good: g, flow: e.now, full: e.full, starved: e.starved, kind: 'in', tonnes: tonnesOf(g, e.now) });
+    for (const [g, e] of s.outs) edges.push({ from: s.id, to: 'g:' + g, good: g, flow: e.now, full: e.full, starved: s.starved, kind: 'out', tonnes: tonnesOf(g, e.now) });
   }
 
   // order within columns by the mean row of neighbours, a few sweeps each way
@@ -532,5 +553,5 @@ export function buildChain(cards: FacCard[]): Chain {
   for (let i = 0; i < 4; i++) { sweep(fwd, true); sweep([...fwd].reverse(), false); }
   for (const g of goods) g.row = byId.get('g:' + g.good)!.row;
   for (const s of list) s.row = byId.get(s.id)!.row;
-  return { stages: list, goods, edges, cols, rows: Math.max(1, ...columns.map((c) => c.length)), maxFlow: Math.max(1, ...edges.map((e) => e.flow)) };
+  return { stages: list, goods, edges, cols, rows: Math.max(1, ...columns.map((c) => c.length)), maxFlow: Math.max(1e-6, ...edges.map((e) => e.tonnes)) };
 }

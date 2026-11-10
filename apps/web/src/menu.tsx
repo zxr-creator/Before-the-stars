@@ -16,7 +16,9 @@ export function GameMenu() {
   const obs = s.obs;
   const summary = s.summary;
   const month = obs?.month ?? summary?.month ?? 0;
-  const [name, setName] = useState(`year-${Math.floor(month / 12) + 1}`);
+  // a default save name: the calendar year where the referee keeps one ("5000bc"), else the game year
+  const date = obs?.date ?? summary?.date ?? null;
+  const [name, setName] = useState(date ? `${Math.abs(date.year) || 1}${date.year <= 0 ? 'bc' : 'ad'}` : `year-${Math.floor(month / 12) + 1}`);
   const [confirmForfeit, setConfirmForfeit] = useState(false);
   const [confirmQuit, setConfirmQuit] = useState(false);
   const watching = s.mode === 'observe';
