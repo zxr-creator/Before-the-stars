@@ -17,6 +17,8 @@ pub struct Session {
     pub delegates: Vec<Vec<String>>,
     pub stewards: Vec<NativeAi>,
     pub advised_round: Vec<u32>,
+    /// LLM agent configuration per seat (without credentials), kept so a loaded match can resume.
+    pub agent_cfgs: Vec<Option<crate::agents::AgentConfig>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,6 +31,8 @@ struct SaveFile {
     delegates: Vec<Vec<String>>,
     #[serde(default)]
     stewards: Vec<NativeAi>,
+    #[serde(default)]
+    agent_cfgs: Vec<Option<crate::agents::AgentConfig>>,
 }
 
 fn mix(mut z: u64) -> u64 {
@@ -51,7 +55,7 @@ impl Session {
         }
         let n = m.seats();
         let stewards = (0..n).map(|s| NativeAi::new(Difficulty::Medium, mix(entropy ^ 0x57E7 ^ s as u64))).collect();
-        Session { m, ais, tokens, delegates: vec![Vec::new(); n], stewards, advised_round: vec![0; n] }
+        Session { m, ais, tokens, delegates: vec![Vec::new(); n], stewards, advised_round: vec![0; n], agent_cfgs: vec![None; n] }
     }
 
     pub fn set_delegates(&mut self, seat: SeatId, domains: Vec<String>) {
@@ -135,7 +139,7 @@ impl Session {
     }
 
     pub fn save(&self) -> String {
-        serde_json::to_string(&SaveFile { format: "bts-save/1".into(), world: self.m.save_json(), ais: self.ais.clone(), tokens: self.tokens.clone(), delegates: self.delegates.clone(), stewards: self.stewards.clone() }).expect("save serializes")
+        serde_json::to_string(&SaveFile { format: "bts-save/1".into(), world: self.m.save_json(), ais: self.ais.clone(), tokens: self.tokens.clone(), delegates: self.delegates.clone(), stewards: self.stewards.clone(), agent_cfgs: self.agent_cfgs.clone() }).expect("save serializes")
     }
 
     pub fn load(s: &str) -> Result<Session, String> {
@@ -148,6 +152,8 @@ impl Session {
         while stewards.len() < n {
             stewards.push(NativeAi::new(Difficulty::Medium, mix(0x57E7 ^ stewards.len() as u64)));
         }
-        Ok(Session { m, ais: f.ais, tokens: f.tokens, delegates, stewards, advised_round: vec![0; n] })
+        let mut agent_cfgs = f.agent_cfgs;
+        agent_cfgs.resize(n, None);
+        Ok(Session { m, ais: f.ais, tokens: f.tokens, delegates, stewards, advised_round: vec![0; n], agent_cfgs })
     }
 }

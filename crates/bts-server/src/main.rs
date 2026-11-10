@@ -9,7 +9,9 @@
 //! bts ready   --seat N [--round] [--url ...] [--token T]
 //! ```
 
+mod agents;
 mod host;
+mod providers;
 
 use bts_engine::MatchConfig;
 use bts_protocol::*;
@@ -85,6 +87,44 @@ struct NewMatch {
     disclosed_objective: Option<bool>,
     #[serde(default)]
     public_seed: Option<bool>,
+    /// Per-seat options for LLM agent seats, keyed by seat number.
+    #[serde(default)]
+    agent_options: HashMap<String, AgentOptions>,
+}
+
+#[derive(Deserialize, Default, Clone)]
+struct AgentOptions {
+    #[serde(default)]
+    model: Option<String>,
+    #[serde(default)]
+    consult_every: Option<u32>,
+    #[serde(default)]
+    api_key: Option<String>,
+    #[serde(default)]
+    base_url: Option<String>,
+    #[serde(default)]
+    effort: Option<String>,
+}
+
+/// Agent seats named in a new-match request, by seat.
+fn agents_from(n: &NewMatch) -> Vec<Option<agents::AgentConfig>> {
+    let mut out = vec![None; 4];
+    if let Some(c) = &n.controllers {
+        for (i, name) in c.iter().enumerate().take(4) {
+            if let Some(p) = providers::Provider::parse(name.trim()) {
+                let o = n.agent_options.get(&i.to_string()).cloned().unwrap_or_default();
+                out[i] = Some(agents::AgentConfig {
+                    provider: p.key().to_string(),
+                    model: o.model.filter(|m| !m.trim().is_empty()).map(|m| m.trim().to_string()).unwrap_or_else(|| p.default_model().to_string()),
+                    consult_every: o.consult_every.unwrap_or(1).clamp(1, 60),
+                    api_key: o.api_key.filter(|k| !k.trim().is_empty()),
+                    base_url: o.base_url.filter(|k| !k.trim().is_empty()),
+                    effort: o.effort.filter(|k| !k.trim().is_empty()),
+                });
+            }
+        }
+    }
+    out
 }
 
 fn config_from(n: NewMatch) -> Result<MatchConfig, String> {
@@ -115,7 +155,9 @@ fn config_from(n: NewMatch) -> Result<MatchConfig, String> {
         }
         let mut kinds = Vec::new();
         for s in &c {
-            kinds.push(controller(s).ok_or_else(|| format!("unknown controller '{s}'"))?);
+            // an LLM agent seat is an ordinary external seat driven by a worker in this process
+            let kind = if providers::Provider::parse(s.trim()).is_some() { Some(ControllerKind::External) } else { controller(s) };
+            kinds.push(kind.ok_or_else(|| format!("unknown controller '{s}'"))?);
         }
         cfg.controllers = kinds;
     }
@@ -137,12 +179,29 @@ struct SeatSummary {
     status: SeatStatus,
     /// Domains this seat has delegated to a steward.
     delegates: Vec<String>,
+    agent: Option<AgentSummary>,
     #[serde(skip_serializing_if = "Option::is_none")]
     token: Option<String>,
 }
 
 #[derive(Serialize)]
+struct AgentSummary {
+    provider: String,
+    model: String,
+    consult_every: u32,
+    state: String,
+    last_note: String,
+    calls: u32,
+    last_error: Option<String>,
+    thinking_seconds: Option<u64>,
+}
+
+#[derive(Serialize)]
 struct MatchSummary {
+    observer_allowed: bool,
+    /// Observer matches advance only up to this round until asked for more.
+    autoplay_until: u32,
+    app_mode: bool,
     exists: bool,
     match_id: String,
     seed: String,
@@ -162,9 +221,13 @@ struct MatchSummary {
     steward_domains: Vec<String>,
 }
 
-fn summary(s: &Session, with_tokens: bool) -> MatchSummary {
+fn summary(st: &agents::ServerState, with_tokens: bool) -> MatchSummary {
+    let s = st.session.as_ref().expect("summary needs a match");
     let cfg = s.m.config();
     MatchSummary {
+        observer_allowed: s.m.observer_allowed(),
+        autoplay_until: st.autoplay_until,
+        app_mode: st.app_mode,
         exists: true,
         match_id: s.m.match_id().to_string(),
         seed: if cfg.public_seed { cfg.seed.clone() } else { "(sealed)".into() },
@@ -191,6 +254,16 @@ fn summary(s: &Session, with_tokens: bool) -> MatchSummary {
                     controller: kind,
                     status: s.m.status(seat),
                     delegates: s.delegates[i].clone(),
+                    agent: st.agents.get(i).and_then(|a| a.as_ref()).map(|a| AgentSummary {
+                        provider: a.cfg.provider.clone(),
+                        model: a.cfg.model.clone(),
+                        consult_every: a.cfg.consult_every,
+                        state: a.state.clone(),
+                        last_note: a.last_note.clone(),
+                        calls: a.calls,
+                        last_error: a.last_error.clone(),
+                        thinking_seconds: a.thinking_since.map(|t| t.elapsed().as_secs()),
+                    }),
                     token: if with_tokens && matches!(kind, ControllerKind::Human | ControllerKind::External) { Some(s.tokens[i].clone()) } else { None },
                 }
             })
@@ -276,36 +349,121 @@ fn chronicle_markdown(obs: &Observation) -> String {
     out
 }
 
-fn serve(args: &Args) {
-    let port: u16 = args.num("port", 7878);
+static WEB: include_dir::Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../apps/web/dist");
+
+/// Where a packaged copy keeps its saves: the per-user application data directory.
+fn user_saves_dir() -> PathBuf {
+    let home = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")).unwrap_or_else(|_| ".".into());
+    if cfg!(target_os = "macos") {
+        PathBuf::from(home).join("Library/Application Support/Before the Stars/saves")
+    } else if cfg!(target_os = "windows") {
+        PathBuf::from(std::env::var("APPDATA").unwrap_or(home)).join("Before the Stars").join("saves")
+    } else {
+        PathBuf::from(std::env::var("XDG_DATA_HOME").unwrap_or_else(|_| format!("{home}/.local/share"))).join("before-the-stars/saves")
+    }
+}
+
+fn open_browser(url: &str) {
+    let result = if cfg!(target_os = "macos") {
+        std::process::Command::new("open").arg(url).spawn()
+    } else if cfg!(target_os = "windows") {
+        std::process::Command::new("cmd").args(["/C", "start", "", url]).spawn()
+    } else {
+        std::process::Command::new("xdg-open").arg(url).spawn()
+    };
+    if result.is_err() {
+        println!("  open {url} in a browser to play");
+    }
+}
+
+/// Install agent workers for a session (new or loaded) and reset playback.
+fn install(shared: &agents::Shared, st: &mut agents::ServerState, mut session: Session, cfgs: Vec<Option<agents::AgentConfig>>) {
+    st.generation += 1;
+    let n = session.m.seats();
+    st.agents = (0..n).map(|_| None).collect();
+    for (i, cfg) in cfgs.into_iter().enumerate().take(n) {
+        if let Some(cfg) = cfg {
+            if session.m.controller(i as SeatId) == ControllerKind::External {
+                // the steward runs everything until the model says otherwise
+                if session.delegates[i].is_empty() {
+                    session.set_delegates(i as SeatId, bts_ai::NativeAi::steward_domains().iter().map(|d| d.to_string()).collect());
+                }
+                session.agent_cfgs[i] = Some(cfg.clone());
+                st.agents[i] = Some(agents::AgentSeat::new(cfg));
+                agents::spawn(shared.clone(), i as SeatId, st.generation);
+            }
+        }
+    }
+    // an observer match waits for the observer; a match with a human runs on the human's clock
+    st.autoplay_until = if session.m.observer_allowed() { session.m.round() } else { u32::MAX };
+    st.session = Some(session);
+}
+
+fn serve(args: &Args, app_mode: bool) {
+    let mut port: u16 = args.num("port", 7878);
     let web = PathBuf::from(args.get("web", "apps/web/dist"));
     let require_tokens = args.has("require-tokens");
-    let saves = PathBuf::from(args.get("saves", "saves"));
-    let server = match tiny_http::Server::http(("127.0.0.1", port)) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("could not listen on 127.0.0.1:{port}: {e}");
-            std::process::exit(1);
-        }
+    let saves = match args.flags.get("saves") {
+        Some(p) => PathBuf::from(p),
+        None if app_mode => user_saves_dir(),
+        None => PathBuf::from("saves"),
     };
+    let mut server = None;
+    for attempt in 0..10u16 {
+        match tiny_http::Server::http(("127.0.0.1", port)) {
+            Ok(s) => {
+                server = Some(s);
+                break;
+            }
+            Err(e) => {
+                if app_mode {
+                    // already running? then just show it
+                    if http(&format!("http://127.0.0.1:{port}"), "GET", "/api/health", None).map(|b| b.contains("\"ok\"")).unwrap_or(false) {
+                        open_browser(&format!("http://127.0.0.1:{port}/"));
+                        return;
+                    }
+                    port += 1;
+                    let _ = attempt;
+                    continue;
+                }
+                eprintln!("could not listen on 127.0.0.1:{port}: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+    let Some(server) = server else {
+        eprintln!("no free port near {port}");
+        std::process::exit(1);
+    };
+    let embedded = WEB.get_file("index.html").is_some();
+    let from_disk = web.join("index.html").exists() && !app_mode;
     println!("Before the Stars — local referee");
     println!("  game:   http://127.0.0.1:{port}/");
     println!("  agents: http://127.0.0.1:{port}/api  (see docs/agent-api.md)");
-    if !web.join("index.html").exists() {
+    println!("  saves:  {}", saves.display());
+    if !embedded && !from_disk {
         println!("  note: web client not built ({}); run scripts/build.sh", web.display());
     }
-    let mut session: Option<Session> = None;
+    if app_mode {
+        println!("  close this window, or choose Quit in the game menu, to stop the game");
+    }
+    let shared: agents::Shared = std::sync::Arc::new(std::sync::Mutex::new(agents::ServerState { session: None, generation: 0, agents: Vec::new(), autoplay_until: u32::MAX, app_mode, saves: saves.clone() }));
     let autosave = saves.join("autosave.json");
     if autosave.exists() && !args.has("fresh") {
         if let Ok(text) = std::fs::read_to_string(&autosave) {
             match Session::load(&text) {
                 Ok(s) => {
                     println!("  resumed autosave: {} at round {}", s.m.match_id(), s.m.round());
-                    session = Some(s);
+                    let cfgs = s.agent_cfgs.clone();
+                    let mut st = shared.lock().unwrap();
+                    install(&shared, &mut st, s, cfgs);
                 }
                 Err(e) => println!("  autosave could not be loaded: {e}"),
             }
         }
+    }
+    if app_mode || args.has("open") {
+        open_browser(&format!("http://127.0.0.1:{port}/"));
     }
 
     for mut req in server.incoming_requests() {
@@ -313,31 +471,45 @@ fn serve(args: &Args) {
         let method = req.method().clone();
         let mut body = String::new();
         let _ = req.as_reader().read_to_string(&mut body);
-        let auth = |s: &Session, seat: SeatId, token: &str| -> bool {
-            (seat as usize) < s.m.seats() && (!require_tokens || s.tokens[seat as usize] == token)
+        let mut guard = shared.lock().unwrap();
+        let st = &mut *guard;
+        let auth = |s: &Session, seat: SeatId, token: &str| -> bool { (seat as usize) < s.m.seats() && (!require_tokens || s.tokens[seat as usize] == token) };
+        // a seat driven by a native controller or by an agent worker takes no orders from outside
+        let driven = |st: &agents::ServerState, seat: SeatId| -> bool {
+            st.session.as_ref().map(|s| s.ais[seat as usize].is_some()).unwrap_or(false) || st.agents.get(seat as usize).map(|a| a.is_some()).unwrap_or(false)
         };
+        let mut quit = false;
         let response = match (method.as_str(), path.as_str()) {
             ("GET", "/api/health") => json_response(200, "{\"ok\":true}".into()),
-            ("GET", "/api/match") => match &session {
-                Some(s) => json_response(200, serde_json::to_string(&summary(s, !require_tokens)).unwrap()),
-                None => json_response(200, "{\"exists\":false}".into()),
+            ("GET", "/api/match") => match &st.session {
+                Some(_) => json_response(200, serde_json::to_string(&summary(st, !require_tokens)).unwrap()),
+                None => json_response(200, serde_json::json!({ "exists": false, "app_mode": st.app_mode }).to_string()),
             },
-            ("POST", "/api/match") => match serde_json::from_str::<NewMatch>(if body.trim().is_empty() { "{}" } else { &body }).map_err(|e| e.to_string()).and_then(config_from) {
-                Ok(cfg) => {
-                    let mut s = Session::new(cfg, entropy());
-                    s.drive();
-                    let out = serde_json::to_string(&summary(&s, true)).unwrap();
-                    session = Some(s);
-                    json_response(200, out)
+            ("POST", "/api/match") => match serde_json::from_str::<NewMatch>(if body.trim().is_empty() { "{}" } else { &body }) {
+                Ok(n) => {
+                    let cfgs = agents_from(&n);
+                    match config_from(n) {
+                        Ok(cfg) => {
+                            let mut s = Session::new(cfg, entropy());
+                            let observer = s.m.observer_allowed();
+                            if !observer {
+                                s.drive();
+                            }
+                            install(&shared, st, s, cfgs);
+                            json_response(200, serde_json::to_string(&summary(st, true)).unwrap())
+                        }
+                        Err(e) => err(400, "INVALID_SCHEMA", &e),
+                    }
                 }
-                Err(e) => err(400, "INVALID_SCHEMA", &e),
+                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
             },
-            ("GET", "/api/observation") => match &session {
+            ("GET", "/api/observation") => match &st.session {
                 Some(s) => {
                     let seat: SeatId = q.get("seat").and_then(|v| v.parse().ok()).unwrap_or(0);
                     if !auth(s, seat, q.get("token").map(|x| x.as_str()).unwrap_or("")) {
                         err(403, "UNAUTHORIZED", "unknown seat or token")
-                    } else if s.ais[seat as usize].is_some() && require_tokens {
+                    } else if driven(st, seat) && (require_tokens || !s.m.observer_allowed()) {
+                        // another seat's view is open only to an observer of a match with no human in it
                         err(403, "UNAUTHORIZED", "unknown seat or token")
                     } else {
                         json_response(200, serde_json::to_string(&s.m.observe(seat)).unwrap())
@@ -345,25 +517,60 @@ fn serve(args: &Args) {
                 }
                 None => err(404, "NO_MATCH", "no match is running"),
             },
-            ("POST", "/api/actions") => match (&mut session, serde_json::from_str::<ActionBatch>(&body)) {
-                (Some(s), Ok(batch)) => {
-                    if !auth(s, batch.seat, &batch.token) || s.ais[batch.seat as usize].is_some() {
-                        err(403, "UNAUTHORIZED", "unknown seat or token")
-                    } else if batch.actions.len() > MAX_ACTIONS_PER_BATCH {
-                        err(400, "RATE_LIMITED", "at most 32 actions per batch")
-                    } else {
-                        let receipts = s.m.act(batch.seat, batch.actions);
+            ("GET", "/api/spectator") => match &st.session {
+                Some(s) if s.m.observer_allowed() && !require_tokens => json_response(200, serde_json::to_string(&s.m.spectate()).unwrap()),
+                Some(_) => err(403, "UNAUTHORIZED", "the whole-world view is only available when no human seat is playing"),
+                None => err(404, "NO_MATCH", "no match is running"),
+            },
+            ("POST", "/api/advance") => {
+                let rounds = serde_json::from_str::<serde_json::Value>(&body).ok().and_then(|v| v["rounds"].as_u64()).unwrap_or(1).clamp(0, 20) as u32;
+                match &mut st.session {
+                    Some(s) if s.m.observer_allowed() => {
+                        let has_agents = st.agents.iter().any(|a| a.is_some());
+                        let target = s.m.round().saturating_add(rounds);
+                        st.autoplay_until = if rounds == 0 { s.m.round() } else { target };
+                        if !has_agents {
+                            // all-native matches settle at once
+                            while !s.m.finished() && s.m.round() < target {
+                                if !s.step() {
+                                    break;
+                                }
+                            }
+                            st.autosave();
+                        }
+                        json_response(200, serde_json::to_string(&summary(st, false)).unwrap())
+                    }
+                    Some(_) => err(403, "UNAUTHORIZED", "only an observer match can be advanced this way"),
+                    None => err(404, "NO_MATCH", "no match is running"),
+                }
+            }
+            ("GET", "/api/agent-log") => {
+                let seat: usize = q.get("seat").and_then(|v| v.parse().ok()).unwrap_or(0);
+                let visible = st.session.as_ref().map(|s| s.m.observer_allowed() && !require_tokens).unwrap_or(false);
+                match st.agents.get(seat).and_then(|a| a.as_ref()) {
+                    Some(a) if visible => json_response(200, serde_json::json!({ "entries": a.log }).to_string()),
+                    Some(_) => err(403, "UNAUTHORIZED", "agent logs are only visible to an observer"),
+                    None => json_response(200, "{\"entries\":[]}".into()),
+                }
+            }
+            ("POST", "/api/actions") => match serde_json::from_str::<ActionBatch>(&body) {
+                Ok(batch) => match &st.session {
+                    None => err(404, "NO_MATCH", "no match is running"),
+                    Some(s) if !auth(s, batch.seat, &batch.token) || driven(st, batch.seat) => err(403, "UNAUTHORIZED", "unknown seat or token"),
+                    Some(_) if batch.actions.len() > MAX_ACTIONS_PER_BATCH => err(400, "RATE_LIMITED", "at most 32 actions per batch"),
+                    Some(_) => {
+                        let receipts = st.session.as_mut().unwrap().m.act(batch.seat, batch.actions);
                         json_response(200, serde_json::json!({ "receipts": receipts }).to_string())
                     }
-                }
-                (None, _) => err(404, "NO_MATCH", "no match is running"),
-                (_, Err(e)) => err(400, "INVALID_SCHEMA", &e.to_string()),
+                },
+                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
             },
-            ("POST", "/api/ready") => match (&mut session, serde_json::from_str::<ReadyBody>(&body)) {
-                (Some(s), Ok(b)) => {
-                    if !auth(s, b.seat, &b.token) || s.ais[b.seat as usize].is_some() {
-                        err(403, "UNAUTHORIZED", "unknown seat or token")
-                    } else {
+            ("POST", "/api/ready") => match serde_json::from_str::<ReadyBody>(&body) {
+                Ok(b) => match &st.session {
+                    None => err(404, "NO_MATCH", "no match is running"),
+                    Some(s) if !auth(s, b.seat, &b.token) || driven(st, b.seat) => err(403, "UNAUTHORIZED", "unknown seat or token"),
+                    Some(_) => {
+                        let s = st.session.as_mut().unwrap();
                         let before = s.m.round();
                         s.m.set_ready(b.seat, b.through_round);
                         s.drive();
@@ -371,26 +578,23 @@ fn serve(args: &Args) {
                             s.drive();
                         }
                         if s.m.round() != before || s.m.finished() {
-                            let _ = std::fs::create_dir_all(&saves);
-                            let _ = std::fs::write(&autosave, s.save());
+                            st.autosave();
                         }
-                        json_response(200, serde_json::to_string(&summary(s, false)).unwrap())
+                        json_response(200, serde_json::to_string(&summary(st, false)).unwrap())
                     }
-                }
-                (None, _) => err(404, "NO_MATCH", "no match is running"),
-                (_, Err(e)) => err(400, "INVALID_SCHEMA", &e.to_string()),
+                },
+                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
             },
-            ("POST", "/api/delegate") => match (&mut session, serde_json::from_str::<DelegateBody>(&body)) {
-                (Some(s), Ok(b)) => {
-                    if !auth(s, b.seat, &b.token) || s.ais[b.seat as usize].is_some() {
-                        err(403, "UNAUTHORIZED", "unknown seat or token")
-                    } else {
-                        s.set_delegates(b.seat, b.domains);
-                        json_response(200, serde_json::to_string(&summary(s, false)).unwrap())
+            ("POST", "/api/delegate") => match serde_json::from_str::<DelegateBody>(&body) {
+                Ok(b) => match &st.session {
+                    None => err(404, "NO_MATCH", "no match is running"),
+                    Some(s) if !auth(s, b.seat, &b.token) || driven(st, b.seat) => err(403, "UNAUTHORIZED", "unknown seat or token"),
+                    Some(_) => {
+                        st.session.as_mut().unwrap().set_delegates(b.seat, b.domains);
+                        json_response(200, serde_json::to_string(&summary(st, false)).unwrap())
                     }
-                }
-                (None, _) => err(404, "NO_MATCH", "no match is running"),
-                (_, Err(e)) => err(400, "INVALID_SCHEMA", &e.to_string()),
+                },
+                Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
             },
             ("GET", "/api/saves") => {
                 let mut names: Vec<String> = std::fs::read_dir(&saves)
@@ -399,7 +603,7 @@ fn serve(args: &Args) {
                 names.sort();
                 json_response(200, serde_json::json!({ "saves": names }).to_string())
             }
-            ("POST", "/api/save") => match (&session, serde_json::from_str::<SaveBody>(&body)) {
+            ("POST", "/api/save") => match (&st.session, serde_json::from_str::<SaveBody>(&body)) {
                 (Some(s), Ok(b)) => {
                     let _ = std::fs::create_dir_all(&saves);
                     let name = safe_name(&b.name);
@@ -414,18 +618,18 @@ fn serve(args: &Args) {
             ("POST", "/api/load") => match serde_json::from_str::<SaveBody>(&body) {
                 Ok(b) => match std::fs::read_to_string(saves.join(format!("{}.json", safe_name(&b.name)))).map_err(|e| e.to_string()).and_then(|t| Session::load(&t)) {
                     Ok(s) => {
-                        let out = serde_json::to_string(&summary(&s, true)).unwrap();
-                        session = Some(s);
-                        json_response(200, out)
+                        let cfgs = s.agent_cfgs.clone();
+                        install(&shared, st, s, cfgs);
+                        json_response(200, serde_json::to_string(&summary(st, true)).unwrap())
                     }
                     Err(e) => err(404, "NOT_FOUND", &e),
                 },
                 Err(e) => err(400, "INVALID_SCHEMA", &e.to_string()),
             },
-            ("GET", "/api/export/chronicle") => match &session {
+            ("GET", "/api/export/chronicle") => match &st.session {
                 Some(s) => {
                     let seat: SeatId = q.get("seat").and_then(|v| v.parse().ok()).unwrap_or(0);
-                    if !auth(s, seat, q.get("token").map(|x| x.as_str()).unwrap_or("")) {
+                    if !auth(s, seat, q.get("token").map(|x| x.as_str()).unwrap_or("")) || (driven(st, seat) && !s.m.observer_allowed()) {
                         err(403, "UNAUTHORIZED", "unknown seat or token")
                     } else {
                         let obs = s.m.observe(seat);
@@ -438,21 +642,40 @@ fn serve(args: &Args) {
                 }
                 None => err(404, "NO_MATCH", "no match is running"),
             },
+            ("POST", "/api/shutdown") => {
+                if st.app_mode {
+                    st.autosave();
+                    quit = true;
+                    json_response(200, "{\"ok\":true}".into())
+                } else {
+                    err(403, "UNAUTHORIZED", "this referee was not started as a packaged application")
+                }
+            }
             ("GET", p) if !p.starts_with("/api/") => {
                 let rel = p.trim_start_matches('/');
-                let rel = if rel.is_empty() { "index.html" } else { rel };
-                let mut file = web.join(rel);
-                if rel.contains("..") || !file.is_file() {
-                    file = web.join("index.html");
-                }
-                match std::fs::read(&file) {
-                    Ok(bytes) => tiny_http::Response::from_data(bytes).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], content_type(&file).as_bytes()).unwrap()),
-                    Err(_) => tiny_http::Response::from_string("The web client has not been built. Run scripts/build.sh, or use the HTTP API under /api.").with_status_code(404).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/plain; charset=utf-8"[..]).unwrap()),
+                let rel = if rel.is_empty() || rel.contains("..") { "index.html" } else { rel };
+                // a client built on disk wins during development; a packaged copy serves its embedded client
+                let disk = web.join(rel);
+                if !app_mode && disk.is_file() {
+                    match std::fs::read(&disk) {
+                        Ok(bytes) => tiny_http::Response::from_data(bytes).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], content_type(&disk).as_bytes()).unwrap()),
+                        Err(_) => err(500, "IO", "could not read the web client"),
+                    }
+                } else if let Some(file) = WEB.get_file(rel).or_else(|| WEB.get_file("index.html")) {
+                    tiny_http::Response::from_data(file.contents().to_vec()).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], content_type(file.path()).as_bytes()).unwrap())
+                } else if web.join("index.html").is_file() {
+                    tiny_http::Response::from_data(std::fs::read(web.join("index.html")).unwrap_or_default()).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..]).unwrap())
+                } else {
+                    tiny_http::Response::from_string("The web client has not been built. Run scripts/build.sh, or use the HTTP API under /api.").with_status_code(404).with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"text/plain; charset=utf-8"[..]).unwrap())
                 }
             }
             _ => err(404, "NOT_FOUND", "no such endpoint"),
         };
+        drop(guard);
         let _ = req.respond(response);
+        if quit {
+            std::process::exit(0);
+        }
     }
 }
 
@@ -657,14 +880,20 @@ fn http(url: &str, method: &str, path: &str, body: Option<&str>) -> Result<Strin
 
 fn main() {
     let argv: Vec<String> = std::env::args().collect();
-    let cmd = argv.get(1).map(|s| s.as_str()).unwrap_or("serve");
-    let args = Args::parse(&argv[argv.len().min(2)..]);
+    let cmd = argv.get(1).map(|s| s.as_str()).filter(|s| !s.starts_with("--")).unwrap_or("app");
+    let explicit = argv.get(1).map(|s| !s.starts_with("--")).unwrap_or(false);
+    let args = Args::parse(&argv[argv.len().min(if explicit { 2 } else { 1 })..]);
     let url = args.get("url", "http://127.0.0.1:7878");
     let seat: SeatId = args.num("seat", 0);
     let token = args.get("token", "");
     let result = match cmd {
         "serve" => {
-            serve(&args);
+            serve(&args, args.has("app"));
+            Ok(String::new())
+        }
+        // started with no command (for example by double-click): run as a packaged application
+        "app" => {
+            serve(&args, true);
             Ok(String::new())
         }
         "run" => {

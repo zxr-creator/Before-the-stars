@@ -969,6 +969,94 @@ pub struct ChronicleEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Spectator view (referee-level disclosure; only for matches with no human seat)
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SpectatorOutcome {
+    pub finished_month: Month,
+    pub winner: Option<SeatId>,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SpectatorCiv {
+    pub seat: SeatId,
+    pub name: String,
+    pub adjective: String,
+    pub color: String,
+    pub controller: ControllerKind,
+    pub status: SeatStatus,
+    pub capital: RegionId,
+    pub population: u32,
+    pub regions: u16,
+    pub understood: u16,
+    pub discovered: u16,
+    pub practices: u16,
+    pub highest_tier: u8,
+    pub soldiers: u32,
+    pub stability: u8,
+    pub food_months_milli: i64,
+    pub sci_method: Option<Month>,
+    pub planetary: Option<Month>,
+    pub interstellar: Option<Month>,
+    pub gov_streak: u32,
+    pub ftl_streak: u32,
+    pub assemblies: u32,
+    pub trials: u32,
+    pub overlord: Option<SeatId>,
+    pub at_war_with: Vec<SeatId>,
+    pub goods: Vec<GoodQty>,
+    pub research_capacity: i64,
+    pub reward: Option<f64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SpectatorArmy {
+    pub id: u32,
+    pub owner: SeatId,
+    pub name: String,
+    pub region: RegionId,
+    pub soldiers: u32,
+    pub roles: Vec<(Role, u32)>,
+    pub tier: u8,
+    pub in_battle: bool,
+    pub target: Option<RegionId>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SpectatorEvent {
+    pub id: u32,
+    pub month: Month,
+    pub seat: SeatId,
+    pub category: MomentCategory,
+    pub title: String,
+    pub text: String,
+    pub region: Option<RegionId>,
+    pub art: String,
+    pub major: bool,
+    pub epistemic: Epistemic,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SpectatorView {
+    pub match_id: String,
+    pub month: Month,
+    pub round: u32,
+    pub months_per_round: u32,
+    pub horizon: Month,
+    pub phase: Phase,
+    pub window: u8,
+    pub outcome: Option<SpectatorOutcome>,
+    pub world: WorldFrame,
+    pub regions: Vec<RegionView>,
+    pub civs: Vec<SpectatorCiv>,
+    pub armies: Vec<SpectatorArmy>,
+    pub events: Vec<SpectatorEvent>,
+    pub test_nodes: Vec<RegionId>,
+}
+
+// ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
 

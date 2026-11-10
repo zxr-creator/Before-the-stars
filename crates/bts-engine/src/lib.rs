@@ -73,6 +73,17 @@ impl Match {
         observe::observe(&self.world, seat)
     }
 
+    /// Whole-world view for an observer. Referee-level disclosure: callers must only
+    /// serve it when no human seat is playing.
+    pub fn spectate(&self) -> SpectatorView {
+        observe::spectate(&self.world)
+    }
+
+    /// True when no seat is controlled by a human at the keyboard.
+    pub fn observer_allowed(&self) -> bool {
+        !self.world.civs.iter().any(|c| c.controller == ControllerKind::Human)
+    }
+
     /// Validate and apply a batch of actions for a seat. Planning never advances time.
     pub fn act(&mut self, seat: SeatId, actions: Vec<Action>) -> Vec<Receipt> {
         actions.into_iter().take(MAX_ACTIONS_PER_BATCH).map(|a| actions::apply(&mut self.world, seat, a)).collect()

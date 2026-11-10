@@ -1111,3 +1111,158 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         receipts: civ.receipts.clone(),
     }
 }
+
+/// Whole-world view for an observer. This discloses referee state and must only be
+/// served when no human seat is playing.
+pub fn spectate(w: &World) -> SpectatorView {
+    let c = content();
+    let mut regions = Vec::new();
+    for (ri, r) in w.regions.iter().enumerate() {
+        let own = r.controller.map(|seat| {
+            let link = economy::link_efficiencies(w, seat);
+            own_region(w, seat, ri, link[ri])
+        });
+        regions.push(RegionView {
+            id: r.id,
+            name: r.name.clone(),
+            poly: r.poly.clone(),
+            center: r.center,
+            neighbors: r.neighbors.iter().map(|(n, k)| NeighborLink { region: *n, kind: k.key().to_string() }).collect(),
+            terrain: r.terrain,
+            coastal: r.coastal,
+            river: r.river,
+            elevation: r.elevation,
+            visibility: Visibility::Visible,
+            last_seen: w.month,
+            owner: r.owner,
+            controller: r.controller,
+            settlement: r.settlement(),
+            survey: Some(SurveyView {
+                arable: r.arable,
+                pasture: r.pasture,
+                wild_food: (r.wild / 1000) as u32,
+                fishery: r.fishery,
+                forest: r.forest,
+                water: r.water,
+                hydro: r.hydro,
+                deposits: r.deposits.iter().map(|d| DepositView { kind: d.kind, remaining: d.remaining, quality_bp: d.quality_bp, epistemic: Epistemic::Verified }).collect(),
+                surveyed_month: w.month,
+                detailed: true,
+            }),
+            own,
+            foreign: None,
+            test_node: w.test_nodes.contains(&r.id),
+        });
+    }
+    let civs = w
+        .civs
+        .iter()
+        .map(|civ| {
+            let seat = civ.seat;
+            let pop = w.civ_population(seat);
+            let key = [Good::Food, Good::Materials, Good::Tools, Good::Metal, Good::Components, Good::Electronics, Good::Fuel];
+            SpectatorCiv {
+                seat,
+                name: civ.name.clone(),
+                adjective: civ.adjective.clone(),
+                color: civ.color.clone(),
+                controller: civ.controller,
+                status: civ.status,
+                capital: civ.capital,
+                population: pop,
+                regions: w.owned(seat).len() as u16,
+                understood: civ.tech.iter().filter(|t| t.state >= ST_UNDERSTOOD).count() as u16,
+                discovered: civ.tech.iter().filter(|t| t.state >= ST_DISCOVERED).count() as u16,
+                practices: civ.practice.iter().filter(|p| p.state >= 3).count() as u16,
+                highest_tier: (0..c.techs.len()).filter(|i| civ.knows(*i)).map(|i| c.techs[i].tier).max().unwrap_or(0),
+                soldiers: w.armies.iter().filter(|a| a.owner == seat).map(|a| a.count()).sum(),
+                stability: civ.stability,
+                food_months_milli: civ.stock_of(Good::Food).max(0) / (pop.max(1) as i64),
+                sci_method: civ.milestones.sci_method,
+                planetary: civ.milestones.planetary,
+                interstellar: civ.milestones.interstellar,
+                gov_streak: civ.ftl.gov_streak,
+                ftl_streak: civ.ftl.ftl_streak,
+                assemblies: civ.ftl.assemblies.iter().filter(|a| !a.retired).count() as u32,
+                trials: civ.ftl.trials.len() as u32,
+                overlord: civ.overlord,
+                at_war_with: w.civs.iter().filter(|o| o.seat != seat && civ.contacts[o.seat as usize].at_war).map(|o| o.seat).collect(),
+                goods: key.iter().map(|g| GoodQty { good: *g, amount: civ.stock_of(*g) }).collect(),
+                research_capacity: civ.research_cap.iter().sum(),
+                reward: w.outcome.as_ref().map(|_| victory::reward(w, seat)),
+            }
+        })
+        .collect();
+    let armies = w
+        .armies
+        .iter()
+        .map(|a| SpectatorArmy {
+            id: a.id,
+            owner: a.owner,
+            name: a.name.clone(),
+            region: a.region,
+            soldiers: a.count(),
+            roles: Role::ALL.iter().map(|r| (*r, a.soldiers[r.index()])).collect(),
+            tier: a.tier,
+            in_battle: a.in_battle,
+            target: match a.order {
+                ArmyOrder::Move { to } => Some(to),
+                ArmyOrder::Attack { region } => Some(region),
+                _ => None,
+            },
+        })
+        .collect();
+    // every civilization's own verified moments, merged; reports about others are left out
+    let mut events: Vec<SpectatorEvent> = w
+        .civs
+        .iter()
+        .flat_map(|civ| {
+            civ.chronicle.iter().filter(|e| e.epistemic == Epistemic::Verified).map(move |e| SpectatorEvent {
+                id: e.id,
+                month: e.month,
+                seat: civ.seat,
+                category: e.category,
+                title: e.title.clone(),
+                text: e.text.clone(),
+                region: e.region,
+                art: e.art.clone(),
+                major: e.major,
+                epistemic: e.epistemic,
+            })
+        })
+        .collect();
+    events.sort_by_key(|e| (e.month, e.id));
+    if events.len() > 300 {
+        let cut = events.len() - 300;
+        // keep every major moment that fits, then the most recent of the rest
+        let mut kept: Vec<SpectatorEvent> = Vec::new();
+        let recent_from = events.len().saturating_sub(120);
+        for (i, e) in events.into_iter().enumerate() {
+            if e.major || i >= recent_from {
+                kept.push(e);
+            }
+        }
+        if kept.len() > 300 {
+            let over = kept.len() - 300;
+            kept.drain(0..over);
+        }
+        let _ = cut;
+        events = kept;
+    }
+    SpectatorView {
+        match_id: w.match_id.clone(),
+        month: w.month,
+        round: w.round,
+        months_per_round: w.cfg.months_per_round,
+        horizon: w.cfg.horizon,
+        phase: w.phase,
+        window: w.window,
+        outcome: w.outcome.as_ref().map(|o| SpectatorOutcome { finished_month: o.month, winner: o.winner, reason: o.reason.clone() }),
+        world: WorldFrame { width: w.width, height: w.height, region_count: w.regions.len() as u16 },
+        regions,
+        civs,
+        armies,
+        events,
+        test_nodes: w.test_nodes.clone(),
+    }
+}
