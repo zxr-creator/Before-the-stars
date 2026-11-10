@@ -6,7 +6,9 @@
 // The public surface mirrors the flat Atlas renderer so MapView can drive either.
 import * as THREE from 'three';
 import type { AtlasData, AtlasOverlay, Insets, MapMode } from '../map/atlas';
-import { POP_RAMP, popClass } from '../map/atlas';
+import { BUILT_RAMP, POP_RAMP, builtClass, popClass } from '../map/atlas';
+import { SECTORS, SECTOR_COLOR, landUse } from '../map/landuse';
+import { chipDataUrl, chipRadius, sectorChips } from '../map/sites';
 import type { Deposit, RegionId, RegionView, Role } from '../protocol';
 import { compact, int, milli, range } from '../format';
 import { Builder } from './builder';
@@ -26,10 +28,7 @@ import { buildTerrain, groundAt, heightAt, type Heightfield, type RiverPath } fr
 import { boundaryChains, buildTopology, chaikin, regionChain, regionIndexAt, resample, type Chain, type Topology, type TRegion } from './topology';
 import { clamp, hash32, hexRgb, lerp, mixRgb, sepia, smoothstep, type RGB } from './util';
 
-export interface Map3DData extends AtlasData {
-  /** Facility kind → catalog category, for kinds this build does not know by name. */
-  facilityCategories?: Record<string, string>;
-}
+export type Map3DData = AtlasData;
 
 export interface Map3DOptions {
   reducedMotion?: boolean;
@@ -640,10 +639,11 @@ export class Map3D {
     // Region dressing: rebuild only regions whose signature changed.
     const ctx: DecorContext = {
       topo, hf, rivers: this.riverPaths, seatColor: (s) => this.rgbOf(s), capital: d.capital, civEra, categories: d.facilityCategories ?? {},
+      building: d.construction,
     };
     let decorChanged = terrainChanged;
     for (const p of topo.regions) {
-      const sig = decorSignature(p.r, d.capital, civEra, this.colorOf(p.r.owner));
+      const sig = decorSignature(p.r, d.capital, civEra, this.colorOf(p.r.owner), d.construction?.[p.r.id]?.levels ?? 0);
       const have = this.decor.get(p.r.id);
       if (have && have.sig === sig) continue;
       if (have?.mesh) { this.decorGroup.remove(have.mesh); have.mesh.geometry.dispose(); }
@@ -817,7 +817,7 @@ export class Map3D {
     const specs: RibbonSpec[] = [];
     for (const e of topo.edges) {
       if (e.kind !== 'internal') continue;
-      specs.push({ chain: { key: 0, pts: e.pts, closed: false, side: 1 }, color: INK, width: 0.7, centered: true, lift: 0.4 });
+      specs.push({ chain: { key: 0, pts: e.pts, closed: false, side: 1 }, color: INK, width: 1.15, centered: true, lift: 0.4 });
     }
     this.inkMesh = new THREE.Mesh(ribbonGeometry(specs, tb.hf, 3.2), this.inkMat);
     this.inkMesh.renderOrder = 2;
@@ -874,10 +874,9 @@ export class Map3D {
           put(wash, i, rem ? mixRgb(sepia(c, 0.45), [0.93, 0.88, 0.74], 0.25) : c, rem ? 0.8 : 1);
         }
       } else if (mode === 'construction') {
-        if (r.own) {
-          const lv = r.own.facilities.reduce((n, f) => n + f.level, 0);
-          put(wash, i, mixRgb(hexRgb('#e6dfc9'), hexRgb('#467b73'), Math.min(1, lv / 24)), 1);
-        }
+        // The same classes as the flat tier's development view.
+        const use = landUse(r, d.facilityCategories);
+        if (use) put(wash, i, hexRgb(BUILT_RAMP[builtClass(use.total)]), 1);
       } else if (mode === 'population') {
         const pop = r.own ? r.own.population : r.foreign ? (r.foreign.population_low + r.foreign.population_high) / 2 : -1;
         if (pop >= 0) put(wash, i, hexRgb(POP_RAMP[popClass(pop)]), rem ? 0.6 : 1);
@@ -939,7 +938,7 @@ export class Map3D {
       const base = this.rgbOf(c.key);
       // Keep the line vivid even for muted civilisation colours.
       const col = mixRgb(base, [1, 1, 1], 0.06);
-      return { chain: c, color: col, width: 13, lift: 0.6 };
+      return { chain: c, color: col, width: 16, lift: 0.6 };
     });
     this.setMesh('borderMesh', specs, this.borderMat, 3);
   }
@@ -1402,6 +1401,28 @@ export class Map3D {
           cls: 'm3-wild' + (rem ? ' is-rem' : '') + (forced ? ' is-focus' : ''), priority, minZoom, anchor: 'center', force: forced,
         });
       }
+      // What the region holds: sector discs under the settlement (a stacked bar in the
+      // development view). Only for regions whose works this viewer is told.
+      const use = ov.mode === 'resources' || ov.mode === 'population' ? null : landUse(r, d.facilityCategories, d.construction?.[r.id]);
+      if (use && use.total > 0) {
+        let html = '';
+        if (ov.mode === 'construction') {
+          let segs = '';
+          for (const sec of SECTORS) if (use.sectors[sec] > 0) segs += `<i style="flex-grow:${use.sectors[sec]};background:${SECTOR_COLOR[sec]}"></i>`;
+          html = `<span class="m3-bar">${segs}</span><b>${use.total}</b>${use.building.levels > 0 ? `<em>+${use.building.levels}</em>` : ''}`;
+        } else {
+          for (const c of sectorChips(use, true)) {
+            const px = Math.ceil(chipRadius(c.magnitude, 1) * 2 + 4);
+            html += `<img src="${chipDataUrl(c)}" width="${px}" height="${px}" alt="">${c.label ? `<em>${esc(c.label)}</em>` : ''}`;
+          }
+        }
+        if (html) {
+          specs.push({
+            key: 'w' + r.id, x: p.cx, y: g, z: p.cy + (rank ? settlementRadius(r.settlement) + 2.5 : 8), html,
+            cls: 'm3-works' + (ov.mode === 'construction' ? ' is-dev' : ''), priority: priority - 6, minZoom: Math.max(minZoom, 0.34), anchor: 'below', force: forced,
+          });
+        }
+      }
       if (ov.mode === 'resources' && r.survey) {
         const sv = r.survey;
         const dec = this.decor.get(r.id)?.d;
@@ -1502,14 +1523,22 @@ export class Map3D {
     this.applyRig(this.camera, this.cur);
     this.groundU.uTime.value = this.clock;
     // Far away the picture becomes a strategic map: ownership dominates, detail recedes.
-    const far = smoothstep(650, 2200, this.cur.dist);
+    // Ownership reads at every distance: the wash is plain up close and firm from the middle
+    // distance outward, where the picture is a strategic map and detail recedes.
+    const far = smoothstep(320, 1500, this.cur.dist);
     const mode = this.overlay.mode;
-    this.groundU.uWashGain.value = mode === 'political' ? lerp(0.24, 0.60, far) : mode === 'population' || mode === 'construction' ? 0.74 : 0;
-    this.props.group.visible = mode !== 'construction';
-    this.groundU.uClouds.value = this.reducedMotion || mode === 'construction' ? 0 : 1;
-    this.borderU.uGlow.value = (mode === 'political' ? 0.72 : 0.4) * lerp(1, 1.2, far);
-    this.borderU.uCore.value = lerp(0.12, 0.26, far);
-    this.inkU.uOpacity.value = lerp(0.34, 0.2, far);
+    this.groundU.uWashGain.value = mode === 'political' ? lerp(0.32, 0.68, far) : mode === 'population' || mode === 'construction' ? 0.8 : 0;
+    // In the far overview trees, deposit badges and carts are specks: they are left out, and the
+    // sector discs under each name say what a region holds.
+    const overview = this.unitsPerPx(this.cur.dist) > 0.95;
+    this.props.group.visible = mode !== 'construction' && !overview;
+    this.badgeGroup.visible = mode === 'resources' || !overview;
+    if (this.trafficMesh) this.trafficMesh.visible = !overview;
+    // No drifting cloud shadows: they dappled the very washes the map is read by.
+    this.groundU.uClouds.value = 0;
+    this.borderU.uGlow.value = (mode === 'political' ? 0.78 : 0.45) * lerp(1, 1.2, far);
+    this.borderU.uCore.value = lerp(0.2, 0.32, far);
+    this.inkU.uOpacity.value = lerp(0.58, 0.5, far);
     if (!this.reducedMotion) { this.updateSmoke(); this.updateTraffic(); }
     this.fitSprites();
     this.renderer.render(this.scene, this.camera);

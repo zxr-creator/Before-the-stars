@@ -20,8 +20,18 @@ const PARAM: Record<Terrain, TerrainParam> = {
   tundra: { base: 2.6, elev: 5, amp: 3.6 },
 };
 
-/** Ground palette (sRGB): two tones per terrain that large noise patches move between. */
-const GROUND: Record<Terrain, [RGB, RGB, RGB]> = {
+/**
+ * Ground palette (sRGB): tones per terrain that large noise patches move between. The table
+ * holds the full-strength colours; `calm` pulls them toward a pale, warm neutral so the land
+ * carries the ownership wash and the works on it instead of competing with them.
+ */
+function calm(c: RGB): RGB {
+  const l = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+  const k = 0.42, pale = 0.16;
+  const r = c[0] + (l * 1.05 - c[0]) * k, g = c[1] + (l - c[1]) * k, b = c[2] + (l * 0.84 - c[2]) * k;
+  return [r + (0.9 - r) * pale, g + (0.86 - g) * pale, b + (0.72 - b) * pale];
+}
+const FULL_GROUND: Record<Terrain, [RGB, RGB, RGB]> = {
   plains: [[0.54, 0.76, 0.3], [0.68, 0.82, 0.36], [0.44, 0.67, 0.27]],
   hills: [[0.62, 0.72, 0.33], [0.76, 0.7, 0.38], [0.5, 0.62, 0.28]],
   mountains: [[0.6, 0.55, 0.47], [0.7, 0.64, 0.54], [0.48, 0.47, 0.42]],
@@ -31,6 +41,9 @@ const GROUND: Record<Terrain, [RGB, RGB, RGB]> = {
   desert: [[0.93, 0.8, 0.5], [0.96, 0.86, 0.6], [0.88, 0.7, 0.42]],
   tundra: [[0.74, 0.8, 0.7], [0.9, 0.93, 0.92], [0.62, 0.7, 0.58]],
 };
+const GROUND = Object.fromEntries(
+  (Object.keys(FULL_GROUND) as Terrain[]).map((t) => [t, FULL_GROUND[t].map(calm)]),
+) as Record<Terrain, [RGB, RGB, RGB]>;
 const ROCK: RGB = [0.56, 0.51, 0.45];
 const ROCK_DARK: RGB = [0.42, 0.39, 0.36];
 const SNOW: RGB = [0.97, 0.98, 1.0];
