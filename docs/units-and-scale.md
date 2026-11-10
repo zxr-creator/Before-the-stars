@@ -53,7 +53,7 @@ and what a client should normally show.
 | Time | 1 month | - | 12 months per decision round; horizon 2,880 months |
 | Population | 1 person | - | 81 annual age cells per block; `u32` per cell |
 | Post / job | 1 full-time worker for the month | - | one person holds one post; students, teachers and soldiers hold none |
-| Project work | 1 worker-month | 1,000 worker-months | a called-up labourer supplies 1 per month |
+| Project work | 1 worker-month | 1,000 worker-months | a called-up labourer supplies 1 per month, a builder included |
 | Research work | 1 researcher-month | 1,000 researcher-months | supplied only by staffed research posts |
 | Food | 1 ration: one person's food for one month, 50 kg grain-equivalent | 1,000 rations = 50 t | every resident and soldier eats 1 ration a month |
 | Bulk goods | 1 tonne | 1 kt | timber/stone/clay, ores, coal, crude, rare minerals, copper, structural metal, components, conductors, insulation, fuel, chemicals, substrate |
@@ -77,11 +77,30 @@ may put out more mass than it takes in, extraction and food excepted):
 
 Food converts at 0.05 t per ration wherever a recipe consumes it.
 
+Mass balance (tested for every recipe): a recipe that takes goods in puts out no more
+mass than it takes. A recipe may put out goods without taking any in only at works
+that take their material out of the site itself - mines and wells on a deposit, timber
+and quarry camps, kilns digging their clay - and those works are flagged as such.
+Works that grow food carry no recipe (their yield is per cultivator on the land), and
+recipes that deliver only service, research or assembly progress put out no goods.
+
+Deposits are tonnes in the ground. Every tonne a mine or well raises is drawn from
+its deposit: drained deep workings draw what they raise, shallow workings raise the
+easy ore and spoil as much again (two tonnes drawn for each raised). Of what is
+raised, the ore's quality `q` decides how much is delivered: `0.5 + q / 2`. A deposit
+therefore never delivers more than is drawn from it. Every home region has, within
+three links, at least 240 Mt of copper ore, 700 Mt of iron ore, 1,000 Mt of coal and
+120 Mt of rare minerals (`worldgen.rs`). These, and all generated deposits, are twice
+the figures of the first 2.0 generator, which counted only delivered ore.
+
+Every source of goods, people, qualified people, service and work, with the ledger
+that records it, is listed in `docs/conservation-audit.md`.
+
 ## 3. People
 
 | Quantity | Value |
 | --- | --- |
-| Starting population per seat | 236,000-248,000, young pyramid |
+| Starting population per seat | 236,000-248,000, on a smooth young pyramid (no age stands out) |
 | Working age | 15-64; 92% of them are available for posts, study or service |
 | Food per person-month | 1 ration (50 kg grain-equivalent; 0.6 t a year) |
 | Births | at most 0.030 a month per reproductive equivalent, lagged nine months, cut by thin stores, crowding and schooling |
@@ -157,6 +176,12 @@ Generator halls convert shaft work to electricity at nine tenths; a grid shares
 surplus between linked regions at 92%; motors return electricity to shafts at nine
 tenths. Only industrial, research and programme use is modelled; household
 consumption is not, so national totals are far below a modern economy's.
+
+Service is rationed, never overdrawn. A works asks for the service of the posts it
+has filled; when a region (for compute, the nation) has less than its works ask for,
+each receives the same share of what it asked, so a works that is half crewed and
+half supplied runs at a quarter. A region's own motors draw on its spare electricity
+before the rest is offered to the grid. Compute made in one month serves the next.
 
 Construction of industrial-era works draws site power in the same unit. A site with
 no local supply runs site engines on coal (5 units per kt) or fuel (10 units per kt).

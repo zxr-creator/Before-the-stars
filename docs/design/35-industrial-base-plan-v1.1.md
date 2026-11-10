@@ -111,6 +111,36 @@ Checklist (not exhaustive - grep for person counts everywhere):
   masses of the units chapter (extraction, food and service-only recipes excepted;
   fix any recipe that fails - polymer insulation and deep workings are known).
 
+Implemented; the audit, the identities and the tests are in
+`docs/conservation-audit.md`. Where the implementation goes beyond or differs from the
+list above:
+
+- The all-AI audit lives in `crates/bts-ai/tests/conservation.rs` (the engine cannot
+  depend on the policy crate) and covers two whole campaigns as well as three
+  300-month openings; the engine keeps a scripted 360-month match under the same
+  monthly audit. The referee exposes its books through `Match::ledger_snapshot`,
+  `Match::record_ledgers` and `ledger::violations`.
+- Further ledgers: deposits (`drawn`, `delivered`), service per region
+  (`PowerLedger`), compute used, and project work accepted per region.
+- Service is rationed in proportion to what each works asked for, and a region's
+  motors draw before its surplus is offered to the grid; the earlier rule let works
+  draw more than existed.
+- Builders supply one worker-month each (slice C removes the rule altogether by
+  reserving crews).
+- Field methods and motor-boat fishing are used only when a full month of their
+  chemicals and fuel is in store, and the draw is taken first.
+- Copy houses also take materials (a tonne for every three lots), so they pass the
+  mass balance.
+- Learners die and are enlisted in proportion and drop out; when people move,
+  learners and instructors stay with their courses. (Letting learners leave with every
+  internal migration was tried: over 128 all-AI matches the share of seats completing
+  the graph fell from 85% to 58% and eliminations doubled. Staying costs nothing in
+  conservation.)
+- A polity that ceases to govern: soldiers become residents, courses are released,
+  stores are booked as lost.
+- Precision instruments take 0.5 kt of materials in addition (they failed the mass
+  balance); no lot mass changed.
+
 ## Slice C - construction that consumes real things, regional queues
 
 Content: `FacDef` gains `crew: Vec<(Vec<Qual>, u32)>` (per level under
