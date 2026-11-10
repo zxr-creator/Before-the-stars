@@ -1,0 +1,67 @@
+round  21  month  240  phase Contact
+  seat 0 Clearbay    Active     pop     494 reg  4 tech  32 (tier 1) prac 14 army     0 stab 76 food 100% sci -     gov  0 ftl  0
+  seat 1 Greenreach  Active     pop     527 reg  4 tech  32 (tier 1) prac 13 army     0 stab 76 food 100% sci -     gov  0 ftl  0
+  seat 2 Farcape     Active     pop     510 reg  4 tech  32 (tier 1) prac 13 army     0 stab 76 food 100% sci -     gov  0 ftl  0
+  seat 3 Highmere    Active     pop     470 reg  3 tech  32 (tier 1) prac 15 army     0 stab 76 food 100% sci -     gov  0 ftl  0
+round  41  month  480  phase Contact
+  seat 0 Clearbay    Active     pop    1052 reg  5 tech  32 (tier 1) prac 14 army     0 stab 72 food 100% sci -     gov  0 ftl  0
+  seat 1 Greenreach  Active     pop    1124 reg  5 tech  34 (tier 2) prac 19 army     0 stab 82 food 100% sci -     gov  0 ftl  0
+  seat 2 Farcape     Active     pop    1105 reg  6 tech  33 (tier 2) prac 26 army     0 stab 82 food 100% sci -     gov  0 ftl  0
+  seat 3 Highmere    Active     pop     944 reg  5 tech  37 (tier 2) prac 26 army     0 stab 82 food 100% sci -     gov  0 ftl  0
+round  61  month  720  phase Contact
+  seat 0 Clearbay    Active     pop    2469 reg  8 tech  36 (tier 2) prac 33 army    80 stab 84 food 100% sci -     gov  0 ftl  0
+  seat 1 Greenreach  Active     pop    2574 reg  7 tech  44 (tier 2) prac 36 army     0 stab 84 food 100% sci y58   gov  0 ftl  0
+  seat 2 Farcape     Active     pop    2564 reg  9 tech  44 (tier 2) prac 39 army    40 stab 93 food 100% sci y58   gov  0 ftl  0
+  seat 3 Highmere    Active     pop    2003 reg  6 tech  44 (tier 2) prac 32 army    40 stab 82 food 100% sci y58   gov  0 ftl  0
+round  81  month  960  phase Contact
+  seat 0 Clearbay    Active     pop    5967 reg 16 tech  53 (tier 4) prac 44 army   120 stab 95 food 100% sci y64   gov  0 ftl  0
+  seat 1 Greenreach  Active     pop    6073 reg 11 tech  55 (tier 4) prac 46 army    80 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 2 Farcape     Active     pop    6129 reg 13 tech  56 (tier 4) prac 45 army    80 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 3 Highmere    Active     pop    4791 reg  6 tech  52 (tier 4) prac 44 army    40 stab 95 food 100% sci y58   gov  0 ftl  0
+round 101  month 1200  phase Contact
+  seat 0 Clearbay    Active     pop   14369 reg 16 tech  68 (tier 5) prac 47 army   280 stab 95 food 100% sci y64   gov  0 ftl  0
+  seat 1 Greenreach  Active     pop   14465 reg 12 tech  78 (tier 6) prac 49 army   160 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 2 Farcape     Active     pop   14955 reg 13 tech  76 (tier 6) prac 49 army   160 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 3 Highmere    Active     pop   11722 reg  6 tech  63 (tier 5) prac 47 army    40 stab 95 food 100% sci y58   gov  0 ftl  0
+round 121  month 1440  phase Contact
+  seat 0 Clearbay    Active     pop   26335 reg 16 tech 100 (tier 7) prac 58 army   480 stab 95 food 100% sci y64   gov  0 ftl  0
+  seat 1 Greenreach  Active     pop   30940 reg 12 tech 101 (tier 7) prac 58 army   280 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 2 Farcape     Active     pop   32244 reg 14 tech 103 (tier 7) prac 58 army   345 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 3 Highmere    Active     pop   26397 reg  6 tech  89 (tier 7) prac 49 army   118 stab 95 food 100% sci y58   gov  0 ftl  0
+round 141  month 1680  phase Contact
+  seat 0 Clearbay    Active     pop   36064 reg 16 tech 119 (tier 8) prac 61 army   680 stab 95 food 100% sci y64   gov  0 ftl  0
+  seat 1 Greenreach  Active     pop   46863 reg 12 tech 121 (tier 8) prac 62 army   495 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 2 Farcape     Active     pop   49858 reg 14 tech 120 (tier 8) prac 62 army   616 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 3 Highmere    Active     pop   30201 reg  6 tech 101 (tier 7) prac 58 army   179 stab 95 food 100% sci y58   gov  0 ftl  0
+round 161  month 1920  phase Contact
+  seat 0 Clearbay    Active     pop   41132 reg 16 tech 124 (tier 8) prac 63 army   760 stab 95 food 100% sci y64   gov  0 ftl  0
+  seat 1 Greenreach  Active     pop   59341 reg 12 tech 134 (tier 9) prac 63 army   495 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 2 Farcape     Active     pop   50417 reg 14 tech 134 (tier 9) prac 63 army   616 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 3 Highmere    Active     pop   38941 reg  6 tech 112 (tier 8) prac 59 army   219 stab 95 food 100% sci y58   gov  0 ftl  0
+round 181  month 2160  phase Contact
+  seat 0 Clearbay    Active     pop   67665 reg 23 tech 133 (tier 9) prac 63 army  2225 stab 81 food 100% sci y64   gov  0 ftl  0
+  seat 1 Greenreach  Active     pop   58374 reg 12 tech 138 (tier 9) prac 64 army   495 stab 95 food 100% sci y58   gov  0 ftl  0
+  seat 2 Farcape     Active     pop   17974 reg  7 tech 138 (tier 9) prac 64 army   934 stab 68 food 100% sci y58   gov  0 ftl  0
+  seat 3 Highmere    Active     pop   41208 reg  6 tech 132 (tier 8) prac 63 army   219 stab 95 food 100% sci y58   gov  0 ftl  0
+round 201  month 2400  phase Contact
+  seat 0 Clearbay    Active     pop   97964 reg 32 tech 138 (tier 9) prac 64 army  4490 stab 84 food 100% sci y64   gov 21 ftl  0
+  seat 1 Greenreach  Active     pop   42456 reg 11 tech 138 (tier 9) prac 64 army  1851 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+  seat 2 Farcape     Active     pop    8273 reg  4 tech 138 (tier 9) prac 64 army   333 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+  seat 3 Highmere    Active     pop    3274 reg  1 tech 137 (tier 9) prac 64 army   902 stab 89 food 100% sci y58   gov  0 ftl  0 under 0
+round 221  month 2640  phase Contact
+  seat 0 Clearbay    Active     pop  104975 reg 32 tech 138 (tier 9) prac 64 army  4490 stab 95 food 100% sci y64   gov 261 ftl  0
+  seat 1 Greenreach  Active     pop   46017 reg 11 tech 138 (tier 9) prac 64 army  1851 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+  seat 2 Farcape     Active     pop    9159 reg  4 tech 138 (tier 9) prac 64 army   333 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+  seat 3 Highmere    Active     pop    3870 reg  1 tech 137 (tier 9) prac 64 army   902 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+round 240  month 2880  phase Finished
+  seat 0 Clearbay    Active     pop  117153 reg 32 tech 138 (tier 9) prac 64 army  4490 stab 95 food 100% sci y64   gov 501 ftl  0
+  seat 1 Greenreach  Active     pop   46227 reg 11 tech 138 (tier 9) prac 64 army  1851 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+  seat 2 Farcape     Active     pop   12999 reg  4 tech 138 (tier 9) prac 64 army   493 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+  seat 3 Highmere    Active     pop    3800 reg  1 tech 137 (tier 9) prac 64 army   902 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+round 240  month 2880  phase Finished
+  seat 0 Clearbay    Active     pop  117153 reg 32 tech 138 (tier 9) prac 64 army  4490 stab 95 food 100% sci y64   gov 501 ftl  0
+  seat 1 Greenreach  Active     pop   46227 reg 11 tech 138 (tier 9) prac 64 army  1851 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+  seat 2 Farcape     Active     pop   12999 reg  4 tech 138 (tier 9) prac 64 army   493 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+  seat 3 Highmere    Active     pop    3800 reg  1 tech 137 (tier 9) prac 64 army   902 stab 95 food 100% sci y58   gov  0 ftl  0 under 0
+finished: true  winner: None  elapsed 2.4s  state hash 8ecc32e46ebbe31d
+target/release/bts run --seed riverland --ai hard,medium,medium,easy --every   2.40s user 0.03s system 99% cpu 2.434 total
