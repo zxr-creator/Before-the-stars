@@ -92,6 +92,7 @@ dependencies = [
 name = "bts-ai"
 version = "0.3.0"
 dependencies = [
+ "bts-engine",
  "bts-protocol",
  "serde",
 ]

@@ -21,6 +21,27 @@ const TIER_POWER: [i64; 6] = [1000, 2500, 6250, 15625, 39063, 97656];
 /// One thousand people: the grain in which the policy reasons about head counts.
 const K: i64 = 1000;
 
+/// What last round took out of the stock of a good. Food that spoils has to be
+/// replaced like food that is eaten. Other goods are lost in carriage, before they
+/// reach the stock, which is no use of it.
+fn used_in_year(l: &GoodLine) -> i64 {
+    if l.good == Good::Food {
+        l.consumed + l.lost
+    } else {
+        l.consumed
+    }
+}
+
+/// What last round's production added to the stock of a good: the ledger states
+/// output where it was made, so what carriage cost is taken off.
+fn made_in_year(l: &GoodLine) -> i64 {
+    if l.good == Good::Food {
+        l.produced
+    } else {
+        (l.produced - l.lost).max(0)
+    }
+}
+
 fn base_price(g: Good) -> i64 {
     match g {
         Good::Food => 4,
@@ -164,7 +185,7 @@ impl<'a> Plan<'a> {
         for c in cost {
             let need = c.amount * levels;
             let have = *self.avail.get(&c.good).unwrap_or(&0);
-            let yearly = self.line(c.good).map(|l| l.produced).unwrap_or(0);
+            let yearly = self.line(c.good).map(made_in_year).unwrap_or(0);
             if have < need * 6 / 10 && !(have >= need / 5 && yearly * 2 >= need) {
                 self.wanted.insert(c.good);
                 ok = false;
@@ -295,7 +316,7 @@ fn borders(obs: &Observation, seat: SeatId) -> bool {
 fn goods_value(obs: &Observation, g: Good, amount: i64, receiving: bool) -> i64 {
     let line = obs.civ.goods.iter().find(|x| x.good == g);
     let stock = line.map(|l| l.stock).unwrap_or(0);
-    let yearly_use = line.map(|l| l.consumed).unwrap_or(0);
+    let yearly_use = line.map(used_in_year).unwrap_or(0);
     let mut price = base_price(g) * 100;
     // what we are short of is worth more to receive and more to keep
     if stock < yearly_use / 4 {
@@ -458,7 +479,7 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
                 let pay: Option<Good> = [Good::Food, Good::Materials, Good::Tools, Good::Copper, Good::Media]
                     .into_iter()
                     .filter(|x| *x != g)
-                    .find(|x| obs.civ.goods.iter().find(|l| l.good == *x).map(|l| l.stock > l.consumed / 2 + 200_000).unwrap_or(false));
+                    .find(|x| obs.civ.goods.iter().find(|l| l.good == *x).map(|l| l.stock > used_in_year(l) / 2 + 200_000).unwrap_or(false));
                 if let Some(pg) = pay {
                     let want: i64 = 60_000;
                     let give = (want / 1000 * base_price(g) * 13 / 10 / base_price(pg)).clamp(20, 600) * 1000;
@@ -479,7 +500,7 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
                 .into_iter()
                 .filter(|g| {
                     let l = obs.civ.goods.iter().find(|x| x.good == *g);
-                    l.map(|l| l.stock < l.consumed / 6 && l.consumed > 0).unwrap_or(false)
+                    l.map(|l| l.stock < used_in_year(l) / 6 && used_in_year(l) > 0).unwrap_or(false)
                 })
                 .collect();
             let teachable: Vec<&TechCard> = obs.knowledge.techs.iter().filter(|t| t.state >= KnowledgeState::Understood && t.work_needed >= 50_000).collect();
@@ -499,7 +520,7 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
                 let stuck: Vec<&TechCard> = obs.knowledge.techs.iter().filter(|t| t.state < KnowledgeState::Understood && t.work_needed >= 100_000).collect();
                 let surplus: Vec<Good> = [Good::Food, Good::Materials, Good::Tools, Good::Metal]
                     .into_iter()
-                    .filter(|g| obs.civ.goods.iter().find(|x| x.good == *g).map(|l| l.stock > l.consumed + 300_000).unwrap_or(false))
+                    .filter(|g| obs.civ.goods.iter().find(|x| x.good == *g).map(|l| l.stock > used_in_year(l) + 300_000).unwrap_or(false))
                     .collect();
                 if let (Some(t), Some(g)) = (stuck.first(), surplus.first()) {
                     let amount = (t.work_needed / 1000 * 100 / (base_price(*g) * 5)).clamp(20, 600) * 1000;
@@ -588,7 +609,7 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
             continue;
         }
         let monthly = l.consumed / 12;
-        if (l.consumed > 0 && l.stock < monthly * 4) || (l.consumed > l.produced + l.traded_in && l.stock < monthly * 12) {
+        if (l.consumed > 0 && l.stock < monthly * 4) || (l.consumed > made_in_year(l) + l.traded_in && l.stock < monthly * 12) {
             p.wanted.insert(l.good);
         }
     }
