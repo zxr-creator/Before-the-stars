@@ -275,11 +275,11 @@ pub fn step(w: &mut World, seat: SeatId) {
         // thin stores make households cautious well before anyone goes hungry
         // quadratic in the reserve ratio, so households hold back well before stores run thin
         let ratio = (reserve_months_milli * 10_000 / reserve_target_milli).clamp(0, 10_000);
-        let secure = (ratio * ratio / 10_000).clamp(1000, 10_000);
+        let secure = (ratio * ratio / 10_000).clamp(300, 10_000);
         let food_factor = if food_bp >= 10_000 { secure } else { ((food_bp - 6000).max(0) * 10_000 / 4000 * 6 / 10 + 2000).min(secure) };
         let crowd_factor = if crowd <= 8500 { 10_000 } else { (10_000 - (crowd - 8500) * 2).max(2500) };
         let dev_factor = (10_000 - edu_bp * 7 / 10).max(2800);
-        let intensity = (food_factor * crowd_factor / 10_000 * dev_factor / 10_000).clamp(1500, 10_000) as u16;
+        let intensity = (food_factor * crowd_factor / 10_000 * dev_factor / 10_000).clamp(400, 10_000) as u16;
         let health_factor = (10_000 - pressure / 4).max(6000);
         let mut region_births = 0u32;
         let mut region_deaths = 0u32;
@@ -385,7 +385,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
 
     // ---- migration within the polity -------------------------------------------
-    let mut migrated = 0i32;
+    let migrated = 0i32;
     for &ri in &regs {
         let rpop = w.regions[ri].population();
         if rpop < 120 {
@@ -417,8 +417,8 @@ pub fn step(w: &mut World, seat: SeatId) {
             let want = rpop as i64 * 12 + w.regions[ri].migr_rem; // 1.2% per month, milli
             let whole = (want / 1000) as u32;
             w.regions[ri].migr_rem = want % 1000;
-            let moved = move_people(&mut w.regions, ri, nb, whole, false);
-            migrated += moved as i32;
+            // people moving between our own regions change no national total
+            move_people(&mut w.regions, ri, nb, whole, false);
         }
     }
 
