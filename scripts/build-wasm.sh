@@ -26,6 +26,11 @@ fi
 
 echo "==> building the WebAssembly referee"
 cd "$ROOT"
+# Panic messages name source files. Without this the module would carry this machine's
+# absolute paths (the home directory among them) for every dependency; with it the
+# module says /cargo/registry/... and is the same wherever it is built.
+SEP=$'\x1f'
+export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo${SEP}--remap-path-prefix=${RUSTUP_HOME:-$HOME/.rustup}=/rustup${SEP}--remap-path-prefix=$ROOT=/src"
 cargo build --profile wasm --target "$TARGET" -p bts-wasm
 BUILT="${CARGO_TARGET_DIR:-$ROOT/target}/$TARGET/wasm/bts_wasm.wasm"
 mkdir -p "$ROOT/apps/web/wasm"

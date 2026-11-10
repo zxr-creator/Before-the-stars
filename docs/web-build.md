@@ -24,7 +24,8 @@ node apps/web/scripts/pages-smoke.mjs http://127.0.0.1:8080/Before-the-stars/
 and copies the module to `apps/web/wasm/bts.wasm`; then the client is built with
 `VITE_BTS_LOCAL=1` into the output directory. No bindings generator or other tool is
 involved, and the ordinary client in `apps/web/dist` (the one `bts` serves and embeds)
-is not touched.
+is not touched. The module is built with source paths remapped, so it carries no path
+of the machine that built it.
 
 `pages-smoke.mjs` takes the site's address, so it can be pointed at the deployed site
 as well. It plays a human match and watches an AI-only one in headless Chromium, and
@@ -162,7 +163,7 @@ built-in AIs on 48 regions, standard length, played to its end:
 
 | | |
 | --- | --- |
-| `bts.wasm` | 1,894,734 bytes; 499,760 bytes with `gzip -9` (`opt-level = "s"`, LTO). `opt-level = 3` gives 2,359,170 / 679,673 bytes and is about a fifth faster |
+| `bts.wasm` | 1,894,286 bytes; 497 KB with `gzip -9` (`opt-level = "s"`, LTO). `opt-level = 3` gives about 2.36 MB / 0.68 MB and is about a fifth faster |
 | New match | 7 ms |
 | One round, in the worker | about 4 ms in the first twenty rounds, 20 ms mid-match, 21–30 ms in the last twenty; slowest round 30–40 ms |
 | Longest single step | 17 ms (the longest the worker is deaf to the page) |
