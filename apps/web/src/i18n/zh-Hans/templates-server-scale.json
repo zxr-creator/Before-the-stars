@@ -1,0 +1,74 @@
+[
+ {
+  "en": "Stores {#n} thousand rations of food",
+  "zh": "储存 {n} 千份口粮"
+ },
+ {
+  "en": "Draws {#a} from the deposit to raise {#b}: the rest is spoiled in the ground. Poorer ore delivers less of what is raised",
+  "zh": "从矿藏中耗用 {a} 以采出 {b}：其余在地下糟蹋。矿石品位越低，采出物中可交付的越少"
+ },
+ {
+  "en": "Draws {#a} from the deposit, all of it raised. Poorer ore delivers less of what is raised",
+  "zh": "从矿藏中耗用 {a}，全部采出。矿石品位越低，采出物中可交付的越少"
+ },
+ {
+  "en": "Site crew short: {#a} of {#b} {name}",
+  "zh": "施工队不足：{name} {a} / {b} 人"
+ },
+ {
+  "en": "Site power short: {#n}% delivered",
+  "zh": "工地动力不足：仅交付 {n}%"
+ },
+ {
+  "en": "{#a} jump engineers ({#b} needed), {#c} orbital crew ({#d} needed)",
+  "zh": "跃迁工程师 {a} 人（需要 {b}），轨道乘员 {c} 人（需要 {d}）"
+ },
+ {
+  "en": "{name} numbers a million",
+  "zh": "{name}人口达到一百万"
+ },
+ {
+  "en": "{name} numbers five million",
+  "zh": "{name}人口达到五百万"
+ },
+ {
+  "en": "{name} numbers twenty million",
+  "zh": "{name}人口达到两千万"
+ },
+ {
+  "en": "{name} numbers a hundred million",
+  "zh": "{name}人口达到一亿"
+ },
+ {
+  "en": "Construction ordered: at least {#n} months.",
+  "zh": "已下令施工：至少 {n} 个月。"
+ },
+ {
+  "en": "Construction ordered: at least {#n} months. As the first of its kind it takes half as much work and time again.",
+  "zh": "已下令施工：至少 {n} 个月。作为同类中的第一座，工作量和工期都要多出一半。"
+ },
+ {
+  "en": "Construction ordered: at least {#n} months; site power comes from the region's shaft supply, then from site engines burning coal, then refined fuel.",
+  "zh": "已下令施工：至少 {n} 个月；工地动力先取自本地区的轴功供应，再由现场发动机烧煤、然后烧成品燃料提供。"
+ },
+ {
+  "en": "Construction ordered: at least {#n} months; site power comes from the region's shaft supply, then from site engines burning coal, then refined fuel. As the first of its kind it takes half as much work and time again.",
+  "zh": "已下令施工：至少 {n} 个月；工地动力先取自本地区的轴功供应，再由现场发动机烧煤、然后烧成品燃料提供。作为同类中的第一座，工作量和工期都要多出一半。"
+ },
+ {
+  "en": "Construction ordered: at least {#n} months, with its site crew reserved from this region's qualified residents until it is finished, paused or cancelled.",
+  "zh": "已下令施工：至少 {n} 个月，其施工队从本地区的专业居民中抽调，直至完成、暂停或取消。"
+ },
+ {
+  "en": "Construction ordered: at least {#n} months, with its site crew reserved from this region's qualified residents until it is finished, paused or cancelled. As the first of its kind it takes half as much work and time again.",
+  "zh": "已下令施工：至少 {n} 个月，其施工队从本地区的专业居民中抽调，直至完成、暂停或取消。作为同类中的第一座，工作量和工期都要多出一半。"
+ },
+ {
+  "en": "Construction ordered: at least {#n} months, with its site crew reserved from this region's qualified residents until it is finished, paused or cancelled; site power comes from the region's shaft supply, then from site engines burning coal, then refined fuel.",
+  "zh": "已下令施工：至少 {n} 个月，其施工队从本地区的专业居民中抽调，直至完成、暂停或取消；工地动力先取自本地区的轴功供应，再由现场发动机烧煤、然后烧成品燃料提供。"
+ },
+ {
+  "en": "Construction ordered: at least {#n} months, with its site crew reserved from this region's qualified residents until it is finished, paused or cancelled; site power comes from the region's shaft supply, then from site engines burning coal, then refined fuel. As the first of its kind it takes half as much work and time again.",
+  "zh": "已下令施工：至少 {n} 个月，其施工队从本地区的专业居民中抽调，直至完成、暂停或取消；工地动力先取自本地区的轴功供应，再由现场发动机烧煤、然后烧成品燃料提供。作为同类中的第一座，工作量和工期都要多出一半。"
+ }
+]

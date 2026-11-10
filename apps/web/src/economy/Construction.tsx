@@ -455,7 +455,7 @@ function MethodCompare({ obs, r, f, fac, methods, readOnly, tag }: { obs: Observ
               </dl>
               {several && !same ? (
                 <div class="wm-delta" title={t('Against the method that ran last month, for the region’s {n} levels at full rate', { n: f.level })}>
-                  <small>{t('Switching from {m}, for {n} levels:', { m: tc(running.recipe.name), n: f.level })}</small>
+                  <small>{tn(f.level, 'Switching from {m}, for {n} level:', 'Switching from {m}, for {n} levels:', { m: tc(running.recipe.name), n: f.level })}</small>
                   <DeltaLine label={t('inputs')} items={dIn} invert />
                   <DeltaLine label={t('outputs')} items={dOut} />
                   {dGen || dSk ? <p class={cx('wm-posts', dGen + dSk > 0 ? 'neg' : 'pos')}>{t('posts {general} general, {skilled} qualified', { general: signedInt(dGen), skilled: signedInt(dSk) })}</p> : null}

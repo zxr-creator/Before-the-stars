@@ -31,6 +31,16 @@ const FRAGMENTS = new Set([
   'Hunger in {}', // filled with "Year N": template "Hunger in Year {#n}"
   'Counts across every governed region now exceed {label} people. More hands, and more mouths, housing and care to answer for.', // four exact entries
   'The {a} {b}', // religion names: all REL_A × REL_B combinations are exact entries
+  // ruleset 2.0: population milestones (four exact entries and templates, as for the thousands above)
+  'a million', 'five million', 'twenty million', 'a hundred million',
+  // the construction receipt is assembled from these; every combination is a template in templates-server-scale.json
+  'Construction ordered: {terms}{}.', 'at least {} months',
+  ", with its site crew reserved from this region's qualified residents until it is finished, paused or cancelled",
+  "; site power comes from the region's shaft supply, then from site engines burning coal, then refined fuel",
+  '. As the first of its kind it takes half as much work and time again',
+  // the fields' method note is assembled from these; every combination is an exact entry in content-server-scale.json
+  ' Used only while a full month of its inputs is in store for every field that may draw them; otherwise the land is worked by the next method down.',
+  ' Needs herds on pasture somewhere under the same government.',
 ]);
 // Region-name syllables, colours, wire keys and the like.
 const NOT_TEXT = (s) =>
