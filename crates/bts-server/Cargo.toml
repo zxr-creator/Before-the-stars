@@ -18,3 +18,16 @@ serde_json.workspace = true
 tiny_http = "0.12"
 ureq = { version = "2", features = ["json"] }
 include_dir = "0.7"
+# native window for the packaged game (system webview: WKWebView on macOS, WebView2 on Windows)
+wry = { version = "0.47", optional = true }
+tao = { version = "0.30", optional = true }
+muda = { version = "0.15", optional = true }
+
+[features]
+default = ["desktop"]
+# Build without this (`--no-default-features`) for a headless referee, for example on a Linux server.
+desktop = ["dep:wry", "dep:tao", "dep:muda"]
+
+[build-dependencies]
+# embeds the application icon into the Windows executable when built on Windows
+winresource = "0.1"

@@ -1,6 +1,9 @@
-//! `bts` — local referee for Before the Stars.
+// A packaged Windows copy is a windowed program: no console appears behind the game.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+//! `bts` — the game and its local referee.
 //!
 //! ```text
+//! bts                                   start the game in its own window (packaged use)
 //! bts serve   [--port 7878] [--web apps/web/dist] [--require-tokens]
 //! bts run     [--seed S] [--rounds N] [--ai hard,medium,medium,easy] [--regions 48] [--horizon 2880] [--every 20] [--matches M]
 //! bts verify  [--seed S] [--rounds N]
@@ -10,6 +13,8 @@
 //! ```
 
 mod agents;
+#[cfg(feature = "desktop")]
+mod desktop;
 mod host;
 mod providers;
 
@@ -403,7 +408,10 @@ fn install(shared: &agents::Shared, st: &mut agents::ServerState, mut session: S
     st.session = Some(session);
 }
 
-fn serve(args: &Args, app_mode: bool) {
+/// Sent once the referee is listening: the port, and the shared state when this process owns it.
+type Ready = std::sync::mpsc::Sender<(u16, Option<agents::Shared>)>;
+
+fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
     let mut port: u16 = args.num("port", 7878);
     let web = PathBuf::from(args.get("web", "apps/web/dist"));
     let require_tokens = args.has("require-tokens");
@@ -423,7 +431,12 @@ fn serve(args: &Args, app_mode: bool) {
                 if app_mode {
                     // already running? then just show it
                     if http(&format!("http://127.0.0.1:{port}"), "GET", "/api/health", None).map(|b| b.contains("\"ok\"")).unwrap_or(false) {
-                        open_browser(&format!("http://127.0.0.1:{port}/"));
+                        match &ready {
+                            Some(tx) => {
+                                let _ = tx.send((port, None));
+                            }
+                            None => open_browser(&format!("http://127.0.0.1:{port}/")),
+                        }
                         return;
                     }
                     port += 1;
@@ -448,7 +461,7 @@ fn serve(args: &Args, app_mode: bool) {
     if !embedded && !from_disk {
         println!("  note: web client not built ({}); run scripts/build.sh", web.display());
     }
-    if app_mode {
+    if app_mode && ready.is_none() {
         println!("  close this window, or choose Quit in the game menu, to stop the game");
     }
     let shared: agents::Shared = std::sync::Arc::new(std::sync::Mutex::new(agents::ServerState { session: None, generation: 0, agents: Vec::new(), autoplay_until: u32::MAX, app_mode, saves: saves.clone() }));
@@ -466,15 +479,27 @@ fn serve(args: &Args, app_mode: bool) {
             }
         }
     }
-    if app_mode || args.has("open") {
-        open_browser(&format!("http://127.0.0.1:{port}/"));
+    match &ready {
+        // the game window is opened by the main thread
+        Some(tx) => {
+            let _ = tx.send((port, Some(shared.clone())));
+        }
+        None => {
+            if app_mode || args.has("open") {
+                open_browser(&format!("http://127.0.0.1:{port}/"));
+            }
+        }
     }
 
+    let log_requests = std::env::var("BTS_LOG_REQUESTS").is_ok();
     for mut req in server.incoming_requests() {
         let (path, q) = query(req.url());
         let method = req.method().clone();
         let mut body = String::new();
         let _ = req.as_reader().read_to_string(&mut body);
+        if log_requests {
+            println!("  {} {}", method, path);
+        }
         let mut guard = shared.lock().unwrap();
         let st = &mut *guard;
         let auth = |s: &Session, seat: SeatId, token: &str| -> bool { (seat as usize) < s.m.seats() && (!require_tokens || s.tokens[seat as usize] == token) };
@@ -882,8 +907,47 @@ fn http(url: &str, method: &str, path: &str, body: Option<&str>) -> Result<Strin
     Ok(out.split_once("\r\n\r\n").map(|(_, b)| b.to_string()).unwrap_or(out))
 }
 
+#[cfg(feature = "desktop")]
+fn run_app(args: Args) {
+    if args.has("browser") || std::env::var("BTS_NO_WINDOW").is_ok() {
+        return serve(&args, true, None);
+    }
+    let (tx, rx) = std::sync::mpsc::channel();
+    // the window owns the main thread; the referee runs beside it
+    std::thread::spawn(move || serve(&args, true, Some(tx)));
+    match rx.recv() {
+        Ok((port, shared)) => desktop::run(port, shared),
+        Err(_) => std::process::exit(1),
+    }
+}
+
+#[cfg(not(feature = "desktop"))]
+fn run_app(args: Args) {
+    serve(&args, true, None);
+}
+
+/// On Windows a windowed program has no console; when a command is given from a terminal,
+/// attach to that terminal so the command-line tools still print there.
+#[cfg(windows)]
+fn attach_parent_console() {
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn AttachConsole(process_id: u32) -> i32;
+    }
+    const ATTACH_PARENT_PROCESS: u32 = 0xFFFF_FFFF;
+    unsafe {
+        AttachConsole(ATTACH_PARENT_PROCESS);
+    }
+}
+
+#[cfg(not(windows))]
+fn attach_parent_console() {}
+
 fn main() {
     let argv: Vec<String> = std::env::args().collect();
+    if argv.len() > 1 {
+        attach_parent_console();
+    }
     let cmd = argv.get(1).map(|s| s.as_str()).filter(|s| !s.starts_with("--")).unwrap_or("app");
     let explicit = argv.get(1).map(|s| !s.starts_with("--")).unwrap_or(false);
     let args = Args::parse(&argv[argv.len().min(if explicit { 2 } else { 1 })..]);
@@ -892,12 +956,12 @@ fn main() {
     let token = args.get("token", "");
     let result = match cmd {
         "serve" => {
-            serve(&args, args.has("app"));
+            serve(&args, args.has("app"), None);
             Ok(String::new())
         }
-        // started with no command (for example by double-click): run as a packaged application
+        // started with no command (for example by double-click): the game in its own window
         "app" => {
-            serve(&args, true);
+            run_app(args);
             Ok(String::new())
         }
         "run" => {
