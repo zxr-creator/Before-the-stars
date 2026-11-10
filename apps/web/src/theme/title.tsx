@@ -2,7 +2,8 @@
 import { useState } from 'preact/hooks';
 import { Icon } from '../icons';
 import { cx } from '../ui';
-import { canQuit, desktopShell, hasLiveMatch, loadGame, openOverlay, quitGame, setScreen, useApp } from '../store';
+import { canQuit, desktopShell, hasLiveMatch, loadGame, newMatch, openOverlay, quitGame, setScreen, useApp } from '../store';
+import type { SetupController } from '../protocol';
 import { t, tc, useLocale } from '../i18n';
 import { yearOf } from '../format';
 import { LanguageSwitch } from '../setup';
@@ -37,10 +38,103 @@ function Item({ icon, label, sub, onClick, testid, disabled, active }: {
   );
 }
 
+// --- observer quick start ------------------------------------------------------------------
+
+type Level = 'easy' | 'medium' | 'hard' | 'mixed';
+interface QuickChoice { level: Level; regions: 24 | 48 | 72; short: boolean }
+const QUICK_KEY = 'bts.observer.quick';
+const QUICK_DEFAULT: QuickChoice = { level: 'medium', regions: 48, short: false };
+
+function loadQuick(): QuickChoice {
+  try {
+    const v = JSON.parse(localStorage.getItem(QUICK_KEY) ?? 'null') as Partial<QuickChoice> | null;
+    if (!v) return QUICK_DEFAULT;
+    return {
+      level: v.level === 'easy' || v.level === 'hard' || v.level === 'mixed' ? v.level : 'medium',
+      regions: v.regions === 24 || v.regions === 72 ? v.regions : 48,
+      short: !!v.short,
+    };
+  } catch {
+    return QUICK_DEFAULT;
+  }
+}
+
+/** Four built-in AIs: one level for all, or one of each temperament around the table. */
+function quickControllers(level: Level): SetupController[] {
+  return level === 'mixed' ? ['easy', 'medium', 'medium', 'hard'] : [level, level, level, level];
+}
+
+function Seg<T extends string | number | boolean>({ label, value, options, onPick, testid }: {
+  label: string; value: T; options: { value: T; label: string; hint?: string }[]; onPick: (v: T) => void; testid: string;
+}) {
+  return (
+    <div class="tq-field">
+      <span class="tq-label">{label}</span>
+      <div class="tq-seg" role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <button type="button" role="radio" aria-checked={o.value === value} class={cx('tq-opt', o.value === value && 'is-active')} title={o.hint}
+            data-testid={`${testid}-${String(o.value)}`} onClick={() => onPick(o.value)}>{o.label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One more click from the main menu to an AI-only match; the full setup stays a link away. */
+function ObserverQuickStart({ live, busy, onClose }: { live: boolean; busy: boolean; onClose: () => void }) {
+  const [q, setQ] = useState<QuickChoice>(loadQuick);
+  const [error, setError] = useState<string | null>(null);
+  const pick = (patch: Partial<QuickChoice>) => {
+    const next = { ...q, ...patch };
+    setQ(next);
+    try { localStorage.setItem(QUICK_KEY, JSON.stringify(next)); } catch { /* not remembered */ }
+  };
+  const start = async () => {
+    setError(null);
+    const err = await newMatch({
+      regions: q.regions,
+      horizon: q.short ? 960 : 2880,
+      pace_bp: q.short ? 3300 : 10000,
+      controllers: quickControllers(q.level),
+      disclosed_objective: false,
+    });
+    if (err) setError(err);
+  };
+  return (
+    <aside class="title-pane is-observe" aria-label={t('Observer mode')} data-testid="title-observer-pane">
+      <header><h2><Icon name="eye" size={16} /> {t('Observer mode')}</h2><button type="button" class="banner-x" aria-label={t('Close')} onClick={onClose}><Icon name="close" size={13} /></button></header>
+      <p class="title-empty">{t('Four built-in AI civilizations play a whole match while you watch. You see the entire world, move time yourself — pause, step, fast-forward — look through any civilization’s eyes, and compare them side by side. You give no orders.')}</p>
+      <Seg label={t('AI difficulty')} value={q.level} testid="quick-level" onPick={(level) => pick({ level })} options={[
+        { value: 'easy', label: t('Easy'), hint: t('Cautious built-in AI in every seat') },
+        { value: 'medium', label: t('Medium'), hint: t('The standard built-in AI in every seat') },
+        { value: 'hard', label: t('Hard'), hint: t('Demanding built-in AI in every seat') },
+        { value: 'mixed', label: t('Mixed'), hint: t('One easy, two medium and one hard AI') },
+      ]} />
+      <Seg label={t('World size')} value={q.regions} testid="quick-regions" onPick={(regions) => pick({ regions })} options={[
+        { value: 24, label: t('{n} regions', { n: 24 }), hint: t('Compact: neighbours meet early.') },
+        { value: 48, label: t('{n} regions', { n: 48 }), hint: t('Standard.') },
+        { value: 72, label: t('{n} regions', { n: 72 }), hint: t('Large: long isolation, long frontiers.') },
+      ]} />
+      <Seg label={t('Length')} value={q.short} testid="quick-short" onPick={(short) => pick({ short })} options={[
+        { value: false, label: t('Standard · 240 rounds'), hint: t('240 years at the standard pace.') },
+        { value: true, label: t('Short · 80 rounds'), hint: t('Work is paced about three times faster to fit 80 years.') },
+      ]} />
+      <button type="button" class="title-btn is-primary tq-start" disabled={busy} data-testid="title-observer-start" onClick={() => void start()}>
+        <Icon name="eye" size={15} /> {busy ? t('Drawing the world…') : t('Start watching')}
+      </button>
+      {live ? <p class="tq-note">{t('Starting replaces the match in progress (its autosave is kept).')}</p> : null}
+      {error ? <p class="title-error" role="alert"><Icon name="warn" size={13} /> {error}</p> : null}
+      <button type="button" class="tq-more" data-testid="title-observer-custom" onClick={() => setScreen('setup', 'observer')}>
+        <span><b>{t('Custom observer match…')}</b><small>{t('Seat LLM agents, pick the seed and the objective mode')}</small></span><Icon name="right" size={13} />
+      </button>
+    </aside>
+  );
+}
+
 export function Title() {
   const s = useApp();
   useLocale();
-  const [pane, setPane] = useState<'none' | 'load' | 'quit'>('none');
+  const [pane, setPane] = useState<'none' | 'load' | 'quit' | 'observe'>('none');
   const [error, setError] = useState<string | null>(null);
   const live = hasLiveMatch();
   const desktop = desktopShell();
@@ -69,7 +163,8 @@ export function Title() {
         <nav class="title-menu" aria-label={t('Main menu')}>
           <Item icon="play" label={t('Continue')} sub={resume} testid="title-continue" disabled={!live} onClick={() => setScreen('game')} />
           <Item icon="flag" label={t('New game')} sub={t('Choose seats, world and objective')} testid="title-new" onClick={() => setScreen('setup')} />
-          <Item icon="eye" label={t('Observer mode')} sub={t('Watch four AI civilizations; pause, step and compare')} testid="title-observer" onClick={() => setScreen('setup', 'observer')} />
+          <Item icon="eye" label={t('Observer mode')} sub={t('Watch four AI civilizations play a match')} testid="title-observer"
+            active={pane === 'observe'} onClick={() => setPane(pane === 'observe' ? 'none' : 'observe')} />
           <Item icon="save" label={t('Load game')} sub={s.saves.length ? t('{n} saved matches', { n: s.saves.length }) : t('No saved matches yet')} testid="title-load"
             active={pane === 'load'} onClick={() => setPane(pane === 'load' ? 'none' : 'load')} />
           <Item icon="compass" label={t('Tutorial')} sub={t('A guided first match')} testid="title-tutorial" onClick={() => setScreen('setup', 'tutorial')} />
@@ -100,6 +195,7 @@ export function Title() {
           {error ? <p class="title-error" role="alert"><Icon name="warn" size={13} /> {error}</p> : null}
         </aside>
       ) : null}
+      {pane === 'observe' ? <ObserverQuickStart live={live} busy={s.busy} onClose={() => setPane('none')} /> : null}
       {pane === 'quit' ? (
         <aside class="title-pane is-small" role="alertdialog" aria-label={t('Quit')} data-testid="title-quit-pane">
           <header><h2>{t('Quit the game?')}</h2></header>

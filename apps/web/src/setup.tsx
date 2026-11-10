@@ -166,9 +166,13 @@ export function Setup() {
           <p class="setup-tutorial" data-testid="setup-tutorial-note"><Icon name="compass" size={15} /> <span><b>{t('A gentle first match.')}</b> {t('A small world, three cautious neighbours, and a guided tour that starts as soon as the world is drawn. You can change anything below.')}</span></p>
         ) : null}
 
-        <div class="setup-mode" role="group" aria-label={t('Match mode')}>
-          <button type="button" class={cx('btn', humans > 0 && 'btn-primary')} data-testid="setup-mode-play" onClick={() => patchSeat(0, { kind: 'human' })}>{t('Play a civilization')}</button>
-          <button type="button" class={cx('btn', humans === 0 && 'btn-primary')} data-testid="setup-mode-observe" onClick={() => setSeats(seats.map(c => c.kind === 'human' ? { ...c, kind: 'medium' } : c))}>{t('Observer mode')}</button>
+        <div class="setup-mode" role="radiogroup" aria-label={t('Match mode')}>
+          <div class="setup-mode-seg">
+            <button type="button" role="radio" aria-checked={humans > 0} class={cx('setup-mode-opt', humans > 0 && 'is-active')} data-testid="setup-mode-play"
+              onClick={() => { if (humans === 0) patchSeat(0, { kind: 'human' }); }}><Icon name="flag" size={14} />{t('Play a civilization')}</button>
+            <button type="button" role="radio" aria-checked={humans === 0} class={cx('setup-mode-opt', humans === 0 && 'is-active')} data-testid="setup-mode-observe"
+              onClick={() => setSeats(seats.map(c => c.kind === 'human' ? { ...c, kind: 'medium' } : c))}><Icon name="eye" size={14} />{t('Observer mode')}</button>
+          </div>
           <p class="muted small">{humans === 0 ? t('Watch the whole world or a civilization’s own view. Pause, advance a round, or run continuously.') : t('Play with fog of war. Whole-world observation is available in an AI-only match.')}</p>
         </div>
         <div class="setup-grid">
