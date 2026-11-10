@@ -20,8 +20,12 @@ VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
 OUT="$ROOT/dist/release"
 mkdir -p "$OUT"
 
-echo "==> building web client"
-"$ROOT/scripts/build.sh" --web-only
+if [ "${SKIP_WEB:-0}" = "1" ]; then
+  echo "==> using the web client already in apps/web/dist"
+else
+  echo "==> building web client"
+  "$ROOT/scripts/build.sh" --web-only
+fi
 
 build_macos() {
   [ "$(uname -s)" = "Darwin" ] || { echo "the macOS package can only be built on macOS" >&2; return 1; }
@@ -35,9 +39,8 @@ build_macos() {
   lipo -create -output "$app/Contents/MacOS/before-the-stars" \
     target/aarch64-apple-darwin/release/bts target/x86_64-apple-darwin/release/bts
   sed "s/@VERSION@/$VERSION/g" packaging/macos/Info.plist > "$app/Contents/Info.plist"
-  # icon: render the SVG once with the headless browser already in the toolchain, then scale
-  local icon_png="$OUT/macos/icon-1024.png"
-  (cd apps/web && node scripts/render-icon.mjs "$ROOT/packaging/icon.svg" "$icon_png")
+  # icon: packaging/icon-1024.png is rendered from icon.svg (apps/web/scripts/render-icon.mjs) and kept in the repo
+  local icon_png="$ROOT/packaging/icon-1024.png"
   local set="$OUT/macos/AppIcon.iconset"
   mkdir -p "$set"
   for s in 16 32 128 256 512; do
@@ -45,7 +48,7 @@ build_macos() {
     sips -z "$((s * 2))" "$((s * 2))" "$icon_png" --out "$set/icon_${s}x${s}@2x.png" >/dev/null
   done
   iconutil -c icns "$set" -o "$app/Contents/Resources/AppIcon.icns"
-  rm -rf "$set" "$icon_png"
+  rm -rf "$set"
   # ad-hoc signature: required for the arm64 half to run at all; this is not notarization
   codesign --force --deep -s - "$app"
   cp packaging/README-macos.txt "$OUT/macos/README.txt"

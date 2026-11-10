@@ -364,6 +364,10 @@ fn user_saves_dir() -> PathBuf {
 }
 
 fn open_browser(url: &str) {
+    // packaging checks start the app without wanting a browser tab
+    if std::env::var("BTS_NO_BROWSER").is_ok() {
+        return;
+    }
     let result = if cfg!(target_os = "macos") {
         std::process::Command::new("open").arg(url).spawn()
     } else if cfg!(target_os = "windows") {
