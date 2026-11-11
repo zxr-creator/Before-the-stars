@@ -68,6 +68,10 @@ pub fn project_title(w: &World, kind: &ProjKind, region: Option<RegionId>) -> St
         ProjKind::Revisit { tech, .. } => format!("Revisit study: {}", c.techs[*tech].name),
         ProjKind::Repeal { practice } => format!("Repeal: {}", c.practices[*practice].name),
         ProjKind::Religion { .. } => "Advance the local movement".to_string(),
+        ProjKind::TraditionReform { path, .. } => {
+            let t = &crate::sim::eras::TRADITIONS[*path as usize];
+            format!("Tradition reform: to {} ({})", t.name, t.sober)
+        }
         ProjKind::FtlTrial => "Loaded jump round trip".to_string(),
         ProjKind::FtlDeployment => "Three-node deployment exercise".to_string(),
         ProjKind::FtlReplacement => "Assembly replacement and crew relief".to_string(),
@@ -108,7 +112,12 @@ pub fn build_quote(w: &World, seat: SeatId, kind: usize) -> BuildQuote {
         work = work * 3 / 2;
         months = (months * 3 + 1) / 2;
     }
-    BuildQuote { first, work, months: months.min(u16::MAX as i64) as u16, cost: def.cost.clone(), crew: def.crew.clone(), power: def.build_power }
+    // charters and traditions (design chapter 37): cheaper or dearer works
+    let (work_bp, goods_bp, months_bp, cond_bp) = crate::sim::eras::build_terms(&w.civs[seat as usize], def.key);
+    work = work * work_bp / 10_000;
+    months = (months * months_bp + 9_999) / 10_000;
+    let cost = def.cost.iter().map(|(g, a)| (*g, a * goods_bp / 10_000 * if *g == Good::Conductors { cond_bp } else { 10_000 } / 10_000)).collect();
+    BuildQuote { first, work, months: months.min(u16::MAX as i64) as u16, cost, crew: def.crew.clone(), power: def.build_power }
 }
 
 /// The crews a jump trial, the deployment exercise and a replacement keep on hand
@@ -570,6 +579,8 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
             let mut s = [0u32; 3];
             s[role.index()] = got;
             let def = &c.unit_tiers[tier as usize];
+            let variant = crate::sim::eras::variant_for(&w.civs[si], tier);
+            let training = crate::sim::eras::training_months(&w.civs[si], tier);
             let name = format!("{} {} {}", ordinal(n), w.civs[si].adjective, def.roles[role.index()]);
             w.armies.push(Army {
                 id,
@@ -582,12 +593,16 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                 supply_bp: 10_000,
                 morale_bp: 8000,
                 order: ArmyOrder::Hold,
-                training_left: def.training_months,
+                training_left: training,
                 in_battle: false,
                 move_progress: 0,
                 initial: got,
+                variant,
             });
-            brief(w, seat, "info", format!("Raised: {name}"), format!("{} recruits begin {} months of training.", group(got as i64), def.training_months), p.region, "military");
+            brief(w, seat, "info", format!("Raised: {name}"), format!("{} recruits begin {} months of training.", group(got as i64), training), p.region, "military");
+        }
+        ProjKind::TraditionReform { slot, path } => {
+            crate::sim::eras::complete_reform(w, seat, slot, path);
         }
         ProjKind::Reform { practice } => {
             {
@@ -646,7 +661,8 @@ pub fn venue_seats(w: &World, seat: SeatId, region: usize, venue: Cap) -> (i64, 
         .programs
         .iter()
         .filter(|p| p.region as usize == region && c.courses[p.course].venue == venue)
-        .map(|p| p.seats as i64)
+        // a charter can seat more learners of a course in each place
+        .map(|p| p.seats as i64 * 10_000 / crate::sim::eras::course_places_bp(&w.civs[seat as usize], &c.courses[p.course].id))
         .sum();
     (cap, reserved)
 }

@@ -293,7 +293,7 @@ impl Match {
         let running = content::RULESET_VERSION;
         match head.versions.first() {
             Some(v) if v == running => {}
-            Some(v) if v.starts_with("bts-rules/3.") => return Err(format!("this save was written by ruleset {v}, an earlier development build of ruleset 3.0; this build runs {running} and cannot load it: the world, the goods and productivity differ")),
+            Some(v) if v.starts_with("bts-rules/3.") => return Err(format!("this save was written by ruleset {v}, an earlier development build of ruleset 3.0; this build runs {running} and cannot load it: the world, the goods, productivity and the eras differ")),
             Some(v) if v.starts_with("bts-rules/2.") => return Err(format!("this save was written by ruleset {v}; this build runs {running} and cannot load it: the calendar, the goods and the population rules differ")),
             Some(v) => return Err(format!("this save was written by ruleset {v}; this build runs {running} and cannot load it: people, posts and goods are counted in different units")),
             None => return Err(format!("this save does not record the ruleset that wrote it; this build runs {running} and cannot load it")),

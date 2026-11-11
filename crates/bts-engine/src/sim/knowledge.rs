@@ -159,7 +159,7 @@ pub fn channel_factor(w: &World, seat: SeatId) -> i64 {
     let lit_bp = if working > 0 { (lit * 10_000 / working) as i64 } else { 0 };
     let l = &w.lineages[civ.lineage as usize];
     let habits = (((l.axes[0] + l.axes[1]) as i64 / 2 - 5_000) * 1_000 / 4_500).clamp(-1_000, 1_000);
-    base * (10_000 + lit_bp / 2) / 10_000 * (10_000 + habits) / 10_000
+    base * (10_000 + lit_bp / 2) / 10_000 * (10_000 + habits) / 10_000 * crate::sim::eras::channel_bp(civ, w.month) / 10_000
 }
 
 /// Mark understood prerequisites as reproduced once later work builds on them.
@@ -390,6 +390,11 @@ pub fn step(w: &mut World, seat: SeatId) {
     // contact: a peaceful partner that has prototyped a node passes on what it shows,
     // more with customs and translation; the volume of trade joins with the market
     let contact_bp = 5_000 + if customs { 2_500 } else { 0 } + if translation { 2_500 } else { 0 };
+    // charters that open the seat to others' methods, and partners that spread theirs
+    let contact_from: Vec<i64> = (0..w.civs.len()).map(|o| if o == si { 10_000 } else { crate::sim::eras::contact_bp(w, seat, o as SeatId) }).collect();
+    // the practice evidence of a tradition's branch: its works' activity, while held
+    let trad_act: Vec<i64> = crate::sim::eras::TRADITIONS.iter().map(|t| crate::sim::eras::tradition_activity(w, seat, t.key)).collect();
+    let space_bp = crate::sim::eras::space_evidence_bp(&w.civs[si]);
     let mut new_leads: Vec<usize> = Vec::new();
     let mut discovered: Vec<usize> = Vec::new();
     for i in 0..c.techs.len() {
@@ -422,12 +427,17 @@ pub fn step(w: &mut World, seat: SeatId) {
         if terraces && tech.tags.contains(&Tag::Measure) {
             channelled = channelled * 11 / 10;
         }
-        // a tradition branch node takes practice evidence only from its tradition's
-        // works (slice 13); until traditions exist nobody practises it
-        if tech.tradition.is_some() && tech.kind == crate::content::TechKind::Branch {
-            channelled = 0;
+        // a tradition branch node takes practice evidence only from the works of
+        // its tradition while it is held (design chapter 39, section 1.5)
+        let branch = tech.tradition.is_some() && tech.kind == crate::content::TechKind::Branch;
+        if branch {
+            let act = tech.tradition.as_deref().and_then(crate::sim::eras::tradition_index).map(|k| trad_act[k]).unwrap_or(0);
+            channelled = act / 2 * chan / 10_000;
         }
-        gain = channelled + if tech.tradition.is_some() && tech.kind == crate::content::TechKind::Branch { 0 } else { trickle };
+        if tech.tags.contains(&Tag::Space) {
+            channelled = channelled * space_bp / 10_000;
+        }
+        gain = channelled + if branch { 0 } else { trickle };
         if cross {
             gain = gain * 5 / 4;
         }
@@ -442,7 +452,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         let mut foreign: Option<usize> = None;
         for &o in &peaceful {
             if w.civs[o].tech[i].state >= ST_PROTOTYPED {
-                gain += practice.max(100) * chan / 10_000 * contact_bp / 10_000 * contact_drag / 10_000;
+                gain += practice.max(100) * chan / 10_000 * contact_bp / 10_000 * contact_drag / 10_000 * contact_from[o] / 10_000;
                 foreign.get_or_insert(o);
             }
         }

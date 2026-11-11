@@ -733,6 +733,10 @@ impl crate::content::ReqCtx for Reach {
         let c = content();
         self.tech[c.t("T049")] && self.prac[c.p("C013")] && self.fac[c.f("laboratory")]
     }
+    fn tradition(&self, _key: &str) -> bool {
+        // every path can be held (one per slot at a time, any of them in turn)
+        true
+    }
 }
 
 fn reachable_without(banned: Option<usize>) -> Reach {
@@ -821,8 +825,8 @@ fn no_site_crew_needs_people_who_cannot_exist_yet() {
         assert!(all.tech[i], "{} can never be understood", t.id);
     }
     for (i, p) in c.practices.iter().enumerate() {
-        // tradition institutions wait for the traditions of slice 13
-        assert!(all.prac[i] || p.tradition.is_some(), "{} can never be enacted", p.id);
+        // tradition institutions included, now that traditions can be held (slice 13)
+        assert!(all.prac[i], "{} can never be enacted", p.id);
     }
     for (k, f) in c.facilities.iter().enumerate() {
         assert!(all.fac[k], "{} can never be built", f.key);
@@ -854,7 +858,11 @@ fn no_site_crew_needs_people_who_cannot_exist_yet() {
     assert!(!without("jump_testbed").qual[Qual::FtlEngineer.index()], "jump engineering follows from the testbed");
     assert!(without("jump_yard").qual[Qual::FtlEngineer.index()]);
     assert!(without("orbital_station").qual[Qual::Orbital.index()]);
-    assert!(!without("machine_shop").fac[c.f("tech_institute")], "the institute's training shops need components");
+    // the institute's training shops need components, which only machine shops and
+    // the components works of two traditions (held from the Industrial era) make
+    let makers: Vec<&str> = c.facilities.iter().filter(|f| f.recipes.iter().any(|r| r.outputs.iter().any(|(g, _)| *g == Good::Components))).map(|f| f.key).collect();
+    assert_eq!(makers, vec!["machine_shop", "steam_hammer", "motor_works"]);
+    assert!(c.facilities[c.f("tech_institute")].cost.iter().any(|(g, _)| *g == Good::Components) || c.facilities[c.f("tech_institute")].req_src.contains("T06"));
     assert!(!without("laboratory").sci_method());
     assert!(c.facilities[c.f("tech_institute")].crew.iter().all(|(qs, _)| !qs.contains(&Qual::Mechanic)));
     assert!(c.facilities[c.f("jump_testbed")].crew.iter().all(|(qs, _)| !qs.contains(&Qual::FtlEngineer)));

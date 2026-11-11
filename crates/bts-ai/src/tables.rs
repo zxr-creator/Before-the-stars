@@ -19,6 +19,8 @@ struct TechJson {
     kind: Option<String>,
     #[serde(default)]
     evidence: Option<String>,
+    #[serde(default)]
+    group: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -67,6 +69,8 @@ pub struct TechInfo {
     pub family: Option<usize>,
     /// A tradition branch node.
     pub branch: bool,
+    /// The tradition whose branch (entry or branch node) this is: "steam" ... "synthetic".
+    pub tradition: Option<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -177,6 +181,16 @@ pub fn tables() -> &'static Tables {
                         critical_below: tbelow.get(&t.id).copied().unwrap_or(0),
                         family: fam_of(&t.id),
                         branch: t.kind.as_deref() == Some("branch") || t.evidence.as_deref().map(|e| e.starts_with("tradition:")).unwrap_or(false) && t.kind.as_deref() != Some("entry"),
+                        tradition: match t.group.as_deref() {
+                            Some("M") => Some("steam".into()),
+                            Some("N") => Some("engine".into()),
+                            Some("O") => Some("wire".into()),
+                            Some("P") => Some("atom".into()),
+                            Some("Q") => Some("network".into()),
+                            Some("R") => Some("living".into()),
+                            Some("S") => Some("synthetic".into()),
+                            _ => None,
+                        },
                     },
                 )
             })

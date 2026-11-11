@@ -1073,4 +1073,103 @@ Design chapter 39, sections 1-3, as implemented in `sim::knowledge`, `sim::cultu
   C050`. A repeal runs at least 24 months (a quarter of the reform's work) with stability
   -2 while it runs; the practice returns to recognized with adoption 0. Tension pairs
   both established: stability -2 each and both adopt at half speed. Tradition
-  institutions (C168-C174) are not recognizable before traditions exist (slice 13).
+  institutions (C168-C174) are recognizable only while their tradition is held, or
+  within a century of switching away from it (slice 13).
+
+## 17. Eras and traditions (ruleset 3.0, slices 10 and 13)
+
+`sim::eras`; design chapter 37, sections 3 and 4. All figures are integers; months
+are real months of the calendar.
+
+- **Era state** per civilization (`Civ.era`): era 0-9, month entered, the crossing under
+  way, the age, the charters held (indices into the 24 charters), eras entered with their
+  outcome and score, the launch complex's consecutive months at half rate, the two
+  tradition slots with mastery 0-10,000 bp, the last switch per slot, the paths switched
+  away from, and the hazard state (network incident end, reactor incidents, grid strain).
+- **Entry** (`Action::EnterEra`): the next era only, when its knowledge is understood
+  (practice C013 established for the Medieval era), its built proof stands and no crossing
+  is under way. Proofs: a region of at least 750,000 residents; an archive or sacred
+  precinct operating; a harbour or roads in three regions, and powder works or an arsenal
+  operating; 10 levels of machine shops, textile mills and steelworks operating; 300 units
+  (300,000 base units, 30 GWh) of electricity made in the region-months of the last month;
+  a computing centre operating; a launch complex at half rate or better in each of the
+  last 12 months and an orbital station operating; 1,000 units of compute (1,000,000 base
+  units) and 20 levels of AI-era works operating; a jump testbed operating (Interstellar,
+  only once the objective is revealed). Operating: enabled and run at half rate, or
+  staffed to half or better.
+- **Crossing**: 600 / 600 / 360 / 240 / 180 / 120 / 120 / 120 / 120 months for eras 1-9.
+  Stability target `-(2 + 10 x obsolete share)`, the obsolete share being filled posts in
+  works whose era (line stage, or method if later; fields by their method) is two or more
+  behind the new era over all filled posts (farm posts counted from the Modern era on).
+  Score: food access 25 points at 9,900 bp, 0 at 9,000; stability 25 at 90, 0 at 65;
+  modern share (posts in works of era `e - 1` or later, Classical works for the Classical
+  era) 25 at 6,000 bp, 0 at 2,000; integrity 25 less 10 per event (a governed region lost
+  to another seat, a repudiated treaty, epidemic and famine deaths above 2% of the people
+  within twelve months), linear between. 85 or more: golden age of `2 T_e` months; under
+  50: dark age of `T_e` months.
+- **Ages**: golden: stability +5, channel factor x1.10, construction productivity +1,000
+  bp, a second charter. Dark: stability -5, research capacity x0.90, practice reforms and
+  tradition reforms at half work and half minimum months, charter changes free, recruit
+  room x1.10.
+- **Charters**: one of three per era (two in a golden age); a change within the era costs
+  stability -3 for 60 months and locks for 240 months (free in a dark age); all lapse on
+  entering the next era. Effects and costs in `sim::eras::CHARTERS`; the factors are basis
+  points on existing quantities (productivity culture factor +-300 to +-1,000, channel
+  factor x0.95 to x1.10, contact evidence x1.10 to x1.25, research capacity x1.10 to x1.25
+  and Academies' 500 researcher-months, recruit room x1.25 / x1.50, militia x1.5,
+  mobilization cap x0.90, admin capacity +1 per office level or x1.5, build work x0.70 to
+  x1.15, upkeep x0.70 to x1.50, town mortality x1.05, customary fertility x0.98,
+  development factor +300 bp, automation ceiling 12,500 or 16,000, compute x0.90). The
+  Welfare State draws 2 base units of medicine and 1 of media per thousand residents a
+  month.
+- **Expected basket** (slice 11 hook, not consumed): textiles 150 / 150 / 150 / 250 /
+  400 / 1,000 / 1,000 / 1,000 base units (lots x 1/1,000) and consumer goods 0 / 0 / 0 /
+  0 / 200 / 1,000 / 2,500 / 3,000 per thousand residents a month for eras 0-7 (8-9 as 7).
+- **Traditions**: machine slot from the Industrial era, frontier from the Information era.
+  From unaligned a path is held at once; a switch is a project of 2,000,000 worker-months
+  (scaled by pace) and 500,000 base units of media over at least 120 months at the
+  capital, stability -5 while it runs, ending with a quarter of the mastery; a further
+  switch in the slot waits 600 months. Mastery +200 bp a year (+300 when a tendency the
+  path pulls is above 6,000) while its signature and exclusive works hold at least 500 bp
+  of the filled industry posts in works of the slot's era or later; otherwise -100 bp.
+  Held paths shift the targets of their tendencies by +1,000 bp (within the yearly drift
+  limits). Seats that share a path gain one trust point a decade (to 90), and a joint
+  programme client sharing a path with its host costs it 3,333 bp of the installation's
+  inputs instead of 5,000.
+- **Tradition works** (buildable only while the path is held; base units per level-month):
+  steam hammer works (12,500 t metal, 800 lots tools, 1,500 t coal -> 10,000 t components,
+  shaft 40,000; 6,000 general posts less up to 15% by mastery); coke steel with tar recovery
+  (40,000 t ore, 22,000 t coal -> 30,000 t metal, 3,000 t chemicals); cracking (20,000 t
+  crude -> 13,000 t fuel, 5,000 t chemicals); motor works (10,000 t metal, 600 t fuel,
+  400 lots tools -> 8,000 t components); trams and metros (30 units electricity; city
+  factor +500 bp by mastery for industry, services, knowledge); early electric-arc
+  furnaces (the electric steelmaking method under T287); compact reactor (600 lots nuclear
+  fuel -> 400 units electricity; 0.6 of a fission plant's bill per unit); isotope works (50
+  lots nuclear fuel, 500 t chemicals, 500 t metal -> 6,000 lots medicine, 1,000 lots
+  instruments); network operations centre (computing x(1 + 0.05 m), incidents halved);
+  implant clinic (automation +1,000 bp by mastery in its region); biofoundry (40,000
+  rations and 2,000 t fibres -> 3,500 t chemicals, or 60,000 rations -> 2,500 t fuel);
+  lights-out machining and assembly (general posts 1,800 / 3,000 bp, +60 electricity and
+  +40 compute); machine governance centre (admin +6 regions a level). Every recipe takes in
+  at least the mass it puts out.
+- **Unit variants** (formations raised while the path is held, per thousand soldiers):
+  Ironclad and rail (G4) fuel -> coal x2; line +10% and maneuver -10%. Heavy armour (G4-G5)
+  fuel x1.3; shock +10% by mastery. Electric drive (G4-G6) fuel -> batteries (half the
+  equipment's fuel, 50 a month); maneuver +5% by mastery. Atomic-powered (G5-G6) fuel ->
+  2 lots nuclear fuel a month. Cyber-augmented (G5-G6) electronics upkeep x1.5,
+  proficiency ceiling +1,000. Augmented soldiers (G5-G6) +20 lots medicine a month, losses
+  -20% by mastery. Autonomous swarms (G6) equipment x1.6, 1,000 base units of compute a
+  month, power x2 (not under Human Primacy).
+- **Drawbacks**: coal smoke `M_urban x1.10` in regions with 10 steam station levels
+  (until T085 or the Factory Acts); oil dependence stability -3 (-6 at war) while fuel in
+  store is below two months of use; conductors x1.10 in the bills of generator halls,
+  grids, hydroelectric works and tramways, and grid faults (a region drawing over 95% of
+  its electricity three months running: its electric works' rate x0.90 the next month);
+  reactor incidents (500 ppm a reactor level a year, secret stream `reactor-incident`: 2%
+  of the region resettled to a governed neighbour, stability -10 weighed by the region's
+  share of the people, at least -2, for 60 months) and stability -3 against a Stewardship
+  majority; network incidents (25,000 ppm a year while compute exceeds 500 units, x2 under
+  Open Networks, halved by an operations centre; stream `network-incident`; compute and
+  electronics x0.70 for six months); biofoundry contamination (epidemic hazard x1.20 in its
+  region) and biological works' minimum months x1.5; labour displacement stability -2 per
+  tenth of general posts saved by productivity (-1 under the Automation Drive).

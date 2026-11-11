@@ -293,6 +293,7 @@ fn project_kind_key(kind: &ProjKind) -> &'static str {
         ProjKind::Revisit { .. } => "revisit",
         ProjKind::Repeal { .. } => "repeal",
         ProjKind::Religion { .. } => "religion",
+        ProjKind::TraditionReform { .. } => "tradition_reform",
         ProjKind::FtlTrial => "ftl_trial",
         ProjKind::FtlDeployment => "ftl_deployment",
         ProjKind::FtlReplacement => "ftl_replacement",
@@ -909,6 +910,10 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             observed_tier: seen_armies.iter().map(|a| a.tier).max(),
             trust: ct.trust.clamp(0, 100) as u8,
             notes: ct.notes.iter().rev().take(6).cloned().collect(),
+            // era and traditions are coarse public facts among seats that have met
+            era: Some(o.era.era).filter(|e| *e < crate::sim::eras::INTERSTELLAR || crate::observe::victory_revealed(w, seat)),
+            era_name: Some(o.era.era).filter(|e| *e < crate::sim::eras::INTERSTELLAR || crate::observe::victory_revealed(w, seat)).map(|e| crate::sim::eras::ERA_NAMES[e as usize].to_string()),
+            traditions: crate::sim::eras::tradition_keys(o),
         });
     }
 
@@ -1341,6 +1346,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             },
             training_months_left: a.training_left,
             in_battle: a.in_battle,
+            variant: a.variant.and_then(|v| crate::sim::eras::TRADITIONS.get(v as usize)).map(|t| t.variant.split(':').next().unwrap_or("").to_string()),
         })
         .collect();
     let foreign_armies = w
@@ -1544,6 +1550,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         date: Some(date_view(&w.cfg, month)),
         calendar: Some(calendar_view(w)),
         directives: civ.directives.iter().map(|d| DirectiveView { id: d.id, directive: d.directive.clone(), last_result: d.last_result.clone(), last_status: d.last_status.clone(), last_month: d.last_month }).collect(),
+        era: Some(crate::sim::eras::view(w, seat)),
     }
 }
 
@@ -1630,6 +1637,8 @@ pub fn spectate(w: &World) -> SpectatorView {
                 goods: key.iter().map(|g| GoodQty { good: *g, amount: civ.stock_of(*g) }).collect(),
                 research_capacity: civ.research_cap.iter().sum(),
                 reward: w.outcome.as_ref().map(|_| victory::reward(w, seat)),
+                era: civ.era.era,
+                traditions: crate::sim::eras::tradition_keys(civ),
             }
         })
         .collect();

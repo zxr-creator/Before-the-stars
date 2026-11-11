@@ -711,6 +711,8 @@ pub fn step(w: &mut World, seat: SeatId) {
     let lifelong = w.civs[si].est_id("C046");
     // customary fertility: practices of the civilization; doctrines per block below
     let custom_civ = CUSTOMARY_FERTILITY + if w.civs[si].est_id("C002") { 230 } else { 0 } - if w.civs[si].est_id("C039") { 150 } else { 0 };
+    let custom_civ = custom_civ * crate::sim::eras::custom_bp(&w.civs[si]) / 10_000;
+    let dev_add = crate::sim::eras::dev_add(&w.civs[si]);
     let doctrine: Vec<i64> = w
         .religions
         .iter()
@@ -753,6 +755,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         // (ruleset 3.0 slice 6r)
         let land = 10_000 + (land_factor(w.regions[ri].population() as i64, capacities[k]) - 10_000) * (10_000 - ((child_gain - LAND_FADE_FROM_BP) * 2).clamp(0, 10_000)) / 10_000;
         let secret = w.secret;
+        let smoke_bp = crate::sim::eras::urban_mortality_bp(w, seat, ri);
         let mut died = [0u32; NQ];
         let working_deaths;
         let working;
@@ -802,7 +805,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             // M_urban: a town of non-farmers without sewers is a population sink
             let urban = urban_share(r);
             let sanitation = ratio_bp(sanitation_capacity(r), rpop as i64);
-            let m_urban = 10_000 + 5_000 * urban * (10_000 - sanitation) / 100_000_000;
+            let m_urban = (10_000 + 5_000 * urban * (10_000 - sanitation) / 100_000_000) * smoke_bp / 10_000;
             // M_outbreak: an epidemic raises deaths in every band
             let m_outbreak = r.outbreak.as_ref().map(|o| o.severity_bp as i64).unwrap_or(10_000);
 
@@ -815,7 +818,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             let secure = (access.min(10_000) * (FOOD_SECURE_BASE + (10_000 - FOOD_SECURE_BASE) * store_term / 10_000) / 10_000).clamp(300, 10_000);
             let food_factor = if food_bp >= 10_000 { secure } else { ((food_bp - 6000).max(0) * 10_000 / 4000 * 6 / 10 + 2000).min(secure) };
             let crowd_factor = if crowd <= 8500 { 10_000 } else { (10_000 - (crowd - 8500) * 2).max(2500) };
-            let dev_factor = development_factor(literate_share(r), urban, child_gain, 0, lifelong);
+            let dev_factor = (development_factor(literate_share(r), urban, child_gain, 0, lifelong) + dev_add).min(10_000);
             let health_factor = (10_000 - pressure / 4).max(6000);
             {
                 let wgt = rpop as i64;

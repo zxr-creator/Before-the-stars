@@ -269,6 +269,7 @@ pub fn mobilization_cap(w: &World, seat: SeatId) -> u16 {
         cap += 300;
     }
     cap = cap.max(1200);
+    cap = cap * crate::sim::eras::mobilization_bp(civ) / 10_000;
     let st = civ.stability as i64;
     if st < 60 {
         cap = cap * st.max(20) / 60;
@@ -462,8 +463,14 @@ pub struct Infra {
 /// `run` must still be last month's when this is called), so a shop that is not
 /// staffed or supplied saves nothing.
 pub fn region_infra(r: &Region) -> Infra {
+    region_infra_with(r, 10_000)
+}
+
+/// [`region_infra`] with the freight capacity scaled by `capacity_bp` (National
+/// Railways: railway regions carry a quarter more).
+pub fn region_infra_with(r: &Region, capacity_bp: i64) -> Infra {
     let c = content();
-    let capacity = FREIGHT_CAPACITY[transport_level(r) as usize];
+    let capacity = FREIGHT_CAPACITY[transport_level(r) as usize] * capacity_bp / 10_000;
     let mut load: i64 = 0;
     let mut shops: i64 = 0;
     let mut shop_rate: i64 = 0;
@@ -692,7 +699,16 @@ pub fn step(w: &mut World, seat: SeatId) {
     let link = link_efficiencies(w, seat);
     // the region's shared infrastructure, from the works as they stand and the
     // repair works' running last month
-    let infras: Vec<Infra> = regs.iter().map(|ri| region_infra(&w.regions[*ri])).collect();
+    let infras: Vec<Infra> = regs.iter().map(|ri| region_infra_with(&w.regions[*ri], crate::sim::eras::freight_bp(&w.civs[si], &w.regions[*ri]))).collect();
+    // eras and traditions (design chapter 37): per works kind and per region
+    let works_lp: Vec<i64> = c.facilities.iter().map(|d| crate::sim::eras::works_lp_bp(&w.civs[si], d)).collect();
+    let works_research: Vec<i64> = c.facilities.iter().map(|d| crate::sim::eras::works_research_bp(&w.civs[si], d)).collect();
+    let auto_cap = crate::sim::eras::auto_cap(&w.civs[si]);
+    let auto_add: Vec<i64> = regs.iter().map(|ri| crate::sim::eras::region_auto_add(w, seat, *ri)).collect();
+    let grid_fault: Vec<i64> = regs.iter().map(|ri| crate::sim::eras::grid_fault_bp(&w.civs[si], *ri as RegionId, w.month)).collect();
+    let carriage_bp: Vec<i64> = regs.iter().map(|ri| crate::sim::eras::carriage_loss_bp(&w.civs[si], &w.regions[*ri])).collect();
+    let compute_f = crate::sim::eras::compute_bp(w, seat);
+    let electronics_f = crate::sim::eras::electronics_bp(&w.civs[si], w.month);
     // one decision per works per month: the method each runs is fixed here, from
     // the stock the month opens with, so that its posts, the service it asks for
     // and what it makes all belong to the same method
@@ -720,7 +736,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 return None;
             }
             let site = w.service_site(seat, s)?;
-            Some((site, c.f(facility_of_service(s)?), 10_000 + HOST_LOAD_PER_CLIENT_BP * clients))
+            Some((site, c.f(facility_of_service(s)?), crate::sim::eras::hosting_load(w, seat, s)))
         })
         .collect();
     let load_of = |ri: usize, kind: usize| -> i64 { hosting.iter().find(|h| h.0 == ri && h.1 == kind).map(|h| h.2).unwrap_or(10_000) };
@@ -913,6 +929,9 @@ pub fn step(w: &mut World, seat: SeatId) {
     let mut qual_employed = vec![0u32; NQ];
     let mut tag_activity = vec![0i64; Tag::COUNT];
     let mut research_cap = vec![0i64; ResearchClass::COUNT];
+    // people in research posts by class: a post never gives more than one
+    // researcher-month, whatever charters add (the monthly audit's bound)
+    let mut research_posts = vec![0i64; ResearchClass::COUNT];
     // gross output where it is made, and what of it reaches the common stock
     let mut made = vec![0i64; NG];
     let mut made_net = vec![0i64; NG];
@@ -1068,7 +1087,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             // automation (never research posts: a researcher-month is a person's)
             let rec = methods[pi][fi].map(|i| &def.recipes[i]);
             let sector = productivity::sector_of(def);
-            let lpq = if rec.map(|r| r.research.is_some()).unwrap_or(false) { 10_000 } else { tables.auto[sector.index()] };
+            let lpq = if rec.map(|r| r.research.is_some()).unwrap_or(false) { 10_000 } else { (tables.auto[sector.index()] + auto_add[pi]).clamp(10_000, auto_cap) };
             f.lpq_bp = lpq as u16;
             for (quals, n) in def.skilled.iter().chain(rec.iter().flat_map(|r| r.extra_skilled.iter())) {
                 let need = productivity::qualified_posts_for(*n * lv, lpq);
@@ -1120,7 +1139,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             let def = &c.facilities[f.kind];
             let rec = methods[pi][fi].map(|i| &def.recipes[i]);
             let sector = productivity::sector_of(def);
-            let lp = factors[pi].lp(sector, tables.tech[sector.index()][productivity::era_cap(def, rec.map(productivity::recipe_era).unwrap_or(0))]);
+            let lp = (factors[pi].lp(sector, tables.tech[sector.index()][productivity::era_cap(def, rec.map(productivity::recipe_era).unwrap_or(0))]) * works_lp[f.kind] / 10_000).clamp(productivity::LP_MIN, productivity::LP_MAX);
             f.lp_bp = lp as u16;
             f.staff_level = f.level;
             f.staff_saving_bp = scale_saving_bp(def, f, infra.infra_bp);
@@ -1423,7 +1442,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                     if *g == Good::Horses && motor_age {
                         continue;
                     }
-                    let mut need = a * level * load / 10_000;
+                    let mut need = a * level * load / 10_000 * crate::sim::eras::upkeep_bp(&w.civs[si], def, *g, w.month) / 10_000;
                     if pooled && matches!(g, Good::Spares | Good::Tools) {
                         need = (need * (10_000 - infra.maint_bp) + 9_999) / 10_000;
                     }
@@ -1484,6 +1503,11 @@ pub fn step(w: &mut World, seat: SeatId) {
                 rate = base * pw.elec_bp / 10_000;
                 blockers |= 16;
             }
+            // a grid fault (Current and Wire) takes a tenth off the electric works' rate
+            if rec.elec > 0 && grid_fault[pi] < 10_000 {
+                rate = rate * grid_fault[pi] / 10_000;
+                blockers |= 16;
+            }
             if rec.compute > 0 && base * compute_bp / 10_000 < rate {
                 rate = base * compute_bp / 10_000;
                 blockers |= 32;
@@ -1536,7 +1560,10 @@ pub fn step(w: &mut World, seat: SeatId) {
             // inputs (an installation serving partners takes their share as well; if
             // it cannot be supplied the rate falls for everyone it serves)
             let before_inputs = rate;
+            let fuel_bp = crate::sim::eras::orbital_fuel_bp(&w.civs[si], def.key);
+            let inp_of = |g: Good, a: i64| if g == Good::Fuel { a * fuel_bp / 10_000 } else { a };
             for (g, a) in &rec.inputs {
+                let a = &inp_of(*g, *a);
                 let need = a * level * rate / 10_000 * load / 10_000;
                 if need > 0 {
                     let have = w.civs[si].stock_of(*g).max(0);
@@ -1566,6 +1593,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             if let (Some(free), None) = (unthrottled, rec.depletes) {
                 let mut ready = free;
                 for (g, a) in &rec.inputs {
+                    let a = &inp_of(*g, *a);
                     let need = a * level * ready / 10_000 * load / 10_000;
                     if need > 0 {
                         let have = w.civs[si].stock_of(*g).max(0);
@@ -1592,6 +1620,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             w.regions[ri].last.power.shaft_used += shaft_used;
             w.regions[ri].last.power.elec_used += elec_used;
             for (g, a) in &rec.inputs {
+                let a = &inp_of(*g, *a);
                 let took = w.civs[si].take(*g, a * level * rate / 10_000 * load / 10_000);
                 w.regions[ri].last.infra.used[g.index()] += took;
             }
@@ -1648,7 +1677,8 @@ pub fn step(w: &mut World, seat: SeatId) {
                     .into_iter()
                     .min()
                     .unwrap();
-                research_cap[class.index()] += staff_pts * support / 10_000 * inputs_bp / 10_000 * research_eff / 10_000;
+                research_cap[class.index()] += staff_pts * support / 10_000 * inputs_bp / 10_000 * research_eff / 10_000 * works_research[kind] / 10_000;
+                research_posts[class.index()] += staff_pts;
             }
             compute_made += rec.out_compute * level * rate / 10_000;
             let f = &mut w.regions[ri].facilities[fi];
@@ -1665,8 +1695,12 @@ pub fn step(w: &mut World, seat: SeatId) {
         // (an integrated chain); the rest pays the region's link loss and, when the
         // region's freight is congested, the congestion loss on top - the capital
         // included. Nothing here can deliver more than was made.
-        let keep_bp = (link_bp - infra.congestion_bp).clamp(0, 10_000);
+        let keep_bp = 10_000 - (10_000 - (link_bp - infra.congestion_bp).clamp(0, 10_000)) * carriage_bp[pi] / 10_000;
         let month = &mut w.regions[ri].last.infra;
+        // a network incident spoils a third of the electronics made
+        if electronics_f < 10_000 {
+            region_out[Good::Electronics.index()] = region_out[Good::Electronics.index()] * electronics_f / 10_000;
+        }
         for g in 0..NG {
             let out = region_out[g];
             if out <= 0 {
@@ -1722,8 +1756,13 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
     civ.labor = civ_labor;
     civ.qual_employed = qual_employed;
+    for k in ResearchClass::ALL {
+        let (f, minus) = crate::sim::eras::research_terms(civ, *k, month_now);
+        let v = &mut research_cap[k.index()];
+        *v = (*v * f / 10_000 - minus).clamp(0, research_posts[k.index()]);
+    }
     civ.research_cap = research_cap;
-    civ.compute_supply = compute_made;
+    civ.compute_supply = compute_made * compute_f / 10_000;
     civ.compute_demand = compute_demand_total;
     civ.compute_used = compute_used;
     // activities feed the evidence model; square-root so scale helps but saturates
@@ -1732,6 +1771,9 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
     civ.tag_activity[Tag::War as usize] = activity_index(soldiers as i64);
     civ.tag_activity[Tag::Teach as usize] += activity_index(civ.labor.students as i64);
+
+    // public services of the Welfare State
+    crate::sim::eras::monthly_draws(w, seat);
 
     // jump assemblies leaving the lines
     let yard = c.f("jump_yard");

@@ -115,68 +115,109 @@ export interface Observation {
   calendar?: CalendarView | null;
   /** Ruleset 3.0: this seat's standing orders, in the order they are evaluated. */
   directives?: DirectiveView[];
-  /**
-   * Eras, charters and traditions (design chapter 37, sections 3-4). NOT YET SENT by the
-   * referee: defined ahead so the era banner and the era screen light up when the engine
-   * adds them. The client renders nothing while these are absent.
-   */
+  /** bts-protocol/2.2: era, charters, golden or dark age and traditions. */
   era?: EraView | null;
-  traditions?: TraditionSlotView[];
 }
 
-/** This seat's place on the era ladder (design chapter 37, section 3.6). Not yet sent. */
+/** bts-protocol/2.2: a civilization's place on the era ladder (design chapter 37, section 3). */
 export interface EraView {
-  /** 0 Ancient .. 9 Interstellar (9 only once the objective is revealed). */
+  /** 0 Ancient, 1 Classical, 2 Medieval, 3 Early Modern, 4 Industrial, 5 Modern, 6 Information, 7 Space, 8 AI (9 Interstellar once revealed). */
   era: number;
+  name: string;
   since: Month;
-  /** The transition period after entering the era, while it runs. */
-  transition?: EraTransition | null;
-  /** A golden or dark age, while it lasts. */
-  age?: { kind: 'golden' | 'dark'; until: Month } | null;
-  /** Charter options of the current era; `held` marks the ones in force. */
-  charters?: CharterOption[];
-  /** Whether a charter may be chosen or changed now, and why not. */
-  can_choose_charter?: boolean;
-  charter_note?: string | null;
-  /** The next era and its conditions (undiscovered technologies are described, never named). */
-  next?: { era: number; conditions: KnownRequirement[] } | null;
+  transition: TransitionView | null;
+  age: AgeView | null;
+  charters: CharterView[];
+  charter_slots: number;
+  charter_note: string;
+  next: NextEraView | null;
+  /** Expected household basket per thousand residents a month (read by the consumption rules of slice 11). */
+  expected_basket: GoodQty[];
+  traditions: TraditionView[];
+  history: EraEntryView[];
 }
 
-export interface EraTransition {
-  until: Month;
-  /** Stability lost in every governed region while it runs. */
+export interface TransitionView {
+  era: number;
+  start: Month;
+  end: Month;
   strain: number;
-  /** Score so far, 0-100, and its four parts. */
-  score?: number | null;
-  parts?: { label: string; points: number; max: number }[];
+  obsolete_share_bp: number;
+  score: number;
+  parts: ScorePart[];
+  events: string[];
 }
 
-export interface CharterOption {
+export interface ScorePart {
+  name: string;
+  points: number;
+  detail: string;
+}
+
+export interface AgeView {
+  /** "golden" or "dark". */
+  kind: string;
+  era: number;
+  until: Month;
+  score: number;
+  effects: string[];
+}
+
+export interface CharterView {
   key: string;
+  era: number;
   name: string;
   effect: string;
   cost: string;
   held: boolean;
+  available: boolean;
 }
 
-/** One tradition slot, machine or frontier (design chapter 37, section 4.1). Not yet sent. */
-export interface TraditionSlotView {
-  slot: 'machine' | 'frontier';
-  /** Whether the slot has been offered (Industrial and Information eras). */
+export interface NextEraView {
+  era: number;
+  name: string;
+  conditions: KnownRequirement[];
+  eligible: boolean;
+  transition_months: number;
+  strain_if_entered: number;
+  obsolete_share_bp: number;
+  modern_share_bp: number;
+}
+
+export interface TraditionView {
+  /** "machine" or "frontier". */
+  slot: string;
   offered: boolean;
-  /** Path held, null when Unaligned. Paths: steam, engine, wire, atom, network, living, synthetic. */
-  path: string | null;
+  held: string | null;
   mastery_bp: number;
-  /** A tradition reform under way to another path. */
-  switching?: { path: string; until: Month | null } | null;
+  signature_share_bp: number;
+  reform_to: string | null;
+  reform_project: number | null;
+  switch_allowed_from: Month;
   options: TraditionOption[];
 }
 
 export interface TraditionOption {
-  path: string;
-  available: boolean;
-  /** Why it cannot be chosen now, when it cannot. */
-  reason?: string | null;
+  key: string;
+  /** "Steampunk" ... */
+  name: string;
+  /** "Coal and Steam" ... */
+  sober_name: string;
+  description: string;
+  favoured_by: string;
+  signature_works: string[];
+  exclusive_works: string[];
+  unit_variant: string;
+  drawbacks: string[];
+  held: boolean;
+}
+
+export interface EraEntryView {
+  era: number;
+  month: Month;
+  /** "golden", "steady" or "dark" once the crossing has ended. */
+  outcome: string | null;
+  score: number | null;
 }
 
 /** A historical year: negative is BC, positive AD; there is no year zero. */
@@ -561,8 +602,9 @@ export interface ForeignCiv {
   observed_tier: number | null;
   trust: number;
   notes: string[];
-  /** Era and held tradition paths of a met seat (design chapter 37, section 3.6). Not yet sent. */
+  /** bts-protocol/2.2: era and held tradition keys, public among seats that have met. */
   era?: number | null;
+  era_name?: string | null;
   traditions?: string[];
 }
 
@@ -891,6 +933,8 @@ export interface ArmyView {
   target: RegionId | null;
   training_months_left: number;
   in_battle: boolean;
+  /** bts-protocol/2.2: the tradition variant the formation was equipped as. */
+  variant?: string | null;
 }
 
 export interface ForeignArmyView {
@@ -1149,14 +1193,17 @@ export type Action =
   | { kind: 'propose_reform'; practice: string }
   /** Repeal an enacted practice (bts-protocol/2.1). */
   | { kind: 'repeal'; practice: string }
-  /** Eras and traditions (design chapter 37): offered only once the observation carries `era` / `traditions`. */
-  | { kind: 'choose_charter'; charter: string }
-  | { kind: 'choose_tradition'; slot: 'machine' | 'frontier'; path: string | null }
   | { kind: 'start_program'; region: RegionId; course: string; seats: number }
   | { kind: 'manage_program'; program: number; op: ManageOp; seats: number | null }
   | { kind: 'demolish'; region: RegionId; facility: string; levels: number }
   | { kind: 'military_order'; army: number; order: ArmyOrder }
   | { kind: 'forfeit' }
+  /** bts-protocol/2.2: enter the next era when every condition holds. */
+  | { kind: 'enter_era' }
+  /** bts-protocol/2.2: hold a charter of the present era by its key. */
+  | { kind: 'choose_charter'; charter: string }
+  /** bts-protocol/2.2: commit a slot ("machine" | "frontier") to a path ("steam" | "engine" | "wire" | "atom" | "network" | "living" | "synthetic"). */
+  | { kind: 'choose_tradition'; slot: string; path: string }
   /** bts-protocol/1.3: add, remove or reorder a standing order. */
   | { kind: 'directive'; op: DirectiveOp; id?: number | null; directive?: Directive | null; position?: number | null };
 
@@ -1311,6 +1358,9 @@ export interface SpectatorCiv {
   goods: GoodQty[];
   research_capacity: number;
   reward: number | null;
+  /** bts-protocol/2.2. */
+  era?: number;
+  traditions?: string[];
 }
 
 export interface SpectatorArmy {

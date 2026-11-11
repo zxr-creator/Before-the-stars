@@ -600,6 +600,9 @@ pub enum ProjKind {
     /// Repeal of an established or enacted practice (design chapter 39, 2.2).
     Repeal { practice: usize },
     Religion { beliefs: Vec<String>, name: Option<String> },
+    /// A tradition reform: the slot (0 machine, 1 frontier) and the path it leads to
+    /// (design chapter 37, section 4.1).
+    TraditionReform { slot: u8, path: u8 },
     FtlTrial,
     FtlDeployment,
     FtlReplacement,
@@ -719,6 +722,10 @@ pub struct Army {
     pub in_battle: bool,
     pub move_progress: u8,
     pub initial: u32,
+    /// The tradition variant the formation was equipped as (an index into
+    /// `sim::eras::TRADITIONS`), fixed at recruitment (design chapter 37, 2.6).
+    #[serde(default)]
+    pub variant: Option<u8>,
 }
 
 impl Army {
@@ -1149,6 +1156,9 @@ pub struct Civ {
     /// study lifts its evidence lock and discovery cap (design chapter 39, 1.4).
     #[serde(default)]
     pub revisit_until: Vec<Month>,
+    /// Era, charters, age and traditions (design chapter 37, sections 3-4).
+    #[serde(default)]
+    pub era: crate::sim::eras::EraState,
     /// Calibration diagnostics of the last month (referee-side, never served to a
     /// seat, never saved).
     #[serde(skip)]
@@ -1512,6 +1522,9 @@ impl ReqCtx for CivCtx<'_> {
     fn sci_method(&self) -> bool {
         self.world.civs[self.seat as usize].milestones.sci_method.is_some()
     }
+    fn tradition(&self, key: &str) -> bool {
+        crate::sim::eras::held(&self.world.civs[self.seat as usize], key)
+    }
 }
 
 /// Prerequisite context for recognizing or reforming practices: prerequisites count once enacted.
@@ -1553,5 +1566,8 @@ impl ReqCtx for PracEnactedCtx<'_> {
     }
     fn sci_method(&self) -> bool {
         self.world.civs[self.seat as usize].milestones.sci_method.is_some()
+    }
+    fn tradition(&self, key: &str) -> bool {
+        crate::sim::eras::held_recently(&self.world.civs[self.seat as usize], key, self.world.month)
     }
 }

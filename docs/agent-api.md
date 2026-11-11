@@ -93,6 +93,9 @@ ready, running native controllers itself. After the plan phase it resolves
 | `propose_reform` | any | Enact a recognized practice whose requirements are met |
 | `start_program`, `manage_program` | any | Education programmes |
 | `demolish`, `military_order`, `forfeit` | any | |
+| `enter_era` | any | Enter the next era once every condition of `era.next.conditions` holds (`era.next.eligible`); the crossing starts at once (protocol 2.2) |
+| `choose_charter` | any | `{"kind": "choose_charter", "charter": "academies"}`: hold a charter of the present era (`era.charters[].key`); with the places full it replaces one at the cost stated in `era.charter_note` |
+| `choose_tradition` | any | `{"kind": "choose_tradition", "slot": "machine", "path": "steam"}`: commit an offered slot (`machine` from the Industrial era: `steam`, `engine`, `wire`; `frontier` from the Information era: `atom`, `network`, `living`, `synthetic`); from another path it starts a tradition reform project |
 
 Clause kinds: `goods`, `knowledge`, `practice`, `maps`, `non_aggression`,
 `defensive_pact`, `peace`, `subordination`, `cede_region`. A clause may reference only

@@ -59,7 +59,7 @@ pub fn programme_levels(w: &World, seat: SeatId) -> Vec<(usize, i64, i64)> {
                 _ => 0,
             };
             let load = service_of_facility(key)
-                .map(|s| 10_000 + crate::sim::economy::HOST_LOAD_PER_CLIENT_BP * w.programme_clients(seat, s).min(crate::sim::economy::HOST_CLIENTS_MAX) as i64)
+                .map(|s| crate::sim::eras::hosting_load(w, seat, s))
                 .unwrap_or(10_000);
             (kind, installed.max(floor), load)
         })
