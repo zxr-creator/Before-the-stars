@@ -8,6 +8,7 @@ import { ActionNote, Badge, Btn, Checklist, Empty, Est, Meter, RegionLink, SeatD
 import type { Tone } from '../ui';
 import { act, civColor, civName, openPanel, useApp } from '../store';
 import { LoreFold } from '../lore';
+import { OrdersLink } from './orders';
 
 type View = 'practices' | 'peoples' | 'religion';
 const PTONE: Record<PracticeState, Tone> = { recognized: 'info', reforming: 'gold', enacted: 'ok', established: 'accent' };
@@ -53,6 +54,7 @@ function Practices({ obs }: { obs: Observation }) {
   return (
     <>
       <p class="panel-lede">{t('Practices are how people actually organise themselves. A reform makes a recognised idea an institution; adoption then spreads through real participation, not by decree.')}</p>
+      <p class="orders-row"><OrdersLink obs={obs} section="reform" /> <small class="muted">{t('A reform agenda proposes the next reform as soon as one can begin.')}</small></p>
       {groups.map((g) => (
         <Section title={tc(g.group)} aside={<small class="muted">{g.items.length}</small>}>
           <ul class="practice-list">

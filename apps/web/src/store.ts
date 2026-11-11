@@ -11,7 +11,7 @@ import type {
   Action, AgentLogEntry, MatchSummary, MomentCategory, NewMatchRequest, Observation, Receipt, RegionId, SeatId,
   SpectatorView,
 } from './protocol';
-import { fmtYear, setUnits, yearOf, type HistDate } from './format';
+import { fmtYear, setCalendar, setUnits, yearOf, type HistDate } from './format';
 import { t, tc } from './i18n';
 
 export type PanelKey =
@@ -59,8 +59,12 @@ export type Intent =
   | { kind: 'counterpart'; seat: SeatId }
   | { kind: 'moment'; id: number };
 
-/** Full-screen overlays above the map: the two trees, the almanac and the economy ledger. */
-export type OverlayKey = 'tech' | 'civics' | 'almanac' | 'ledger' | 'works';
+/**
+ * Full-screen overlays above the map: the two trees, the almanac, the economy ledger, the
+ * regional works and the standing orders. The standing orders take an optional argument naming
+ * what to open on: 'build' or 'build:<region id>', 'research', 'reform', 'settle' or 'settle:<region id>'.
+ */
+export type OverlayKey = 'tech' | 'civics' | 'almanac' | 'ledger' | 'works' | 'orders';
 
 /** A major moment announced across the top of the map (never modal). */
 export interface BannerItem {
@@ -196,6 +200,10 @@ export function getState(): AppState {
 
 function set(patch: Partial<AppState>): void {
   if (patch.obs?.units) setUnits(patch.obs.units);
+  // the match's calendar turns every month the referee mentions into a historical year
+  const cal = patch.obs?.calendar ?? patch.spectator?.calendar ?? patch.summary?.calendar;
+  if (cal) setCalendar(cal);
+  else if ('summary' in patch && patch.summary && !patch.summary.exists) setCalendar(null);
   state = { ...state, ...patch };
   listeners.forEach((l) => l());
 }
@@ -710,6 +718,18 @@ function applyObservation(summary: MatchSummary, obs: Observation): void {
     const minor = fresh.filter((c) => !major.includes(c));
     patch.banners = major.map((c) => ({ id: c.id, title: c.title, text: c.text, art: c.art, month: c.month, category: c.category }));
     set(patch);
+    // an epidemic newly reported in a region we govern (ruleset 3.0 outbreaks)
+    const before = new Set(prev.regions.filter((r) => r.outbreak).map((r) => r.id));
+    const struck = obs.regions.filter((r) => r.own && r.outbreak && !before.has(r.id));
+    if (struck.length) {
+      const worst = Math.max(...struck.map((r) => r.outbreak!.severity_band));
+      toast({
+        tone: worst >= 2 ? 'bad' : 'info',
+        title: struck.length === 1 ? t('Epidemic in {region}', { region: struck[0].name }) : t('Epidemics in {n} regions', { n: struck.length }),
+        detail: t('An outbreak raises deaths and spreads to neighbours. Care, medicine and sanitation soften it.'),
+        action: { label: t('People'), run: () => openPanel('people') },
+      }, 9000);
+    }
     const quiet = major.length ? 2 : 3;
     for (const c of minor.slice(-quiet)) {
       toast({

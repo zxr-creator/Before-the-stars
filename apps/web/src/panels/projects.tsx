@@ -15,6 +15,7 @@ import {
 import { act, consumeIntent, startPick, cancelPick, useApp } from '../store';
 import { QuoteBlock, openWorks } from '../economy/Construction';
 import { blocking, checks, quoteFor } from '../economy/works';
+import { OrdersLink } from './orders';
 
 type NewKind = 'build' | 'survey' | 'settle' | 'study' | 'resettle';
 const NEW_KINDS: { key: NewKind; label: string; hint: string }[] = [
@@ -89,6 +90,7 @@ export function ProjectsPanel() {
   return (
     <div class="panel projects">
       <p class="panel-lede">{t('Work advances only with real labour and delivered inputs. Projects are supplied in priority order: 0 first, 9 last.')}</p>
+      <p class="orders-row"><OrdersLink obs={obs} section="all" testid="orders-link-projects" /> <small class="muted">{t('Build targets, agendas and settlement targets the referee carries out year by year.')}</small></p>
       <div class="row-between">
         <span class="muted small">{t('{n} under way', { n: obs.projects.length })}</span>
         <Btn kind="primary" icon="plus" testid="new-project" onClick={() => { setPreset({ region: s.selectedRegion ?? undefined }); setMode('build'); }}>{t('New project')}</Btn>
