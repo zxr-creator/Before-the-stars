@@ -20,6 +20,7 @@ mod graph39;
 mod eras;
 mod cities;
 mod job3;
+mod space;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
@@ -226,6 +227,12 @@ fn endgame_world() -> World {
     }
     w.civs[0].ftl.deployment_done = Some(0);
     w.civs[0].ftl.replacement_done = Some(0);
+    // check 13 (design chapter 39, 4.6): boost made every month, and a station in low
+    // Earth orbit with a shipyard module operating
+    w.civs[0].space.streak = 1_000;
+    let mut modules = vec![0u16; crate::sim::space::MODULES.len()];
+    modules[crate::sim::space::M_SHIPYARD] = 1;
+    w.space.stations.push(crate::sim::space::StationSt { id: 8000, owner: 0, orbit: 0, core: 2, modules, staffed_bp: 10_000, power_bp: 10_000, supplied_bp: 10_000, rate_bp: 10_000, aboard: 0, staffed: 0 });
     w
 }
 
@@ -1039,8 +1046,8 @@ fn no_recipe_puts_out_more_mass_than_it_takes_in() {
         }
     }
     // the exception is explicit and narrow: mines, wells, the timber and quarry camps,
-    // and kilns digging their own clay
-    assert_eq!(extractive, vec!["camp", "quarry", "salt_works", "salt_pans", "fibre_farm", "spice_farm", "horse_farm", "mine_copper", "mine_iron", "mine_coal", "mine_tin", "mine_precious", "mine_bauxite", "mine_uranium", "mine_rare_earths", "mine_cobalt_nickel", "mine_quartz", "nitre_works", "brine_works", "gas_well", "oilwell", "kiln"]);
+    // kilns digging their own clay, and water and air drawn for crews in space
+    assert_eq!(extractive, vec!["camp", "quarry", "salt_works", "salt_pans", "fibre_farm", "spice_farm", "horse_farm", "mine_copper", "mine_iron", "mine_coal", "mine_tin", "mine_precious", "mine_bauxite", "mine_uranium", "mine_rare_earths", "mine_cobalt_nickel", "mine_quartz", "nitre_works", "brine_works", "gas_well", "oilwell", "kiln", "life_support_plant"]);
     // the recipes that used to fail
     let rec = |fac: &str, key: &str| c.facilities[c.f(fac)].recipes.iter().find(|r| r.key == key).unwrap();
     assert!(mass_kg(&rec("insulation_works", "polymer").outputs) <= mass_kg(&rec("insulation_works", "polymer").inputs));

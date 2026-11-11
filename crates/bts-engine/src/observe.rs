@@ -213,6 +213,9 @@ fn blocker_text(run: &RunStat) -> Vec<String> {
     if b & 512 != 0 {
         out.push("Unrest is disrupting work".into());
     }
+    if b & 1024 != 0 {
+        out.push("Standing down: boost is at the cap".into());
+    }
     out
 }
 
@@ -1674,6 +1677,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         era: Some(crate::sim::eras::view(w, seat)),
         building_tree_hash: building_tree().hash.clone(),
         market: crate::sim::market::view(w, seat),
+        space: crate::sim::space::view(w, seat),
     }
 }
 

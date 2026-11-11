@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// `ForeignCiv.traditions`, `ArmyView.variant`, `SpectatorCiv.era`,
 /// `SpectatorCiv.traditions`, `Action::EnterEra`, `Action::ChooseCharter`,
 /// `Action::ChooseTradition`).
-pub const PROTOCOL_VERSION: &str = "bts-protocol/2.4";
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.5";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -407,6 +407,178 @@ pub struct Observation {
     /// The seat's market, when it has a route to another seat (protocol 2.4).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub market: Option<MarketView>,
+    /// The off-world layer (protocol 2.5; design chapters 37 §6-7 and 39 §4-5): sent
+    /// once the seat understands rocket propulsion or holds anything off the Earth.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub space: Option<SpaceView>,
+}
+
+/// What this seat knows of the Solar System beyond its own planet (protocol 2.5).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SpaceView {
+    pub boost: Option<BoostView>,
+    /// Own sites exactly; foreign sites as seen; unclaimed sites.
+    pub sites: Vec<SpaceSiteView>,
+    /// Own stations, and foreign stations this seat can see.
+    pub stations: Vec<StationView>,
+    /// This seat's own shipments in flight.
+    pub transfers: Vec<TransferView>,
+    /// Departure windows by zone, now.
+    pub windows: Vec<WindowView>,
+    /// Bodies this seat has observed; absent means all are drawn.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub known_bodies: Option<Vec<String>>,
+    /// What this seat holds in each zone store (base units), zones with anything only.
+    #[serde(default)]
+    pub stores: Vec<ZoneStoreView>,
+    /// Keys of the cores, modules and site works this seat may place or build now.
+    #[serde(default)]
+    pub available: Vec<String>,
+    /// Propulsion families this seat can fly, by key.
+    #[serde(default)]
+    pub propulsion: Vec<String>,
+}
+
+/// Boost (design chapter 39, 4.7): a national stock of tonnes to low Earth orbit.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct BoostView {
+    pub stock: i64,
+    pub cap: i64,
+    pub made_last: i64,
+    pub spent_last: i64,
+    pub by_stage: Vec<BoostStageView>,
+    /// Consecutive months in which a launch complex or later stage made boost or stood down at its cap.
+    #[serde(default)]
+    pub streak: u32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct BoostStageView {
+    pub stage: String,
+    pub levels: u16,
+    pub made: i64,
+    pub standing_down: bool,
+}
+
+/// One of the nineteen sites as this seat sees it.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SpaceSiteView {
+    /// Site key, for example "shackleton_rim".
+    pub site: String,
+    pub name: String,
+    pub zone: String,
+    pub owner: Option<SeatId>,
+    pub controller: Option<SeatId>,
+    pub surveyed: bool,
+    pub population: Option<u64>,
+    pub population_low: Option<u64>,
+    pub population_high: Option<u64>,
+    pub housing: Option<i64>,
+    pub works: Vec<SiteWorkView>,
+    pub deposits: Vec<DepositView>,
+    /// Share of residents housed, fed, watered and powered last month (own sites), bp.
+    #[serde(default)]
+    pub served_bp: Option<u16>,
+    /// Births and deaths last month (own sites).
+    #[serde(default)]
+    pub births_last: Option<u32>,
+    #[serde(default)]
+    pub deaths_last: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SiteWorkView {
+    pub kind: String,
+    pub level: u16,
+    /// Month a level under construction completes (own sites).
+    #[serde(default)]
+    pub ready: Option<Month>,
+}
+
+/// A station in one of the ten orbits.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct StationView {
+    pub id: u32,
+    pub orbit: String,
+    pub owner: SeatId,
+    pub core: Option<String>,
+    pub modules: Vec<StationModuleView>,
+    pub aboard: Option<u32>,
+    /// Posts filled of posts needed, and the power and consumables shares, bp (own stations).
+    #[serde(default)]
+    pub staffed_bp: Option<u16>,
+    #[serde(default)]
+    pub power_bp: Option<u16>,
+    #[serde(default)]
+    pub supplied_bp: Option<u16>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct StationModuleView {
+    pub kind: String,
+    pub level: Option<u16>,
+}
+
+/// A shipment between logistics zones.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct TransferView {
+    pub id: u32,
+    pub owner: Option<SeatId>,
+    pub from_zone: String,
+    pub to_zone: String,
+    pub payload_t: i64,
+    pub people: u32,
+    pub propulsion: Option<String>,
+    pub departed: Month,
+    pub arrives: Month,
+    /// What it carries: "outpost", "settlers", "cargo", "core" or "module", and the site or orbit.
+    #[serde(default)]
+    pub purpose: String,
+    #[serde(default)]
+    pub target: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct WindowView {
+    pub zone: String,
+    pub open: bool,
+    pub opens_in: u32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct ZoneStoreView {
+    pub zone: String,
+    pub goods: Vec<GoodQty>,
+}
+
+/// Orders of the off-world layer (protocol 2.5).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case")]
+pub enum SpaceOrder {
+    /// Lift goods from the national stores to the Earth-orbit store: one tonne of boost per tonne.
+    Launch { good: Good, amount: i64 },
+    /// Bring goods down from the Earth-orbit store to the national stores (no boost).
+    Land { good: Good, amount: i64 },
+    /// Place a station core ("k1"-"k4", an upgrade of the core held there) or a module in an orbit.
+    Place { orbit: String, part: String },
+    /// Found an outpost at an unclaimed site: the outpost bill and 1,000 people.
+    FoundOutpost { site: String, #[serde(default)] propulsion: Option<String> },
+    /// Ship goods (and, to an own site, settlers) from one zone store to another.
+    Ship {
+        #[serde(default)]
+        from_zone: Option<String>,
+        to_zone: String,
+        #[serde(default)]
+        goods: Vec<GoodQty>,
+        #[serde(default)]
+        people: u32,
+        #[serde(default)]
+        site: Option<String>,
+        #[serde(default)]
+        propulsion: Option<String>,
+    },
+    /// Build one level of a works at an own site, its bill taken from the zone store.
+    SiteBuild { site: String, works: String },
 }
 
 /// A civilization's place on the era ladder and what goes with it.
@@ -883,7 +1055,7 @@ pub struct NeighborLink {
     pub kind: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DepositView {
     pub kind: Deposit,
     /// Tonnes left in the ground.
@@ -2521,6 +2693,8 @@ pub enum Action {
     /// takes effect at once; from another path it starts a tradition reform of at
     /// least 120 months.
     ChooseTradition { slot: String, path: String },
+    /// An order of the off-world layer (protocol 2.5).
+    Space { order: SpaceOrder },
     /// Add, remove or reorder a standing order (see [`Directive`]).
     Directive {
         op: DirectiveOp,

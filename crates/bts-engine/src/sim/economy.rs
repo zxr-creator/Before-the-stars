@@ -931,6 +931,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     let motors = w.civs[si].knows_id("T101");
     let prev_compute = w.civs[si].compute_supply;
     let month_now = w.month;
+    let crew_reserve = crate::sim::space::crew_reserve(w, seat);
 
     for (pi, p) in plans.iter().enumerate() {
         let ri = p.idx;
@@ -944,6 +945,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             .collect();
         queue.sort_by_key(|i| w.civs[si].projects[*i].service_key());
         let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
+        let reserved = crew_reserve.iter().find(|x| x.0 == ri).map(|x| x.1).unwrap_or([0; NQ]);
         let r = &mut w.regions[ri];
         let mut month = RegionMonth { seat: Some(seat), qual_employed: vec![0; NQ], tag_staff: vec![0; Tag::COUNT], ..Default::default() };
         month.infra = InfraMonth {
@@ -974,7 +976,8 @@ pub fn step(w: &mut World, seat: SeatId) {
         let mut avail = [0u32; NQ];
         let mut qsum: u32 = 0;
         for q in 0..NQ {
-            avail[q] = r.quals[q].saturating_sub(r.teachers[q]);
+            // (station crews are reserved first: design chapter 39, 5.1)
+            avail[q] = r.quals[q].saturating_sub(r.teachers[q]).saturating_sub(reserved[q]);
             qsum += avail[q];
         }
         if qsum > nonfood {
@@ -1375,6 +1378,18 @@ pub fn step(w: &mut World, seat: SeatId) {
     // ---- 4. production ---------------------------------------------------------
     let targets: Vec<i64> = Good::ALL.iter().map(|g| stock_target(&w.civs[si], *g)).collect();
     let motor_age = w.civs[si].knows_id("T094");
+    // boost (design chapter 39, 4.2): the cap is what the launch stages' methods give
+    // this month; what the stock lacks of it is all they may make
+    let mut boost_cap = 0i64;
+    for (pi, &ri) in regs.iter().enumerate() {
+        for (fi, f) in w.regions[ri].facilities.iter().enumerate() {
+            if let Some(m) = methods[pi][fi] {
+                boost_cap += c.facilities[f.kind].recipes[m].boost_cap * f.level as i64;
+            }
+        }
+    }
+    w.civs[si].space.cap = boost_cap;
+    let mut boost_room = (boost_cap - w.civs[si].space.boost).max(0);
     let stock_start: Vec<i64> = w.civs[si].stock.clone();
     for (pi, p) in plans.iter().enumerate() {
         let ri = p.idx;
@@ -1498,6 +1513,17 @@ pub fn step(w: &mut World, seat: SeatId) {
                     blockers |= 128;
                 }
             }
+            // a launch stage stands down at the boost cap: posts stay filled, nothing is drawn
+            let mut standing_down = false;
+            if rec.boost > 0 {
+                let full = rec.boost * level;
+                let room = (boost_room * 10_000 / full.max(1)).min(10_000);
+                if room < rate {
+                    rate = room;
+                    blockers |= 1024;
+                    standing_down = true;
+                }
+            }
             // a line with four accepted assemblies on hand keeps its crews but builds no more
             if rec.assembly > 0 && w.civs[si].ftl.assemblies.iter().filter(|a| !a.retired).count() >= 4 {
                 rate = 0;
@@ -1582,6 +1608,25 @@ pub fn step(w: &mut World, seat: SeatId) {
                     }
                 }
             }
+            if rec.boost > 0 {
+                let made = rec.boost * level * rate / 10_000;
+                boost_room -= made;
+                let cs = &mut w.civs[si].space;
+                cs.boost += made;
+                cs.made_total += made;
+                cs.made_month += made;
+                match cs.by_stage.iter_mut().find(|x| x.0 == rec.name) {
+                    Some(x) => {
+                        x.1 += level as u16;
+                        x.2 += made;
+                        x.3 |= standing_down;
+                    }
+                    None => cs.by_stage.push((rec.name.to_string(), level as u16, made, standing_down)),
+                }
+                if def.key == "launch_complex" && (made > 0 || standing_down) {
+                    cs.lc_ok = true;
+                }
+            }
             let (shaft_used, elec_used, comp_used) = (rec.shaft * level * rate / 10_000, elec_full * rate / 10_000, rec.compute * level * rate / 10_000);
             pw.shaft_left -= shaft_used;
             pw.elec_left -= elec_used;
@@ -1655,7 +1700,9 @@ pub fn step(w: &mut World, seat: SeatId) {
             if rec.assembly > 0 {
                 f.assembly_progress += rec.assembly * rate / 10_000;
             }
-            if rate >= 5000 {
+            // a launch stage standing down at the boost cap is a working installation
+            // (posts filled, ready to launch): design chapter 39, 4.1 and 4.6
+            if rate >= 5000 || (standing_down && base >= 5000) {
                 f.operated = true;
             }
             f.run = Some(RunStat { recipe: ridx, rate_bp: rate as u16, blockers, missing });
@@ -1708,6 +1755,12 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
     }
     civ_labor.soldiers = soldiers;
+    // station crews are employed (reserved before the works were staffed)
+    for (_, take) in &crew_reserve {
+        for q in 0..NQ {
+            qual_employed[q] += take[q];
+        }
+    }
     let civ = &mut w.civs[si];
     // everything made is booked as production where it was made; what carriage to
     // the common stock cost is booked as lost

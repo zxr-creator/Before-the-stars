@@ -110,6 +110,30 @@ material than the method it replaces.
   balance, and that each balance is what it earned less what it spent. With no credit
   at the start, a seat pays for what it buys with what it sells the same month.
 
+### 2.2 Ruleset 3.0 job 4a: boost, zone stores, shipments, sites and stations
+
+- **Boost** (design chapter 39, 4.7) is not a good: `Civ.space` keeps the stock and the
+  cumulative tonnes made and spent, and the audit checks `stock = made - spent`, that the
+  stock is never negative and that neither total runs backwards. Launch stages make boost
+  only from inputs drawn for it (`sim/economy.rs`), and at the cap they stand down: they
+  draw nothing and make nothing (posts stay filled).
+- **Zone stores and shipments**: a seat's holdings are its national stores, its zone
+  stores (`Civ.space.stores`) and the goods of its shipments (`World.space.transits`);
+  the audit's stock is their sum, so moving goods between them is no flow. Propellant and
+  transfer hardware are `consumed` when a shipment is ordered; site works, life support and
+  station refineries book `produced` / `consumed` against the zone store; a station part's
+  bill is `consumed` from the national stores. Colonies passing to another seat move their
+  zone stores and shipments as `traded_out` / `traded_in`.
+- **Site deposits** are in the deposit ledger (region ids from 60,000): ice works, mining
+  stations and helium-3 extractors deliver exactly what they draw. Volatiles also come
+  from water and air plants on the Earth (renewable, like salt pans), so for volatiles the
+  audit checks only that the deposits delivered no more than was made.
+- **Station crews** are qualified residents reserved for the stations' posts (lowest
+  region id first) before the works are staffed, and count as employed; a tenth of them
+  count as aboard (they stay residents of their regions). The audit
+  checks that no station reports more aboard than a tenth of its filled posts. Station and
+  site research capacity is bounded by the people in their research posts.
+
 ## 3. Sources of people
 
 | Source | Where | What backs it | Ledger | Tests |
@@ -123,6 +147,8 @@ material than the method it replaces.
 
 | Raider camps: initial free peoples, births and deaths | `sim/raiders.rs` | camp blocks of the camp's lineage in an unclaimed region; war deaths in raids and battles | `World.wild.births` / `deaths` (the audit adds them to the seats' births and deaths) | `raids_take_capped_goods_kill_and_damage_and_the_books_balance`, all-AI campaigns |
 | Scouts lost on reconnaissance | `sim/projects.rs` | adults of the supplying region | `flows.deaths` (war) | `a_scout_party_charts_a_region_and_its_neighbours` |
+| Off-world settlers and founding parties | `sim/space.rs` | adults 20-45 of the seat's most populous region; their qualifications lapse (`enlisted`); in a shipment, then residents of a site (or home again when the site was claimed first) | none: the audit's world people counts site residents and people in shipments | `the_first_outpost_to_arrive_claims_the_site_and_its_people_live_and_die_there` |
+| Births and deaths at sites | `sim/space.rs` | the site's block; environment multipliers; unserved residents die at up to three times the rate | `flows.births` / `deaths` of the site's owner | same, `people_off_the_earth_die_faster_where_they_are_not_served` |
 
 Camp people who leave for a seat's region (decline, refugees of a broken camp,
 subjects with the land) are that seat's immigrants and `World.wild.migrated_out`;

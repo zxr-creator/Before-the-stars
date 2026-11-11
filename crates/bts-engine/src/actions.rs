@@ -211,6 +211,14 @@ fn label(a: &Action) -> String {
         Action::EnterEra => "enter_era".into(),
         Action::ChooseCharter { .. } => "choose_charter".into(),
         Action::ChooseTradition { .. } => "choose_tradition".into(),
+        Action::Space { order } => format!("space_{}", match order {
+            SpaceOrder::Launch { .. } => "launch",
+            SpaceOrder::Land { .. } => "land",
+            SpaceOrder::Place { .. } => "place",
+            SpaceOrder::FoundOutpost { .. } => "found_outpost",
+            SpaceOrder::Ship { .. } => "ship",
+            SpaceOrder::SiteBuild { .. } => "site_build",
+        }),
     }
 }
 
@@ -1303,6 +1311,10 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
             Err((code, reason)) => fail(code, reason),
         },
         Action::ChooseTradition { slot, path } => match crate::sim::eras::choose_tradition(w, seat, &slot, &path) {
+            Ok((text, id)) => Ok((text, id)),
+            Err((code, reason)) => fail(code, reason),
+        },
+        Action::Space { order } => match crate::sim::space::apply(w, seat, order) {
             Ok((text, id)) => Ok((text, id)),
             Err((code, reason)) => fail(code, reason),
         },

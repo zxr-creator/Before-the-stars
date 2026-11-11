@@ -132,6 +132,20 @@ pub fn governance_checks(w: &World, seat: SeatId) -> Vec<Check> {
             water_bad += 1;
         }
     }
+    // inhabited off-world sites count as regions (design chapter 37, 6.9): they must
+    // answer to this government and keep their people housed, fed, watered and powered
+    let sites = crate::sim::space::inhabited_sites(w);
+    let top = |o: Option<SeatId>| o.map(|s| w.top_authority(s));
+    let sites_outside = sites.iter().filter(|x| top(x.1) != Some(seat)).count();
+    let sites_bad = sites.iter().filter(|x| !x.2).count();
+    if !sites.is_empty() {
+        out.push(check(
+            "Highest authority over every inhabited off-world site",
+            sites_outside == 0,
+            if sites_outside == 0 { format!("All {} inhabited sites answer to this government", sites.len()) } else { format!("{sites_outside} of {} inhabited sites answer to another authority", sites.len()) },
+        ));
+    }
+    let (food_bad, water_bad) = (food_bad + sites_bad, water_bad + sites_bad);
     out.push(check("Food access at least 95% over twelve months in every region", food_bad == 0, if food_bad == 0 { "No region falls short".into() } else { format!("{food_bad} regions fall short") }));
     out.push(check("Safe water at least 95% over twelve months in every region", water_bad == 0, if water_bad == 0 { "No region falls short".into() } else { format!("{water_bad} regions fall short") }));
     let form = ["C061", "C062", "C063"].iter().any(|id| civ.est_id(id));
@@ -275,15 +289,25 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
         !sites.is_empty() && weak_links == 0 && dark == 0,
         if sites.is_empty() { format!("No region holds a {} or a {}", name("jump_yard"), name("jump_base")) } else { format!("{} sites; {} below transport grade {}; {} received less than 90% of their electric demand", sites.len(), weak_links, SITE_TRANSPORT, dark) },
     ));
-    // ---- 13. launch and recovery ----------------------------------------------------
-    let launch = (own_running("launch_complex"), w.programme_access(seat, ProgrammeService::Launch));
-    let oyard = (own_running("orbital_yard"), w.programme_access(seat, ProgrammeService::OrbitalYard));
+    // ---- 13. launch and recovery (design chapter 39, 4.6): a launch complex or later
+    // stage that made boost or stood down at its cap in each of the last 12 months,
+    // and a station in low Earth orbit with a shipyard module operating (own, or a
+    // partner's under a joint programme)
+    let streak = civ.space.streak;
+    let launch = (streak >= 12 && own_running("launch_complex"), w.programme_access(seat, ProgrammeService::Launch));
+    let oyard = (crate::sim::space::shipyard_operating(w, seat), w.programme_access(seat, ProgrammeService::OrbitalYard));
     let how = |x: (bool, bool)| if x.0 { "operating" } else if x.1 { "served by a partner" } else { "not operating" };
     out.push(base_check(
         "logistical",
         "Launch and recovery services operating",
         (launch.0 || launch.1) && (oyard.0 || oyard.1),
-        format!("{} {}; {} {}", name("launch_complex"), how(launch), name("orbital_yard"), how(oyard)),
+        format!(
+            "{} {} (boost made or stood down at the cap {} of the last 12 months); a station in low Earth orbit with a shipyard module {}",
+            name("launch_complex"),
+            how(launch),
+            streak.min(12),
+            how(oyard)
+        ),
     ));
     out.push(base_check("service", "Common mission charter across sites established", civ.est_id("C064"), if civ.est_id("C064") { "Established".into() } else { "Not established".into() }));
     out

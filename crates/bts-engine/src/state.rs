@@ -171,7 +171,7 @@ impl PopBlock {
 pub struct RunStat {
     pub recipe: usize,
     pub rate_bp: u16,
-    /// Bit flags: 1 staff, 2 skills, 4 inputs, 8 shaft, 16 electricity, 32 compute, 64 condition, 128 storage full, 256 deposit, 512 unrest.
+    /// Bit flags: 1 staff, 2 skills, 4 inputs, 8 shaft, 16 electricity, 32 compute, 64 condition, 128 storage full, 256 deposit, 512 unrest, 1024 a launch stage standing down at the boost cap.
     pub blockers: u16,
     pub missing: Vec<Good>,
 }
@@ -1244,6 +1244,9 @@ pub struct Civ {
     /// What survivors of a cleared raider camp become: subjects (true) or refugees.
     #[serde(default)]
     pub subjugate_camps: bool,
+    /// Boost, zone stores and the off-world accounts (design chapters 37 §6, 39 §4).
+    #[serde(default = "crate::sim::space::CivSpace::new")]
+    pub space: crate::sim::space::CivSpace,
     /// Calibration diagnostics of the last month (referee-side, never served to a
     /// seat, never saved).
     #[serde(skip)]
@@ -1486,6 +1489,9 @@ pub struct World {
     pub market_lines: Vec<Vec<MarketLine>>,
     #[serde(default)]
     pub routes_dirty: bool,
+    /// Off-world sites, stations and shipments (design chapters 37 §6, 39 §5).
+    #[serde(default = "crate::sim::space::SpaceWorld::new")]
+    pub space: crate::sim::space::SpaceWorld,
 }
 
 /// A sea link between two subpolar or polar regions that ice closes in winter
@@ -1532,6 +1538,7 @@ impl World {
     pub fn civ_population(&self, seat: SeatId) -> u64 {
         self.regions.iter().filter(|r| r.owner == Some(seat)).map(|r| r.population() as u64).sum::<u64>()
             + self.armies.iter().filter(|a| a.owner == seat).map(|a| a.count() as u64).sum::<u64>()
+            + self.space.people_of(seat)
     }
     /// The seat whose highest authority a region ultimately answers to.
     pub fn authority(&self, region: usize) -> Option<SeatId> {

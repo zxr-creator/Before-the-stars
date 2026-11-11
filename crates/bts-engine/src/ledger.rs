@@ -35,6 +35,8 @@ pub struct CivLedger {
     pub research_used: Vec<i64>,
     /// People in the posts of research works in the seat's regions.
     pub research_staff: i64,
+    /// Boost in stock, made and spent since the match began (design chapter 39, 4.7).
+    pub boost: (i64, i64, i64),
 }
 
 #[derive(Clone, Debug)]
@@ -102,6 +104,8 @@ pub struct LedgerSnapshot {
     pub camp_stock: Vec<i64>,
     /// Trade credit per seat: balance, earned, spent (design chapter 36, 6.5).
     pub credit: Vec<(i64, i64, i64)>,
+    /// Stations: (crew aboard, posts filled).
+    pub stations: Vec<(u32, u32)>,
 }
 
 pub use crate::content::deposit_good;
@@ -154,10 +158,24 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
                 .filter(|f| c.facilities[f.kind].recipes.iter().any(|r| r.research.is_some()))
                 .map(|f| f.staffed as i64)
                 .sum();
+            // the seat holds its national stores, its zone stores off the Earth and
+            // the goods of its shipments (design chapter 37, 6.5)
+            let mut stock = civ.stock.clone();
+            for z in &civ.space.stores {
+                for g in 0..NG {
+                    stock[g] += z.get(g).copied().unwrap_or(0);
+                }
+            }
+            for t in w.space.transits.iter().filter(|t| t.owner == civ.seat) {
+                for (g, a) in &t.goods {
+                    stock[g.index()] += a;
+                }
+            }
             CivLedger {
                 seat: civ.seat,
                 eliminated: civ.status == SeatStatus::Eliminated,
-                stock: civ.stock.clone(),
+                boost: (civ.space.boost, civ.space.made_total, civ.space.spent_total),
+                stock,
                 flows: civ.flows.clone(),
                 holders: (0..NQ).map(|q| mine().map(|r| r.quals[q] as i64).sum()).collect(),
                 qual_flows: civ.qual_flows.clone(),
@@ -166,7 +184,7 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
                 compute_used: civ.compute_used,
                 research_cap: civ.research_cap.clone(),
                 research_used: civ.research_used.clone(),
-                research_staff,
+                research_staff: research_staff + civ.space.lab_staff,
             }
         })
         .collect();
@@ -211,12 +229,18 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
             },
         })
         .collect();
-    let deposits = w
+    let mut deposits: Vec<DepositLedger> = w
         .regions
         .iter()
         .flat_map(|r| r.deposits.iter().map(move |d| DepositLedger { region: r.id, kind: d.kind, remaining: d.remaining, drawn: d.drawn, delivered: d.delivered }))
         .collect();
-    let people = w.regions.iter().map(|r| r.population() as u64).sum::<u64>() + w.armies.iter().map(|a| a.count() as u64).sum::<u64>();
+    for (i, s) in w.space.sites.iter().enumerate() {
+        let id = crate::sim::space::site_region_id(i);
+        deposits.extend(s.deposits.iter().map(|d| DepositLedger { region: id, kind: d.kind, remaining: d.remaining, drawn: d.drawn, delivered: d.delivered }));
+    }
+    // everyone alive: residents, soldiers, residents of the sites and people in shipments
+    let people = w.regions.iter().map(|r| r.population() as u64).sum::<u64>() + w.armies.iter().map(|a| a.count() as u64).sum::<u64>() + w.space.people();
+    let stations = w.space.stations.iter().map(|s| (s.aboard, s.staffed)).collect();
     let mut camp_stock = vec![0i64; NG];
     for c in &w.camps {
         for (g, a) in &c.plunder {
@@ -224,7 +248,7 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
         }
     }
     let credit = w.civs.iter().map(|c| (c.credit, c.credit_earned, c.credit_spent)).collect();
-    LedgerSnapshot { month: w.month, round: w.round, before_month, civs, regions, deposits, people, wild: w.wild.clone(), camp_stock, credit }
+    LedgerSnapshot { month: w.month, round: w.round, before_month, civs, regions, deposits, people, wild: w.wild.clone(), camp_stock, credit, stations }
 }
 
 /// Every conservation rule the books of `cur` break, on their own or against the
@@ -295,6 +319,20 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
     for (s, c) in cur.credit.iter().enumerate() {
         if c.0 < 0 || c.0 != c.1 - c.2 {
             out.push(format!("{at}: seat {s} holds {} credit with {} earned and {} spent", c.0, c.1, c.2));
+        }
+    }
+
+    // ---- boost: made = spent + change in stock; never negative (design chapter 39, 4.7) ----
+    for (p, c) in prev.civs.iter().zip(cur.civs.iter()) {
+        let ((stock, made, spent), (_, made0, spent0)) = (c.boost, p.boost);
+        if stock < 0 || stock != made - spent || made < made0 || spent < spent0 {
+            out.push(format!("{at}: seat {} holds {stock} t of boost with {made} t made and {spent} t spent (before: {made0} made, {spent0} spent)", c.seat));
+        }
+    }
+    // ---- stations: a tenth of the crew is aboard, and the crew are people in posts ----
+    for (i, (aboard, staffed)) in cur.stations.iter().enumerate() {
+        if *aboard as u64 * 10 > *staffed as u64 + 9 {
+            out.push(format!("{at}: station {i} has {aboard} aboard of {staffed} posts filled"));
         }
     }
 
@@ -537,7 +575,8 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
     for d in Deposit::ALL {
         let g = deposit_good(*d).index();
         // salt also comes from coastal pans (renewable): there the deposits are only part of it
-        let mismatch = if *d == Deposit::Salt { made[g] < delivered[g] } else { made[g] != delivered[g] };
+        // and volatiles from the water and air plants on the Earth (renewable)
+        let mismatch = if matches!(*d, Deposit::Salt | Deposit::Volatiles) { made[g] < delivered[g] } else { made[g] != delivered[g] };
         if mismatch {
             out.push(format!("{at}: {:?}: {} was booked as produced but the deposits delivered {}", Good::from_index(g), made[g], delivered[g]));
         }

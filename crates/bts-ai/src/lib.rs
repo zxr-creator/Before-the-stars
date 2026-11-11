@@ -11,7 +11,7 @@ pub mod tables;
 use bts_protocol::*;
 use serde::{Deserialize, Serialize};
 
-pub const POLICY_VERSION: &str = "bts-native/1.5.0";
+pub const POLICY_VERSION: &str = "bts-native/1.6.0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Difficulty {

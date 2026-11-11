@@ -1201,6 +1201,8 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
     if on("economy") {
         food_and_water(&mut p, &regions);
         methods(&mut p, &regions, &mut ai.memory.methods_set);
+        // (a few orders at most, early so that a full plan does not crowd them out)
+        space(&mut p, &regions);
     }
     if on("research") {
         research(ai, &mut p);
@@ -3404,5 +3406,152 @@ fn endgame(p: &mut Plan, regions: &[&RegionView]) {
     }
     if v.assemblies_operational >= 3 && !v.replacement_done && !busy("ftl_replacement") {
         p.push(Action::StartProject { spec: ProjectSpec::FtlReplacement, priority: Some(2) });
+    }
+}
+
+/// The off-world layer (design chapters 37 §6 and 39 §4-5), from the observation
+/// alone: launch capacity in the Space era, a station in low Earth orbit (power,
+/// berths, a laboratory and, for the jump programme's check 13, a shipyard), its
+/// crew's supplies, then a lunar or Martian outpost and its first works. One new
+/// boost-paid order at a time: nothing is ordered while a shipment waits for boost.
+fn space(p: &mut Plan, regions: &[&RegionView]) {
+    let obs = p.obs;
+    let Some(sv) = &obs.space else { return };
+    let Some(boost) = &sv.boost else { return };
+    let era = obs.era.as_ref().map(|e| e.era).unwrap_or(0);
+    let has = |k: &str| sv.available.iter().any(|x| x == k);
+    let order = |o: SpaceOrder| Action::Space { order: o };
+    // launch capacity: in the Space era a second and third launch complex level, so
+    // that the cap holds a founding party and a shipyard's 6,000 t over a few months
+    if era >= 7 && boost.cap < 7_200 {
+        if let Some(r) = regions.iter().copied().find(|r| (1..3).contains(&p.level(r, "launch_complex"))) {
+            p.try_build(r, "launch_complex", 1, 3);
+        }
+    }
+    if boost.made_last == 0 && boost.stock == 0 {
+        return;
+    }
+    // shipments still on the pad, waiting for boost (lifts of supplies aside)
+    let waiting = sv.transfers.iter().filter(|t| t.departed > obs.month && t.purpose != "lift").count();
+    let leo = sv.stations.iter().find(|s| s.owner == obs.seat && s.orbit == "leo");
+    let level = |st: &StationView, name: &str| st.modules.iter().find(|m| m.kind == name).and_then(|m| m.level).unwrap_or(0);
+    let store = |zone: &str, g: Good| sv.stores.iter().find(|z| z.zone == zone).and_then(|z| z.goods.iter().find(|x| x.good == g)).map(|x| x.amount).unwrap_or(0);
+    // the crew's supplies: a year of food and water in the Earth-orbit store
+    if let Some(st) = leo {
+        let aboard = st.aboard.unwrap_or(0) as i64;
+        let lifting = sv.transfers.iter().any(|t| t.purpose == "lift" && t.departed > obs.month);
+        // enough to last two rounds, and at least a year
+        let months = (obs.months_per_round as i64 * 2).clamp(12, 24);
+        let per_k = if level(st, "Life support") > 0 { 13 } else { 130 };
+        if !lifting && aboard > 0 {
+            let food = aboard * months;
+            if store("earth_orbit", Good::Food) < food / 2 && p.stock(Good::Food) > food * 20 {
+                p.push(order(SpaceOrder::Launch { good: Good::Food, amount: food }));
+            }
+            let vol = aboard * per_k * months / 1000 + 50;
+            if store("earth_orbit", Good::Volatiles) < vol / 2 && p.stock(Good::Volatiles) >= vol {
+                p.push(order(SpaceOrder::Launch { good: Good::Volatiles, amount: vol }));
+            } else if p.stock(Good::Volatiles) < vol {
+                p.wanted.insert(Good::Volatiles);
+            }
+        }
+    }
+    if waiting > 0 {
+        return;
+    }
+    match leo {
+        None => {
+            let core = if has("k2") { "k2" } else { "k1" };
+            if has(core) {
+                p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: core.into() }));
+            }
+            return;
+        }
+        Some(st) => {
+            // the station's build order within the core's slots (public: K1 4, K2 8, K3 14, K4 20)
+            let plan: [(&str, &str, u16); 8] = [
+                ("solar", "Solar array", 1),
+                ("docking", "Docking and depot", 1),
+                ("life_support", "Life support", 1),
+                ("docking", "Docking and depot", 2),
+                ("shipyard", "Shipyard", 1),
+                ("habitat", "Habitat", 1),
+                ("solar", "Solar array", 2),
+                ("lab", "Research laboratory", 1),
+            ];
+            let core = match st.core.as_deref() {
+                Some("K4") => 4,
+                Some("K3") => 3,
+                Some("K2") => 2,
+                _ => 1,
+            };
+            let slots = [4u16, 8, 14, 20][core - 1];
+            let used: u16 = st.modules.iter().map(|m| m.level.unwrap_or(1)).sum();
+            // the K2 frame core stands on the ground segment's crews; later cores need
+            // tens of thousands of orbital crew and are left to the player
+            if core == 1 && has("k2") && used + 1 >= slots {
+                p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: "k2".into() }));
+                return;
+            }
+            let full = used >= slots;
+            // power first: an array (or a reactor) when the station runs short
+            if !full && used > 0 && st.power_bp.unwrap_or(10_000) < 9_000 {
+                let part = if has("reactor") && level(st, "Shipyard") > 0 { "reactor" } else { "solar" };
+                if has(part) {
+                    p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: part.into() }));
+                    return;
+                }
+            }
+            // berths and supplies in place: the outpost comes before the rest of the station
+            if level(st, "Docking and depot") >= 2 && !sv.sites.iter().any(|s| s.owner == Some(obs.seat)) && has("outpost") && boost.cap.max(boost.stock) >= 4_800 {
+                if let Some(key) = ["shackleton_rim", "arcadia_planitia", "mare_imbrium", "jezero_delta", "valles_marineris", "daedalus"].into_iter().find(|k| sv.sites.iter().any(|s| s.site == *k && s.owner.is_none())) {
+                    p.push(order(SpaceOrder::FoundOutpost { site: key.into(), propulsion: None }));
+                    if p.stock(Good::Fuel) < 20_000 {
+                        p.wanted.insert(Good::Fuel);
+                    }
+                    return;
+                }
+            }
+            // more power before a shipyard: a reactor where it can be built
+            for (key, name, want) in plan {
+                if !full && has(key) && level(st, name) < want {
+                    p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: key.into() }));
+                    return;
+                }
+            }
+        }
+    }
+    let own_sites: Vec<&SpaceSiteView> = sv.sites.iter().filter(|s| s.owner == Some(obs.seat)).collect();
+
+    // the first works of a site: ice works where there is ice, then a habitat farm
+    for site in own_sites {
+        let ice = site.deposits.iter().any(|d| d.kind == Deposit::Volatiles && d.remaining > 0);
+        let built = |k: &str| site.works.iter().any(|w| w.kind == k);
+        // half a year of food left (and of water and air before the ice works): a year's more
+        let pop = site.population.unwrap_or(0) as i64;
+        let farmed = built("habitat_farm");
+        let (food, vol) = (if farmed { 0 } else { pop * 12 }, if built("ice_works") { 0 } else { pop * 13 * 12 / 1000 });
+        if pop > 0 && ((food > 0 && store(&site.zone, Good::Food) < food / 2) || (vol > 0 && store(&site.zone, Good::Volatiles) < vol / 2)) {
+            let goods: Vec<GoodQty> = [(Good::Food, food), (Good::Volatiles, vol)].into_iter().filter(|(g, a)| *a > 0 && p.stock(*g) >= *a).map(|(good, amount)| GoodQty { good, amount }).collect();
+            if !goods.is_empty() {
+                p.push(order(SpaceOrder::Ship { from_zone: None, to_zone: site.zone.clone(), goods, people: 0, site: Some(site.site.clone()), propulsion: None }));
+                break;
+            }
+        }
+        let next = if ice && has("ice_works") && !built("ice_works") {
+            Some(("ice_works", vec![(Good::Metal, 1_000), (Good::Components, 500)]))
+        } else if has("habitat_farm") && !built("habitat_farm") {
+            Some(("habitat_farm", vec![(Good::Materials, 3_000), (Good::Metal, 500), (Good::Insulation, 300), (Good::Conductors, 200)]))
+        } else {
+            None
+        };
+        let Some((works, bill)) = next else { continue };
+        if bill.iter().all(|(g, a)| store(&site.zone, *g) >= *a) {
+            p.push(order(SpaceOrder::SiteBuild { site: site.site.clone(), works: works.into() }));
+        } else if bill.iter().all(|(g, a)| p.stock(*g) >= *a * 2) {
+            let goods = bill.iter().map(|(g, a)| GoodQty { good: *g, amount: (*a - store(&site.zone, *g)).max(0) }).filter(|x| x.amount > 0).collect();
+            p.push(order(SpaceOrder::Ship { from_zone: None, to_zone: site.zone.clone(), goods, people: 0, site: Some(site.site.clone()), propulsion: None }));
+        }
+        break;
     }
 }

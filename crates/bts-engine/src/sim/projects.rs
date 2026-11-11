@@ -521,7 +521,7 @@ pub fn tech_site_ok(w: &World, seat: SeatId, tech: usize) -> bool {
         Some(key) => {
             let k = c.f(key);
             // the installation must actually be running, not merely exist
-            w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(k).map(|f| f.level > 0 && f.run.as_ref().map(|x| x.rate_bp >= 2500).unwrap_or(false)).unwrap_or(false))
+            w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(k).map(|f| f.level > 0 && f.run.as_ref().map(|x| x.rate_bp >= 2500 || (x.blockers & 1024 != 0 && f.staffed * 2 >= f.staff_needed)).unwrap_or(false)).unwrap_or(false))
                 || service_of_facility(key).map(|s| w.programme_access(seat, s)).unwrap_or(false)
                 || (key == "orbital_station" && w.programme_access(seat, ProgrammeService::OrbitalYard))
         }
