@@ -12,6 +12,7 @@ import { LanguageSwitch } from '../setup';
 import { Almanac } from '../tutorial/almanac';
 import { TitleBackdrop } from './backdrop';
 import { BrandMark } from './brand';
+import { MAP_PRESETS, presetOf } from './seats';
 
 /** The designed wordmark; the English name stays as a subtitle in other languages. */
 export function Wordmark({ small }: { small?: boolean }) {
@@ -43,9 +44,11 @@ function Item({ icon, label, sub, onClick, testid, disabled, active }: {
 // --- observer quick start ------------------------------------------------------------------
 
 type Level = 'easy' | 'medium' | 'hard' | 'mixed';
-interface QuickChoice { level: Level; regions: 24 | 48 | 72; short: boolean }
-const QUICK_KEY = 'bts.observer.quick';
-const QUICK_DEFAULT: QuickChoice = { level: 'medium', regions: 48, short: false };
+type QuickSize = 30 | 60 | 120 | 200;
+interface QuickChoice { level: Level; regions: QuickSize; quick: boolean }
+const QUICK_KEY = 'bts.observer.quick.r3';
+/** Standard map, four AIs, the standard calendar. */
+const QUICK_DEFAULT: QuickChoice = { level: 'mixed', regions: 60, quick: false };
 
 function loadQuick(): QuickChoice {
   try {
@@ -53,17 +56,24 @@ function loadQuick(): QuickChoice {
     if (!v) return QUICK_DEFAULT;
     return {
       level: v.level === 'easy' || v.level === 'hard' || v.level === 'mixed' ? v.level : 'medium',
-      regions: v.regions === 24 || v.regions === 72 ? v.regions : 48,
-      short: !!v.short,
+      regions: v.regions === 30 || v.regions === 120 || v.regions === 200 ? v.regions : 60,
+      quick: !!v.quick,
     };
   } catch {
     return QUICK_DEFAULT;
   }
 }
 
-/** Four built-in AIs: one level for all, or one of each temperament around the table. */
-function quickControllers(level: Level): SetupController[] {
-  return level === 'mixed' ? ['easy', 'medium', 'medium', 'hard'] : [level, level, level, level];
+/**
+ * The preset's usual number of built-in AIs (Standard: four): one level for all, or a mix of
+ * temperaments around the table, about a quarter hard, half medium and a quarter easy.
+ */
+export function quickControllers(level: Level, n: number): SetupController[] {
+  if (level !== 'mixed') return Array.from({ length: n }, () => level);
+  const hard = Math.max(1, Math.round(n / 4));
+  const easy = n >= 3 ? Math.max(1, Math.round(n / 4)) : 0;
+  const medium = Math.max(0, n - hard - easy);
+  return [...Array<SetupController>(easy).fill('easy'), ...Array<SetupController>(medium).fill('medium'), ...Array<SetupController>(hard).fill('hard')];
 }
 
 function Seg<T extends string | number | boolean>({ label, value, options, onPick, testid }: {
@@ -95,9 +105,9 @@ function ObserverQuickStart({ live, busy, onClose }: { live: boolean; busy: bool
     setError(null);
     const err = await newMatch({
       regions: q.regions,
-      horizon: q.short ? 960 : 2880,
-      pace_bp: q.short ? 3300 : 10000,
-      controllers: quickControllers(q.level),
+      world: 'earth_like',
+      calendar: q.quick ? 'quick' : 'standard',
+      controllers: quickControllers(q.level, presetOf(q.regions).defaultSeats),
       disclosed_objective: false,
     });
     if (err) setError(err);
@@ -105,21 +115,19 @@ function ObserverQuickStart({ live, busy, onClose }: { live: boolean; busy: bool
   return (
     <aside class="title-pane is-observe" aria-label={t('Observer mode')} data-testid="title-observer-pane">
       <header><h2><Icon name="eye" size={16} /> {t('Observer mode')}</h2><button type="button" class="banner-x" aria-label={t('Close')} onClick={onClose}><Icon name="close" size={13} /></button></header>
-      <p class="title-empty">{t('Four built-in AI civilizations play a whole match while you watch. You see the entire world, move time yourself — pause, step, fast-forward — look through any civilization’s eyes, and compare them side by side. You give no orders.')}</p>
+      <p class="title-empty">{t('Built-in AI civilizations play a whole match on an Earth-like world while you watch, from 5000 BC. You see the entire planet, move time yourself — pause, step, fast-forward — look through any civilization’s eyes, and compare them side by side. You give no orders.')}</p>
       <Seg label={t('AI difficulty')} value={q.level} testid="quick-level" onPick={(level) => pick({ level })} options={[
         { value: 'easy', label: t('Easy'), hint: t('Cautious built-in AI in every seat') },
         { value: 'medium', label: t('Medium'), hint: t('The standard built-in AI in every seat') },
         { value: 'hard', label: t('Hard'), hint: t('Demanding built-in AI in every seat') },
-        { value: 'mixed', label: t('Mixed'), hint: t('One easy, two medium and one hard AI') },
+        { value: 'mixed', label: t('Mixed'), hint: t('About a quarter easy, half medium and a quarter hard') },
       ]} />
-      <Seg label={t('World size')} value={q.regions} testid="quick-regions" onPick={(regions) => pick({ regions })} options={[
-        { value: 24, label: t('{n} regions', { n: 24 }), hint: t('Compact: neighbours meet early.') },
-        { value: 48, label: t('{n} regions', { n: 48 }), hint: t('Standard.') },
-        { value: 72, label: t('{n} regions', { n: 72 }), hint: t('Large: long isolation, long frontiers.') },
-      ]} />
-      <Seg label={t('Length')} value={q.short} testid="quick-short" onPick={(short) => pick({ short })} options={[
-        { value: false, label: t('Standard · 240 rounds'), hint: t('240 rounds of twelve months each, at the standard pace.') },
-        { value: true, label: t('Short · 80 rounds'), hint: t('Work is paced about three times faster to fit 80 rounds.') },
+      <Seg label={t('Map size')} value={q.regions} testid="quick-regions" onPick={(regions) => pick({ regions })} options={MAP_PRESETS.filter((p) => !p.test).map((p) => ({
+        value: p.regions as QuickSize, label: t('{size} · {n} AIs', { size: t(p.label), n: p.defaultSeats }), hint: `${t('{n} regions', { n: p.regions })}. ${t(p.hint)}`,
+      }))} />
+      <Seg label={t('Calendar')} value={q.quick} testid="quick-calendar" onPick={(quick) => pick({ quick })} options={[
+        { value: false, label: t('Standard · 525 rounds'), hint: t('5000 BC to AD 2500: rounds of fifty years in antiquity, shortening to two years from 1950. Standing orders act year by year inside long rounds.') },
+        { value: true, label: t('Quick · 230 rounds'), hint: t('The same 5000 BC to AD 2500 in fewer, longer rounds: up to a century each in antiquity, five years in the modern age.') },
       ]} />
       <button type="button" class="title-btn is-primary tq-start" disabled={busy} data-testid="title-observer-start" onClick={() => void start()}>
         <Icon name="eye" size={15} /> {busy ? t('Drawing the world…') : t('Start watching')}
@@ -127,7 +135,7 @@ function ObserverQuickStart({ live, busy, onClose }: { live: boolean; busy: bool
       {live ? <p class="tq-note">{t('Starting replaces the match in progress (its autosave is kept).')}</p> : null}
       {error ? <p class="title-error" role="alert"><Icon name="warn" size={13} /> {error}</p> : null}
       <button type="button" class="tq-more" data-testid="title-observer-custom" onClick={() => setScreen('setup', 'observer')}>
-        <span><b>{t('Custom observer match…')}</b><small>{t('Seat LLM agents, pick the seed and the objective mode')}</small></span><Icon name="right" size={13} />
+        <span><b>{t('Custom observer match…')}</b><small>{t('Two to ten seats, LLM agents, the seed, the world and the objective mode')}</small></span><Icon name="right" size={13} />
       </button>
     </aside>
   );
@@ -167,7 +175,7 @@ export function Title() {
         <header class="title-head">
           <BrandMark size={64} />
           <Wordmark />
-          <p class="tagline">{t('Four peoples under one sky. Feed them, teach them, govern them — and find the road beyond it.')}</p>
+          <p class="tagline">{t('Seven thousand years under one sky. Feed your people, teach them, govern them — and find the road beyond it.')}</p>
         </header>
         <nav class="title-menu" aria-label={t('Main menu')}>
           <Item icon="play" label={t('Continue')} sub={resume} testid="title-continue" disabled={!live} onClick={() => setScreen('game')} />
@@ -175,7 +183,7 @@ export function Title() {
             <p class="title-note" role="alert" data-testid="title-restore-failed">{t('The autosave could not be loaded, so no match was restored. It has been kept: open Load game to see it.')}</p>
           ) : null}
           <Item icon="flag" label={t('New game')} sub={t('Choose seats, world and objective')} testid="title-new" onClick={() => setScreen('setup')} />
-          <Item icon="eye" label={t('Observer mode')} sub={t('Watch four AI civilizations play a match')} testid="title-observer"
+          <Item icon="eye" label={t('Observer mode')} sub={t('Watch AI civilizations play a match')} testid="title-observer"
             active={pane === 'observe'} onClick={() => setPane(pane === 'observe' ? 'none' : 'observe')} />
           <Item icon="save" label={t('Load game')} sub={stored.length ? t('{n} saved matches', { n: stored.length }) : t('No saved matches yet')} testid="title-load"
             active={pane === 'load'} onClick={() => setPane(pane === 'load' ? 'none' : 'load')} />
