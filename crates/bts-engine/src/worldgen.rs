@@ -1315,6 +1315,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             tallies: Vec::new(),
             round_start_pop: 0,
             revisit_until: Vec::new(),
+            era: Default::default(),
             diag: CivDiag::default(),
         });
     }

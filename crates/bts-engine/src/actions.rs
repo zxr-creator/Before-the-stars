@@ -189,6 +189,9 @@ fn label(a: &Action) -> String {
         Action::MilitaryOrder { .. } => "military_order".into(),
         Action::Forfeit => "forfeit".into(),
         Action::Directive { .. } => "directive".into(),
+        Action::EnterEra => "enter_era".into(),
+        Action::ChooseCharter { .. } => "choose_charter".into(),
+        Action::ChooseTradition { .. } => "choose_tradition".into(),
     }
 }
 
@@ -723,13 +726,15 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     // and mounted formations need their mounts
                     let per_k = |v: &[(Good, i64)]| -> Vec<(Good, i64)> { v.iter().map(|(g, a)| (*g, a * soldiers as i64 / 1000)).collect() };
                     let covered = |v: &[(Good, i64)]| v.iter().all(|(g, a)| w.civs[si].stock_of(*g) >= *a);
-                    let main = per_k(&def.equipment);
+                    // a held tradition's variant swaps what the formation is equipped with
+                    let variant = crate::sim::eras::variant_for(&w.civs[si], tier);
+                    let main = per_k(&crate::sim::eras::variant_goods(variant, &def.equipment, false));
                     let alt = per_k(&def.alternative);
                     let mut inputs: Vec<(Good, i64)> = if !alt.is_empty() && !covered(&main) && covered(&alt) { alt } else { main };
                     if role == Role::Maneuver {
                         inputs.extend(per_k(&def.maneuver_extra));
                     }
-                    let work = scaled(soldiers as i64 * MUSTER_WORK_PER_K / 1000, pace);
+                    let work = scaled(soldiers as i64 * MUSTER_WORK_PER_K / 1000, pace) * crate::sim::eras::muster_bp(&w.civs[si]) / 10_000;
                     let id = new_project(w, seat, ProjKind::Recruit { role, soldiers, tier }, Some(region), work, inputs, 2, priority);
                     Ok(("Recruitment and equipment ordered.".into(), Some(id)))
                 }
@@ -906,8 +911,18 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
             if crate::sim::culture::institutional_load(w, seat) > crate::sim::culture::institutional_capacity(w, seat) {
                 work = work * 3 / 2;
             }
+            // a dark age opens doors: reforms cost half and take half the time
+            let mut min_months = p.min_months;
+            let mut cost = p.cost.clone();
+            if crate::sim::eras::dark(&w.civs[si], w.month) {
+                work /= 2;
+                min_months = (min_months / 2).max(1);
+                for x in cost.iter_mut() {
+                    x.1 /= 2;
+                }
+            }
             let capital = w.civs[si].capital;
-            let id = new_project(w, seat, ProjKind::Reform { practice: pi }, Some(capital), work, p.cost.clone(), p.min_months, Some(3));
+            let id = new_project(w, seat, ProjKind::Reform { practice: pi }, Some(capital), work, cost, min_months, Some(3));
             w.civs[si].practice[pi].state = 2;
             Ok(("Reform proposed. Assemblies and officials at the capital must give it their time.".into(), Some(id)))
         }
@@ -938,7 +953,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 return fail("INVALID_SCHEMA", "choose between 1 and 2,000,000 places");
             }
             let (cap, reserved) = crate::sim::projects::venue_seats(w, seat, ri, def.venue);
-            if reserved + seats as i64 > cap {
+            if reserved + seats as i64 * 10_000 / crate::sim::eras::course_places_bp(&w.civs[si], &def.id) > cap {
                 return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("the venue in {} has {} free places", w.regions[ri].name, group((cap - reserved).max(0))));
             }
             if w.civs[si].programs.len() >= 200 {
@@ -1062,6 +1077,21 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 w.civs[si].directives.insert(to, d);
                 Ok(("Standing order moved.".into(), None))
             }
+        },
+        // ------------------------------------------------------------ eras and traditions
+        Action::EnterEra => {
+            match crate::sim::eras::enter(w, seat) {
+                Ok(text) => Ok((text, None)),
+                Err(reason) => fail("INSUFFICIENT_VISIBLE_BUDGET", reason),
+            }
+        }
+        Action::ChooseCharter { charter } => match crate::sim::eras::choose_charter(w, seat, &charter) {
+            Ok(text) => Ok((text, None)),
+            Err((code, reason)) => fail(code, reason),
+        },
+        Action::ChooseTradition { slot, path } => match crate::sim::eras::choose_tradition(w, seat, &slot, &path) {
+            Ok((text, id)) => Ok((text, id)),
+            Err((code, reason)) => fail(code, reason),
         },
         Action::Forfeit => {
             w.civs[si].status = SeatStatus::Forfeited;

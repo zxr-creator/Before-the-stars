@@ -20,7 +20,12 @@ use serde::{Deserialize, Serialize};
 /// `Deposit::Minerals` retired), site bonuses and spice land in surveys, helium on gas
 /// fields, unit generations, building lines on facility types, goods shown only once
 /// known (ruleset 3.0 slice 5), productivity breakdowns (slice 6).
-pub const PROTOCOL_VERSION: &str = "bts-protocol/2.1";
+/// 2.2 (additions only, ruleset 3.0 slices 10 and 13): eras, charters, golden and dark
+/// ages and traditions (`Observation.era`, `ForeignCiv.era`, `ForeignCiv.era_name`,
+/// `ForeignCiv.traditions`, `ArmyView.variant`, `SpectatorCiv.era`,
+/// `SpectatorCiv.traditions`, `Action::EnterEra`, `Action::ChooseCharter`,
+/// `Action::ChooseTradition`).
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.2";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -392,6 +397,160 @@ pub struct Observation {
     /// This seat's standing orders, in the order they are evaluated.
     #[serde(default)]
     pub directives: Vec<DirectiveView>,
+    /// The seat's era, charters, age and traditions (design chapter 37, sections 3
+    /// and 4; protocol 2.2). Absent in older observations.
+    #[serde(default)]
+    pub era: Option<EraView>,
+}
+
+/// A civilization's place on the era ladder and what goes with it.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct EraView {
+    /// 0 Ancient, 1 Classical, 2 Medieval, 3 Early Modern, 4 Industrial, 5 Modern,
+    /// 6 Information, 7 Space, 8 AI (9 Interstellar only once the objective is revealed).
+    pub era: u8,
+    pub name: String,
+    /// Month the era was entered (0 for the Ancient era at the start).
+    pub since: Month,
+    /// The crossing into this era, while it lasts.
+    pub transition: Option<TransitionView>,
+    /// A golden or dark age, while it lasts.
+    pub age: Option<AgeView>,
+    /// The charters of this era: the one or two held and the others that could be chosen.
+    pub charters: Vec<CharterView>,
+    /// Charters that may be held at once now (1, or 2 in a golden age; 0 in the Ancient era).
+    pub charter_slots: u8,
+    /// What changing a charter would cost now, or why it is not allowed.
+    pub charter_note: String,
+    /// The next era and what entering it takes; absent at the top of the ladder.
+    pub next: Option<NextEraView>,
+    /// What the people of this era expect each month per thousand residents (design
+    /// chapter 37, section 3.5); read by the consumption rules of ruleset 3.0 slice 11.
+    pub expected_basket: Vec<GoodQty>,
+    /// The machine slot (offered from the Industrial era) and the frontier slot
+    /// (offered from the Information era).
+    pub traditions: Vec<TraditionView>,
+    /// Eras entered so far, oldest first, with how each crossing ended.
+    pub history: Vec<EraEntryView>,
+}
+
+/// The crossing into an era: strain while it lasts, and the score that decides the age after it.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct TransitionView {
+    pub era: u8,
+    pub start: Month,
+    pub end: Month,
+    /// Stability points the old order takes off every month of the crossing.
+    pub strain: u8,
+    /// Share of filled posts in works two or more eras behind, basis points.
+    pub obsolete_share_bp: u16,
+    /// The score the crossing would end with if it ended now (0-100; 75 or more: a
+    /// golden age; under 40: a dark age).
+    pub score: u8,
+    pub parts: Vec<ScorePart>,
+    /// Events that cost integrity points so far.
+    pub events: Vec<String>,
+}
+
+/// One of the four parts of a transition score (25 points each).
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ScorePart {
+    pub name: String,
+    pub points: u8,
+    pub detail: String,
+}
+
+/// A golden or dark age.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct AgeView {
+    /// "golden" or "dark".
+    pub kind: String,
+    pub era: u8,
+    pub until: Month,
+    /// The score of the crossing that began it.
+    pub score: u8,
+    pub effects: Vec<String>,
+}
+
+/// An era charter (design chapter 37, section 3.4).
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CharterView {
+    pub key: String,
+    pub era: u8,
+    pub name: String,
+    pub effect: String,
+    pub cost: String,
+    pub held: bool,
+    /// Whether `choose_charter` would accept it now.
+    pub available: bool,
+}
+
+/// The next rung of the era ladder.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct NextEraView {
+    pub era: u8,
+    pub name: String,
+    /// Understood knowledge, established practice and the built proof. A technology
+    /// the seat has not discovered is named only by its era and domain.
+    pub conditions: Vec<KnownRequirement>,
+    /// Whether `enter_era` would be accepted now.
+    pub eligible: bool,
+    /// Months the crossing would last.
+    pub transition_months: u32,
+    /// Stability points a month the old order would take off if the era were entered now.
+    pub strain_if_entered: u8,
+    /// Share of filled posts that would count as obsolete, and as modern (works of
+    /// the new era or the one before), basis points.
+    pub obsolete_share_bp: u16,
+    pub modern_share_bp: u16,
+}
+
+/// One tradition slot and the paths it offers (design chapter 37, section 4).
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct TraditionView {
+    /// "machine" or "frontier".
+    pub slot: String,
+    /// Whether the slot has been offered (the Industrial or Information era entered).
+    pub offered: bool,
+    /// The held path's key, if any.
+    pub held: Option<String>,
+    /// Mastery of the held path, basis points (0-10,000).
+    pub mastery_bp: u16,
+    /// Share of filled industry and power posts in the held path's signature works,
+    /// basis points (mastery grows while it is at least 500).
+    pub signature_share_bp: u16,
+    /// A tradition reform under way: the path it leads to and the project.
+    pub reform_to: Option<String>,
+    pub reform_project: Option<u32>,
+    /// Month from which another switch in this slot is allowed (0: allowed now).
+    pub switch_allowed_from: Month,
+    pub options: Vec<TraditionOption>,
+}
+
+/// A path of a tradition slot. Static content, the same for every seat.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct TraditionOption {
+    pub key: String,
+    /// The display name ("Steampunk") and the sober name beneath it ("Coal and Steam").
+    pub name: String,
+    pub sober_name: String,
+    pub description: String,
+    pub favoured_by: String,
+    pub signature_works: Vec<String>,
+    pub exclusive_works: Vec<String>,
+    pub unit_variant: String,
+    pub drawbacks: Vec<String>,
+    pub held: bool,
+}
+
+/// An era entered, and the age its crossing ended in.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct EraEntryView {
+    pub era: u8,
+    pub month: Month,
+    /// "golden", "steady" or "dark" once the crossing has ended.
+    pub outcome: Option<String>,
+    pub score: Option<u8>,
 }
 
 /// A date of the historical calendar.
@@ -1095,6 +1254,16 @@ pub struct ForeignCiv {
     /// How this seat's records describe the counterpart's past performance, 0..=100.
     pub trust: u8,
     pub notes: Vec<String>,
+    /// The counterpart's era and held traditions: coarse public facts among seats
+    /// that have met, because they show in its works, armies and goods (design
+    /// chapter 37, section 3.6). Absent before protocol 2.2.
+    #[serde(default)]
+    pub era: Option<u8>,
+    #[serde(default)]
+    pub era_name: Option<String>,
+    /// Keys of the traditions it holds ("steam", "network" ...).
+    #[serde(default)]
+    pub traditions: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1526,6 +1695,9 @@ pub struct ArmyView {
     pub target: Option<RegionId>,
     pub training_months_left: u16,
     pub in_battle: bool,
+    /// The tradition variant the formation was equipped as ("Ironclad and rail" ...).
+    #[serde(default)]
+    pub variant: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1785,6 +1957,11 @@ pub struct SpectatorCiv {
     pub goods: Vec<GoodQty>,
     pub research_capacity: i64,
     pub reward: Option<f64>,
+    /// Era and held tradition keys (protocol 2.2).
+    #[serde(default)]
+    pub era: u8,
+    #[serde(default)]
+    pub traditions: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1979,6 +2156,19 @@ pub enum Action {
     MilitaryOrder { army: u32, order: ArmyOrder },
     /// Formally withdraw from the match. Irreversible; the seat scores -1.
     Forfeit,
+    /// Enter the next era (design chapter 37, section 3.2). Accepted when every
+    /// condition of [`NextEraView`] holds; the crossing starts at once.
+    EnterEra,
+    /// Hold a charter of the present era by its key ([`CharterView::key`]). With a
+    /// charter already held (and no second place from a golden age) it replaces it:
+    /// stability -3 for 60 months and no further change for 240 months, free in a
+    /// dark age.
+    ChooseCharter { charter: String },
+    /// Commit a tradition slot ("machine" or "frontier") to a path ("steam",
+    /// "engine", "wire", "atom", "network", "living", "synthetic"). From unaligned it
+    /// takes effect at once; from another path it starts a tradition reform of at
+    /// least 120 months.
+    ChooseTradition { slot: String, path: String },
     /// Add, remove or reorder a standing order (see [`Directive`]).
     Directive {
         op: DirectiveOp,

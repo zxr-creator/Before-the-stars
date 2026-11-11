@@ -60,7 +60,7 @@ pub fn admin_capacity(w: &World, seat: SeatId) -> u16 {
         }
     }
     cap += w.regions.iter().filter(|r| r.controller == Some(seat)).map(|r| r.cap(Cap::Admin) / 1000).sum::<i64>();
-    cap.min(200) as u16
+    crate::sim::eras::admin_terms(w, seat, cap).min(200) as u16
 }
 
 /// Institutional load (design chapter 39, section 2.3): what the seat's
@@ -262,6 +262,8 @@ pub fn step(w: &mut World, seat: SeatId) {
     if belief_share(w, seat, "open_courts") > 3000 {
         target += 2;
     }
+    // eras: the crossing's strain, ages, charters, traditions (design chapter 37)
+    target += crate::sim::eras::stability_delta(w, seat);
     let target = target.clamp(5, 95);
     {
         let civ = &mut w.civs[si];
@@ -275,10 +277,11 @@ pub fn step(w: &mut World, seat: SeatId) {
     if stability == 30 && target < 30 {
         brief(w, seat, "danger", "Public order is failing".into(), "Cooperation with the government is collapsing. Less labour answers calls and unrest is spreading.".into(), None, "politics");
     }
+    let relief = crate::sim::eras::occupied_relief_terms(&w.civs[si]);
     for r in w.regions.iter_mut().filter(|r| r.controller == Some(seat)) {
         let u = r.unrest_bp as i64;
         let nu = if r.owner != Some(seat) {
-            (u - 40).max(2500)
+            (u - 40).max(2500 - crate::sim::eras::occupied_relief(relief, r.occupied_since, month))
         } else if stability < 35 {
             (u + 60).min(3500)
         } else {
@@ -301,9 +304,11 @@ pub fn step(w: &mut World, seat: SeatId) {
             if !p.prereq.eval(&PracEnactedCtx { world: w, seat, recognized_only: false }) {
                 continue;
             }
-            // a tradition institution only where the tradition is held (slice 13)
-            if p.tradition.is_some() {
-                continue;
+            // a tradition institution only where the tradition is held, or was within a century
+            if let Some(k) = &p.tradition {
+                if !crate::sim::eras::held_recently(&w.civs[si], k, month) {
+                    continue;
+                }
             }
             // the index counts thousands of people, so its pace does not depend on the unit of account
             let mut gain = isqrt(pop / 1000) * 7 + record / 3 + 40;
@@ -508,6 +513,10 @@ pub fn step_world(w: &mut World) {
             (3500 + 800 * treaties.min(5) + 300 * met).min(9000),
             (3500 + soldier_share * 4 + if at_war { 2000 } else { 0 }).min(9000),
         ];
+        let mut targets = targets;
+        for (k, t) in targets.iter_mut().enumerate() {
+            *t = (*t + crate::sim::eras::tendency_pull(civ, k)).clamp(500, 9500);
+        }
         let crisis = civ.famine_streak > 3 || at_war;
         let (step_cap, year_cap) = if crisis { (40, 500) } else { (12, 150) };
         let l = &mut w.lineages[li];

@@ -167,8 +167,9 @@ fn the_new_methods_trade_one_real_thing_for_another() {
         let recipes = &c.facilities[c.f(mine)].recipes;
         assert_eq!(recipes.last().unwrap().key, "mechanized");
     }
+    // (a tradition's methods, chosen only by a holder, may follow them)
     for (fac, key) in [("steelworks", "electric"), ("machine_shop", "nc")] {
-        assert_eq!(c.facilities[c.f(fac)].recipes.last().unwrap().key, key);
+        assert_eq!(c.facilities[c.f(fac)].recipes.iter().filter(|r| !r.req_src.contains("TRAD:")).last().unwrap().key, key);
     }
 }
 

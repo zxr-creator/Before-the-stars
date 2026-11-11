@@ -6,6 +6,7 @@ pub mod culture;
 pub mod diplomacy;
 pub mod directives;
 pub mod economy;
+pub mod eras;
 pub mod knowledge;
 pub mod military;
 pub mod outbreaks;
@@ -48,6 +49,7 @@ pub fn step_month(w: &mut World) {
     for s in 0..n {
         knowledge::step(w, s as SeatId);
         culture::step(w, s as SeatId);
+        eras::step(w, s as SeatId);
     }
     culture::step_world(w);
     // 7. observation memory

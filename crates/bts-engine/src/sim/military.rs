@@ -44,6 +44,7 @@ pub fn recruit_room(w: &World, seat: SeatId) -> u32 {
     if civ.contacts.iter().any(|c| c.at_war) {
         share = share * 3 / 2;
     }
+    share = share * crate::sim::eras::recruit_bp(civ, w.month) / 10_000;
     let serving: i64 = w.armies.iter().filter(|a| a.owner == seat).map(|a| a.count() as i64).sum();
     let pending: i64 = civ.projects.iter().map(|p| if let ProjKind::Recruit { soldiers, .. } = p.kind { soldiers as i64 } else { 0 }).sum();
     ((working + serving) * share / 10_000 - serving - pending).max(0) as u32
@@ -224,8 +225,10 @@ fn side_power(w: &World, side: &Side, enemy_mix: [i64; 3], terrain_bp: i64) -> (
     for &ai in &side.armies {
         let a = &w.armies[ai];
         let quality = a.proficiency_bp as i64 * a.supply_bp.max(2000) as i64 / 10_000 * a.morale_bp.max(2000) as i64 / 10_000;
+        // a tradition variant's bonuses by role (design chapter 37, section 2.6)
+        let vp = crate::sim::eras::variant_power(&w.civs[a.owner as usize], a.variant);
         for role in 0..3 {
-            by_role[role] += a.soldiers[role] as i64 * TIER_POWER[a.tier as usize] / 1000 * quality / 10_000;
+            by_role[role] += a.soldiers[role] as i64 * TIER_POWER[a.tier as usize] / 1000 * quality / 10_000 * vp[role] / 10_000;
         }
         people += a.count();
     }
@@ -255,6 +258,8 @@ fn side_power(w: &World, side: &Side, enemy_mix: [i64; 3], terrain_bp: i64) -> (
 fn apply_losses(w: &mut World, side: &Side, frac_bp: i64) -> u32 {
     let mut lost = 0;
     for &ai in &side.armies {
+        // augmented soldiers (Living Systems) lose fewer
+        let frac_bp = frac_bp * crate::sim::eras::variant_losses_bp(&w.civs[w.armies[ai].owner as usize], w.armies[ai].variant) / 10_000;
         let a = &mut w.armies[ai];
         for role in 0..3 {
             let l = (a.soldiers[role] as i64 * frac_bp / 10_000) as u32;
@@ -317,12 +322,27 @@ pub fn step(w: &mut World) {
         let count = w.armies[i].count() as i64;
         let def = &c.unit_tiers[tier];
         let mut ok: i64 = 10_000;
-        for (g, a) in &def.upkeep {
+        // the variant's swaps, the Standing Army's surcharge
+        let upkeep = crate::sim::eras::variant_goods(w.armies[i].variant, &def.upkeep, true);
+        let upkeep_f = crate::sim::eras::army_upkeep_bp(&w.civs[owner]);
+        let cap_add = crate::sim::eras::proficiency_add(&w.civs[owner], tier as u8, w.armies[i].variant);
+        if w.armies[i].variant.and_then(|v| crate::sim::eras::TRADITIONS.get(v as usize)).map(|t| t.key == "synthetic").unwrap_or(false) {
+            // autonomous swarms draw compute from the month's supply
+            let need = count * crate::sim::eras::SWARM_COMPUTE_PER_K / 1000;
+            let civ = &mut w.civs[owner];
+            let free = (civ.compute_supply - civ.compute_used).max(0);
+            let got = need.min(free);
+            civ.compute_used += got;
+            if need > 0 {
+                ok = ok.min(got * 10_000 / need);
+            }
+        }
+        for (g, a) in &upkeep {
             if *g == Good::Food {
                 continue;
             }
             // upkeep is stated per thousand soldiers
-            let need = a * count / 1000 * if *g == Good::Munitions && fought.get(i).copied().unwrap_or(false) { 5 } else { 1 };
+            let need = a * count / 1000 * upkeep_f / 10_000 * if *g == Good::Munitions && fought.get(i).copied().unwrap_or(false) { 5 } else { 1 };
             if need > 0 {
                 let got = w.civs[owner].take(*g, need);
                 ok = ok.min(got * 10_000 / need);
@@ -335,7 +355,7 @@ pub fn step(w: &mut World) {
             let total = def.training_months.max(1) as i64;
             let done = total - a.training_left as i64;
             a.proficiency_bp = (3000 + 4000 * done / total) as u16;
-        } else if a.proficiency_bp < 7500 {
+        } else if (a.proficiency_bp as i64) < 7500 + cap_add {
             a.proficiency_bp += 20;
         }
         if a.morale_bp < 8000 {
@@ -411,7 +431,8 @@ pub fn step(w: &mut World) {
         let defenders: Vec<usize> = present.iter().copied().filter(|i| friendly(w, w.armies[*i].owner, ctrl)).collect();
         let lead = w.armies[attackers[0]].owner;
         let home_defence = w.regions[ri].owner == Some(ctrl);
-        let militia = if home_defence { (w.regions[ri].working() / 40).min(MILITIA_MAX) } else { 0 };
+        let militia_f = crate::sim::eras::militia_bp(&w.civs[ctrl as usize]);
+        let militia = if home_defence { ((w.regions[ri].working() as i64 / 40).min(MILITIA_MAX as i64) * militia_f / 10_000) as u32 } else { 0 };
         let def_side = Side { armies: defenders.clone(), militia, militia_tier: military_tier(w, ctrl).min(1) };
         let att_side = Side { armies: attackers.clone(), militia: 0, militia_tier: 0 };
         let terrain_bp = match w.regions[ri].terrain {

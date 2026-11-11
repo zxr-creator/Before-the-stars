@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6c";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s10";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,7 +26,7 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6c";
 /// released each slice that changes saved state carries a pre-release tag
 /// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
 /// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6c";
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s10";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
 pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s5";
 
@@ -170,6 +170,10 @@ pub trait ReqCtx {
     fn contact(&self) -> bool;
     fn religion(&self) -> bool;
     fn sci_method(&self) -> bool;
+    /// Whether the seat holds the tradition (design chapter 37, section 4).
+    fn tradition(&self, _key: &str) -> bool {
+        false
+    }
 }
 
 impl Req {
@@ -185,7 +189,7 @@ impl Req {
             Req::Contact => c.contact(),
             Req::Religion => c.religion(),
             Req::SciMethod => c.sci_method(),
-            Req::Tradition(_) => false,
+            Req::Tradition(k) => c.tradition(k),
             Req::All(v) => v.iter().all(|r| r.eval(c)),
             Req::Any(v) => v.iter().any(|r| r.eval(c)),
         }
@@ -1358,6 +1362,12 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
         "jump_testbed" => (&[(&[Builder], 6_000), (&[Technician], 4_000), (&[Electrician], 6_000), (&[Scientist], 4_000), (&[Orbital], 4_000)], 400.0, 36),
         "jump_yard" => (&[(&[Builder], 8_000), (&[Mechanic], 6_000), (&[Technician], 6_000), (&[Electrician], 4_000), (&[FtlEngineer], 4_000)], 400.0, 48),
         "jump_base" => (&[(&[Builder], 4_000), (&[Technician], 3_000), (&[Electrician], 2_000), (&[Orbital], 3_000), (&[FtlEngineer], 2_000)], 200.0, 24),
+        // tradition works
+        "steam_hammer" | "motor_works" => (&[(B, 1_000), (ME, 500)], 5.0, 6),
+        "tramways" => (&[(B, 2_000), (EL, 500)], 10.0, 12),
+        "compact_reactor" => (&[(&[Builder], 1_000), (&[Technician], 500), (&[Electrician], 500), (&[Scientist], 200)], 20.0, 24),
+        "isotope_works" | "biofoundry" => (&[(B, 1_000), (MT, 500)], 10.0, 9),
+        "noc" | "implant_clinic" | "machine_governance" => (&[(B, 1_000), (MT, 500), (EL, 500)], 10.0, 9),
         _ => panic!("no construction terms for {key}"),
     };
     (crew.iter().map(|(qs, n)| (qs.to_vec(), *n)).collect(), m(power), months)
@@ -1733,12 +1743,18 @@ fn facilities() -> Vec<FacDef> {
         fac("steelworks", "Steelworks", "Industry", "Coke furnaces and controlled steelmaking at scale.")
             .req("T060").cost(&[(Metal, 20.0), (Materials, 20.0), (Tools, 5.0)]).work(160.0)
             .skilled(&[Q::Smith, Q::Mechanic], 4_000).general(12_000)
+            // Coal and Steam (design chapter 37, section 4.1): coke ovens that recover
+            // their tar - a little more coal, the same steel and chemicals besides
+            .recipe(rec("tar_recovery", "Coke steel with tar recovery").req("T274 & TRAD:steam").inp(&[(IronOre, 40.0), (Coal, 22.0)]).out(&[(Metal, 30.0), (Chemicals, 3.0)]).shaft(12.0))
             .recipe(rec("steel", "Coke steel").inp(&[(IronOre, 40.0), (Coal, 20.0)]).out(&[(Metal, 30.0)]).shaft(10.0))
             // electric furnaces: the same steel from the same ore, with a fifth of the
             // coal (the carbon of the charge) and 150 units of electricity in place of
             // the rest and of the blowing engines. Made from coal in turbines and
             // generator halls, that electricity costs as much coal as it saves; from
             // falling water or a reactor it frees the coal. Fewer hands, more electricians.
+            // Current and Wire: the same furnaces one technology early
+            .recipe(rec("arc_early", "Early electric-arc furnaces").req("T287 & TRAD:wire").inp(&[(IronOre, 40.0), (Coal, 4.0)]).out(&[(Metal, 30.0)]).elec(150.0)
+                .general_bp(7_000).extra(&[Q::Electrician, Q::Technician], 1_000))
             .recipe(rec("electric", "Electric steelmaking").req("T103").inp(&[(IronOre, 40.0), (Coal, 4.0)]).out(&[(Metal, 30.0)]).elec(150.0)
                 .general_bp(7_000).extra(&[Q::Electrician, Q::Technician], 1_000))
             .upkeep(&[(Tools, 1.5)]).labor(L::Industry).tags(&[Tag::Metal, Tag::Machine]).scale(2, "C033").scale(6, "C035"),
@@ -1751,6 +1767,10 @@ fn facilities() -> Vec<FacDef> {
             // the hands, and programmers and technicians to keep them cutting
             .recipe(rec("nc", "Numerically controlled machining").req("T114").inp(&[(Metal, 12.5), (Tools, 0.8)]).out(&[(Components, 10.0)]).elec(40.0).compute(20.0)
                 .general_bp(6_000).extra(&[Q::Programmer, Q::Technician], 500).extra(&[Q::Technician, Q::Electrician], 500))
+            // Synthetic Minds: lights-out cells, seven tenths of the hands replaced by
+            // electricity and compute (chosen, never automatic)
+            .recipe(rec("lights_out", "Lights-out machining").req("T319 & TRAD:synthetic").inp(&[(Metal, 12.5), (Tools, 0.8)]).out(&[(Components, 10.0)]).elec(100.0).compute(60.0)
+                .general_bp(1_800).extra(&[Q::Programmer, Q::Technician], 500).extra(&[Q::AiEngineer, Q::Programmer], 300))
             .upkeep(&[(Tools, 1.0)]).labor(L::Industry).tags(&[Tag::Machine]).scale(2, "C033").scale(6, "C035"),
         fac("parts_works", "Parts and repair works", "Industry", "Spares, lubricants and filters matched to the machines that need them.")
             .req("T066").cost(&[(Metal, 8.0), (Components, 3.0), (Tools, 4.0)]).work(90.0)
@@ -1779,6 +1799,8 @@ fn facilities() -> Vec<FacDef> {
         fac("refinery", "Refinery", "Industry", "Fractionation with composition checks: fuel of known quality plus chemical feedstock.")
             .req("T090").cost(&[(Metal, 25.0), (Components, 8.0), (Materials, 10.0)]).work(200.0)
             .skilled(&[Q::Technician, Q::Mechanic], 2_000).general(6_000)
+            // Oil and Engine: cracking turns more of the barrel into fuel
+            .recipe(rec("cracking", "Cracking and high-octane refining").req("T278 & TRAD:engine").inp(&[(Crude, 20.0)]).out(&[(Fuel, 13.0), (Chemicals, 5.0)]).shaft(6.0))
             .recipe(rec("refine", "Fractionation").inp(&[(Crude, 20.0)]).out(&[(Fuel, 11.0), (Chemicals, 7.0)]).shaft(4.0))
             .upkeep(&[(Spares, 0.4)]).labor(L::Industry).tags(&[Tag::Fuel, Tag::Chem]),
         fac("synfuel", "Synthetic fuel plant", "Industry", "Fuel from coal and electricity when wells are out of reach.")
@@ -1903,6 +1925,8 @@ fn facilities() -> Vec<FacDef> {
             .skilled(&[Q::Mechanic, Q::Artisan], 1_000).general(4_000)
             .recipe(rec("appliances", "Electrical appliances").req("T101").inp(&[(Metal, 0.6), (Insulation, 0.3), (Textiles, 0.2), (Electronics, 0.02)]).out(&[(ConsumerGoods, 8.0)]).elec(30.0))
             .recipe(rec("household", "Household goods").inp(&[(Metal, 0.6), (Insulation, 0.3), (Textiles, 0.2)]).out(&[(ConsumerGoods, 7.0)]).shaft(20.0))
+            .recipe(rec("lights_out", "Lights-out assembly").req("T319 & TRAD:synthetic").inp(&[(Metal, 0.6), (Insulation, 0.3), (Textiles, 0.2), (Electronics, 0.02)]).out(&[(ConsumerGoods, 8.0)]).elec(90.0).compute(40.0)
+                .general_bp(3_000).extra(&[Q::AiEngineer, Q::Programmer], 200))
             .upkeep(&[(Spares, 0.1)]).labor(L::Industry).tags(&[Tag::Machine, Tag::Trade]),
         fac("fine_wares", "Fine-wares workshops", "Industry", "Jewellery, glazed and painted wares and fine cloth: luxuries for home and for export.")
             .req("T008 | T031").cost(&[(Materials, 4.0), (Tools, 1.0)]).work(20.0).skilled(&[Q::Artisan], 1_500).general(3_000)
@@ -2130,6 +2154,54 @@ fn facilities() -> Vec<FacDef> {
             .recipe(rec("lattice", "Lattice conditioning").inp(&[(Substrate, 0.5), (Magnets, 0.5), (Helium, 0.05)]).out(&[(Lattice, 20.0)]).elec(2000.0))
             .recipe(rec("lattice_hts", "Lattice conditioning, nitrogen-cooled").inp(&[(Substrate, 0.5), (Magnets, 0.5)]).out(&[(Lattice, 20.0)]).elec(2400.0))
             .upkeep(&[(Spares, 2.0)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Space]).max(1),
+        // ---- tradition works (design chapter 37, section 4.1; ruleset 3.0 slice 13) ----
+        // Buildable only while the tradition is held; knowledge itself is never locked.
+        fac("steam_hammer", "Steam hammer works", "Industry", "Coal-fired forges and steam hammers cutting components to gauge: the machine shop of the Coal and Steam tradition. Mastery saves up to 15% of its general posts.")
+            .req("T270 & TRAD:steam").cost(&[(Metal, 16.0), (Tools, 6.0), (Materials, 10.0)]).work(140.0)
+            .skilled(&[Q::Mechanic, Q::Smith, Q::Artisan], 4_000).general(6_000)
+            .recipe(rec("forging", "Steam forging").inp(&[(Metal, 12.5), (Tools, 0.8), (Coal, 1.5)]).out(&[(Components, 10.0)]).shaft(40.0))
+            .upkeep(&[(Tools, 1.0)]).labor(L::Industry).tags(&[Tag::Machine, Tag::Steam, Tag::Metal]),
+        fac("motor_works", "Motor works", "Industry", "Engines and vehicles built on moving lines: components from fewer hands, burning fuel on the test beds. Oil and Engine only.")
+            .req("T280 & TRAD:engine").cost(&[(Metal, 14.0), (Components, 4.0), (Tools, 4.0), (Materials, 8.0)]).work(150.0)
+            .skilled(&[Q::Mechanic, Q::Technician], 2_000).general(2_500)
+            .recipe(rec("motors", "Motor and vehicle assembly").inp(&[(Metal, 10.0), (Fuel, 0.6), (Tools, 0.4)]).out(&[(Components, 8.0)]).shaft(20.0))
+            .upkeep(&[(Spares, 0.2)]).labor(L::Industry).tags(&[Tag::Machine, Tag::Fuel]),
+        fac("tramways", "Trams and metros", "Transport", "Electric street railways and underground lines: the city reaches farther, and its works and offices find their people (city factor up to +5% with mastery). Current and Wire only.")
+            .req("T286 & TRAD:wire").cost(&[(Metal, 20.0), (Conductors, 8.0), (Components, 4.0), (Materials, 20.0)]).work(300.0)
+            .skilled(&[Q::Electrician, Q::Technician], 1_000).general(2_000)
+            .recipe(rec("traction", "Electric traction").elec(30.0))
+            .upkeep(&[(Spares, 0.3)]).labor(L::Services).tags(&[Tag::Electric, Tag::Build, Tag::Trade]).max(10),
+        fac("compact_reactor", "Compact reactor", "Power", "A factory-built reactor: 400 units of electricity a level for six tenths of a fission plant's bill per unit. Atom only; the reactor-incident hazard applies.")
+            .req("T295 & C045 & TRAD:atom").cost(&[(Metal, 19.2), (Components, 9.6), (Electronics, 4.8), (Conductors, 4.8), (Insulation, 2.4)]).work(480.0)
+            .skilled(&[Q::Scientist], 400).skilled(&[Q::Technician], 1_200).skilled(&[Q::Electrician], 800).general(800)
+            .recipe(rec("compact", "Compact fission").inp(&[(NuclearFuel, 0.6)]).gives_elec(400.0))
+            .upkeep(&[(Spares, 0.8), (Electronics, 0.12)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Electric]).power(),
+        fac("isotope_works", "Isotope works", "Industry", "Irradiated targets and hot cells: medicines and tracer instruments from a little reactor fuel. Atom only.")
+            .req("T294 & TRAD:atom").cost(&[(Metal, 10.0), (Components, 6.0), (Instruments, 4.0), (Materials, 10.0)]).work(250.0)
+            .skilled(&[Q::Scientist, Q::Physician], 1_000).skilled(&[Q::Technician], 1_000).general(1_000)
+            .recipe(rec("isotopes", "Isotopes for medicine and measurement").inp(&[(NuclearFuel, 0.05), (Chemicals, 0.5), (Metal, 0.5)]).out(&[(Medicine, 6.0), (Instruments, 1.0)]).elec(20.0))
+            .upkeep(&[(Spares, 0.2)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Health, Tag::Measure]),
+        fac("noc", "Network operations centre", "Industry", "Watch floors over the national networks: computing centres deliver up to 5% more with mastery, and network incidents are half as likely. Network only.")
+            .req("T302 & TRAD:network").cost(&[(Hardware, 6.0), (Electronics, 10.0), (Components, 4.0), (Conductors, 2.0)]).work(300.0)
+            .skilled(&[Q::Programmer, Q::Technician], 2_000)
+            .recipe(rec("operations", "Network operations").elec(30.0).compute(20.0))
+            .upkeep(&[(Spares, 0.3), (Hardware, 0.05)]).labor(L::Industry).tags(&[Tag::Compute]).max(4),
+        fac("implant_clinic", "Implant clinic", "Civic", "Neural interfaces and cybernetic prosthetics fitted and maintained: qualified posts in the region need up to 10% fewer people with mastery. Network only.")
+            .req("T303 & TRAD:network").cost(&[(Electronics, 6.0), (Instruments, 6.0), (Components, 4.0), (Materials, 10.0)]).work(250.0)
+            .skilled(&[Q::Physician], 1_000).skilled(&[Q::Technician, Q::Electrician], 1_000)
+            .recipe(rec("implants", "Implant fitting").inp(&[(Medicine, 2.0), (Electronics, 0.5)]).elec(10.0))
+            .upkeep(&[(Spares, 0.2)]).labor(L::Services).tags(&[Tag::Health, Tag::Compute]).max(5),
+        fac("biofoundry", "Biofoundry", "Industry", "Engineered organisms in steel vats: chemicals from food and fibre, or fuel from food. Living Systems only; slow to validate, and a contamination hazard.")
+            .req("T310 & TRAD:living").cost(&[(Metal, 10.0), (Components, 6.0), (Instruments, 4.0), (Materials, 10.0)]).work(220.0)
+            .skilled(&[Q::Technician, Q::Physician], 1_500).general(3_000)
+            .recipe(rec("biochem", "Biochemicals from food and fibre").inp(&[(Food, 40.0), (Fibres, 2.0)]).out(&[(Chemicals, 3.5)]).elec(10.0))
+            .recipe(rec("biofuel", "Biofuel from food").inp(&[(Food, 60.0)]).out(&[(Fuel, 2.5)]).elec(10.0))
+            .upkeep(&[(Spares, 0.2)]).labor(L::Industry).tags(&[Tag::Bio, Tag::Chem]),
+        fac("machine_governance", "Machine governance centre", "Civic", "Validated models administer what offices once did: each level administers six more regions. Synthetic Minds only.")
+            .req("T320 & TRAD:synthetic").cost(&[(Hardware, 10.0), (Electronics, 20.0), (Components, 6.0)]).work(400.0)
+            .skilled(&[Q::AiEngineer, Q::Programmer], 2_000)
+            .recipe(rec("governance", "Machine administration").elec(60.0).compute(100.0))
+            .provides(Cap::Admin, 6.0).upkeep(&[(Spares, 0.3), (Hardware, 0.1)]).labor(L::Services).tags(&[Tag::Compute, Tag::Record]),
     ];
     v.into_iter()
         .map(|f| {
@@ -2248,6 +2320,16 @@ pub fn line_meta(key: &str) -> (&'static str, u8, u8) {
         "jump_yard" => ("jump", 2, 9),
         "jump_base" => ("jump", 3, 9),
         "lattice_works" => ("lattice", 1, 9),
+        // tradition works: lines of their own, so that no generic stage upgrades into them
+        "steam_hammer" => ("tradition_steam", 1, 4),
+        "motor_works" => ("tradition_engine", 1, 5),
+        "tramways" => ("tradition_wire", 1, 5),
+        "compact_reactor" => ("tradition_atom", 1, 7),
+        "isotope_works" => ("tradition_atom", 2, 7),
+        "noc" => ("tradition_network", 1, 6),
+        "implant_clinic" => ("tradition_network", 2, 7),
+        "biofoundry" => ("tradition_living", 1, 6),
+        "machine_governance" => ("tradition_synthetic", 1, 8),
         _ => panic!("no building line for {key}"),
     }
 }
@@ -2536,6 +2618,10 @@ impl Content {
     }
     pub fn f(&self, key: &str) -> usize {
         *self.fac_ix.get(key).unwrap_or_else(|| panic!("unknown facility {key}"))
+    }
+    /// Parse a requirement expression against the loaded graph.
+    pub fn parse(&self, s: &str) -> Req {
+        parse_req(s, &self.tech_ix, &self.prac_ix, &self.fac_ix)
     }
 }
 

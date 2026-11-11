@@ -58,7 +58,7 @@ pub fn hazard_ppm(w: &World, ri: usize) -> i64 {
     // trade routes join this with the market (design section 6); until then only armies
     let armies = if w.month < r.army_seen + 12 && r.army_seen > 0 { 5_000 } else { 0 };
     let connectivity = 10_000 + armies;
-    let mut h = HAZARD_PPM * density / 10_000 * connectivity / 10_000 * protection_bp(w, ri) / 10_000;
+    let mut h = HAZARD_PPM * density / 10_000 * connectivity / 10_000 * protection_bp(w, ri) / 10_000 * crate::sim::eras::outbreak_bp(w, ri) / 10_000;
     if w.month < r.immune_until {
         h /= 4;
     }

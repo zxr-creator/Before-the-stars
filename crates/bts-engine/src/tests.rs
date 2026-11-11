@@ -17,6 +17,7 @@ mod worldgen;
 mod goods;
 mod productivity;
 mod graph39;
+mod eras;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
@@ -1494,8 +1495,8 @@ fn recruits_and_fallen_militia_take_their_qualifications_with_them() {
 
     // through the real order: a formation is raised, and the world loses nobody
     // (a world whose capital can call up the muster: in some worlds of ruleset
-    // 3.0.0-s6c the last worker-month waits on call-up for a long time)
-    let mut m = Match::new(cfg("enlist-b"), 1);
+    // 3.0.0-s6c and -s10 the last worker-month waits on call-up for a long time)
+    let mut m = Match::new(cfg("enlist-e"), 1);
     let capital = m.world.civs[0].capital;
     let before = m.ledger_snapshot();
     let r = m.act(0, vec![Action::StartProject { spec: ProjectSpec::Recruit { region: capital, role: Role::Denial, soldiers: 8_000, tier: 0 }, priority: None }]);

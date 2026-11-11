@@ -50,7 +50,9 @@ fn neutral() -> bool {
 pub const SECTORS: usize = 6;
 pub const LP_MIN: i64 = 5_000;
 pub const LP_MAX: i64 = 40_000;
-pub const LPQ_MAX: i64 = 15_000;
+/// The automation factor's ceiling: 15,000, or 16,000 under the Automation Drive
+/// charter (`sim::eras::auto_cap`), which clamps each seat's factor below this.
+pub const LPQ_MAX: i64 = 16_000;
 pub const CONSTRUCTION_MAX: i64 = 15_000;
 /// Eras 0-9, and a cap of 10 that admits every technology.
 pub const ERA_CAPS: usize = 11;
@@ -223,8 +225,9 @@ pub fn civ_tables(civ: &Civ) -> CivTables {
             }
         }
     }
+    let cap = crate::sim::eras::auto_cap(civ);
     for a in auto.iter_mut() {
-        *a = (*a).clamp(10_000, LPQ_MAX);
+        *a = (*a).clamp(10_000, cap);
     }
     CivTables { tech, auto }
 }
@@ -322,6 +325,10 @@ pub fn region_factors(w: &World, seat: SeatId, ri: usize) -> RegionFactors {
     if civ.established(c.p(GUILDS.0)) && !civ.established(c.p(GUILDS.2)) {
         cul[Sector::Industry.index()] += GUILDS.1;
     }
+    // charters and a golden age (design chapter 37, sections 3.3-3.4)
+    for s in Sector::ALL {
+        cul[s.index()] += crate::sim::eras::sector_lp_add(civ, *s, w.month);
+    }
     if let Some(rl) = faith.and_then(|f| w.religions.get(f as usize)) {
         for (key, sectors, bp) in DOCTRINE_BONUS {
             if rl.beliefs.iter().any(|b| b == key) {
@@ -340,10 +347,14 @@ pub fn region_factors(w: &World, seat: SeatId, ri: usize) -> RegionFactors {
     let pressure = r.health_bp as i64;
     let class = city_class(w, ri);
     let mut city = [10_000i64; SECTORS];
+    let trams = crate::sim::eras::tram_city_add(w, seat, ri);
     for s in Sector::ALL {
         city[s.index()] = city_factor(class, *s, 0, water_bp, pressure);
+        if trams > 0 && matches!(s, Sector::Industry | Sector::Services | Sector::Knowledge) {
+            city[s.index()] = (city[s.index()] + trams).min(13_000);
+        }
     }
-    let health = (10_000 - (10_000 - food_access(r).min(10_000)) / 2 - pressure / 4).clamp(6_000, 10_000);
+    let health = (10_000 - (10_000 - food_access(r).min(10_000)) / 2 - pressure / 4).clamp(6_000, 10_000) + crate::sim::eras::health_add(civ);
     RegionFactors { edu, cul, rel, city, health }
 }
 
@@ -403,6 +414,7 @@ pub fn breakdown(w: &World, seat: SeatId, ri: usize) -> Vec<ProductivityView> {
             if *s == Sector::Industry && civ.established(c.p(GUILDS.0)) && !civ.established(c.p(GUILDS.2)) {
                 cul_detail.push(format!("Practice: {}", c.practices[c.p(GUILDS.0)].name));
             }
+            cul_detail.extend(crate::sim::eras::sector_lp_notes(civ, *s, w.month));
             let _ = lineage;
             factors.push(FactorView { source: "culture".into(), bp: f.cul[k] as u32, detail: cul_detail.join("; ") });
             let mut rel_detail = Vec::new();

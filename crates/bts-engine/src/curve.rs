@@ -62,6 +62,20 @@ pub struct CurveRow {
     pub fert_intensity_bp: i64,
     pub cap_ratio_bp: i64,
     pub land_bp: i64,
+    /// Era (0-9), whether a crossing is under way, the age (0 none, 1 golden,
+    /// 2 dark), golden and dark ages so far, held traditions (index + 1, 0 none)
+    /// and their mastery (design chapter 37; slice 10).
+    pub era: u8,
+    pub crossing: u8,
+    pub age: u8,
+    pub golden: u8,
+    pub dark: u8,
+    pub trad_machine: u8,
+    pub trad_frontier: u8,
+    pub mastery_machine: u16,
+    pub mastery_frontier: u16,
+    /// Residents of the seat's most populous region.
+    pub largest_region: u32,
 }
 
 impl CurveRow {
@@ -78,6 +92,7 @@ impl CurveRow {
             h += &format!(",made_{}", serde_json::to_value(g).ok().and_then(|v| v.as_str().map(|x| x.to_string())).unwrap_or_default());
         }
         h += ",food_share_bp,food_per_worker,established,fert_food_bp,fert_intensity_bp,cap_ratio_bp,land_bp";
+        h += ",era,crossing,age,golden,dark,trad_machine,trad_frontier,mastery_machine,mastery_frontier,largest_region";
         h
     }
     pub fn csv(&self) -> String {
@@ -96,6 +111,7 @@ impl CurveRow {
             s += &format!(",{v}");
         }
         s += &format!(",{},{},{},{},{},{},{}", self.food_share_bp, self.food_per_worker, self.established, self.fert_food_bp, self.fert_intensity_bp, self.cap_ratio_bp, self.land_bp);
+        s += &format!(",{},{},{},{},{},{},{},{},{},{}", self.era, self.crossing, self.age, self.golden, self.dark, self.trad_machine, self.trad_frontier, self.mastery_machine, self.mastery_frontier, self.largest_region);
         s
     }
 }
@@ -234,6 +250,19 @@ impl CurveRecorder {
                 fert_intensity_bp: civ.diag.fert_intensity_bp,
                 cap_ratio_bp: civ.diag.cap_ratio_bp,
                 land_bp: civ.diag.land_bp,
+                era: civ.era.era,
+                crossing: civ.era.transition.is_some() as u8,
+                age: match &civ.era.age {
+                    Some(a) if w.month < a.until => if a.golden { 1 } else { 2 },
+                    _ => 0,
+                },
+                golden: civ.era.history.iter().filter(|h| h.2 == 1).count() as u8,
+                dark: civ.era.history.iter().filter(|h| h.2 == 3).count() as u8,
+                trad_machine: civ.era.traditions[0].map(|t| t + 1).unwrap_or(0),
+                trad_frontier: civ.era.traditions[1].map(|t| t + 1).unwrap_or(0),
+                mastery_machine: civ.era.mastery[0],
+                mastery_frontier: civ.era.mastery[1],
+                largest_region: w.regions.iter().filter(|r| r.controller == Some(civ.seat)).map(|r| r.population()).max().unwrap_or(0),
             });
         }
     }
