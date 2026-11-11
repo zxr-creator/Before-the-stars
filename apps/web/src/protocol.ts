@@ -121,7 +121,6 @@ export interface Observation {
    * site as unclaimed and unsurveyed. Every field is optional.
    */
   space?: SpaceView | null;
-  /**
   /** bts-protocol/2.2: era, charters, golden or dark age and traditions. */
   era?: EraView | null;
 }
