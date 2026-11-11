@@ -18,6 +18,17 @@ pub const TOOLS_JSON: &str = include_str!("../../../tools/mcp-tools.json");
 const PROTOCOLS: [&str; 4] = ["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"];
 /// The line that separates a brief packet's briefing from its JSON part.
 pub const PACKET_MARK: &str = "--- decision packet (JSON) ---";
+/// The largest reply one tool result carries (about 30,000 tokens). Agent CLIs cut or
+/// refuse longer tool results; a clear refusal with advice serves the model better.
+pub const MAX_REPLY_BYTES: usize = 120_000;
+
+/// A packet too large for one tool result becomes advice on what to ask for instead.
+pub fn fit(text: String) -> Value {
+    if text.len() <= MAX_REPLY_BYTES {
+        return json!({ "content": [{ "type": "text", "text": text }] });
+    }
+    tool_error(&format!("That reply would be {} KB (about {} tokens), more than one tool result can hold. Ask for fewer sections at a time; in a large civilization \"regions\" is the largest (mostly construction sites listed per region) and \"chronicle\" grows with history. The brief view already summarizes every region. Orders are unaffected.", text.len() / 1024, text.len() / 4))
+}
 
 #[derive(Clone, Debug)]
 pub struct Binding {
@@ -97,7 +108,7 @@ impl Server {
         };
         match result {
             Ok(resp) => match resp.into_json::<Value>() {
-                Ok(v) => json!({ "content": [{ "type": "text", "text": render(&v) }] }),
+                Ok(v) => fit(render(&v)),
                 Err(e) => tool_error(&format!("the referee's answer could not be read: {e}")),
             },
             Err(ureq::Error::Status(code, resp)) => {
@@ -260,6 +271,14 @@ mod tests {
         let json: Value = serde_json::from_str(text.split(PACKET_MARK).nth(1).unwrap().trim()).unwrap();
         assert_eq!(json["cursor"], "abc");
         assert!(json.get("standing_orders").is_none() && json.get("briefing").is_none());
+    }
+
+    #[test]
+    fn a_reply_too_large_for_one_tool_result_becomes_advice() {
+        assert_eq!(fit("small".into())["content"][0]["text"], "small");
+        let big = fit("x".repeat(MAX_REPLY_BYTES + 1));
+        assert_eq!(big["isError"], true);
+        assert!(big["content"][0]["text"].as_str().unwrap().contains("fewer sections"));
     }
 
     #[test]

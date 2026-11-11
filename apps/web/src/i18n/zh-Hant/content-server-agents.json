@@ -11,5 +11,6 @@
  "Enter an API key for this seat, or set the environment variable before starting the game.": "請為此席位輸入 API 金鑰，或在啟動遊戲前設定相應的環境變數。",
  "agent seats are set up only on a referee that does not require seat tokens": "只有在不要求席位令牌的裁判上才能設定智慧體席位",
  "another test is running; try again when it has finished": "另一項測試正在進行；請等它結束後再試",
- "the test request could not be read": "無法讀取這次測試的請求"
+ "the test request could not be read": "無法讀取這次測試的請求",
+ "The API key was refused. Check the key, or switch this seat to the CLI's own sign-in.": "API 金鑰被拒絕。請檢查金鑰，或把此席位改為使用命令列工具自己的登入。"
 }

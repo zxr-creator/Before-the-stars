@@ -802,7 +802,7 @@ fn a_save_never_contains_an_api_key() {
         json!({
             "seed": "keys", "regions": 24, "controllers": ["claude-api", "claude-api", "medium", "hard"],
             "agent_options": {
-                "0": { "model": "some-model", "api_key": KEY, "base_url": format!("https://gateway-user:{KEY}@proxy.example:8443/v1/messages?api_key={KEY}&x=1#frag-{KEY}"), "effort": "high" },
+                "0": { "model": "some-model", "api_key": KEY, "base_url": format!("https://gateway-user:{KEY}@proxy.example:8443/v1/messages?api_key={KEY}&x=1#frag-{KEY}"), "effort": "high", "auth": "api_key", "budget_seconds": 120, "max_usd": 1.0, "max_calls": 999 },
                 "1": { "model": format!("model-{OTHER}"), "api_key": format!("  {OTHER}  "), "base_url": format!("proxy.example/{OTHER}/v1"), "effort": OTHER },
             },
         }),
@@ -839,7 +839,8 @@ fn a_save_never_contains_an_api_key() {
 
     // what a save does keep of the seat: provider, model, pace, and the address without its credentials
     let saved: Value = serde_json::from_str(&text).unwrap();
-    assert_eq!(saved["agent_cfgs"][0], json!({ "provider": "claude-api", "model": "some-model", "consult_every": 1, "base_url": "https://proxy.example:8443/v1/messages", "effort": "high" }));
+    // (the sign-in choice and the cost guard are kept, clamped to their bounds; the key is not)
+    assert_eq!(saved["agent_cfgs"][0], json!({ "provider": "claude-api", "model": "some-model", "consult_every": 1, "base_url": "https://proxy.example:8443/v1/messages", "effort": "high", "auth": "api_key", "budget_seconds": 120, "max_usd": 1.0, "max_calls": 60 }));
     assert_eq!(saved["agent_cfgs"][1], json!({ "provider": "claude-api", "model": "", "consult_every": 1, "base_url": null, "effort": null }));
     assert!(saved["agent_cfgs"][0].get("api_key").is_none());
 

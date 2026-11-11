@@ -100,6 +100,9 @@ pub fn hint(provider: Provider, error: &str) -> Option<String> {
     if e.contains("is not supported when using codex with a chatgpt account") || (e.contains("model") && e.contains("not supported")) {
         return Some("Your Codex sign-in does not include that model. Pick another model for this seat (the list shows the models your Codex offers), or leave it on the default.".into());
     }
+    if e.contains("fix external api key") || (e.contains("invalid api key") && !e.contains("/login")) || e.contains("incorrect api key") {
+        return Some("The API key was refused. Check the key, or switch this seat to the CLI's own sign-in.".into());
+    }
     if claude && (e.contains("oauth") || e.contains("failed to authenticate") || e.contains("not logged in") || e.contains("please run /login") || e.contains("invalid api key") || e.contains("authentication")) {
         return Some("Sign Claude Code in again: in a terminal run `claude`, then type /login (or run `claude auth login`). Or switch this seat to an Anthropic API key.".into());
     }
@@ -905,6 +908,7 @@ mod tests {
         let e = claude_result(expired, "").unwrap_err();
         assert!(e.contains("OAuth session expired"));
         assert!(hint(Provider::ClaudeCode, &e).unwrap().contains("/login"));
+        assert!(hint(Provider::ClaudeCode, "Claude Code reported an error: Invalid API key · Fix external API key").unwrap().contains("key was refused"));
         let capped = r#"{"type":"result","subtype":"error_max_budget_usd","is_error":true,"total_cost_usd":0.5}"#;
         assert!(claude_result(capped, "").unwrap().text.contains("spending limit"), "a spent budget ends the consultation, it does not fail the seat");
         let codex_err = "{\"type\":\"error\",\"message\":\"{\\\"detail\\\":\\\"The 'gpt-6.1-sol' model is not supported when using Codex with a ChatGPT account.\\\"}\"}\n";

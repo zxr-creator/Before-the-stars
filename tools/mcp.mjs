@@ -10,6 +10,8 @@ const DEFS = JSON.parse(readFileSync(new URL('./mcp-tools.json', import.meta.url
 const SECTIONS = DEFS.tools[0].inputSchema.properties.sections.items.enum;
 /** The line that separates a brief packet's briefing from its JSON part. */
 export const PACKET_MARK = '--- decision packet (JSON) ---';
+/** The largest reply one tool result carries (about 30,000 tokens); agents cut or refuse longer ones. */
+export const MAX_REPLY_BYTES = 120000;
 
 /** A packet as the model reads it: a brief packet's briefing as plain text, then the rest as JSON. */
 export function render(packet) {
@@ -36,7 +38,11 @@ export function createHandler({
     }
     const res = await fetch(endpoint, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, seat, token }), signal: AbortSignal.timeout(180000) } : { signal: AbortSignal.timeout(60000) });
     const data = await res.json();
-    return { content: [{ type: 'text', text: res.ok ? render(data) : JSON.stringify(data) }], ...(res.ok ? { structuredContent: data } : { isError: true }) };
+    const text = res.ok ? render(data) : JSON.stringify(data);
+    if (res.ok && Buffer.byteLength(text) > MAX_REPLY_BYTES) {
+      return { isError: true, content: [{ type: 'text', text: `That reply would be ${Math.round(Buffer.byteLength(text) / 1024)} KB, more than one tool result can hold. Ask for fewer sections at a time; in a large civilization "regions" is the largest and "chronicle" grows with history. The brief view already summarizes every region.` }] };
+    }
+    return { content: [{ type: 'text', text }], ...(res.ok ? { structuredContent: data } : { isError: true }) };
   };
   const budget = () => ({ isError: true, content: [{ type: 'text', text: `The tool-call budget of this run (${maxCalls} calls) is spent. Make no more calls. Orders you already submitted stay applied.` }] });
   return async (m) => {
