@@ -18,6 +18,7 @@ mod goods;
 mod productivity;
 mod graph39;
 mod eras;
+mod cities;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
@@ -530,6 +531,8 @@ fn every_person_eats_one_ration_a_month() {
     for r in m.world.regions.iter_mut() {
         r.wild = 0;
         r.facilities.clear();
+        // every resident within reach of the stores (provisioning is tested on its own)
+        r.last.food_made = r.population() as i64;
     }
     let pop = m.world.civ_population(0) as i64;
     // a month's food and 100,000 rations over, all of it under cover
@@ -859,7 +862,7 @@ fn print_unit_tables() {
     println!("== Economies of scale ==");
     {
         use crate::sim::economy::*;
-        println!("freight capacity by transport grade 0-3: {:?} facility levels of industry, extraction and power", FREIGHT_CAPACITY);
+        println!("freight capacity: 10 plus each network level's freight (roads 6/10/20, harbour 6/15/30, railway 20/25/25, canal 10/20)");
         println!("shared support posts: {} bp of general posts per level beyond the first, at most {} bp", SUPPORT_SAVING_PER_LEVEL_BP, SUPPORT_SAVING_CAP_BP);
         println!("maintenance pooling: at most {} bp of spares and tools upkeep; one level of repair works serves {} levels", MAINT_SAVING_CAP_BP, REPAIR_WORKS_SERVE);
         println!("congestion: at most {} bp more lost in carriage", CONGESTION_LOSS_CAP_BP);
@@ -2110,3 +2113,4 @@ fn a_scripted_match_balances_every_month_for_thirty_years() {
         assert!(m.world.regions[land].population() > 0);
     }
 }
+

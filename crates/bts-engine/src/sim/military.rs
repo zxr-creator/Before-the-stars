@@ -442,6 +442,10 @@ pub fn step(w: &mut World) {
         let (_, att_mix, att_people) = side_power(w, &att_side, [0; 3], 10_000);
         let (_, def_mix, def_people) = side_power(w, &def_side, [0; 3], 10_000);
         let (pa, _, _) = side_power(w, &att_side, def_mix, 10_000);
+        // the city and its walls (design chapter 38, sections 4.1-4.2), against the
+        // newest equipment among the attackers
+        let att_tier = attackers.iter().map(|i| w.armies[*i].tier).max().unwrap_or(0);
+        let terrain_bp = crate::sim::cities::defence_bp(w, ri, terrain_bp, att_tier);
         let (pd, _, _) = side_power(w, &def_side, att_mix, terrain_bp);
         let contested = pd > 0 && def_people > 0;
         // defenders outmatched three to one cannot keep control, though they still fight
@@ -517,7 +521,7 @@ pub fn step(w: &mut World) {
                 _ => 1,
             };
             w.regions[ri].capture = Some((lead, progress));
-            if progress >= 5 {
+            if progress >= crate::sim::cities::capture_months(crate::sim::cities::city_class(w, ri)) {
                 let old = ctrl;
                 // the people stay; their qualifications pass from one ledger to the other
                 w.set_controller(ri, Some(lead));
@@ -529,7 +533,7 @@ pub fn step(w: &mut World) {
                 }
                 let rname = w.regions[ri].name.clone();
                 let (ln, on) = (w.civs[lead as usize].name.clone(), w.civs[old as usize].name.clone());
-                moment(w, lead, MomentCategory::War, format!("{rname} occupied"), format!("After five months of control, {ln} administers {rname}. Its people, debts and damaged works come with it; cooperation does not."), Some(ri as RegionId), "war", true, vec![format!("Control established in {when}")]);
+                moment(w, lead, MomentCategory::War, format!("{rname} occupied"), format!("After {progress} months of control, {ln} administers {rname}. Its people, debts and damaged works come with it; cooperation does not."), Some(ri as RegionId), "war", true, vec![format!("Control established in {when}")]);
                 moment(w, old, MomentCategory::Crisis, format!("{rname} lost"), format!("{on} no longer controls {rname}. {ln} holds it."), Some(ri as RegionId), "war", true, vec![format!("Control lost in {when}")]);
                 brief(w, old, "danger", format!("{rname} has fallen"), format!("{ln} now controls it."), Some(ri as RegionId), "military");
             }

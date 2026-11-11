@@ -101,7 +101,8 @@ fn deaths_by_cause_partition_all_deaths() {
     assert_eq!(o.civ.deaths_by_cause.iter().map(|d| d.deaths).sum::<u64>(), o.civ.deaths_last_round as u64);
 }
 
-/// A city of non-farmers without sewers loses more people than the same city with them.
+/// A city of non-farmers without sewers loses more people than the same city with
+/// them (design chapter 38, section 2.2: town mortality by the city's class).
 #[test]
 fn a_town_without_sewers_is_a_population_sink() {
     let deaths = |sewers: u16| -> u32 {
@@ -109,18 +110,28 @@ fn a_town_without_sewers_is_a_population_sink() {
         let home = m.world.civs[0].capital as usize;
         settle_fixture(&mut m.world, home, 5_000_000);
         m.world.regions[home].water = 30_000_000;
-        m.world.regions[home].last.labor.food = 100_000;
+        m.world.regions[home].last.labor.food = 50_000;
+        m.world.regions[home].last.labor.household = 900_000;
         m.world.civs[0].stock[Good::Food.index()] = 50_000_000;
+        // railway, highways and two metro levels concentrate the off-land people
+        for (k, n) in [("rail", 1), ("highways", 1), ("metro", 2), ("logistics_hub", 1)] {
+            put_works(&mut m.world.regions[home], k, n);
+        }
+        // four million in works away from the land
+        put_works(&mut m.world.regions[home], "workshop", 100);
+        let k = content().f("workshop");
+        m.world.regions[home].fac_mut(k).unwrap().staffed = 4_000_000;
         if sewers > 0 {
             put_works(&mut m.world.regions[home], "sewers", sewers);
         }
-        assert!(population::urban_share(&m.world.regions[home]) > 8_000);
+        assert!(population::urban_share(&m.world.regions[home]) > 2_500);
+        assert!(crate::sim::cities::city_size(&m.world, home) >= 250_000);
         m.world.month += 1;
         population::step(&mut m.world, 0);
         m.world.civs[0].flows.deaths
     };
     let (without, with) = (deaths(0), deaths(2));
-    assert!(without > with * 13 / 10, "{without} deaths without sewers, {with} with");
+    assert!(without > with * 108 / 100, "{without} deaths without sewers, {with} with");
 }
 
 /// A world of four billion people: every sum over regions is u64 and nothing wraps.
@@ -207,6 +218,10 @@ fn fertility_follows_household_food_security_not_reserve_policy() {
         m.world.civs[0].food_reserve_months = reserve;
         for r in m.world.regions.iter_mut() {
             r.last.food_made = 0;
+            // the stores reach everyone (provisioning is tested on its own)
+            if r.controller == Some(0) {
+                put_works(r, "logistics_hub", 2);
+            }
         }
         // the month's need plus what is left in store after eating
         m.world.civs[0].stock[Good::Food.index()] = pop * (1 + months_in_store);

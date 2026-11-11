@@ -76,6 +76,17 @@ pub struct CurveRow {
     pub mastery_frontier: u16,
     /// Residents of the seat's most populous region.
     pub largest_region: u32,
+    /// Population-weighted urban share (bp), the largest principal city, cities of
+    /// 5 million or more, people who moved within the seat, emigrated and
+    /// immigrated over the decade, and the share of working-age people with no
+    /// post or other role in the last month (bp) (job 2: cities and migration).
+    pub urban_bp: u16,
+    pub largest_city: u32,
+    pub metropolises: u8,
+    pub moved_internal: u64,
+    pub emigrated: u64,
+    pub immigrated: u64,
+    pub jobless_bp: u16,
 }
 
 impl CurveRow {
@@ -93,6 +104,7 @@ impl CurveRow {
         }
         h += ",food_share_bp,food_per_worker,established,fert_food_bp,fert_intensity_bp,cap_ratio_bp,land_bp";
         h += ",era,crossing,age,golden,dark,trad_machine,trad_frontier,mastery_machine,mastery_frontier,largest_region";
+        h += ",urban_bp,largest_city,metropolises,moved_internal,emigrated,immigrated,jobless_bp";
         h
     }
     pub fn csv(&self) -> String {
@@ -112,6 +124,7 @@ impl CurveRow {
         }
         s += &format!(",{},{},{},{},{},{},{}", self.food_share_bp, self.food_per_worker, self.established, self.fert_food_bp, self.fert_intensity_bp, self.cap_ratio_bp, self.land_bp);
         s += &format!(",{},{},{},{},{},{},{},{},{},{}", self.era, self.crossing, self.age, self.golden, self.dark, self.trad_machine, self.trad_frontier, self.mastery_machine, self.mastery_frontier, self.largest_region);
+        s += &format!(",{},{},{},{},{},{},{}", self.urban_bp, self.largest_city, self.metropolises, self.moved_internal, self.emigrated, self.immigrated, self.jobless_bp);
         s
     }
 }
@@ -126,6 +139,8 @@ pub struct CurveRecorder {
     made: Vec<[i64; 14]>,
     before_made: Vec<[i64; 14]>,
     before: Vec<(i64, u32, u32)>,
+    moves: Vec<[u64; 3]>,
+    before_moves: Vec<[u32; 3]>,
     last_sample: Option<Month>,
     /// For each seat and technology, the first month at which its prerequisites were
     /// all understood, it became a lead, it was discovered and it was understood
@@ -143,12 +158,13 @@ fn traded_mass(civ: &Civ) -> i64 {
 impl CurveRecorder {
     pub fn new(w: &World) -> CurveRecorder {
         let n = w.civs.len();
-        CurveRecorder { rows: Vec::new(), traded: vec![0; n], births: vec![0; n], deaths: vec![0; n], made: vec![[0; 14]; n], before_made: vec![[0; 14]; n], before: vec![(0, 0, 0); n], last_sample: None, nodes: Vec::new() }
+        CurveRecorder { rows: Vec::new(), traded: vec![0; n], births: vec![0; n], deaths: vec![0; n], made: vec![[0; 14]; n], before_made: vec![[0; 14]; n], before: vec![(0, 0, 0); n], moves: vec![[0; 3]; n], before_moves: vec![[0; 3]; n], last_sample: None, nodes: Vec::new() }
     }
 
     pub fn before_month(&mut self, w: &World) {
         for (i, civ) in w.civs.iter().enumerate() {
             self.before[i] = (traded_mass(civ), civ.flows.births, civ.flows.deaths);
+            self.before_moves[i] = [civ.flows.moved_internal, civ.flows.emigrated, civ.flows.immigrated];
             for (k, g) in TRACKED_GOODS.iter().enumerate() {
                 self.before_made[i][k] = civ.flows.produced[g.index()];
             }
@@ -161,6 +177,10 @@ impl CurveRecorder {
             self.traded[i] += traded_mass(civ) - t;
             self.births[i] += civ.flows.births.saturating_sub(b) as u64;
             self.deaths[i] += civ.flows.deaths.saturating_sub(d) as u64;
+            let now = [civ.flows.moved_internal, civ.flows.emigrated, civ.flows.immigrated];
+            for k in 0..3 {
+                self.moves[i][k] += now[k].saturating_sub(self.before_moves[i][k]) as u64;
+            }
             for (k, g) in TRACKED_GOODS.iter().enumerate() {
                 // flows restart at round boundaries: a fall means a fresh round
                 let now = civ.flows.produced[g.index()];
@@ -263,6 +283,21 @@ impl CurveRecorder {
                 mastery_machine: civ.era.mastery[0],
                 mastery_frontier: civ.era.mastery[1],
                 largest_region: w.regions.iter().filter(|r| r.controller == Some(civ.seat)).map(|r| r.population()).max().unwrap_or(0),
+                urban_bp: {
+                    let (mut u, mut p) = (0i64, 0i64);
+                    for r in w.regions.iter().filter(|r| r.controller == Some(civ.seat)) {
+                        let n = r.population() as i64;
+                        u += n * crate::sim::cities::urban_share(r) / 10_000;
+                        p += n;
+                    }
+                    (u * 10_000 / p.max(1)) as u16
+                },
+                largest_city: (0..w.regions.len()).filter(|ri| w.regions[*ri].controller == Some(civ.seat)).map(|ri| crate::sim::cities::city_size(w, ri)).max().unwrap_or(0),
+                metropolises: (0..w.regions.len()).filter(|ri| w.regions[*ri].controller == Some(civ.seat) && crate::sim::cities::city_size(w, *ri) >= 5_000_000).count() as u8,
+                moved_internal: std::mem::take(&mut self.moves[i][0]),
+                emigrated: std::mem::take(&mut self.moves[i][1]),
+                immigrated: std::mem::take(&mut self.moves[i][2]),
+                jobless_bp: (civ.labor.household as u64 * 10_000 / civ.labor.working_age.max(1) as u64).min(10_000) as u16,
             });
         }
     }

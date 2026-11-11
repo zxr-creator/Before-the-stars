@@ -167,9 +167,9 @@ pub fn era_cap(def: &FacDef, method_era: u8) -> usize {
 }
 
 /// The class of a region's principal city for the city factor (design chapter 38,
-/// section 2.1): until the cities slice, the region's settlement class.
+/// section 2.1).
 pub fn city_class(w: &World, ri: usize) -> SettlementKind {
-    settlement_class(w.regions[ri].population())
+    crate::sim::cities::city_class(w, ri)
 }
 
 /// The city factor of one sector (design chapter 36, section 4.2): a capped
@@ -178,7 +178,15 @@ pub fn city_class(w: &World, ri: usize) -> SettlementKind {
 /// function of its inputs so that later slices can add transport access and
 /// agglomeration to them.
 pub fn city_factor(class: SettlementKind, sector: Sector, prosperity_bp: i64, water_bp: i64, health_pressure_bp: i64) -> i64 {
-    let class_bp = if matches!(sector, Sector::Industry | Sector::Services | Sector::Knowledge) {
+    city_factor_with(class, sector, 0, prosperity_bp, water_bp, health_pressure_bp)
+}
+
+/// [`city_factor`] with the city's access bonus less its congestion (design
+/// chapter 38, section 2.5) added to the class term of industry, services and
+/// knowledge.
+pub fn city_factor_with(class: SettlementKind, sector: Sector, agglomeration_bp: i64, prosperity_bp: i64, water_bp: i64, health_pressure_bp: i64) -> i64 {
+    let urban = matches!(sector, Sector::Industry | Sector::Services | Sector::Knowledge);
+    let class_bp = if urban { agglomeration_bp } else { 0 } + if matches!(sector, Sector::Industry | Sector::Services | Sector::Knowledge) {
         match class {
             SettlementKind::Wilderness | SettlementKind::Camp => 9_500,
             SettlementKind::Village => 10_000,
@@ -345,11 +353,13 @@ pub fn region_factors(w: &World, seat: SeatId, ri: usize) -> RegionFactors {
     let pop = r.population() as i64;
     let water_bp = crate::util::ratio_bp(crate::sim::population::water_capacity(r) as i64, pop.max(1));
     let pressure = r.health_bp as i64;
-    let class = city_class(w, ri);
+    let size = crate::sim::cities::city_size(w, ri);
+    let class = crate::sim::cities::class_of(size);
+    let agglomeration = crate::sim::cities::access_bonus(w, ri, size as i64) - crate::sim::cities::congestion_bp(r, size as i64);
     let mut city = [10_000i64; SECTORS];
     let trams = crate::sim::eras::tram_city_add(w, seat, ri);
     for s in Sector::ALL {
-        city[s.index()] = city_factor(class, *s, 0, water_bp, pressure);
+        city[s.index()] = city_factor_with(class, *s, agglomeration, 0, water_bp, pressure);
         if trams > 0 && matches!(s, Sector::Industry | Sector::Services | Sector::Knowledge) {
             city[s.index()] = (city[s.index()] + trams).min(13_000);
         }
@@ -430,7 +440,7 @@ pub fn breakdown(w: &World, seat: SeatId, ri: usize) -> Vec<ProductivityView> {
             factors.push(FactorView { source: "religion".into(), bp: f.rel[k] as u32, detail: if rel_detail.is_empty() { "No doctrine bearing on this work".into() } else { rel_detail.join("; ") } });
             let techs: Vec<String> = TECH_BONUS.iter().filter(|(x, id, _)| x == s && civ.knows_id(id)).map(|(_, id, _)| format!("Technology: {}", c.techs[c.t(id)].name)).collect();
             factors.push(FactorView { source: "technology".into(), bp: tech_bp as u32, detail: if techs.is_empty() { "No productivity technology yet".into() } else { format!("{} (works of older eras receive part)", techs.join("; ")) } });
-            factors.push(FactorView { source: "city".into(), bp: f.city[k] as u32, detail: format!("{}: {} residents", city_class(w, ri).label(), crate::util::group(r.population() as i64)) });
+            factors.push(FactorView { source: "city".into(), bp: f.city[k] as u32, detail: format!("{} of {} residents", city_class(w, ri).label(), crate::util::group(crate::sim::cities::city_size(w, ri) as i64)) });
             factors.push(FactorView { source: "health".into(), bp: f.health as u32, detail: format!("Food access {}, health pressure {}", pct(food_access(r)), pct(r.health_bp as i64)) });
             if tables.auto[k] > 10_000 {
                 factors.push(FactorView { source: "automation".into(), bp: tables.auto[k] as u32, detail: "Applies to qualified posts".into() });

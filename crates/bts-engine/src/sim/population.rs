@@ -83,26 +83,10 @@ pub fn sanitation_capacity(r: &Region) -> i64 {
     served("sewers", 3_000_000) + served("water_treatment", 12_000_000)
 }
 
-/// Share of a region's residents who live in towns (basis points): those away from
-/// the land, `1 - min(1, 3.2 x food workers / residents)`, counted in full in a
-/// city and in part in a town or a village (a craft-working village of a hundred
-/// thousand is not a town; the design's proxy alone would call it one).
+/// Share of a region's residents who live in its towns and city, basis points
+/// (`sim::cities::urban_share`, design chapter 38, section 2.2).
 pub fn urban_share(r: &Region) -> i64 {
-    let pop = r.population() as i64;
-    if pop == 0 {
-        return 0;
-    }
-    // food workers at a productivity of one (labour productivity frees farmers for
-    // other work; it does not move them into towns)
-    let food = if r.last.food_equiv > 0 { r.last.food_equiv } else { r.last.labor.food } as i64;
-    let off_land = (10_000 - (food * 32_000 / pop).min(10_000)).max(0);
-    let weight = match settlement_class(pop.min(u32::MAX as i64) as u32) {
-        SettlementKind::Wilderness | SettlementKind::Camp => 0,
-        SettlementKind::Village => 2_000,
-        SettlementKind::Town => 6_000,
-        _ => 10_000,
-    };
-    off_land * weight / 10_000
+    crate::sim::cities::urban_share(r)
 }
 
 /// Literate-or-higher holders among a region's working-age residents (basis points),
@@ -193,7 +177,6 @@ pub const FOOD_SECURE_BASE: i64 = 7_000;
 /// People who always stay behind when a region sends people elsewhere.
 const MOVE_FLOOR: u32 = 10_000;
 /// Regions smaller than this do not shed people to their neighbours.
-const MIGRATION_MIN_RESIDENTS: u32 = 120_000;
 /// Residents a precinct of the Menders' Order cares for.
 const HEALERS_ORDER_CARE: i64 = 800_000;
 
@@ -373,6 +356,17 @@ fn book_moved(w: &mut World, from: usize, to: usize, moved: &[u32; NQ]) {
 /// working-age people who moved. Learners and instructors stay with their
 /// courses unless the region empties around them.
 pub fn move_people(w: &mut World, from: usize, to: usize, count: u32, adults_bias: bool) -> u32 {
+    // settlers: adults of working age and their children; otherwise everyone alike
+    if adults_bias {
+        move_people_weighted(w, from, to, count, &|age| if age < 50 { 1 } else { 0 })
+    } else {
+        move_people_weighted(w, from, to, count, &|_| 1)
+    }
+}
+
+/// [`move_people`] with a weight per age: the people of each age cell are drawn in
+/// proportion to their number times the weight (migrants are mostly young adults).
+pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, weight: &dyn Fn(usize) -> u64) -> u32 {
     if from == to {
         return 0;
     }
@@ -388,29 +382,24 @@ pub fn move_people(w: &mut World, from: usize, to: usize, count: u32, adults_bia
     let mut moved_total = 0u32;
     let mut moved_working = 0u32;
     let mut carried: Vec<PopBlock> = Vec::new();
-    // Eligible pool: everyone, or mostly adults of working age and their children for settlers.
-    let pool: u32 = if adults_bias {
-        w.regions[from].blocks.iter().map(|b| b.ages[..50].iter().sum::<u32>()).sum()
-    } else {
-        pop
-    };
+    // the eligible pool, weighted by age
+    let pool: u64 = w.regions[from].blocks.iter().map(|b| b.ages.iter().enumerate().map(|(a, n)| *n as u64 * weight(a)).sum::<u64>()).sum();
     if pool == 0 {
         return 0;
     }
-    let count = count.min(pool);
     let mut rem: u64 = 0;
     for b in w.regions[from].blocks.iter_mut() {
         let mut out = PopBlock::new(b.lineage, b.religion);
         out.birth_hist = b.birth_hist;
-        let limit = if adults_bias { 50 } else { AGES };
-        for age in 0..limit {
+        for age in 0..AGES {
             let have = b.ages[age] as u64;
-            if have == 0 {
+            let wt = weight(age);
+            if have == 0 || wt == 0 {
                 continue;
             }
-            let x = have * count as u64 + rem;
-            let take = (x / pool as u64).min(have) as u32;
-            rem = x % pool as u64;
+            let x = have * wt * count as u64 + rem;
+            let take = (x / pool).min(have) as u32;
+            rem = x % pool;
             b.ages[age] -= take;
             out.ages[age] += take;
             moved_total += take;
@@ -674,7 +663,12 @@ pub fn step(w: &mut World, seat: SeatId) {
     let pop: u64 = regs.iter().map(|i| w.regions[*i].population() as u64).sum();
 
     // ---- food ---------------------------------------------------------------
-    let need = (pop as i64 + soldiers as i64) * FOOD_PER_PERSON_MONTH;
+    // a region is fed from the common stock only as far as its own food and its
+    // provisioning reach (design chapter 37, section 8.8); the rest go short even
+    // when the stores hold food
+    let reach: Vec<i64> = regs.iter().map(|ri| (w.regions[*ri].population() as i64).min(crate::sim::cities::feedable(&w.regions[*ri]))).collect();
+    let fed: i64 = reach.iter().sum();
+    let need = (fed + soldiers as i64) * FOOD_PER_PERSON_MONTH;
     let have = w.civs[si].stock_of(Good::Food).max(0);
     let food_bp = if need == 0 { 10_000 } else { ratio_bp(have, need) };
     w.civs[si].take(Good::Food, need.min(have));
@@ -756,6 +750,9 @@ pub fn step(w: &mut World, seat: SeatId) {
         let land = 10_000 + (land_factor(w.regions[ri].population() as i64, capacities[k]) - 10_000) * (10_000 - ((child_gain - LAND_FADE_FROM_BP) * 2).clamp(0, 10_000)) / 10_000;
         let secret = w.secret;
         let smoke_bp = crate::sim::eras::urban_mortality_bp(w, seat, ri);
+        let town_weight = crate::sim::cities::mortality_weight(crate::sim::cities::city_class(w, ri));
+        let rpop0 = w.regions[ri].population() as i64;
+        let food_bp = if rpop0 > 0 { food_bp * reach[k] / rpop0 } else { food_bp };
         let mut died = [0u32; NQ];
         let working_deaths;
         let working;
@@ -805,7 +802,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             // M_urban: a town of non-farmers without sewers is a population sink
             let urban = urban_share(r);
             let sanitation = ratio_bp(sanitation_capacity(r), rpop as i64);
-            let m_urban = (10_000 + 5_000 * urban * (10_000 - sanitation) / 100_000_000) * smoke_bp / 10_000;
+            let m_urban = (10_000 + 5_000 * urban * (10_000 - sanitation) / 100_000_000 * town_weight / 10_000) * smoke_bp / 10_000;
             // M_outbreak: an epidemic raises deaths in every band
             let m_outbreak = r.outbreak.as_ref().map(|o| o.severity_bp as i64).unwrap_or(10_000);
 
@@ -968,53 +965,12 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
     }
 
-    // ---- migration within the polity -------------------------------------------
-    let migrated = 0i32;
-    for &ri in &regs {
-        let rpop = w.regions[ri].population();
-        if rpop < MIGRATION_MIN_RESIDENTS {
-            continue;
-        }
-        let crowd = rpop as i64 * 10_000 / water_capacity(&w.regions[ri]).max(1) as i64;
-        // food-limited pressure: more people than local livelihoods
-        let foragers_cap = w.regions[ri].wild * 1000 / 2600;
-        let crew = |key: &str| w.regions[ri].fac_level(key) as i64 * content().facilities[content().f(key)].general as i64;
-        let fields = crew("fields") + crew("pasture") + crew("fishery");
-        let livelihoods = (foragers_cap + fields).max(1);
-        let food_workers = if w.regions[ri].last.food_equiv > 0 { w.regions[ri].last.food_equiv } else { w.regions[ri].last.labor.food };
-        let food_pressure = food_workers as i64 * 10_000 / livelihoods;
-        let push = crowd.max(if food_pressure > 9500 { 9000 } else { 0 });
-        if push < 8000 {
-            continue;
-        }
-        let mut best: Option<(i64, usize)> = None;
-        for (nb, _) in w.regions[ri].neighbors.clone() {
-            let nb = nb as usize;
-            if w.regions[nb].controller != Some(seat) {
-                continue;
-            }
-            let npop = w.regions[nb].population() as i64;
-            let ncrowd = npop * 10_000 / water_capacity(&w.regions[nb]).max(1) as i64;
-            if ncrowd + 2500 < push && best.map(|(c, _)| ncrowd < c).unwrap_or(true) {
-                best = Some((ncrowd, nb));
-            }
-        }
-        if let Some((_, nb)) = best {
-            let want = rpop as i64 * 12 + w.regions[ri].migr_rem; // 1.2% per month, in thousandths of a person
-            let whole = (want / 1000) as u32;
-            w.regions[ri].migr_rem = want % 1000;
-            // people moving between our own regions change no national total
-            move_people(w, ri, nb, whole, false);
-        }
-    }
-
     let civ = &mut w.civs[si];
     civ.flows.births += births_total;
     civ.flows.deaths += deaths_total;
     for (ci, n) in causes.iter().enumerate() {
         civ.flows.deaths_cause[ci] += *n;
     }
-    civ.flows.migration += migrated;
     if pop > 0 {
         civ.food_ful_bp = (food_weighted / pop as i64) as u16;
         civ.water_ful_bp = (water_weighted / pop as i64) as u16;

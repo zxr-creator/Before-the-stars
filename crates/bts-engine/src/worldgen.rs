@@ -1317,6 +1317,9 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             revisit_until: Vec::new(),
             era: Default::default(),
             diag: CivDiag::default(),
+            immigration: Immigration::default(),
+            emigration: Emigration::default(),
+            successors: Vec::new(),
         });
     }
 

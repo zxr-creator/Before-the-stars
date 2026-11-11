@@ -261,6 +261,20 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
         out.push(format!("{at}: the world's people changed by {change} with {births} births and {deaths} deaths recorded"));
     }
 
+    // ---- migrants: every emigrant is some seat's immigrant; refugees are migrants ----
+    let (mut emig, mut immig) = (0i64, 0i64);
+    for (p, c) in prev.civs.iter().zip(cur.civs.iter()) {
+        let base = if reopened { &zero } else { &p.flows };
+        emig += c.flows.emigrated as i64 - base.emigrated as i64;
+        immig += c.flows.immigrated as i64 - base.immigrated as i64;
+        if c.flows.refugees as u64 > c.flows.moved_internal as u64 + c.flows.emigrated as u64 {
+            out.push(format!("{at}: seat {} booked more refugees than migrants", c.seat));
+        }
+    }
+    if emig != immig {
+        out.push(format!("{at}: {emig} people emigrated but {immig} immigrated"));
+    }
+
     // ---- qualified people: holders are what the ledger accounts for ----------------------
     for (p, c) in prev.civs.iter().zip(cur.civs.iter()) {
         for q in 0..NQ {

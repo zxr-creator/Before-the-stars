@@ -285,50 +285,15 @@ const JOBLESS_DRIFT_MIN: u32 = 40_000;
 /// Tonnes of building material a thousand idle adults make at home in a month.
 const HOUSEHOLD_CRAFT_PER_K: i64 = 300;
 
+/// A coarse transport grade 0-3 of a region's network (`sim::network::grade`).
 pub fn transport_level(r: &Region) -> u8 {
-    (r.cap(Cap::Transport) / 1000).clamp(0, 3) as u8
+    crate::sim::network::grade(r)
 }
 
-/// Share of non-food output that survives carriage to the common stock.
+/// Share of non-food output that survives carriage to the common stock
+/// (`sim::network::link_efficiencies`).
 pub fn link_efficiencies(w: &World, seat: SeatId) -> Vec<i64> {
-    let n = w.regions.len();
-    let mut eff = vec![0i64; n];
-    let capital = w.civs[seat as usize].capital as usize;
-    let mut dist = vec![u32::MAX; n];
-    if w.regions[capital].controller == Some(seat) {
-        dist[capital] = 0;
-        let mut queue = vec![capital];
-        let mut qi = 0;
-        while qi < queue.len() {
-            let x = queue[qi];
-            qi += 1;
-            for (nb, _) in &w.regions[x].neighbors {
-                let nb = *nb as usize;
-                if dist[nb] == u32::MAX && w.regions[nb].controller == Some(seat) {
-                    dist[nb] = dist[x] + 1;
-                    queue.push(nb);
-                }
-            }
-        }
-    }
-    for i in 0..n {
-        if w.regions[i].controller != Some(seat) {
-            continue;
-        }
-        if dist[i] == u32::MAX {
-            eff[i] = if i == capital { 10_000 } else { 5500 };
-            continue;
-        }
-        let d = dist[i] as i64;
-        let (base, per, floor) = match transport_level(&w.regions[i]) {
-            0 => (9000, 500, 6000),
-            1 => (9600, 300, 7800),
-            2 => (9900, 150, 8800),
-            _ => (10_000, 80, 9300),
-        };
-        eff[i] = if d == 0 { 10_000 } else { (base - per * (d - 1)).max(floor) };
-    }
-    eff
+    crate::sim::network::link_efficiencies(w, seat)
 }
 
 struct FoodOpt {
@@ -404,17 +369,6 @@ fn recipe_ok(w: &World, seat: SeatId, r: &Recipe) -> bool {
 // puts out for its inputs, level and rate.
 // ---------------------------------------------------------------------------
 
-/// Facility levels of industry, extraction and power that a region's transport
-/// can serve, by transport grade 0-3 (none; roads or a harbour; two of them or a
-/// railway; a railway with roads, or a motor depot).
-///
-/// Calibrated against all-native campaigns (`bts-ai/tests/freight_survey.rs`): a
-/// capital carries about 10 levels by year 60, 50 by year 120 and 115-125 by years
-/// 180-240, with the largest tenth at 135-175. The top grade therefore serves the
-/// usual late capital, and only the most concentrated regions stay congested once
-/// every transport work is built; below it, each grade is outgrown and the next
-/// relieves it.
-pub const FREIGHT_CAPACITY: [i64; 4] = [10, 24, 60, 150];
 /// Shared support posts: saving per level beyond the first, and its cap, in basis
 /// points of a works' general posts.
 pub const SUPPORT_SAVING_PER_LEVEL_BP: i64 = 200;
@@ -470,7 +424,8 @@ pub fn region_infra(r: &Region) -> Infra {
 /// Railways: railway regions carry a quarter more).
 pub fn region_infra_with(r: &Region, capacity_bp: i64) -> Infra {
     let c = content();
-    let capacity = FREIGHT_CAPACITY[transport_level(r) as usize] * capacity_bp / 10_000;
+    // the network's capacity (design chapter 38, section 5.3)
+    let capacity = crate::sim::network::freight_capacity(r) * capacity_bp / 10_000;
     let mut load: i64 = 0;
     let mut shops: i64 = 0;
     let mut shop_rate: i64 = 0;
@@ -530,7 +485,8 @@ pub fn level_cap(w: &World, seat: SeatId, region: usize, def: &FacDef) -> u16 {
     };
     let site_cap: u16 = match def.site {
         Site::Any => def.max_level,
-        Site::Arable => r.arable.saturating_sub(shared(Site::Arable)),
+        // the arable land the town and works leave (design chapter 37, section 8.6)
+        Site::Arable => crate::sim::cities::land_use(r).arable_left().saturating_sub(shared(Site::Arable)),
         Site::Pasture => r.pasture.saturating_sub(shared(Site::Pasture)),
         Site::SpiceLand => r.spice_land,
         Site::Fishery => r.fishery,
@@ -539,7 +495,7 @@ pub fn level_cap(w: &World, seat: SeatId, region: usize, def: &FacDef) -> u16 {
             if r.river { def.max_level } else if r.water >= AMPLE_WATER { 2 } else { 0 }
         }
         Site::Coast => {
-            if r.coastal { def.max_level } else { 0 }
+            if r.coastal { def.max_level + 1 } else { 0 }
         }
         Site::Hydro => {
             if def.key == "hydro" { r.hydro / 2 } else { r.hydro }
@@ -555,7 +511,9 @@ pub fn level_cap(w: &World, seat: SeatId, region: usize, def: &FacDef) -> u16 {
             if r.fac_level(key) > 0 { def.max_level } else { 0 }
         }
     };
-    let mut cap = site_cap.min(def.max_level);
+    // a natural harbour takes one more level of harbour (design chapter 38, 5.2)
+    let max = if def.line == "harbour" && r.natural_harbour { def.max_level + 1 } else { def.max_level };
+    let mut cap = site_cap.min(max);
     let ctx = CivCtx { world: w, seat };
     for (limit, req, _) in &def.scale {
         if !req.eval(&ctx) {
@@ -662,6 +620,8 @@ pub fn step(w: &mut World, seat: SeatId) {
         pr.crew_on_site = vec![0; pr.crew.len()];
         pr.crew_capped = false;
     }
+    // which works are obsolete this month (design chapter 37, section 8.3)
+    w.civs[si].successors = crate::sim::projects::successor_table(w, seat);
     if w.civs[si].status == SeatStatus::Eliminated || regs.is_empty() {
         // a government that runs no region has no labour, no researchers and no
         // service this month: nothing carries over from the month it last had some
@@ -1374,7 +1334,9 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
     }
 
-    // people without posts drift toward regions that are hiring, a few percent a month
+    // people without posts drift toward regions that are hiring, a few percent a
+    // month: work found by word of mouth within the polity, kept beside the
+    // attractiveness-based migration of `sim::migration` (booked as internal moves)
     jobless.sort_by_key(|(ri, n)| (std::cmp::Reverse(*n), *ri));
     for (sink, mut open) in hiring {
         for (src, n) in jobless.iter_mut() {
@@ -1390,6 +1352,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             let working = w.regions[*src].working().max(1);
             let with_family = (go as u64 * pop as u64 / working as u64) as u32;
             let moved = crate::sim::population::move_people(w, *src, sink, with_family, false);
+            w.civs[si].flows.moved_internal += moved;
             let workers = (moved as u64 * working as u64 / pop.max(1) as u64) as u32;
             *n -= workers.min(*n);
             open -= workers.min(open);

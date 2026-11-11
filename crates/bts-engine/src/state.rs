@@ -587,6 +587,10 @@ pub const ESTABLISHED_BP: u16 = 2500;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ProjKind {
     Build { facility: usize, levels: u16 },
+    /// Conversion in place of `levels` levels of `from` into its successor `to`
+    /// (design chapter 37, section 8.3). The levels left `from` when the order was
+    /// placed and stand idle until it completes; cancelling returns them.
+    Upgrade { from: usize, to: usize, levels: u16 },
     Research { tech: usize },
     LeadStudy { tech: usize },
     Survey { region: RegionId },
@@ -944,6 +948,20 @@ pub struct Flows {
     pub births: u32,
     pub deaths: u32,
     pub migration: i32,
+    /// People who moved between the seat's own regions, emigrated to and immigrated
+    /// from other civilizations, and refugees among all of them (design chapter 38,
+    /// section 3.9). Every emigrant is some seat's immigrant.
+    #[serde(default)]
+    pub moved_internal: u32,
+    #[serde(default)]
+    pub emigrated: u32,
+    #[serde(default)]
+    pub immigrated: u32,
+    #[serde(default)]
+    pub refugees: u32,
+    /// Goods recovered from demolished works, by `Good` (also booked as produced).
+    #[serde(default = "zeros_ng")]
+    pub salvaged: Vec<i64>,
     /// The deaths by cause (`sim::population::DEATH_CAUSES`): age and illness,
     /// hunger and crowding, town conditions, epidemic, war. They add up to `deaths`.
     #[serde(default)]
@@ -960,7 +978,7 @@ fn zeros_nq() -> Vec<i64> {
 
 impl Flows {
     pub fn new() -> Self {
-        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], births: 0, deaths: 0, migration: 0, deaths_cause: [0; 5] }
+        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], births: 0, deaths: 0, migration: 0, moved_internal: 0, emigrated: 0, immigrated: 0, refugees: 0, salvaged: vec![0; NG], deaths_cause: [0; 5] }
     }
 }
 
@@ -1159,10 +1177,20 @@ pub struct Civ {
     /// Era, charters, age and traditions (design chapter 37, sections 3-4).
     #[serde(default)]
     pub era: crate::sim::eras::EraState,
+    /// Border policy (design chapter 38, section 3.6).
+    #[serde(default)]
+    pub immigration: Immigration,
+    #[serde(default)]
+    pub emigration: Emigration,
     /// Calibration diagnostics of the last month (referee-side, never served to a
     /// seat, never saved).
     #[serde(skip)]
     pub diag: CivDiag,
+    /// For each facility kind, whether a later stage of its line can be built now
+    /// (`sim::projects::successor_table`), refreshed at the start of every month's
+    /// economy; derived, never saved.
+    #[serde(skip)]
+    pub successors: Vec<bool>,
 }
 
 /// Population-weighted averages of last month's fertility factors and land

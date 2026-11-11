@@ -201,7 +201,7 @@ pub const TRADITIONS: [TraditionDef; 7] = [
         sober: "Oil and Engine",
         desc: "Crude, cracking and the motor: refineries that make more fuel, motor works, heavy armour.",
         favoured: "crude oil and gas",
-        signature: &["refinery", "diesel", "depot", "motor_works"],
+        signature: &["refinery", "diesel", "highways", "motor_works"],
         exclusive: &["refinery:cracking", "motor_works"],
         variant: "Heavy armour: fuel x1.3; shock formations +10% by mastery",
         variant_tiers: &[3, 4],
@@ -462,6 +462,7 @@ pub fn post_shares(w: &World, seat: SeatId, e: u8) -> (i64, i64) {
     let c = content();
     let (mut total, mut old, mut modern) = (0i64, 0i64, 0i64);
     let fields = c.f("fields");
+    let succ = if w.civs[seat as usize].successors.is_empty() { crate::sim::projects::successor_table(w, seat) } else { w.civs[seat as usize].successors.clone() };
     for r in w.regions.iter().filter(|r| r.controller == Some(seat)) {
         for f in &r.facilities {
             let def = &c.facilities[f.kind];
@@ -474,7 +475,8 @@ pub fn post_shares(w: &World, seat: SeatId, e: u8) -> (i64, i64) {
             }
             let era = works_era(def, f);
             total += posts;
-            if era as i64 + 2 <= e as i64 {
+            // obsolete: two or more eras behind, with a successor the seat can build
+            if era as i64 + 2 <= e as i64 && succ.get(f.kind).copied().unwrap_or(false) {
                 old += posts;
             }
             if era as i64 + 1 >= e as i64 && era >= 1 {
@@ -1479,6 +1481,12 @@ pub fn upkeep_bp(civ: &Civ, def: &FacDef, g: Good, month: Month) -> i64 {
     }
     if matches!(def.key, "launch_complex" | "orbital_station" | "orbital_yard" | "orbital_power" | "interferometer") && h("frontier_charter") {
         f = f * 12_500 / 10_000;
+    }
+    // obsolete works cost a quarter more to keep (design chapter 37, section 8.3)
+    if let Some(&k) = content().fac_ix.get(def.key) {
+        if crate::sim::projects::is_obsolete(civ, k) {
+            f = f * 12_500 / 10_000;
+        }
     }
     // exclusive works of a path switched away from count as obsolete for upkeep
     if let Some(t) = exclusive_of(def.key, None) {

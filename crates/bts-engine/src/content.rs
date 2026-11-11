@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s10";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s10b";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,7 +26,7 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s10";
 /// released each slice that changes saved state carries a pre-release tag
 /// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
 /// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s10";
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s10b";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
 pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s5";
 
@@ -1146,8 +1146,12 @@ pub enum Cap {
     Irrigation,
     GenCap,
     GridLink,
-    Transport,
     Port,
+    /// Residents a storage level lets be fed from the common stock (design chapter
+    /// 37, section 8.8), people.
+    Provision,
+    /// Residents housed, people (design chapter 37, section 8.7).
+    Housing,
     Barracks,
     FtlYard,
     FtlBase,
@@ -1276,6 +1280,10 @@ pub struct FacDef {
     /// A land works whose grown output follows the land's yield (design chapter 36,
     /// section 4.1, channel 2): capped at twice its recipe.
     pub land: bool,
+    /// Land a level takes, thousandths of a land unit (design chapter 37, section
+    /// 8.6): housing, networks and industrial works. Fields and pastures take their
+    /// own land and are counted apart.
+    pub land_milli: i64,
 }
 
 /// Service a tonne of coal, and of refined fuel, gives when burned in site engines:
@@ -1333,8 +1341,13 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
         "water_treatment" => (&[(B, 2_000), (ME, 500)], 10.0, 9),
         "institute" => (&[(B, 2_000), (ME, 500)], 5.0, 9),
         "pharma" => (&[(B, 2_000), (MT, 500)], 10.0, 9),
-        "depot" => (&[(B, 1_000), (MT, 1_000)], 10.0, 8),
         "rail" => (&[(B, 2_000), (ME, 1_000)], 20.0, 12),
+        "engineered_roads" | "canal" | "warehouse" | "tenements" | "walls" => (&[(B, 1_000)], 0.0, 6),
+        "apartments" | "bastion" => (&[(B, 2_000)], 0.0, 9),
+        "steam_port" | "ship_canal" => (&[(B, 2_000), (ME, 500)], 10.0, 12),
+        "highways" | "container_port" | "airfield" | "fortified_zone" => (&[(B, 2_000), (MT, 500)], 10.0, 12),
+        "electric_rail" | "metro" | "cold_store" | "towers" => (&[(B, 2_000), (EL, 500)], 10.0, 12),
+        "high_speed_rail" | "intl_airport" | "logistics_hub" => (&[(B, 2_000), (MT, 500), (EL, 500)], 20.0, 18),
         "refinery" => (&[(B, 2_000), (MT, 1_000)], 20.0, 12),
         // electrical and computing works: builders, engineers and electricians
         "generator" => (&[(B, 1_000), (EL1, 500)], 10.0, 9),
@@ -1376,7 +1389,7 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
 impl Cap {
     /// Whether the capacity is a head count.
     pub fn in_people(self) -> bool {
-        matches!(self, Cap::Water | Cap::Health | Cap::SeatsLodge | Cap::SeatsSchool | Cap::SeatsCollege | Cap::SeatsInstitute | Cap::Barracks)
+        matches!(self, Cap::Water | Cap::Health | Cap::SeatsLodge | Cap::SeatsSchool | Cap::SeatsCollege | Cap::SeatsInstitute | Cap::Barracks | Cap::Provision | Cap::Housing)
     }
 }
 
@@ -1535,6 +1548,7 @@ fn fac(key: &'static str, name: &'static str, category: &'static str, desc: &'st
         stage: 0,
         era: 0,
         land: false,
+        land_milli: 0,
     })
 }
 impl FB {
@@ -1638,7 +1652,7 @@ fn facilities() -> Vec<FacDef> {
             .req("T004").site(Site::Fishery).cost(&[(Materials, 2.0), (Tools, 1.0)]).work(12.0).general(8_000)
             .tags(&[Tag::Forage, Tag::Sea]).food(),
         fac("granary", "Granaries", "Food", "Dry stores with custodians. Each level keeps 2.5 million rations and slows spoilage.")
-            .req("T007").cost(&[(Materials, 6.0)]).work(20.0).general(1_000).provides(Cap::Storage, 2500.0)
+            .req("T007").cost(&[(Materials, 6.0)]).work(20.0).general(1_000).provides(Cap::Storage, 2500.0).people(Cap::Provision, 300_000)
             .labor(L::Services).tags(&[Tag::Farm, Tag::Record]),
         fac("irrigation", "Irrigation works", "Food", "Channels and gates. Each level waters five levels of fields.")
             .req("T011").site(Site::River).cost(&[(Materials, 8.0), (Tools, 1.0)]).work(40.0).general(1_000)
@@ -1990,21 +2004,100 @@ fn facilities() -> Vec<FacDef> {
             .recipe(rec("beam", "Orbital collection").gives_elec(3000.0))
             .upkeep(&[(Spares, 5.0), (Electronics, 2.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Electric]).power(),
         // ---- transport and civic ----------------------------------------
-        fac("roads", "Roads and waystations", "Transport", "Maintained roads, bridges and staged carriage linking this region to the rest.")
+        // ---- transport networks (design chapter 38, section 5): building lines whose
+        // stage sets the loss and speed and whose levels set the capacity
+        fac("roads", "Roads and waystations", "Transport", "Maintained roads, bridges and staged carriage linking this region to its neighbours. Each level serves 6 more levels of works; carriage loses 5% a link where both ends have roads.")
             .req("T027").cost(&[(Materials, 15.0), (Tools, 2.0)]).work(80.0).general(2_000)
             // draught horses for the carts until motor vehicles (T094) take over
-            .provides(Cap::Transport, 1.0).upkeep(&[(Tools, 0.4), (Horses, 0.02)]).labor(L::Services).tags(&[Tag::Build, Tag::Trade]).max(1),
-        fac("port", "Harbour", "Transport", "Moorings, slips and stores. Opens sea links and deep-water fishing.")
+            .upkeep(&[(Tools, 0.4), (Horses, 0.02)]).labor(L::Services).tags(&[Tag::Build, Tag::Trade]).max(4),
+        fac("engineered_roads", "Engineered roads", "Transport", "Graded, drained and metalled roads with iron bridges. Each level serves 10 levels of works; 3.5% loss a link.")
+            .req("T050 & T027").cost(&[(Materials, 40.0), (Metal, 1.0), (Tools, 3.0)]).work(150.0).general(2_000)
+            .upkeep(&[(Tools, 0.6), (Materials, 0.3), (Horses, 0.02)]).labor(L::Services).tags(&[Tag::Build, Tag::Trade]).max(4),
+        fac("highways", "Motor highways", "Transport", "Paved highways with the lorries, fuel stations and repair crews of motor freight. Each level serves 20 levels of works; 1% loss a link.")
+            .req("T094 & T064").cost(&[(Materials, 100.0), (Chemicals, 5.0), (Metal, 10.0), (Components, 6.0)]).work(400.0)
+            .skilled(&[Q::Mechanic], 1_000).general(4_000)
+            .upkeep(&[(Fuel, 2.0), (Spares, 0.8), (Materials, 0.5)]).labor(L::Services).tags(&[Tag::Fuel, Tag::Trade]).max(4),
+        fac("canal", "Canals and locks", "Transport", "Cut channels and locks extending the river. Each level serves 10 levels of works; 2.5% loss on river links.")
+            .req("T021 & T024 & T012").site(Site::River).cost(&[(Materials, 50.0), (Timber, 5.0), (Tools, 3.0)]).work(250.0).general(2_000)
+            .upkeep(&[(Tools, 0.3), (Materials, 0.2)]).labor(L::Services).tags(&[Tag::Water, Tag::Trade]).max(2),
+        fac("ship_canal", "Ship canal", "Transport", "Deep, wide canals with steam-worked locks. Each level serves 20 levels of works; 1.5% loss on river links.")
+            .req("T080 & T050 & T063").site(Site::River).cost(&[(Materials, 150.0), (Metal, 10.0), (Coal, 10.0)]).work(600.0)
+            .skilled(&[Q::Mechanic, Q::Smith], 500).general(2_000)
+            .upkeep(&[(Coal, 1.0), (Materials, 0.5)]).labor(L::Services).tags(&[Tag::Water, Tag::Trade]).max(2),
+        fac("port", "Harbour", "Transport", "Moorings, slips and stores. Opens sea links and deep-water fishing; each level serves 6 levels of works.")
             .req("T013").site(Site::Coast).cost(&[(Materials, 8.0), (Timber, 8.0), (Tools, 2.0)]).work(60.0).general(4_000)
-            .provides(Cap::Port, 1.0).provides(Cap::Transport, 1.0).upkeep(&[(Tools, 0.4)]).labor(L::Services).tags(&[Tag::Sea, Tag::Trade]).max(1),
-        fac("rail", "Railway", "Transport", "Heavy freight on fixed track.")
+            .provides(Cap::Port, 1.0).upkeep(&[(Tools, 0.4)]).labor(L::Services).tags(&[Tag::Sea, Tag::Trade]).max(3),
+        fac("steam_port", "Steamship port", "Transport", "Deep-water quays, cranes and coaling for steamships. Each level serves 15 levels of works; 1.2% loss a sea link.")
+            .req("T080").site(Site::Coast).cost(&[(Materials, 50.0), (Metal, 15.0), (Components, 3.0), (Coal, 5.0)]).work(200.0)
+            .skilled(&[Q::Mechanic, Q::Smith], 500).general(4_000)
+            .provides(Cap::Port, 1.0).upkeep(&[(Coal, 1.0), (Tools, 0.4)]).labor(L::Services).tags(&[Tag::Sea, Tag::Trade, Tag::Machine]).max(3),
+        fac("container_port", "Container port", "Transport", "Container cranes, stacking yards and rail sidings. Each level serves 30 levels of works; 0.5% loss a sea link.")
+            .req("T092 & T094").site(Site::Coast).cost(&[(Materials, 100.0), (Metal, 30.0), (Components, 10.0)]).work(400.0)
+            .skilled(&[Q::Mechanic], 1_000).general(2_000)
+            .recipe(rec("cranes", "Electric cranes").elec(20.0))
+            .provides(Cap::Port, 1.0).upkeep(&[(Fuel, 1.0), (Spares, 0.5)]).labor(L::Services).tags(&[Tag::Sea, Tag::Trade, Tag::Machine]).max(3),
+        fac("rail", "Railway", "Transport", "Heavy freight on fixed track. Each level serves 20 levels of works; 1.5% loss a link where both ends have railways.")
             .req("T068").cost(&[(Metal, 40.0), (Components, 8.0), (Materials, 20.0)]).work(400.0)
             .skilled(&[Q::Mechanic, Q::Artisan], 2_000).general(4_000)
-            .provides(Cap::Transport, 2.0).upkeep(&[(Tools, 1.0), (Coal, 1.0)]).labor(L::Services).tags(&[Tag::Machine, Tag::Trade]).max(1),
-        fac("depot", "Motor depot", "Transport", "Vehicles, fuel and repair crews for mechanized freight.")
-            .req("T094").cost(&[(Metal, 10.0), (Components, 15.0)]).work(200.0)
-            .skilled(&[Q::Mechanic], 3_000).general(4_000)
-            .provides(Cap::Transport, 3.0).upkeep(&[(Fuel, 2.0), (Spares, 0.8)]).labor(L::Services).tags(&[Tag::Fuel, Tag::Trade]).max(1),
+            .upkeep(&[(Tools, 1.0), (Coal, 1.0)]).labor(L::Services).tags(&[Tag::Machine, Tag::Trade]).max(4),
+        fac("electric_rail", "Electric railway", "Transport", "Electrified track and signalling. Each level serves 25 levels of works; 1.2% loss a link; burns no coal.")
+            .req("T101 & T102").cost(&[(Metal, 30.0), (Conductors, 15.0), (Components, 8.0), (Materials, 50.0)]).work(250.0)
+            .skilled(&[Q::Electrician, Q::Technician], 1_000).general(3_000)
+            .recipe(rec("traction", "Electric traction").elec(40.0))
+            .upkeep(&[(Spares, 0.5)]).labor(L::Services).tags(&[Tag::Electric, Tag::Trade]).max(4),
+        fac("high_speed_rail", "High-speed railway", "Transport", "Dedicated fast lines for passengers beside the freight network: cities a few hours apart become one market of people. Freight as an electric railway.")
+            .req("T107 & T102 & T050").cost(&[(Metal, 75.0), (Materials, 400.0), (Conductors, 20.0), (Components, 10.0), (Electronics, 0.5)]).work(700.0)
+            .skilled(&[Q::Electrician, Q::Technician], 1_500).general(3_000)
+            .recipe(rec("traction", "Electric traction").elec(80.0))
+            .upkeep(&[(Spares, 1.0)]).labor(L::Services).tags(&[Tag::Electric, Tag::Trade]).max(4),
+        fac("airfield", "Airfield", "Transport", "Runways, hangars and fuel for light freight and passengers to airports within four links.")
+            .req("T038 & T091").cost(&[(Materials, 40.0), (Metal, 5.0), (Fuel, 2.0)]).work(100.0)
+            .skilled(&[Q::Mechanic], 500).general(2_000)
+            .upkeep(&[(Fuel, 2.0), (Spares, 0.3)]).labor(L::Services).tags(&[Tag::Fuel, Tag::Trade]).max(2),
+        fac("intl_airport", "International airport", "Transport", "Long runways and terminals: passengers and light freight to any distance.")
+            .req("T083 & T038 & T107").cost(&[(Materials, 150.0), (Metal, 20.0), (Components, 10.0), (Electronics, 0.3)]).work(400.0)
+            .skilled(&[Q::Technician, Q::Mechanic], 1_500).general(6_000)
+            .recipe(rec("terminals", "Terminals and control").elec(40.0))
+            .upkeep(&[(Fuel, 6.0), (Spares, 0.8)]).labor(L::Services).tags(&[Tag::Fuel, Tag::Trade]).max(2),
+        fac("metro", "Metro", "Transport", "Underground railways under the city: three million more people can reach their work each level.")
+            .req("T101 & T068 & T050").cost(&[(Metal, 30.0), (Materials, 100.0), (Conductors, 10.0), (Components, 5.0)]).work(500.0)
+            .skilled(&[Q::Electrician, Q::Technician], 500).general(3_000)
+            .recipe(rec("traction", "Electric traction").elec(60.0))
+            .upkeep(&[(Spares, 0.5)]).labor(L::Services).tags(&[Tag::Electric, Tag::Trade]).max(4),
+        // ---- provisioning, housing and fortifications (design chapter 37, sections
+        // 8.7-8.8; chapter 38, section 4.2)
+        fac("warehouse", "Warehouses and market halls", "Food", "Covered markets, bonded stores and carters. Each level keeps 6 million rations and lets 1.2 million residents be fed from the common stock.")
+            .req("T026 & T027").cost(&[(Materials, 20.0), (Tools, 2.0)]).work(60.0).general(1_500)
+            .provides(Cap::Storage, 6000.0).people(Cap::Provision, 1_200_000).labor(L::Services).tags(&[Tag::Farm, Tag::Trade]),
+        fac("cold_store", "Cold stores", "Food", "Refrigerated warehouses and rail sidings. Each level keeps 15 million rations and provisions 5 million residents.")
+            .req("T101 & T052").cost(&[(Materials, 20.0), (Metal, 6.0), (Components, 2.0)]).work(120.0)
+            .skilled(&[Q::Technician, Q::Mechanic], 200).general(1_000)
+            .recipe(rec("cooling", "Refrigeration").elec(20.0))
+            .provides(Cap::Storage, 15000.0).people(Cap::Provision, 5_000_000).labor(L::Services).tags(&[Tag::Farm, Tag::Electric]),
+        fac("logistics_hub", "Logistics hub", "Food", "Automated distribution centres. Each level keeps 30 million rations and provisions 20 million residents.")
+            .req("T122 & T114").cost(&[(Materials, 30.0), (Electronics, 5.0), (Components, 6.0)]).work(200.0)
+            .skilled(&[Q::Programmer, Q::Technician], 300).general(500)
+            .recipe(rec("dispatch", "Automated dispatch").elec(40.0).compute(20.0))
+            .provides(Cap::Storage, 30000.0).people(Cap::Provision, 20_000_000).labor(L::Services).tags(&[Tag::Farm, Tag::Compute]),
+        fac("tenements", "Tenements", "Civic", "Brick blocks of rented rooms: 400,000 residents a level on a fifth of a land unit, where shacks would take a whole one.")
+            .req("T061 & T024").cost(&[(Materials, 15.0), (Metal, 0.5)]).work(60.0).general(200)
+            .people(Cap::Housing, 400_000).upkeep(&[(Materials, 0.1)]).labor(L::Services).tags(&[Tag::Build]).max(60),
+        fac("apartments", "Apartment blocks", "Civic", "Plumbed blocks of flats: 400,000 residents a level on a quarter of a land unit.")
+            .req("T066 & T069").cost(&[(Materials, 30.0), (Metal, 3.0), (Components, 0.5)]).work(120.0).general(200)
+            .people(Cap::Housing, 400_000).upkeep(&[(Materials, 0.2), (Spares, 0.02)]).labor(L::Services).tags(&[Tag::Build]).max(60),
+        fac("towers", "High-rise towers", "Civic", "Steel-framed towers with lifts: a million residents a level on a quarter of a land unit.")
+            .req("T101 & T067 & T050").cost(&[(Materials, 60.0), (Metal, 15.0), (Components, 3.0)]).work(300.0).general(300)
+            .recipe(rec("lifts", "Lifts and pumps").elec(20.0))
+            .people(Cap::Housing, 1_000_000).upkeep(&[(Spares, 0.2)]).labor(L::Services).tags(&[Tag::Build, Tag::Electric]).max(60),
+        fac("walls", "City walls", "Civic", "Stone walls and gates around the principal city: defenders fight at up to 30% more against warbands and early armies, less against later ones.")
+            .req("T024").cost(&[(Materials, 40.0), (Tools, 2.0)]).work(150.0).general(500)
+            .upkeep(&[(Materials, 0.3)]).labor(L::Services).tags(&[Tag::War, Tag::Build]).max(1),
+        fac("bastion", "Bastion fortress", "Civic", "Angled bastions built to resist cannon: up to 30% against armies up to the powder age.")
+            .req("T037 & T040").cost(&[(Materials, 100.0), (Metal, 3.0), (Tools, 3.0)]).work(400.0).general(1_000)
+            .upkeep(&[(Materials, 0.5), (Munitions, 0.05)]).labor(L::Services).tags(&[Tag::War, Tag::Build]).max(1),
+        fac("fortified_zone", "Fortified zone", "Civic", "Concrete strongpoints, obstacles and bunkers around the city: 15% against most armies, 5% against the newest.")
+            .req("T064 & T050").cost(&[(Materials, 200.0), (Metal, 20.0), (Components, 3.0)]).work(500.0).general(1_000)
+            .upkeep(&[(Materials, 1.0), (Spares, 0.2)]).labor(L::Services).tags(&[Tag::War, Tag::Build]).max(1),
         fac("waterworks", "Wells and waterworks", "Civic", "Lifting and distribution. Each level supplies 1.2 million residents.")
             .req("T021").cost(&[(Materials, 10.0), (Tools, 2.0)]).work(50.0).general(2_000)
             .people(Cap::Water, 1_200_000).upkeep(&[(Tools, 0.2)]).labor(L::Services).tags(&[Tag::Water]),
@@ -2211,6 +2304,7 @@ fn facilities() -> Vec<FacDef> {
             def.line = line;
             def.stage = stage;
             def.era = era;
+            def.land_milli = land_milli(&def);
             def.crew = crew;
             def.build_power = power;
             def.build_months = months;
@@ -2236,7 +2330,7 @@ pub fn line_meta(key: &str) -> (&'static str, u8, u8) {
         "irrigation" => ("irrigation", 1, 0),
         "camp" => ("forestry", 1, 0),
         "quarry" => ("building_materials", 1, 0),
-        "kiln" => ("building_materials", 2, 0),
+        "kiln" => ("kilns", 1, 0),
         "salt_works" => ("salt_works", 1, 0),
         "salt_pans" => ("salt_pans", 1, 0),
         "fibre_farm" => ("fibre_plantations", 1, 0),
@@ -2291,8 +2385,27 @@ pub fn line_meta(key: &str) -> (&'static str, u8, u8) {
         "orbital_power" => ("orbital_power", 1, 7),
         "roads" => ("roads", 1, 1),
         "port" => ("harbour", 1, 1),
+        "engineered_roads" => ("roads", 2, 4),
+        "highways" => ("roads", 3, 5),
+        "canal" => ("canals", 1, 2),
+        "ship_canal" => ("canals", 2, 4),
+        "steam_port" => ("harbour", 2, 4),
+        "container_port" => ("harbour", 3, 5),
         "rail" => ("railway", 1, 4),
-        "depot" => ("motor_transport", 1, 5),
+        "electric_rail" => ("railway", 2, 5),
+        "high_speed_rail" => ("railway", 3, 6),
+        "airfield" => ("air", 1, 5),
+        "intl_airport" => ("air", 2, 6),
+        "metro" => ("urban_transit", 1, 5),
+        "warehouse" => ("storage", 2, 3),
+        "cold_store" => ("storage", 3, 5),
+        "logistics_hub" => ("storage", 4, 8),
+        "tenements" => ("housing", 1, 4),
+        "apartments" => ("housing", 2, 5),
+        "towers" => ("housing", 3, 5),
+        "walls" => ("fortifications", 1, 1),
+        "bastion" => ("fortifications", 2, 3),
+        "fortified_zone" => ("fortifications", 3, 5),
         "waterworks" => ("water", 1, 1),
         "sewers" => ("sanitation", 1, 2),
         "water_treatment" => ("sanitation", 2, 4),
@@ -2314,23 +2427,42 @@ pub fn line_meta(key: &str) -> (&'static str, u8, u8) {
         "high_energy" => ("high_energy", 1, 7),
         "launch_complex" => ("launch", 2, 6),
         "orbital_station" => ("orbital", 1, 7),
-        "orbital_yard" => ("orbital", 2, 7),
+        "orbital_yard" => ("orbital_yard", 1, 7),
         "interferometer" => ("interferometer", 1, 7),
         "jump_testbed" => ("jump", 1, 9),
-        "jump_yard" => ("jump", 2, 9),
-        "jump_base" => ("jump", 3, 9),
+        "jump_yard" => ("jump_yard", 1, 9),
+        "jump_base" => ("jump_base", 1, 9),
         "lattice_works" => ("lattice", 1, 9),
         // tradition works: lines of their own, so that no generic stage upgrades into them
         "steam_hammer" => ("tradition_steam", 1, 4),
         "motor_works" => ("tradition_engine", 1, 5),
         "tramways" => ("tradition_wire", 1, 5),
         "compact_reactor" => ("tradition_atom", 1, 7),
-        "isotope_works" => ("tradition_atom", 2, 7),
+        "isotope_works" => ("tradition_atom_isotopes", 1, 7),
         "noc" => ("tradition_network", 1, 6),
-        "implant_clinic" => ("tradition_network", 2, 7),
+        "implant_clinic" => ("tradition_network_clinic", 1, 7),
         "biofoundry" => ("tradition_living", 1, 6),
         "machine_governance" => ("tradition_synthetic", 1, 8),
         _ => panic!("no building line for {key}"),
+    }
+}
+
+/// Land one level takes, thousandths of a land unit (design chapter 37, section
+/// 8.6; chapter 38, section 5.8): housing by its stage, transport networks by mode,
+/// and 0.05 lu for every works of industry or power and every extraction works
+/// that is not a mine or well.
+fn land_milli(def: &FacDef) -> i64 {
+    match def.key {
+        "tenements" => 200,
+        "apartments" | "towers" => 250,
+        "roads" | "engineered_roads" | "rail" | "electric_rail" | "high_speed_rail" => 50,
+        "highways" | "canal" | "ship_canal" => 100,
+        "airfield" | "container_port" => 200,
+        "intl_airport" => 500,
+        _ if def.food => 0,
+        _ if matches!(def.site, Site::Deposit(_)) => 0,
+        _ if def.power_source || matches!(def.labor, Some(LaborCategory::Industry | LaborCategory::Extraction)) => 50,
+        _ => 0,
     }
 }
 

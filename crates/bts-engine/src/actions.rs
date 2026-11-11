@@ -85,6 +85,20 @@ fn fail<T>(code: &'static str, reason: impl Into<String>) -> Result<T, Fail> {
 
 const UNKNOWN: &str = "NOT_VISIBLE_OR_UNKNOWN";
 
+/// Levels of a kind already ordered in a region: new builds and upgrades into it.
+fn pending_into(w: &World, seat: SeatId, region: RegionId, kind: usize) -> u16 {
+    w.civs[seat as usize]
+        .projects
+        .iter()
+        .filter(|p| p.region == Some(region))
+        .map(|p| match p.kind {
+            ProjKind::Build { facility, levels } if facility == kind => levels,
+            ProjKind::Upgrade { to, levels, .. } if to == kind => levels,
+            _ => 0,
+        })
+        .sum()
+}
+
 fn own_region(w: &World, seat: SeatId, r: RegionId) -> Result<usize, Fail> {
     let ri = r as usize;
     if ri >= w.regions.len() || w.regions[ri].controller != Some(seat) {
@@ -166,6 +180,7 @@ fn label(a: &Action) -> String {
             "start_project:{}",
             match spec {
                 ProjectSpec::Build { .. } => "build",
+                ProjectSpec::Upgrade { .. } => "upgrade",
                 ProjectSpec::Research { .. } => "research",
                 ProjectSpec::Survey { .. } => "survey",
                 ProjectSpec::Settle { .. } => "settle",
@@ -494,6 +509,10 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 PolicySetting::Mobilization { bp } => {
                     w.civs[si].mobilization_bp = bp.min(10_000);
                 }
+                PolicySetting::Borders { immigration, emigration } => {
+                    w.civs[si].immigration = immigration;
+                    w.civs[si].emigration = emigration;
+                }
                 PolicySetting::Facility { region, facility, enabled } => {
                     let ri = own_region(w, seat, region)?;
                     let Some(kind) = c.fac_ix.get(&facility) else { return fail(UNKNOWN, "unknown facility") };
@@ -569,7 +588,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                         return fail("INVALID_SCHEMA", "build between 1 and 20 levels at a time");
                     }
                     let existing = w.regions[ri].fac(kind).map(|f| f.level).unwrap_or(0);
-                    let pending: u16 = w.civs[si].projects.iter().filter(|p| p.region == Some(region)).map(|p| if let ProjKind::Build { facility: k, levels: l } = p.kind { if k == kind { l } else { 0 } } else { 0 }).sum();
+                    let pending = pending_into(w, seat, region, kind);
                     let cap = level_cap(w, seat, ri, def);
                     if existing + pending + levels > cap {
                         return fail("CONFLICTING_ACTIONS", if cap == 0 { format!("{} has no suitable site for {}", w.regions[ri].name, def.name.to_lowercase()) } else { format!("{} can support at most {} level(s) of {} at present", w.regions[ri].name, cap, def.name.to_lowercase()) });
@@ -590,6 +609,40 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                         terms.push_str("; site power comes from the region's shaft supply, then from site engines burning coal, then refined fuel");
                     }
                     Ok((format!("Construction ordered: {terms}{}.", if quote.first { ". As the first of its kind it takes half as much work and time again" } else { "" }), Some(id)))
+                }
+                ProjectSpec::Upgrade { region, from, to, levels } => {
+                    let ri = own_region(w, seat, region)?;
+                    let (Some(&fk), Some(&tk)) = (c.fac_ix.get(&from), c.fac_ix.get(&to)) else { return fail(UNKNOWN, "unknown facility") };
+                    if !facility_visible(w, seat, tk) {
+                        return fail(UNKNOWN, "unknown facility");
+                    }
+                    if !c.upgrades.iter().any(|e| e.from == fk && e.to == tk && e.kind == crate::content::UpgradeKind::Upgrade) {
+                        return fail("CONFLICTING_ACTIONS", format!("{} does not convert into {}; build it new", c.facilities[fk].name, c.facilities[tk].name));
+                    }
+                    let def = &c.facilities[tk];
+                    if !def.req.eval(&CivCtx { world: w, seat }) {
+                        return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("{} cannot be built yet: a known requirement is unmet", def.name));
+                    }
+                    let have = w.regions[ri].fac(fk).map(|f| f.level).unwrap_or(0);
+                    if levels == 0 || levels > 20 || levels > have {
+                        return fail("INVALID_SCHEMA", format!("upgrade between 1 and {} level(s) of {} here", have.min(20), c.facilities[fk].name.to_lowercase()));
+                    }
+                    let existing = w.regions[ri].fac(tk).map(|f| f.level).unwrap_or(0);
+                    let cap = level_cap(w, seat, ri, def);
+                    if existing + pending_into(w, seat, region, tk) + levels > cap {
+                        return fail("CONFLICTING_ACTIONS", format!("{} can support at most {} level(s) of {} at present", w.regions[ri].name, cap, def.name.to_lowercase()));
+                    }
+                    let quote = crate::sim::projects::upgrade_quote(w, seat, tk);
+                    let n = levels as i64;
+                    let inputs = quote.cost.iter().map(|(g, a)| (*g, a * n)).collect();
+                    let crew = quote.crew.iter().map(|(qs, c)| (qs.clone(), c * levels as u32)).collect();
+                    // the converting levels stop work now
+                    if let Some(f) = w.regions[ri].fac_mut(fk) {
+                        f.level -= levels;
+                    }
+                    w.regions[ri].facilities.retain(|f| f.level > 0);
+                    let id = new_site_order(w, seat, ProjKind::Upgrade { from: fk, to: tk, levels }, region, quote.work * n, inputs, quote.months, crew, quote.power * n, priority);
+                    Ok((format!("Upgrade ordered: {} level(s) stand idle until they reopen as {}, at least {} months.", levels, def.name.to_lowercase(), quote.months), Some(id)))
                 }
                 ProjectSpec::Research { tech } => {
                     let Some(ti) = tech_from_handle(w, seat, &tech) else { return fail(UNKNOWN, "unknown method") };
@@ -850,6 +903,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 ManageOp::Resume => w.civs[si].projects[pos].paused = false,
                 ManageOp::Cancel => {
                     let p = w.civs[si].projects.remove(pos);
+                    crate::sim::projects::return_converting(w, &p);
                     match p.kind {
                         ProjKind::Research { tech } => {
                             // evidence gathered so far is kept; the node returns to its discovered state
@@ -990,10 +1044,11 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
         Action::Demolish { region, facility, levels } => {
             let ri = own_region(w, seat, region)?;
             let Some(&kind) = c.fac_ix.get(&facility) else { return fail(UNKNOWN, "unknown facility") };
-            let Some(f) = w.regions[ri].fac_mut(kind) else { return fail(UNKNOWN, "unknown facility") };
-            f.level = f.level.saturating_sub(levels.max(1));
-            w.regions[ri].facilities.retain(|f| f.level > 0);
-            Ok(("Facility reduced. Nothing is recovered.".into(), None))
+            if w.regions[ri].fac(kind).is_none() {
+                return fail(UNKNOWN, "unknown facility");
+            }
+            crate::sim::projects::demolish(w, seat, ri, kind, levels.max(1));
+            Ok(("Facility reduced. A quarter of the materials, metal and components in its bill is recovered.".into(), None))
         }
         Action::MilitaryOrder { army, order } => {
             let Some(ai) = w.armies.iter().position(|a| a.id == army && a.owner == seat) else { return fail(UNKNOWN, "no such formation") };

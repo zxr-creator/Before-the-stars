@@ -9,6 +9,9 @@ pub mod economy;
 pub mod eras;
 pub mod knowledge;
 pub mod military;
+pub mod network;
+pub mod cities;
+pub mod migration;
 pub mod outbreaks;
 pub mod population;
 pub mod productivity;
@@ -42,6 +45,12 @@ pub fn step_month(w: &mut World) {
     outbreaks::step(w);
     for s in 0..n {
         population::step(w, s as SeatId);
+    }
+    // migration between regions and across borders, from one state for every seat
+    migration::step(w);
+    // on 1 January, fields give way to the towns and works on their land
+    for s in 0..n {
+        cities::encroach(w, s as SeatId);
     }
     // 5. conflict
     military::step(w);

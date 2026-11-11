@@ -588,7 +588,9 @@ fn maintenance_pooling_cuts_upkeep_by_at_most_fifteen_percent_and_only_while_the
     assert_eq!(saving(&r), 750);
     // thirty levels of shops on the best transport still save 15% and no more
     put_works(&mut r, "parts_works", 30);
-    put_works(&mut r, "depot", 1);
+    let roads = content().f("roads");
+    r.facilities.retain(|f| f.kind != roads);
+    put_works(&mut r, "highways", 7);
     run(&mut r, 10_000);
     assert_eq!((region_infra(&r).capacity, region_infra(&r).load, saving(&r)), (150, 41, 1_500));
     // one shop among many works serves twelve levels' worth: 12 of 111 here
@@ -597,9 +599,8 @@ fn maintenance_pooling_cuts_upkeep_by_at_most_fifteen_percent_and_only_while_the
     run(&mut r, 10_000);
     assert_eq!((region_infra(&r).load, saving(&r)), (111, 1_500 * 12 / 111));
     // without the transport to carry the parts about, the saving shrinks with the freight served
-    let roads = content().f("roads");
-    let depot = content().f("depot");
-    r.facilities.retain(|f| f.kind != roads && f.kind != depot);
+    let highways = content().f("highways");
+    r.facilities.retain(|f| f.kind != roads && f.kind != highways);
     let i = region_infra(&r);
     assert_eq!((i.capacity, i.infra_bp, i.maint_bp), (10, 10 * 10_000 / 111, 1_500 * 12 / 111 * (10 * 10_000 / 111) / 10_000));
     assert!(i.maint_bp < 15);
@@ -635,7 +636,7 @@ fn output_used_in_the_same_region_pays_no_carriage_and_nothing_else_is_spared() 
     // two levels of camps and two of workshops making stone tools from the camps' material
     let (mut m, far_id, far) = chain_world(2, 2);
     let link = economy::link_efficiencies(&m.world, 0)[far];
-    assert_eq!(link, 9_000, "one link from the capital, no road");
+    assert_eq!(link, 8_800, "one track link from the capital, no road");
     month(&mut m);
     let i = m.world.regions[far].last.infra.clone();
     let (camp_rate, shop_rate) = (run_of(&m, far, "quarry").1.rate_bp as i64, run_of(&m, far, "workshop").1.rate_bp as i64);
@@ -682,23 +683,26 @@ fn a_congested_region_loses_more_in_carriage_until_transport_is_added() {
     month(&mut m);
     let i = m.world.regions[far].last.infra.clone();
     assert_eq!((i.capacity, i.load, i.infra_bp, i.congestion_bp), (10, 12, 8_333, 333));
-    // the link keeps 90%; congestion takes another 3.33 points
+    // the track link keeps 88%; congestion takes another 3.33 points
     assert!(i.made[mat] > 0);
-    assert_eq!(i.delivered[mat], i.made[mat] * (9_000 - 333) / 10_000);
+    assert_eq!(i.delivered[mat], i.made[mat] * (8_800 - 333) / 10_000);
     assert_eq!(m.world.civs[0].flows.lost[mat], i.made[mat] - i.delivered[mat]);
     // and the camps share less support: 20% of 96,000 general posts, scaled by 8,333
     assert_eq!(m.world.regions[far].fac(camp).unwrap().staff_needed, 80_007);
     let infra = own_view(&m, far_id).infrastructure;
     assert_eq!((infra.freight_capacity, infra.freight_load, infra.infra_bp, infra.congestion_loss_bp, infra.support_saving_cap_bp), (10, 12, 8_333, 333, 1_666));
 
-    // roads raise the capacity to twenty-four: no congestion, and the better link besides
+    // a level of roads raises the capacity to sixteen: no congestion; with roads at
+    // the capital too, the link loses 5% instead of 12%
     put_works(&mut m.world.regions[far], "roads", 1);
+    let home = m.world.civs[0].capital as usize;
+    put_works(&mut m.world.regions[home], "roads", 1);
     let lost_before = m.world.civs[0].flows.lost[mat];
     month(&mut m);
     let j = m.world.regions[far].last.infra.clone();
-    assert_eq!((j.capacity, j.load, j.infra_bp, j.congestion_bp), (24, 12, 10_000, 0));
-    assert_eq!(economy::link_efficiencies(&m.world, 0)[far], 9_600);
-    assert_eq!(j.delivered[mat], j.made[mat] * 9_600 / 10_000);
+    assert_eq!((j.capacity, j.load, j.infra_bp, j.congestion_bp), (16, 12, 10_000, 0));
+    assert_eq!(economy::link_efficiencies(&m.world, 0)[far], 9_500);
+    assert_eq!(j.delivered[mat], j.made[mat] * 9_500 / 10_000);
     assert_eq!(m.world.civs[0].flows.lost[mat] - lost_before, j.made[mat] - j.delivered[mat]);
     assert_eq!(m.world.regions[far].fac(camp).unwrap().staff_needed, 76_800);
 
@@ -706,13 +710,18 @@ fn a_congested_region_loses_more_in_carriage_until_transport_is_added() {
     let mut r = m.world.regions[far].clone();
     put_works(&mut r, "quarry", 10_000);
     let i = region_infra(&r);
-    assert_eq!((i.infra_bp, i.congestion_bp), (24, 1_995));
+    assert_eq!((i.infra_bp, i.congestion_bp), (16, 1_996));
     assert!(i.congestion_bp <= economy::CONGESTION_LOSS_CAP_BP);
-    // freight capacity by transport grade
-    assert_eq!(economy::FREIGHT_CAPACITY, [10, 24, 60, 150]);
+    // freight capacity: ten for tracks and each network level's freight
+    let mut r = m.world.regions[far].clone();
+    r.facilities.clear();
+    assert_eq!(crate::sim::network::freight_capacity(&r), 10);
+    put_works(&mut r, "roads", 2);
+    put_works(&mut r, "rail", 1);
+    assert_eq!(crate::sim::network::freight_capacity(&r), 10 + 12 + 20);
     // food, civic, teaching, research and transport works do not load freight
     let loads: Vec<&str> = content().facilities.iter().filter(|f| economy::loads_freight(f)).map(|f| f.key).collect();
-    for key in ["fields", "pasture", "fishery", "granary", "irrigation", "roads", "port", "rail", "depot", "waterworks", "hospital", "admin", "school", "laboratory", "institute"] {
+    for key in ["fields", "pasture", "fishery", "granary", "irrigation", "roads", "port", "rail", "highways", "waterworks", "hospital", "admin", "school", "laboratory", "institute"] {
         assert!(!loads.contains(&key), "{key} loads freight");
     }
     for key in ["quarry", "mine_iron", "oilwell", "workshop", "steelworks", "parts_works", "waterwheel", "steam", "generator", "grid", "fission"] {

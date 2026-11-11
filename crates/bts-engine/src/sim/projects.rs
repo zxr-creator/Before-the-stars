@@ -57,6 +57,7 @@ pub fn project_title(w: &World, kind: &ProjKind, region: Option<RegionId>) -> St
                 format!("Build {} in {}", c.facilities[*facility].name, place)
             }
         }
+        ProjKind::Upgrade { from, to, levels } => format!("Upgrade {} ×{} to {} in {}", c.facilities[*from].name, levels, c.facilities[*to].name, region.map(rn).unwrap_or_default()),
         ProjKind::Research { tech } => format!("Investigate: {}", c.techs[*tech].name),
         ProjKind::LeadStudy { .. } => "Follow up a lead".to_string(),
         ProjKind::Survey { region } => format!("Survey {}", rn(*region)),
@@ -381,6 +382,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     for (id, why) in failed {
         if let Some(pos) = w.civs[si].projects.iter().position(|p| p.id == id) {
             let p = w.civs[si].projects.remove(pos);
+            return_converting(w, &p);
             let title = project_title(w, &p.kind, p.region);
             brief(w, seat, "warning", format!("Abandoned: {title}"), format!("Work stopped because {why}. Inputs already used are not recovered."), p.region, "projects");
         }
@@ -392,6 +394,74 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
     }
     step_programs(w, seat);
+}
+
+/// Share of the successor's bill and work an upgrade in place costs (design
+/// chapter 37, section 8.3), basis points.
+pub const UPGRADE_BP: i64 = 6_000;
+/// Share of the materials, metal and components of a demolished level's bill
+/// that is recovered.
+pub const SALVAGE_BP: i64 = 2_500;
+
+/// What converting one level into `to` is charged: 60% of `to`'s goods and work,
+/// rounded up; its crew, site power and minimum months in full.
+pub fn upgrade_quote(w: &World, seat: SeatId, to: usize) -> BuildQuote {
+    let mut q = build_quote(w, seat, to);
+    q.work = (q.work * UPGRADE_BP + 9_999) / 10_000;
+    for (_, a) in q.cost.iter_mut() {
+        *a = (*a * UPGRADE_BP + 9_999) / 10_000;
+    }
+    q
+}
+
+/// The levels an upgrade order took out of service go back to its old kind
+/// (cancelled, or the site was lost: they stand where they stood).
+pub fn return_converting(w: &mut World, p: &Project) {
+    if let (ProjKind::Upgrade { from, levels, .. }, Some(r)) = (&p.kind, p.region) {
+        add_facility(w, r as usize, *from, *levels);
+    }
+}
+
+/// Demolish `levels` levels of a works: a quarter of the materials, metal and
+/// components of their bill is recovered into the seat's stock. Returns the
+/// levels removed.
+pub fn demolish(w: &mut World, seat: SeatId, ri: usize, kind: usize, levels: u16) -> u16 {
+    let def = &content().facilities[kind];
+    let Some(f) = w.regions[ri].fac_mut(kind) else { return 0 };
+    let n = levels.min(f.level);
+    f.level -= n;
+    w.regions[ri].facilities.retain(|f| f.level > 0);
+    let civ = &mut w.civs[seat as usize];
+    for (g, a) in &def.cost {
+        if matches!(g, Good::Materials | Good::Metal | Good::Components) {
+            let back = a * n as i64 * SALVAGE_BP / 10_000;
+            if back > 0 {
+                civ.add(*g, back);
+                civ.flows.salvaged[g.index()] += back;
+            }
+        }
+    }
+    n
+}
+
+/// Whether, for each facility kind, a later stage of its line is one the seat can
+/// build now: what makes a works two eras behind obsolete (design chapter 37,
+/// section 8.3). Tradition works and lines of one stage never are.
+pub fn successor_table(w: &World, seat: SeatId) -> Vec<bool> {
+    let c = content();
+    let ctx = CivCtx { world: w, seat };
+    let can: Vec<bool> = c.facilities.iter().map(|d| !d.line.is_empty() && d.req.eval(&ctx)).collect();
+    c.facilities
+        .iter()
+        .map(|d| !d.line.starts_with("tradition") && c.facilities.iter().enumerate().any(|(j, e)| e.line == d.line && e.stage > d.stage && can[j]))
+        .collect()
+}
+
+/// Whether a works of this kind is obsolete for the seat: two or more eras behind
+/// its era, with a successor it can build.
+pub fn is_obsolete(civ: &Civ, kind: usize) -> bool {
+    let def = &content().facilities[kind];
+    def.era as u16 + 2 <= civ.era.era as u16 && civ.successors.get(kind).copied().unwrap_or(false)
 }
 
 fn add_facility(w: &mut World, region: usize, kind: usize, levels: u16) {
@@ -424,6 +494,11 @@ pub fn tech_site_ok(w: &World, seat: SeatId, tech: usize) -> bool {
 
 pub fn civ_has_facility(w: &World, seat: SeatId, kind: usize) -> bool {
     w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(kind).map(|f| f.level > 0).unwrap_or(false))
+}
+
+#[cfg(test)]
+pub fn complete_for_test(w: &mut World, seat: SeatId, p: Project) {
+    complete(w, seat, p)
 }
 
 fn complete(w: &mut World, seat: SeatId, p: Project) {
@@ -473,6 +548,19 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                 );
             }
             brief(w, seat, "good", format!("Completed: {title}"), format!("{} is ready for staff.", def.name), Some(ri as RegionId), "economy");
+        }
+        ProjKind::Upgrade { to, levels, .. } => {
+            let ri = p.region.unwrap() as usize;
+            add_facility(w, ri, to, levels);
+            let mut techs = Vec::new();
+            c.facilities[to].req.techs(&mut techs);
+            for t in techs {
+                let st = &mut w.civs[si].tech[t];
+                if st.state == ST_UNDERSTOOD {
+                    st.state = ST_PROTOTYPED;
+                }
+            }
+            brief(w, seat, "good", format!("Completed: {title}"), format!("{} is ready for staff.", c.facilities[to].name), Some(ri as RegionId), "economy");
         }
         ProjKind::Research { tech } => {
             {

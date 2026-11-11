@@ -21,6 +21,7 @@ pub fn units_view() -> UnitsView {
         research_unit: "researcher-month".into(),
         service_unit: "0.1 MWh delivered in the month".into(),
         settlement_bounds: SETTLEMENT_BOUNDS.to_vec(),
+        city_bounds: crate::sim::cities::CITY_BOUNDS.to_vec(),
         limits: PeopleLimits {
             settlers_min: crate::actions::SETTLERS_MIN,
             settlers_max: crate::actions::SETTLERS_MAX,
@@ -235,6 +236,76 @@ fn site_key(s: Site) -> String {
     }
 }
 
+/// A region's principal city as a seat sees it: exact where it governs, rounded
+/// to two significant figures where it observes now, and only a class from the
+/// remembered population elsewhere. Unseen regions show none.
+fn city_seen(w: &World, seat: SeatId, ri: usize, mine: bool, current: bool) -> Option<CityView> {
+    use crate::sim::cities;
+    let r = &w.regions[ri];
+    let mem = &w.civs[seat as usize].memory[ri];
+    if !mem.seen || r.city_name.is_empty() {
+        return None;
+    }
+    let residents = if mine {
+        cities::city_size(w, ri)
+    } else if current {
+        let n = cities::city_size(w, ri) as u64;
+        let mut unit = 1u64;
+        while n / unit >= 100 {
+            unit *= 10;
+        }
+        (n / unit * unit) as u32
+    } else {
+        mem.pop_estimate / 20
+    };
+    Some(CityView { name: r.city_name.clone(), residents, class: cities::class_of(residents) })
+}
+
+/// City, land, provisioning and network of a governed region (protocol 2.3).
+fn urban_view(w: &World, seat: SeatId, ri: usize) -> UrbanView {
+    use crate::sim::{cities, network};
+    let r = &w.regions[ri];
+    let land = cities::land_use(r);
+    let city = cities::city_size(w, ri) as i64;
+    let n = network::net(r);
+    let civ = &w.civs[seat as usize];
+    let (boats, sail) = (civ.knows_id("T013"), civ.knows_id("T028"));
+    let tier = military::military_tier(w, seat);
+    UrbanView {
+        urban_share_bp: cities::urban_share(r) as u16,
+        site_score: cities::site_score(r) as i32,
+        primacy_bp: cities::primacy(w, ri) as u16,
+        land_total_milli: land.total,
+        land_urban_milli: land.urban,
+        land_industrial_milli: land.industrial,
+        land_farmland_milli: land.farmland,
+        land_pasture_milli: land.pasture,
+        land_forest_milli: land.forest,
+        land_wild_milli: land.wild,
+        arable_left: land.arable_left(),
+        housed: land.housed as u32,
+        informal: land.informal as u32,
+        provision_capacity: cities::provision_capacity(r).min(u32::MAX as i64) as u32,
+        access_bp: network::access_bp(r) as u16,
+        feedable: cities::feedable(r).min(u32::MAX as i64) as u32,
+        access_bonus_bp: cities::access_bonus(w, ri, city) as u16,
+        congestion_bp: cities::congestion_bp(r, city) as u16,
+        defence_bp: cities::defence_bp(w, ri, 10_000, tier) as u16,
+        attractiveness: crate::sim::migration::attractiveness(w, ri) as i32,
+        mobility_cap_bp: network::mobility_cap_bp(r) as u16,
+        network: ["roads", "canals", "harbour", "railway", "air", "urban_transit"].iter().enumerate().filter(|(i, _)| n.levels[*i] > 0).map(|(i, m)| NetworkLine { mode: m.to_string(), stage: n.stage[i], levels: n.levels[i] }).collect(),
+        links: r
+            .neighbors
+            .iter()
+            .map(|(j, k)| {
+                let b = if w.regions[*j as usize].controller == Some(seat) { network::net(&w.regions[*j as usize]) } else { network::Net::default() };
+                let (loss, cap) = network::link(&n, &b, *k, boats, sail);
+                LinkView { region: *j, loss_bp: loss as u16, capacity: cap as u32 }
+            })
+            .collect(),
+    }
+}
+
 fn cap_text(c: Cap, v: i64) -> String {
     // people are quoted as people; everything else in display units
     let n = if c.in_people() { group(v) } else { group(v / 1000) };
@@ -250,7 +321,8 @@ fn cap_text(c: Cap, v: i64) -> String {
         Cap::Irrigation => format!("Waters {n} levels of fields"),
         Cap::GenCap => format!("Converts up to {n} shaft power to electricity"),
         Cap::GridLink => "Joins the national grid".into(),
-        Cap::Transport => format!("Transport grade {n}"),
+        Cap::Provision => format!("Lets {n} residents be fed from the common stock"),
+        Cap::Housing => format!("Houses {n} residents"),
         Cap::Port => "Opens sea links".into(),
         Cap::Barracks => format!("Trains {n} soldiers at a time"),
         Cap::FtlYard => "An independent jump assembly line".into(),
@@ -282,6 +354,7 @@ fn crew_on_site(p: &Project) -> Vec<CrewOnSite> {
 fn project_kind_key(kind: &ProjKind) -> &'static str {
     match kind {
         ProjKind::Build { .. } => "build",
+        ProjKind::Upgrade { .. } => "upgrade",
         ProjKind::Research { .. } => "research",
         ProjKind::LeadStudy { .. } => "lead",
         ProjKind::Survey { .. } => "survey",
@@ -394,6 +467,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
             (0, vec![])
         };
         facilities.push(FacilityView {
+            obsolete: projects::is_obsolete(&w.civs[seat as usize], f.kind) || (w.civs[seat as usize].successors.is_empty() && def.era as u16 + 2 <= w.civs[seat as usize].era.era as u16 && projects::successor_table(w, seat)[f.kind]),
             posts_base,
             posts_after_scale,
             posts_after_productivity,
@@ -460,6 +534,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
         })
         .collect();
     OwnRegion {
+        urban: urban_view(w, seat, ri),
         productivity: productivity::breakdown(w, seat, ri),
         // the price of one more level here, exactly as an order placed now is charged
         construction_sites: c.facilities.iter().enumerate().filter(|(k, _)| facility_visible(w, seat, *k)).map(|(k, def)| {
@@ -471,6 +546,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
                 max_level: economy::level_cap(w, seat, ri, def),
                 queued_levels: w.civs[seat as usize].projects.iter().filter(|p| p.region == Some(ri as RegionId)).map(|p| match p.kind {
                     ProjKind::Build { facility, levels } if facility == k => levels,
+                    ProjKind::Upgrade { to, levels, .. } if to == k => levels,
                     _ => 0,
                 }).sum(),
                 cost_per_level: qty(&quote.cost),
@@ -741,6 +817,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             // an epidemic is seen by the region's government and by anyone observing it now
             outbreak: if mine || current { r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }) } else { None },
             climate: Some(r.climate),
+            city: city_seen(w, seat, ri, mine, current),
         });
     }
 
@@ -844,6 +921,9 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         deaths_last_round: civ.last_flows.deaths,
         deaths_by_cause: crate::sim::population::DEATH_CAUSES.iter().enumerate().map(|(i, c)| DeathCount { cause: c.to_string(), deaths: civ.last_flows.deaths_cause[i] as u64 }).collect(),
         migration_last_round: civ.last_flows.migration,
+        migration: MigrationView { internal: civ.last_flows.moved_internal, emigrated: civ.last_flows.emigrated, immigrated: civ.last_flows.immigrated, refugees: civ.last_flows.refugees },
+        immigration: civ.immigration,
+        emigration: civ.emigration,
         goods,
         quals,
         labor: civ.labor.clone(),
@@ -1206,6 +1286,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             line: def.line.to_string(),
             stage: def.stage,
             era: def.era,
+            upgrades_to: c.upgrades.iter().filter(|e| e.from == k && e.kind == crate::content::UpgradeKind::Upgrade && facility_visible(w, seat, e.to)).map(|e| c.facilities[e.to].key.to_string()).collect(),
         });
     }
     let mut cat_courses = Vec::new();
@@ -1550,7 +1631,143 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         calendar: Some(calendar_view(w)),
         directives: civ.directives.iter().map(|d| DirectiveView { id: d.id, directive: d.directive.clone(), last_result: d.last_result.clone(), last_status: d.last_status.clone(), last_month: d.last_month }).collect(),
         era: Some(crate::sim::eras::view(w, seat)),
+        building_tree_hash: building_tree().hash.clone(),
     }
+}
+
+// ---------------------------------------------------------------------------
+// The public building tree (design chapter 37, section 8.9)
+// ---------------------------------------------------------------------------
+
+/// A requirement with every technology and practice masked to its era and field.
+fn masked(req: &crate::content::Req) -> ReqExpr {
+    use crate::content::Req;
+    let c = content();
+    match req {
+        Req::True => ReqExpr::None,
+        Req::Tech(i) => ReqExpr::Tech { era: c.techs[*i].era, field: c.techs[*i].tags.first().map(|t| t.name().to_string()).unwrap_or_default() },
+        Req::Prac(i) => ReqExpr::Practice { era: c.practices[*i].era, field: c.practices[*i].group.clone() },
+        Req::Fac(i) => ReqExpr::Facility { key: c.facilities[*i].key.to_string() },
+        Req::Tradition(t) => ReqExpr::Tradition { key: t.clone() },
+        Req::Religion => ReqExpr::Religion,
+        Req::Pop(n) => ReqExpr::Other { text: format!("a population of {}", group(*n as i64)) },
+        Req::Regions(n) => ReqExpr::Other { text: format!("{n} regions") },
+        Req::QualAtLeast(q, n) => ReqExpr::Other { text: format!("{} {}", group(*n as i64), q.label()) },
+        Req::Contact => ReqExpr::Other { text: "contact with another civilization".into() },
+        Req::SciMethod => ReqExpr::Other { text: "an established scientific method".into() },
+        Req::All(v) => ReqExpr::All { of: v.iter().map(masked).collect() },
+        Req::Any(v) => ReqExpr::Any { of: v.iter().map(masked).collect() },
+    }
+}
+
+/// Whether a facility kind is sealed content, absent from the public tree: the
+/// interstellar era, and anything that needs a sealed technology or a sealed works.
+fn sealed(kind: usize) -> bool {
+    let c = content();
+    let def = &c.facilities[kind];
+    if def.era >= 9 {
+        return true;
+    }
+    let mut ts = Vec::new();
+    def.req.techs(&mut ts);
+    if ts.iter().any(|t| c.techs[*t].kind == crate::content::TechKind::Sealed || c.techs[*t].era >= 9) {
+        return true;
+    }
+    fn facs(r: &crate::content::Req, out: &mut Vec<usize>) {
+        match r {
+            crate::content::Req::Fac(i) => out.push(*i),
+            crate::content::Req::All(v) | crate::content::Req::Any(v) => v.iter().for_each(|x| facs(x, out)),
+            _ => {}
+        }
+    }
+    let mut fs = Vec::new();
+    facs(&def.req, &mut fs);
+    fs.iter().any(|f| *f != kind && sealed(*f))
+}
+
+fn line_name(key: &str) -> String {
+    let mut s = key.replace('_', " ");
+    if let Some(f) = s.get(0..1) {
+        s = f.to_uppercase() + &s[1..];
+    }
+    s
+}
+
+fn fnv64(s: &str) -> u64 {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in s.bytes() {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x0100_0000_01b3);
+    }
+    h
+}
+
+fn build_tree() -> BuildingTree {
+    let c = content();
+    let open: Vec<usize> = (0..c.facilities.len()).filter(|k| !sealed(*k)).collect();
+    let mut lines: Vec<LineDef> = Vec::new();
+    for &k in &open {
+        let d = &c.facilities[k];
+        if !d.line.is_empty() && !lines.iter().any(|l| l.key == d.line) {
+            lines.push(LineDef { key: d.line.to_string(), name: line_name(d.line), category: d.category.to_string() });
+        }
+    }
+    let nodes = open
+        .iter()
+        .map(|&k| {
+            let d = &c.facilities[k];
+            let mut skilled: Vec<JobSpec> = d.skilled.iter().map(|(qs, n)| JobSpec { qual: Some(qs[0]), count: *n }).collect();
+            skilled.sort_by_key(|j| j.qual);
+            BuildingNode {
+                key: d.key.to_string(),
+                name: d.name.to_string(),
+                category: d.category.to_string(),
+                line: d.line.to_string(),
+                stage: d.stage,
+                era: d.era,
+                tradition: crate::sim::eras::exclusive_of(d.key, None).map(|t| crate::sim::eras::TRADITIONS[t].key.to_string()),
+                site: site_key(d.site),
+                desc: d.desc.to_string(),
+                cost: qty(&d.cost),
+                work: d.work,
+                build_months: d.build_months,
+                general_posts: d.general,
+                skilled_posts: skilled,
+                upkeep: qty(&d.upkeep),
+                provides: d.provides.iter().map(|(k, v)| cap_text(*k, *v)).collect(),
+                land_milli: d.land_milli,
+                houses: d.provides.iter().filter(|(k, _)| *k == Cap::Housing).map(|(_, v)| *v).sum(),
+                max_level: d.max_level,
+                requires: masked(&d.req),
+            }
+        })
+        .collect();
+    let edges = c
+        .upgrades
+        .iter()
+        .filter(|e| !sealed(e.from) && !sealed(e.to))
+        .map(|e| {
+            let up = e.kind == crate::content::UpgradeKind::Upgrade;
+            let bp = if up { projects::UPGRADE_BP as u16 } else { 10_000 };
+            UpgradeEdgeView { from: c.facilities[e.from].key.to_string(), to: c.facilities[e.to].key.to_string(), kind: if up { "upgrade" } else { "alternative" }.into(), cost_bp: bp, work_bp: bp }
+        })
+        .collect();
+    let mut t = BuildingTree { content_version: crate::content::CONTENT_VERSION.to_string(), hash: String::new(), lines, nodes, edges };
+    t.hash = format!("{:016x}", fnv64(&serde_json::to_string(&t).expect("the tree serializes")));
+    t
+}
+
+/// The public building tree: static content, built once, identical for every
+/// seat and every match of this content version.
+pub fn building_tree() -> &'static BuildingTree {
+    static TREE: std::sync::OnceLock<BuildingTree> = std::sync::OnceLock::new();
+    TREE.get_or_init(build_tree)
+}
+
+/// The tree serialized once.
+pub fn building_tree_json() -> &'static str {
+    static JSON: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    JSON.get_or_init(|| serde_json::to_string(building_tree()).expect("the tree serializes"))
 }
 
 /// Whole-world view for an observer. This discloses referee state and must only be
@@ -1597,6 +1814,7 @@ pub fn spectate(w: &World) -> SpectatorView {
             test_node: w.test_nodes.contains(&r.id),
             outbreak: r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }),
             climate: Some(r.climate),
+            city: Some(CityView { name: r.city_name.clone(), residents: crate::sim::cities::city_size(w, ri), class: crate::sim::cities::city_class(w, ri) }),
         });
     }
     let civs = w
