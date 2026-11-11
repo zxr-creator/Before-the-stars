@@ -10,6 +10,9 @@ import { t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { ActionNote, Btn, Empty, Meter, RegionLink, Section, Stepper, cx, toneOfBp } from '../ui';
 import { act, openPanel, useApp } from '../store';
+import { GOOD_GROUPS, GoodIcon, goodOrder } from '../theme/goods';
+import { CivProductivity, ProductivityExplainer } from '../economy/Productivity';
+import type { GoodLine } from '../protocol';
 
 export const LABOR_PARTS: { key: keyof LaborSummary; label: string; cls: string }[] = [
   { key: 'food', label: 'Food', cls: 'lab-food' },
@@ -53,6 +56,8 @@ export function EconomyPanel() {
   const core = new Set(['food', 'materials', 'tools']);
   const active = civ.goods.filter((g) => core.has(g.good) || g.stock || g.produced || g.consumed || g.traded_in || g.traded_out);
   const idle = civ.goods.filter((g) => !active.includes(g));
+  // the trade column only when something was traded: the drawer is narrow
+  const anyTrade = active.some((g) => g.traded_in || g.traded_out);
   const ownRegions = obs.regions.filter((r) => r.own);
   const power = ownRegions.reduce((a, r) => {
     const p = r.own!.power;
@@ -81,25 +86,14 @@ export function EconomyPanel() {
       <Section title={t('Stores and flows')} aside={<small class="muted">{t('each good in its own unit (tonnes, rations or lots) · totals over last round')}</small>}>
         <table class="table goods-table" data-testid="goods-table">
           <thead>
-            <tr><th>{t('Good')}</th><th class="num">{t('In store')}</th><th class="num">{t('Made')}</th><th class="num">{t('Used')}</th><th class="num" title={t('Spoiled, lost in carriage to the common stock, or abandoned')}>{t('Lost')}</th><th class="num">{t('Traded')}</th><th class="num">{t('Net')}</th></tr>
+            <tr><th>{t('Good')}</th><th class="num">{t('In store')}</th><th class="num">{t('Made')}</th><th class="num">{t('Used')}</th><th class="num" title={t('Spoiled, lost in carriage to the common stock, or abandoned')}>{t('Lost')}</th>{anyTrade ? <th class="num">{t('Traded')}</th> : null}<th class="num">{t('Net')}</th></tr>
           </thead>
           <tbody>
-            {active.map((g) => {
-              const traded = g.traded_in - g.traded_out;
-              const lost = g.lost ?? 0;
-              const net = g.produced - g.consumed - lost + traded;
-              return (
-                <tr>
-                  <th scope="row" title={t(GOOD_LABEL[g.good])}>{t(GOOD_SHORT[g.good])} <small class="muted goods-unit">{unitLabel(g.good)}</small>{g.capacity !== null ? <small class="muted cap" title={t('Storage capacity')}>{t('cap. {n}', { n: qty(g.good, g.capacity) })}</small> : null}</th>
-                  <td class="num" title={qty(g.good, g.stock)}><b>{compact(g.stock)}</b></td>
-                  <td class="num" title={qty(g.good, g.produced)}>{compact(g.produced)}</td>
-                  <td class="num" title={qty(g.good, g.consumed)}>{compact(g.consumed)}</td>
-                  <td class="num" title={lost ? qty(g.good, lost) : undefined}>{lost === 0 ? <span class="muted">–</span> : compact(lost)}</td>
-                  <td class="num" title={traded ? qtySigned(g.good, traded) : undefined}>{traded === 0 ? <span class="muted">–</span> : signedCompact(traded)}</td>
-                  <td class={cx('num', net < 0 ? 'neg' : net > 0 ? 'pos' : 'muted')} title={net ? qtySigned(g.good, net) : undefined}>{net === 0 ? '0' : <>{net < 0 ? <Icon name="down" size={10} /> : <Icon name="up" size={10} />}{signedCompact(net)}</>}</td>
-                </tr>
-              );
-            })}
+            {GOOD_GROUPS.map((grp) => ({ grp, lines: active.filter((g) => grp.goods.includes(g.good)).sort((a, b) => goodOrder(a.good) - goodOrder(b.good)) })).filter((x) => x.lines.length).map(({ grp, lines }) => [
+              <tr class="goods-group" data-group={grp.key}><th colSpan={anyTrade ? 7 : 6} title={t(grp.hint)}>{t(grp.label)}</th></tr>,
+              ...lines.map((g) => <GoodRow g={g} trade={anyTrade} />),
+            ])}
+            {active.filter((g) => !GOOD_GROUPS.some((grp) => grp.goods.includes(g.good))).map((g) => <GoodRow g={g} trade={anyTrade} />)}
           </tbody>
         </table>
         {monthsInStore !== null ? (
@@ -114,7 +108,19 @@ export function EconomyPanel() {
             <Icon name={showIdle ? 'up' : 'down'} size={12} /> {showIdle ? t('Hide {n} goods we neither hold nor make', { n: idle.length }) : t('Show {n} goods we neither hold nor make', { n: idle.length })}
           </button>
         ) : null}
-        {showIdle ? <p class="muted small">{idle.map((g) => t(GOOD_LABEL[g.good])).join(' · ')}</p> : null}
+        {showIdle ? (
+          <div class="goods-idle" data-testid="goods-idle">
+            {GOOD_GROUPS.map((grp) => ({ grp, lines: idle.filter((g) => grp.goods.includes(g.good)) })).filter((x) => x.lines.length).map(({ grp, lines }) => (
+              <p><b>{t(grp.label)}</b>{lines.map((g) => t(GOOD_LABEL[g.good])).join(' · ')}</p>
+            ))}
+            <p>{t('Only goods we know a source or a use of are listed.')}</p>
+          </div>
+        ) : null}
+      </Section>
+
+      <Section title={t('Labour productivity')} aside={<button type="button" class="linklike" data-testid="economy-productivity" onClick={() => openWorks(s.selectedRegion ?? obs.civ.capital, 'productivity')}>{t('breakdown by region')} <Icon name="right" size={10} /></button>}>
+        <ProductivityExplainer />
+        <CivProductivity obs={obs} onRegion={(id) => openWorks(id, 'productivity')} />
       </Section>
 
       <Section title={t('Labour last month')}>
@@ -223,5 +229,22 @@ function RegionWorks({ r, open }: { r: RegionView; open: boolean }) {
         ) : <p class="empty">{t('Nothing built here yet.')}</p>
       ) : null}
     </div>
+  );
+}
+
+function GoodRow({ g, trade }: { g: GoodLine; trade: boolean }) {
+  const traded = g.traded_in - g.traded_out;
+  const lost = g.lost ?? 0;
+  const net = g.produced - g.consumed - lost + traded;
+  return (
+    <tr data-good={g.good}>
+      <th scope="row" title={t(GOOD_LABEL[g.good])}><span class="goods-name"><GoodIcon good={g.good} size={15} />{t(GOOD_SHORT[g.good])}</span> <small class="muted goods-unit">{unitLabel(g.good)}</small>{g.capacity !== null ? <small class="muted cap" title={t('Storage capacity')}>{t('cap. {n}', { n: qty(g.good, g.capacity) })}</small> : null}</th>
+      <td class="num" title={qty(g.good, g.stock)}><b>{compact(g.stock)}</b></td>
+      <td class="num" title={qty(g.good, g.produced)}>{compact(g.produced)}</td>
+      <td class="num" title={qty(g.good, g.consumed)}>{compact(g.consumed)}</td>
+      <td class="num" title={lost ? qty(g.good, lost) : undefined}>{lost === 0 ? <span class="muted">–</span> : compact(lost)}</td>
+      {trade ? <td class="num" title={traded ? qtySigned(g.good, traded) : undefined}>{traded === 0 ? <span class="muted">–</span> : signedCompact(traded)}</td> : null}
+      <td class={cx('num', net < 0 ? 'neg' : net > 0 ? 'pos' : 'muted')} title={net ? qtySigned(g.good, net) : undefined}>{net === 0 ? '0' : <>{net < 0 ? <Icon name="down" size={10} /> : <Icon name="up" size={10} />}{signedCompact(net)}</>}</td>
+    </tr>
   );
 }

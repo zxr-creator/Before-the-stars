@@ -199,6 +199,8 @@ const GLYPH: Record<string, JSX.Element> = {
   Research: <><path d="M8 3h4M8.500 3v4.500L4.500 15a1.300 1.300 0 0 0 1.200 2h8.600a1.300 1.300 0 0 0 1.200-2L11.500 7.500V3" /><path d="M6.500 12.500h7" /></>,
   // an orbit
   Space: <><circle cx="10" cy="10" r="2.500" /><ellipse cx="10" cy="10" rx="8" ry="3.500" transform="rotate(-28 10 10)" /><circle cx="15.800" cy="5.800" r=".9" fill="currentColor" stroke="none" /></>,
+  // a broken ring crossed by an arrow: the jump
+  'Jump engineering': <><circle cx="10" cy="10" r="6.500" stroke-dasharray="3.200 2.200" /><path d="M5.500 10h9M11.500 7l3 3-3 3" /></>,
   Other: <><rect x="4" y="4" width="12" height="12" rx="1.500" /><path d="M7.500 10h5" /></>,
   // drive shaft: a gear
   shaft: <><circle cx="10" cy="10" r="6.400" stroke-width="2.600" stroke-dasharray="2.500 2.527" stroke-linecap="butt" /><circle cx="10" cy="10" r="4.600" /><circle cx="10" cy="10" r="1.300" /></>,
@@ -222,7 +224,7 @@ export function Glyph({ name, size = 16, class: cls }: { name: string; size?: nu
   );
 }
 
-export const CATEGORY_ORDER = ['Extraction', 'Industry', 'Power', 'Research', 'Space', 'Food', 'Transport', 'Civic', 'Education', 'Other'];
+export const CATEGORY_ORDER = ['Extraction', 'Industry', 'Power', 'Research', 'Space', 'Jump engineering', 'Food', 'Transport', 'Civic', 'Education', 'Other'];
 
 /** Compact people count (exact below ten thousand). */
 export function people(n: number): string {

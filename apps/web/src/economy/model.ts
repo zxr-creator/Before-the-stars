@@ -14,25 +14,10 @@ import type {
   FacilityType, FacilityView, Good, GoodLine, Observation, OwnRegion, Qual, RecipeRun, RecipeView, RegionId,
   RegionView, ResearchClass,
 } from '../protocol';
+import { goodGroupOf, type GoodGroupKey } from '../theme/goods';
 
-export type GoodGroup = 'raw' | 'processed' | 'advanced';
-export const GROUPS: { key: GoodGroup; label: string; hint: string }[] = [
-  { key: 'raw', label: 'Raw', hint: 'Grown, gathered or dug from the land' },
-  { key: 'processed', label: 'Processed', hint: 'Made from raw goods in workshops and works' },
-  { key: 'advanced', label: 'Advanced', hint: 'Long chains: precision, electronic and medical goods' },
-];
-export const GROUP_OF: Record<Good, GoodGroup> = {
-  food: 'raw', materials: 'raw', copper_ore: 'raw', iron_ore: 'raw', coal: 'raw', crude: 'raw',
-  timber: 'raw', fibres: 'raw', horses: 'raw', salt: 'raw', spices: 'raw', precious: 'raw', tin: 'raw', saltpetre: 'raw',
-  gas: 'raw', bauxite: 'raw', uranium_ore: 'raw', rare_earths: 'raw', lithium: 'raw', cobalt_nickel: 'raw', quartz: 'raw',
-  helium: 'raw', volatiles: 'raw', aluminium: 'processed', fertilizer: 'processed', munitions: 'processed',
-  textiles: 'processed', propellant: 'processed', fine_wares: 'processed', consumer_goods: 'processed',
-  magnets: 'advanced', batteries: 'advanced', nuclear_fuel: 'advanced', lattice: 'advanced', helium3: 'raw',
-  tools: 'processed', copper: 'processed', metal: 'processed', components: 'processed', conductors: 'processed',
-  insulation: 'processed', fuel: 'processed', chemicals: 'processed',
-  substrate: 'advanced', electronics: 'advanced', hardware: 'advanced', spares: 'advanced', media: 'advanced',
-  instruments: 'advanced', medicine: 'advanced',
-};
+// Goods are grouped as everywhere else in the interface (theme/goods.tsx: GOOD_GROUPS).
+export type GoodGroup = GoodGroupKey;
 
 export type Status = 'shortage' | 'tight' | 'balanced' | 'surplus' | 'full';
 export const STATUS_RANK: Record<Status, number> = { shortage: 0, tight: 1, full: 2, balanced: 3, surplus: 4 };
@@ -399,7 +384,7 @@ export function buildLedger(obs: Observation): Ledger {
 
     const active = line.stock !== 0 || line.produced !== 0 || line.consumed !== 0 || line.traded_in !== 0 || line.traded_out !== 0;
     return {
-      good: g, group: GROUP_OF[g], line, supply, demand, net, madePerMonth, usePerMonth, cover, runway, status, why,
+      good: g, group: goodGroupOf(g).key, line, supply, demand, net, madePerMonth, usePerMonth, cover, runway, status, why,
       makers: top(mk), users: top(us), claims, makeEst: mk.reduce((a, l) => a + l.perMonth, 0), useEst: us.reduce((a, l) => a + l.perMonth, 0),
       makeDerived, useDerived, starved, throttled, owed, active,
     };
@@ -468,8 +453,11 @@ export interface Stage {
 export interface ChainGood { good: Good; level: number; col: number; row: number }
 export interface ChainEdge { from: string; to: string; good: Good; flow: number; full: number; starved: boolean; kind: 'in' | 'out'; /** Flow in tonnes a month, so goods counted in rations, tonnes and lots compare. */ tonnes: number }
 
-/** Kilograms in one base unit of each good (docs/units-and-scale.md §2: rations 50 kg, bulk 1 t, lots 40-500 kg). */
-export const KG_PER_UNIT: Partial<Record<Good, number>> = { food: 50, tools: 250, spares: 250, electronics: 50, hardware: 500, media: 150, instruments: 400, medicine: 40 };
+/** Kilograms in one base unit of each good (docs/units-and-scale.md §14: rations 50 kg, a horse 500 kg, bulk 1 t, lots 1-500 kg). */
+export const KG_PER_UNIT: Partial<Record<Good, number>> = {
+  food: 50, horses: 500, tools: 250, spares: 250, electronics: 50, munitions: 50, batteries: 50, hardware: 500, media: 150,
+  instruments: 400, medicine: 40, consumer_goods: 100, textiles: 10, fine_wares: 10, lattice: 10, precious: 1, nuclear_fuel: 1, helium3: 1,
+};
 const tonnesOf = (g: Good, n: number) => (n * (KG_PER_UNIT[g] ?? 1000)) / 1000;
 export interface Chain { stages: Stage[]; goods: ChainGood[]; edges: ChainEdge[]; cols: number; rows: number; /** Largest edge flow, tonnes a month. */ maxFlow: number }
 

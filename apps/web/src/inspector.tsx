@@ -3,9 +3,12 @@
 import { useState } from 'preact/hooks';
 import type { FacilityView, Observation, OwnRegion, RegionView, SurveyView } from './protocol';
 import {
-  DEPOSIT_LABEL, GOOD_SHORT, QUAL_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, computeQty, energy, fmtDate, int, joinList,
+  BONUS_LABEL, CLIMATE_LABEL, DEPOSIT_LABEL, GOOD_SHORT, QUAL_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, computeQty, energy, fmtDate, int, joinList,
   lc, pct, people, peopleNum, range, rations, tcAll, tonnes, tx,
 } from './format';
+import type { DepositView, Good, OutbreakView } from './protocol';
+import { GoodIcon } from './theme/goods';
+import { ProductivityMini } from './economy/Productivity';
 import { t, tc, useLocale } from './i18n';
 import { Icon } from './icons';
 import { ActionNote, Badge, Btn, EpistemicTag, Est, KV, Meter, SeatDot, Section, cx, toneOfBp } from './ui';
@@ -32,7 +35,7 @@ export function Inspector() {
     <aside class="inspector" aria-label={t('Region: {name}', { name: r.name })} data-testid="inspector">
       <header class="inspector-head">
         <div>
-          <p class="eyebrow">{t(TERRAIN_LABEL[r.terrain])}{r.coastal ? t(' · coast') : ''}{r.river ? t(' · river') : ''}</p>
+          <p class="eyebrow">{t(TERRAIN_LABEL[r.terrain])}{r.climate ? ' · ' + t(CLIMATE_LABEL[r.climate]) : ''}{r.coastal ? t(' · coast') : ''}{r.river ? t(' · river') : ''}</p>
           <h2 data-testid="inspector-name">{r.name}</h2>
         </div>
         <Btn kind="ghost" small icon="close" title={t('Close (Esc)')} onClick={() => selectRegion(null)} />
@@ -40,6 +43,12 @@ export function Inspector() {
       <div class="inspector-body">
         <dl class="kvs">
           <KV k={t('Settlement')}>{t(SETTLEMENT_LABEL[r.settlement])}{obs.civ.capital === r.id ? ' ' : null}{obs.civ.capital === r.id ? <Badge tone="gold" icon="star">{t('Capital')}</Badge> : null}</KV>
+          {r.city ? (
+            <KV k={t('Principal city')} title={t('Where the region’s principal city stands; a natural harbour makes a port cheaper to work.')}>
+              <span data-testid="inspector-city">{tc(r.city.name)}</span>
+              {r.city.natural_harbour ? <>{' '}<Badge tone="muted" icon="compass" title={t('A sheltered anchorage on the coast')}>{t('Natural harbour')}</Badge></> : null}
+            </KV>
+          ) : null}
           <KV k={t('Held by')}>
             {r.owner === null ? <span class="muted">{t('No one, as far as we know')}</span> : <><SeatDot color={civColor(obs, r.owner)} /> {tc(civName(obs, r.owner))}</>}
           </KV>
@@ -51,6 +60,8 @@ export function Inspector() {
           </KV>
           {r.test_node ? <KV k={t('Deployment')}><Badge tone="accent" icon="objectives">{t('Jump test node')}</Badge></KV> : null}
         </dl>
+
+        {r.outbreak ? <OutbreakNote o={r.outbreak} /> : null}
 
         {mine ? <OwnDetails obs={obs} r={r} own={r.own!} /> : <ForeignDetails obs={obs} r={r} />}
 
@@ -144,6 +155,12 @@ function OwnDetails({ obs, r, own }: { obs: Observation; r: RegionView; own: Own
           </p>
         ) : null}
       </Section>
+
+      {own.productivity?.length ? (
+        <Section title={t('Labour productivity')}>
+          <ProductivityMini r={r} onOpen={() => openWorks(r.id, 'productivity')} />
+        </Section>
+      ) : null}
 
       <Section title={t('Works')} aside={<button type="button" class="linklike" data-testid="inspector-works" onClick={() => openWorks(r.id)}>{t('{n} kinds', { n: own.facilities.length })} · {t('manage')} <Icon name="right" size={10} /></button>}>
         {own.facilities.length ? (
@@ -268,18 +285,29 @@ export function SurveyBlock({ survey }: { survey: SurveyView | null }) {
         <KV k={t('Water')}>{peopleNum(survey.water)} <small>{t('people served')}</small></KV>
         <KV k={t('Hydro sites')}>{int(survey.hydro)}</KV>
       </dl>
+      {survey.bonuses?.length || survey.spice_land ? (
+        <dl class="kvs">
+          {survey.bonuses?.length ? (
+            <KV k={t('Site bonuses')} title={t('Region attributes that raise the yield of land works built to use them')}>
+              <span class="r3-bonus-list" data-testid="inspector-bonuses">{survey.bonuses.map((b) => <span title={t(BONUS_HINT[b.kind])}>{t(BONUS_LABEL[b.kind])} <small class="pos">+{pct(b.bp)}</small></span>)}</span>
+            </KV>
+          ) : null}
+          {survey.spice_land ? <KV k={t('Spice land')} title={t('Levels of warm, wet land fit for spice plantations')}>{t('{n} levels', { n: int(survey.spice_land) })}</KV> : null}
+        </dl>
+      ) : null}
       <p class="sub-label">{t('Deposits')}</p>
       {survey.deposits.length ? (
-        <ul class="deposit-list">
+        <ul class="deposit-list" data-testid="inspector-deposits">
           {survey.deposits.map((d) => (
             <li>
-              <span class="dep-name">{t(DEPOSIT_LABEL[d.kind])}</span>
-              <span class={cx('dep-val', d.epistemic !== 'verified' && 'est')}>{d.epistemic !== 'verified' ? t('≈ {n}', { n: tonnes(d.remaining) }) : tonnes(d.remaining)} <small>{t('in the ground')}</small> · {t('quality {pct}', { pct: pct(d.quality_bp) })}</span>
+              <span class="dep-name"><GoodIcon good={d.kind as Good} size={14} />{t(DEPOSIT_LABEL[d.kind] ?? d.kind)}</span>
+              <span class={cx('dep-val', d.epistemic !== 'verified' && 'est')}>{d.epistemic !== 'verified' ? t('≈ {n}', { n: depositQty(d) }) : depositQty(d)} <small>{t('in the ground')}</small> · {t('quality {pct}', { pct: pct(d.quality_bp) })}{heliumNote(d)}</span>
               <EpistemicTag kind={d.epistemic} />
             </li>
           ))}
         </ul>
       ) : <p class="muted small">{survey.detailed ? t('None found by the detailed survey.') : t('None seen from the surface; a detailed survey may find more.')}</p>}
+      <p class="muted small">{t('Only deposits of kinds we understand are shown; others may lie here unrecognised.')}</p>
     </Section>
   );
 }
@@ -312,5 +340,42 @@ function MiniMeter({ label, bp, invert, sub }: { label: string; bp: number; inve
       <Meter value={bp} max={10000} tone={tone} label={`${label} ${pct(bp)}`} height={6} />
       <span class="mini-val">{pct(bp)}</span>
     </div>
+  );
+}
+
+// i18n-table
+const BONUS_HINT: Record<string, string> = {
+  floodplain: 'River lowland: fields here yield more.',
+  fish_banks: 'Rich fishing grounds: fishing yields more.',
+  wild_herds: 'Wild horses: horse breeding yields more.',
+  old_growth: 'Ancient forest: forestry camps cut more timber.',
+  rich_pasture: 'Good grazing: pastures and wool herds yield more.',
+};
+const SEVERITY: string[] = ['', 'mild', 'serious', 'severe'];
+// i18n-end
+
+/** What remains in a deposit: tonnes in the ground, for every kind (precious metals too, though the mined good counts in kilogram lots). */
+function depositQty(d: DepositView): string {
+  return tonnes(d.remaining);
+}
+
+/** Gas fields: the helium recoverable with separation, for a seat that understands cryogenics. */
+function heliumNote(d: DepositView) {
+  if (d.helium_bp === undefined || d.helium_bp === null) return null;
+  return <> · <span title={t('Helium recoverable per 10,000 t of gas with separation at the wells')}>{t('helium {n} per 10,000 t', { n: int(d.helium_bp) })}</span></>;
+}
+
+/** An epidemic in the region, with its severity (1 mild to 3 severe). */
+function OutbreakNote({ o }: { o: OutbreakView }) {
+  const band = Math.max(1, Math.min(3, o.severity_band));
+  return (
+    <p class={cx('note r3-outbreak', band >= 2 ? 'is-bad' : 'is-warn')} data-testid="inspector-outbreak">
+      <Icon name="danger" size={13} />
+      <span>
+        <b>{t('Epidemic: {severity}', { severity: t(SEVERITY[band]) })}</b>{' '}
+        <span class="r3-sev" aria-hidden="true">{[1, 2, 3].map((i) => <i class={i <= band ? 'on' : undefined} />)}</span>{' '}
+        <small>{t('since {date}', { date: fmtDate(o.since) })} · {t('people die and work less until it passes; healers, hospitals, drains and clean water shorten it')}</small>
+      </span>
+    </p>
   );
 }
