@@ -1072,12 +1072,10 @@ pub fn stations_step(w: &mut World) {
                 }
                 let demand = -CORES[core].power - modules.iter().enumerate().filter(|(m, _)| MODULES[*m].power < 0).map(|(m, lv)| MODULES[m].power * *lv as i64).sum::<i64>();
                 let power_bp = ratio_bp(supply, demand);
-                // a tenth of the crew is aboard, within the habitat's room
+                // a tenth of the crew is aboard, within the core's and habitats' room
+                // (the rest of the rotation works the station from the ground)
                 let room = CORES[core].aboard_cap as i64 + modules[M_HABITAT] as i64 * 1_000;
                 let aboard = (filled / 10).min(room);
-                if filled / 10 > room && filled > 0 {
-                    staff_bp = staff_bp.min(room * 10 * 10_000 / filled);
-                }
                 // their food, water and air from the zone store
                 let vol_per_k = if modules[M_LIFE] > 0 { if t135 { 3 } else { 13 } } else { 130 };
                 let (food_need, vol_need) = (aboard, aboard * vol_per_k / 1000);

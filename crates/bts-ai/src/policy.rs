@@ -3434,17 +3434,21 @@ fn space(p: &mut Plan, regions: &[&RegionView]) {
     // shipments still on the pad, waiting for boost (lifts of supplies aside)
     let waiting = sv.transfers.iter().filter(|t| t.departed > obs.month && t.purpose != "lift").count();
     let leo = sv.stations.iter().find(|s| s.owner == obs.seat && s.orbit == "leo");
+    let level = |st: &StationView, name: &str| st.modules.iter().find(|m| m.kind == name).and_then(|m| m.level).unwrap_or(0);
     let store = |zone: &str, g: Good| sv.stores.iter().find(|z| z.zone == zone).and_then(|z| z.goods.iter().find(|x| x.good == g)).map(|x| x.amount).unwrap_or(0);
     // the crew's supplies: a year of food and water in the Earth-orbit store
     if let Some(st) = leo {
         let aboard = st.aboard.unwrap_or(0) as i64;
         let lifting = sv.transfers.iter().any(|t| t.purpose == "lift" && t.departed > obs.month);
+        // enough to last two rounds, and at least a year
+        let months = (obs.months_per_round as i64 * 2).clamp(12, 24);
+        let per_k = if level(st, "Life support") > 0 { 13 } else { 130 };
         if !lifting && aboard > 0 {
-            let food = aboard * 12;
+            let food = aboard * months;
             if store("earth_orbit", Good::Food) < food / 2 && p.stock(Good::Food) > food * 20 {
                 p.push(order(SpaceOrder::Launch { good: Good::Food, amount: food }));
             }
-            let vol = aboard * 13 * 12 / 1000 + 50;
+            let vol = aboard * per_k * months / 1000 + 50;
             if store("earth_orbit", Good::Volatiles) < vol / 2 && p.stock(Good::Volatiles) >= vol {
                 p.push(order(SpaceOrder::Launch { good: Good::Volatiles, amount: vol }));
             } else if p.stock(Good::Volatiles) < vol {
@@ -3455,7 +3459,6 @@ fn space(p: &mut Plan, regions: &[&RegionView]) {
     if waiting > 0 {
         return;
     }
-    let level = |st: &StationView, name: &str| st.modules.iter().find(|m| m.kind == name).and_then(|m| m.level).unwrap_or(0);
     match leo {
         None => {
             let core = if has("k2") { "k2" } else { "k1" };
@@ -3465,48 +3468,61 @@ fn space(p: &mut Plan, regions: &[&RegionView]) {
             return;
         }
         Some(st) => {
-            // the station's build order; the core's slots bound it (the referee refuses the rest)
-            let plan: [(&str, &str, u16); 7] = [
+            // the station's build order within the core's slots (public: K1 4, K2 8, K3 14, K4 20)
+            let plan: [(&str, &str, u16); 8] = [
                 ("solar", "Solar array", 1),
                 ("docking", "Docking and depot", 1),
-                ("habitat", "Habitat", 1),
-                ("shipyard", "Shipyard", 1),
+                ("life_support", "Life support", 1),
                 ("docking", "Docking and depot", 2),
+                ("shipyard", "Shipyard", 1),
+                ("habitat", "Habitat", 1),
                 ("solar", "Solar array", 2),
                 ("lab", "Research laboratory", 1),
             ];
-            if st.core.as_deref() == Some("K1") && has("k2") && st.modules.len() >= 3 {
+            let core = match st.core.as_deref() {
+                Some("K4") => 4,
+                Some("K3") => 3,
+                Some("K2") => 2,
+                _ => 1,
+            };
+            let slots = [4u16, 8, 14, 20][core - 1];
+            let used: u16 = st.modules.iter().map(|m| m.level.unwrap_or(1)).sum();
+            // the K2 frame core stands on the ground segment's crews; later cores need
+            // tens of thousands of orbital crew and are left to the player
+            if core == 1 && has("k2") && used + 1 >= slots {
                 p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: "k2".into() }));
                 return;
             }
-            // more power before a shipyard: a reactor where it can be built
-            if level(st, "Shipyard") > 0 && st.power_bp.unwrap_or(10_000) < 9_000 && has("reactor") {
-                p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: "reactor".into() }));
-                return;
+            let full = used >= slots;
+            // power first: an array (or a reactor) when the station runs short
+            if !full && used > 0 && st.power_bp.unwrap_or(10_000) < 9_000 {
+                let part = if has("reactor") && level(st, "Shipyard") > 0 { "reactor" } else { "solar" };
+                if has(part) {
+                    p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: part.into() }));
+                    return;
+                }
             }
+            // berths and supplies in place: the outpost comes before the rest of the station
+            if level(st, "Docking and depot") >= 2 && !sv.sites.iter().any(|s| s.owner == Some(obs.seat)) && has("outpost") && boost.cap.max(boost.stock) >= 4_800 {
+                if let Some(key) = ["shackleton_rim", "arcadia_planitia", "mare_imbrium", "jezero_delta", "valles_marineris", "daedalus"].into_iter().find(|k| sv.sites.iter().any(|s| s.site == *k && s.owner.is_none())) {
+                    p.push(order(SpaceOrder::FoundOutpost { site: key.into(), propulsion: None }));
+                    if p.stock(Good::Fuel) < 20_000 {
+                        p.wanted.insert(Good::Fuel);
+                    }
+                    return;
+                }
+            }
+            // more power before a shipyard: a reactor where it can be built
             for (key, name, want) in plan {
-                if has(key) && level(st, name) < want {
+                if !full && has(key) && level(st, name) < want {
                     p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: key.into() }));
                     return;
                 }
             }
         }
     }
-    // an outpost: the first unclaimed site of the Moon or Mars this seat can reach
     let own_sites: Vec<&SpaceSiteView> = sv.sites.iter().filter(|s| s.owner == Some(obs.seat)).collect();
-    let docks = leo.map(|st| level(st, "Docking and depot")).unwrap_or(0);
-    if own_sites.is_empty() && has("outpost") && docks >= 2 && boost.cap >= 4_800 {
-        for key in ["shackleton_rim", "arcadia_planitia", "mare_imbrium", "jezero_delta", "valles_marineris", "daedalus"] {
-            if sv.sites.iter().any(|s| s.site == key && s.owner.is_none()) {
-                p.push(order(SpaceOrder::FoundOutpost { site: key.into(), propulsion: None }));
-                if p.stock(Good::Fuel) < 20_000 {
-                    p.wanted.insert(Good::Fuel);
-                }
-                break;
-            }
-        }
-        return;
-    }
+
     // the first works of a site: ice works where there is ice, then a habitat farm
     for site in own_sites {
         let ice = site.deposits.iter().any(|d| d.kind == Deposit::Volatiles && d.remaining > 0);

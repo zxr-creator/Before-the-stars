@@ -148,7 +148,7 @@ fn stations_take_boost_for_their_parts_crew_from_free_holders_and_give_research(
     // every post filled from free holders; a tenth aboard, within the core's room
     assert_eq!(st.staffed, 2_000 + 2_000 + 50 + 1_500, "{st:?}");
     assert_eq!(st.aboard, 400, "{st:?}");
-    assert!(st.staffed_bp < 10_000, "more crew than the room aboard holds: {st:?}");
+    assert_eq!(st.staffed_bp, 10_000, "{st:?}");
     // without water and air the crew is half supplied: the modules run at half rate
     assert!(st.supplied_bp < 9_000 && st.rate_bp <= 5_000, "{st:?}");
     assert!(m.world.civs[0].space.lab_staff > 0);
