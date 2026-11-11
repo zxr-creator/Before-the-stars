@@ -105,7 +105,7 @@ export function GameMenu() {
             <LanguageSwitch compact />
           </Section>
           <Section title={t('Sound')}>
-            <SoundSettings />
+            <SoundSettings compact />
           </Section>
           <Section title={t('Save')}>
             <form class="row" onSubmit={(e) => { e.preventDefault(); if (name.trim()) void saveGame(name.trim()); }}>

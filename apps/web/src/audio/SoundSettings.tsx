@@ -42,10 +42,11 @@ function Check({ label, checked, onChange, testid }: { label: string; checked: b
   );
 }
 
-export function SoundSettings({ dark }: { dark?: boolean }) {
+export function SoundSettings({ dark, compact }: { dark?: boolean; compact?: boolean }) {
   useLocale();
   const s = useAudioSettings();
   const st = useAudioStatus();
+  const [more, setMore] = useState(!compact);
   const set = (p: Partial<AudioSettings>) => setAudioSettings(p);
   const note = st === 'unavailable' ? t('This browser offers no Web Audio, so the game is silent.')
     : st === 'error' ? t('The sound could not be started.')
@@ -62,13 +63,22 @@ export function SoundSettings({ dark }: { dark?: boolean }) {
           <span>{s.muted ? t('Sound off') : t('Sound on')}</span>
           <kbd>M</kbd>
         </button>
+        {compact ? (
+          <button type="button" class="linklike snd-more" aria-expanded={more} data-testid="sound-more" onClick={() => setMore(!more)}>
+            {more ? t('Fewer settings') : t('More settings')}
+          </button>
+        ) : null}
       </div>
-      <Slider label={t('Master volume')} value={s.master} disabled={s.muted} testid="sound-master" onInput={(v) => set({ master: v })} />
+      {more ? <Slider label={t('Master volume')} value={s.master} disabled={s.muted} testid="sound-master" onInput={(v) => set({ master: v })} /> : null}
       <Slider label={t('Music')} value={s.music} disabled={s.muted} testid="sound-music" onInput={(v) => set({ music: v })} />
-      <Slider label={t('Effects')} value={s.effects} disabled={s.muted || !s.uiSounds} testid="sound-effects" onInput={(v) => set({ effects: v })} />
-      <Check label={t('Music on the title screen too')} checked={s.titleMusic} testid="sound-title-music" onChange={(v) => set({ titleMusic: v })} />
-      <Check label={t('Interface sounds (end of round, orders, notices)')} checked={s.uiSounds} testid="sound-ui" onChange={(v) => set({ uiSounds: v })} />
-      <p class="snd-note" role="status">{note}</p>
+      {more ? (
+        <>
+          <Slider label={t('Effects')} value={s.effects} disabled={s.muted || !s.uiSounds} testid="sound-effects" onInput={(v) => set({ effects: v })} />
+          <Check label={t('Music on the title screen too')} checked={s.titleMusic} testid="sound-title-music" onChange={(v) => set({ titleMusic: v })} />
+          <Check label={t('Interface sounds (end of round, orders, notices)')} checked={s.uiSounds} testid="sound-ui" onChange={(v) => set({ uiSounds: v })} />
+          <p class="snd-note" role="status">{note}</p>
+        </>
+      ) : null}
     </div>
   );
 }
