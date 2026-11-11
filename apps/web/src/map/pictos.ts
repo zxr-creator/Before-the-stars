@@ -235,6 +235,38 @@ export function drawOutbreakSeal(ctx: CanvasRenderingContext2D, x: number, y: nu
   ctx.restore();
 }
 
+/** A raider camp: a tent with a dark pennant, in red-brown so it never reads as a settlement. */
+export function drawCampMark(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, faded = false): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha *= faded ? 0.65 : 1;
+  ctx.beginPath();
+  ctx.moveTo(0, -r);
+  ctx.lineTo(r * 1.1, r * 0.7);
+  ctx.lineTo(-r * 1.1, r * 0.7);
+  ctx.closePath();
+  ctx.fillStyle = faded ? '#a58a7c' : '#8d3a26';
+  ctx.fill();
+  ctx.lineWidth = 1.1;
+  ctx.strokeStyle = 'rgba(43,38,32,0.85)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, r * 0.7);
+  ctx.lineTo(0, -r * 0.1);
+  ctx.strokeStyle = 'rgba(247,241,225,0.75)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, -r);
+  ctx.lineTo(0, -r * 1.7);
+  ctx.lineTo(r * 0.7, -r * 1.45);
+  ctx.lineTo(0, -r * 1.2);
+  ctx.strokeStyle = 'rgba(43,38,32,0.85)';
+  ctx.fillStyle = '#2b2620';
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** Inline SVG markup of a deposit pictogram, for HTML labels and the legend. */
 export function depositSvg(kind: Deposit, verified = true, size = 16): string {
   const def = depositPicto(kind);

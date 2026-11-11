@@ -15,7 +15,9 @@ for (const f of readdirSync(dictDir).filter((x) => x.endsWith('.json') && !x.sta
 }
 let files = process.argv.slice(2);
 if (!files.length) {
-  files = ['src/inspector.tsx', 'src/format.ts', ...readdirSync(join(web, 'src', 'panels')).map((f) => 'src/panels/' + f)];
+  files = ['src/inspector.tsx', 'src/format.ts', 'src/app.tsx', ...readdirSync(join(web, 'src', 'panels')).map((f) => 'src/panels/' + f),
+    // ruleset 3.0 client: works, building tree, urban block, market, camps
+    ...['Construction', 'BuildingTree', 'UrbanBlock', 'MarketOverlay'].map((f) => `src/economy/${f}.tsx`), 'src/economy/works.ts', 'src/map/Camp.tsx'];
 }
 const STR = `(?:'((?:\\\\.|[^'\\\\])*)'|"((?:\\\\.|[^"\\\\])*)"|\`((?:\\\\.|[^\`\\\\$])*)\`)`;
 const unq = (m, i) => (m[i] ?? m[i + 1] ?? m[i + 2] ?? '').replace(/\\(['"`\\])/g, '$1').replace(/\\n/g, '\n');

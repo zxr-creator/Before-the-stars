@@ -74,6 +74,14 @@ export function quoteFor(r: RegionView, kind: string, levels: number): Quote | n
   };
 }
 
+/** An upgrade in place: the successor's quote with its goods and work at the edge's share (`bp`); crew, power and months are the successor's. */
+export function upgradeQuote(r: RegionView, kind: string, levels: number, bp: number): Quote | null {
+  const q = quoteFor(r, kind, levels);
+  if (!q) return null;
+  const work = Math.ceil(q.work * bp / 10_000);
+  return { ...q, work, goods: q.goods.map((g) => ({ good: g.good, amount: Math.ceil(g.amount * bp / 10_000) })), monthly: Math.ceil(work / Math.max(1, q.site.min_months)) };
+}
+
 /** Qualified residents of a region who hold any of the qualifications. */
 export function holders(own: OwnRegion, quals: Qual[]): number {
   return own.quals.filter((q) => quals.includes(q.qual)).reduce((n, q) => n + q.count, 0);

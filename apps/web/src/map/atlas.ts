@@ -9,7 +9,7 @@ import type {
   ArmyView, Bonus, ClimateZone, Deposit, ForeignArmyView, RegionId, RegionView, Role, SettlementKind, Terrain, WorldFrame,
 } from '../protocol';
 import { hash32, rng } from '../format';
-import { DEPOSIT_COLOR, drawAnchor, drawBonusPicto, drawDepositPicto, drawOutbreakSeal } from './pictos';
+import { DEPOSIT_COLOR, drawAnchor, drawBonusPicto, drawCampMark, drawDepositPicto, drawOutbreakSeal } from './pictos';
 import { SECTOR_COLOR, SECTORS, landUse, landUseSignature, type Building, type LandUse } from './landuse';
 import { BUILD_AMBER, drawChip, drawSite, chipRadius, sectorChips, siteExtent, type SiteKind } from './sites';
 
@@ -1994,6 +1994,32 @@ export class Atlas {
       ctx.stroke();
     }
 
+    // Transport lines between governed regions: width by capacity, dashed where much is lost on the way.
+    if (mode !== 'population' && s >= 0.5) {
+      ctx.lineCap = 'round';
+      for (const { p, ox } of visible) {
+        const links = p.r.own?.urban?.links;
+        if (!links) continue;
+        for (const l of links) {
+          const q = this.byId.get(l.region);
+          if (!q || l.region < p.r.id || !q.r.own || l.capacity <= 0) continue;
+          if (Math.abs(q.sx - p.sx) > this.data!.world.width / 2) continue;
+          const [ax, ay] = this.worldToScreen(p.sx + ox, p.sy);
+          const [bx, by] = this.worldToScreen(q.sx + ox, q.sy);
+          if (Math.max(ax, bx) < -20 || Math.min(ax, bx) > this.w + 20 || Math.max(ay, by) < -20 || Math.min(ay, by) > this.h + 20) continue;
+          const w = clamp(0.9 + Math.log10(1 + l.capacity) * 0.55, 1, 4);
+          ctx.setLineDash(l.loss_bp >= 3000 ? [5, 4] : []);
+          ctx.lineWidth = w + 1.8;
+          ctx.strokeStyle = alpha(PAPER_LIGHT, 0.7);
+          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+          ctx.lineWidth = w;
+          ctx.strokeStyle = alpha(l.loss_bp >= 3000 ? '#8f6c3a' : '#5d4a38', 0.85);
+          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+        }
+      }
+      ctx.setLineDash([]);
+    }
+
     // Works standing on the land: drawn in place at their real size once that size can be
     // read, and summed into the sector chips under the name when it cannot.
     if (mode !== 'population') {
@@ -2085,6 +2111,14 @@ export class Atlas {
       const hgt = r.settlement === 'wilderness' || row.halfW <= 3 ? 6 : this.settlementHeight(r.settlement);
       const ex = row.tx + Math.max(row.halfW * 0.7, 9 * k), ey = row.ty + 4 * k - hgt * k * 0.85;
       drawOutbreakSeal(ctx, ex, ey, clamp(5.2 * k, 4.6, 8.5), ob.severity_band, r.visibility === 'remembered');
+    }
+
+    // Raider camps, where this seat has sighted them.
+    for (const row of rows) {
+      const camp = row.p.r.camp;
+      if (!camp || mode === 'construction') continue;
+      const cx0 = row.tx - Math.max(row.halfW * 0.8, 10 * k) - 6 * k, cy0 = row.ty + 2 * k;
+      drawCampMark(ctx, cx0, cy0, clamp(5.6 * k, 5, 9), row.p.r.visibility === 'remembered');
     }
 
     // Labels with greedy collision avoidance: the most important name wins the space.

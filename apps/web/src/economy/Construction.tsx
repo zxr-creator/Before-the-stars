@@ -25,13 +25,16 @@ import { ActionNote, Badge, Btn, Checklist, Empty, GoodsList, Meter, OBSERVING, 
 import { act, closeOverlay, isReadOnly, openOverlay, selectRegion, useApp } from '../store';
 import {
   FREIGHT_BY_GRADE, MAINT_CAP_BP, MAINT_SPAN, SUPPORT_CAP_BP, SITE_ENGINE_PER_T, blocking, bottleneck, checks, goodsDelta,
-  holders, levelsByCategory, limitsOf, methodsOf, ownRegions, queueOf, quoteFor, supportSavingAt, totalLevels,
+  upgradeQuote, holders, levelsByCategory, limitsOf, methodsOf, ownRegions, queueOf, quoteFor, supportSavingAt, totalLevels,
   type Check, type MethodRow, type Quote, type QueueRow,
 } from './works';
 import { ERA_LABEL, eraLabel, lineLabel } from './labels';
 import { RegionProductivity, WorksLabour, eraText } from './Productivity';
 import { mult, postsChain } from './labour';
 import './construction.css';
+import './r3.css';
+import { UrbanBlock } from './UrbanBlock';
+import { useBuildingTree } from './BuildingTree';
 
 type Tab = 'overview' | 'works' | 'build' | 'queue' | 'productivity';
 export type WorksTabKey = Tab;
@@ -325,6 +328,7 @@ function OverviewTab({ obs, r, onTab }: { obs: Observation; r: RegionView; onTab
         ) : <p class="wo-note">{t('Every works ran without a stated limit last month.')}</p>}
         <button type="button" class="linklike" onClick={() => onTab('works')}>{t('Works and methods')} <Icon name="right" size={10} /></button>
       </section>
+      <section class="wo-card wo-wide"><UrbanBlock obs={obs} r={r} /></section>
     </div>
   );
 }
@@ -341,10 +345,17 @@ function PowerLine({ label, supply, demand, fmt }: { label: string; supply: numb
 function WorksTab({ obs, r, pick, onPick }: { obs: Observation; r: RegionView; pick: string | null; onPick: (k: string | null) => void }) {
   const own = r.own!;
   const sel = own.facilities.find((f) => f.kind === pick) ?? own.facilities.find((f) => (obs.catalog.facilities.find((x) => x.kind === f.kind)?.recipes.filter((rc) => rc.available).length ?? 0) > 1) ?? own.facilities[0];
-  if (!own.facilities.length) return <Empty>{t('Nothing has been built here yet.')}</Empty>;
+  const converting = obs.projects.filter((p) => p.kind === 'upgrade' && p.region === r.id);
+  if (!own.facilities.length && !converting.length) return <Empty>{t('Nothing has been built here yet.')}</Empty>;
   return (
     <div class="works-split">
       <div class="works-list" role="listbox" aria-label={t('Works')}>
+        {converting.length ? (
+          <div class="wd-convert" data-testid="converting">
+            <b>{t('Converting in place')}</b>
+            <ul class="plain-list">{converting.map((p) => <li>{tc(p.title)} · <small class="muted">{t('idle until it reopens · {pct} of the work done', { pct: pct(p.work_needed ? Math.round(10000 * p.work_done / p.work_needed) : 0) })}</small></li>)}</ul>
+          </div>
+        ) : null}
         <table class="table works-table2">
           <thead><tr><th>{t('Works')}</th><th class="num">{t('Level')}</th><th>{t('Method')}</th><th class="num">{t('Staff')}</th><th class="num" title={t('The productivity this works receives: posts are divided by it')}>{t('Prod.')}</th><th>{t('Output')}</th></tr></thead>
           <tbody>
@@ -356,7 +367,7 @@ function WorksTab({ obs, r, pick, onPick }: { obs: Observation; r: RegionView; p
               const choice = methods.filter((m) => m.recipe.available).length > 1;
               return (
                 <tr class={cx('works-row', f.kind === sel?.kind && 'is-selected', !f.enabled && 'is-off')} data-testid={`work-row-${f.kind}`} onClick={() => onPick(f.kind)}>
-                  <th scope="row"><span class="wt-name">{tc(f.name)}</span>{fac ? <LineTag fac={fac} /> : null}{blockers.length ? <small class="wt-block"><Icon name="warn" size={10} /> {tc(blockers[0])}</small> : null}</th>
+                  <th scope="row"><span class="wt-name">{tc(f.name)}</span>{f.obsolete ? <small class="wt-obsolete" data-testid={`obsolete-${f.kind}`} title={t('Two or more eras behind, and a successor can be built: it works at a penalty')}><Icon name="warn" size={10} /> {t('obsolete')}</small> : null}{fac ? <LineTag fac={fac} /> : null}{blockers.length ? <small class="wt-block"><Icon name="warn" size={10} /> {tc(blockers[0])}</small> : null}</th>
                   <td class="num"><b>{f.level}</b><small class="muted">/{f.max_level}</small></td>
                   <td>{active ? <span>{tc(active.recipe.name)}</span> : <span class="muted">–</span>}{choice ? <Badge tone={f.method ? 'accent' : 'muted'}>{f.method ? t('chosen') : t('auto')}</Badge> : null}</td>
                   <td class="num">{f.staff_needed ? <>{peopleNum(f.staffed)}<small class="muted">/{peopleNum(f.staff_needed)}</small></> : <span class="muted">–</span>}</td>
@@ -402,6 +413,7 @@ function WorkDetail({ obs, r, f }: { obs: Observation; r: RegionView; f: Facilit
           {missing.length ? <li><Icon name="warn" size={11} /> {t('Ran short of {goods} last month.', { goods: joinList(missing.map((g) => lc(GOOD_SHORT[g]))) })}</li> : null}
         </ul>
       ) : <p class="wd-ok"><Icon name="check" size={11} /> {t('Nothing held this works back last month.')}</p>}
+      {f.obsolete ? <p class="wd-limits warn-text" data-testid="obsolete-note"><Icon name="warn" size={11} /> {t('Obsolete: two or more eras behind, with a successor you can build. Upgrade it in place, or it keeps working at a penalty.')}</p> : null}
       <div class="wd-actions">
         <Btn small kind="ghost" icon={f.enabled ? 'pause' : 'play'} disabled={s.busy} testid={`works-toggle-${f.kind}`}
           onClick={() => void act({ kind: 'set_policy', setting: { kind: 'facility', region: r.id, facility: f.kind, enabled: !f.enabled } }, tag, { quiet: true })}>{f.enabled ? t('Idle it') : t('Put back to work')}</Btn>
@@ -412,6 +424,8 @@ function WorkDetail({ obs, r, f }: { obs: Observation; r: RegionView; f: Facilit
       <WorksLabour r={r} f={f} fac={fac} />
 
       {fac ? <ExpandBlock obs={obs} r={r} fac={fac} f={f} /> : null}
+      {fac ? <UpgradeBlock obs={obs} r={r} fac={fac} f={f} /> : null}
+      {fac ? <DemolishBlock fac={fac} r={r} f={f} /> : null}
       <ActionNote tag={tag} />
     </div>
   );
@@ -600,6 +614,68 @@ function ExpandBlock({ obs, r, fac, f }: { obs: Observation; r: RegionView; fac:
       <div class="wd-order">
         <Btn kind="primary" icon="hammer" disabled={s.busy} why={block.length ? String(checkText(block[0], r, fac)) : null} testid={`expand-order-${f.kind}`}
           onClick={() => void act({ kind: 'start_project', spec: { kind: 'build', region: r.id, facility: fac.kind, levels: lv }, priority: null }, tag)}>{tn(lv, 'Order +{n} level', 'Order +{n} levels', { n: lv })}</Btn>
+      </div>
+    </section>
+  );
+}
+
+// --- upgrade in place and demolish (ruleset 3.0) ---------------------------------------------
+
+/** Upgrade levels in place into the next stage: the referee's quote of the successor at the edge's share. */
+function UpgradeBlock({ obs, r, fac, f }: { obs: Observation; r: RegionView; fac: FacilityType; f: FacilityView }) {
+  useLocale();
+  const s = useApp();
+  const { tree } = useBuildingTree(obs.building_tree_hash);
+  const targets = (fac.upgrades_to ?? []).map((k) => obs.catalog.facilities.find((x) => x.kind === k)).filter((x): x is FacilityType => !!x);
+  const [pickTo, setPickTo] = useState<string | null>(null);
+  const [levels, setLevels] = useState(1);
+  if (!targets.length) return null;
+  const to = targets.find((x) => x.kind === pickTo) ?? targets[0];
+  const edge = tree?.edges.find((e) => e.from === fac.kind && e.to === to.kind && e.kind === 'upgrade');
+  const bp = edge?.cost_bp ?? 6000;
+  const room = quoteFor(r, to.kind, 1)?.room ?? 0;
+  const max = Math.max(1, Math.min(20, f.level, room));
+  const lv = Math.max(1, Math.min(levels, max));
+  const q = upgradeQuote(r, to.kind, lv, bp);
+  const block = blocking(checks(obs, r, to, q));
+  const tag = `works-${r.id}`;
+  return (
+    <section class="wd-expand" data-testid={`upgrade-${f.kind}`}>
+      <div class="wd-sub"><h5>{t('Upgrade in place')}</h5><Stepper value={lv} min={1} max={max} label={t('Levels')} testid={`upgrade-levels-${f.kind}`} onChange={setLevels} /></div>
+      {targets.length > 1 ? (
+        <div class="wd-actions">{targets.map((x) => <Btn small kind="ghost" pressed={x.kind === to.kind} onClick={() => setPickTo(x.kind)}>{tc(x.name)}</Btn>)}</div>
+      ) : null}
+      <p class="muted small">{t('{pct}% of the {name} bill and work. The converting levels stand idle until they reopen as {name}, at least {m}.', { pct: bp / 100, name: lc(tc(to.name)), m: fmtMonths(q?.months ?? 0) })}</p>
+      <QuoteBlock obs={obs} r={r} fac={to} q={q} testid={`upgrade-quote-${f.kind}`} />
+      <div class="wd-order">
+        <Btn kind="primary" icon="hammer" disabled={s.busy} why={block.length ? String(checkText(block[0], r, to)) : null} testid={`upgrade-order-${f.kind}`}
+          onClick={() => void act({ kind: 'start_project', spec: { kind: 'upgrade', region: r.id, from: f.kind, to: to.kind, levels: lv }, priority: null }, tag)}>
+          {tn(lv, 'Upgrade {n} level to {name}', 'Upgrade {n} levels to {name}', { n: lv, name: tc(to.name) })}
+        </Btn>
+      </div>
+    </section>
+  );
+}
+
+/** Demolish levels; a quarter of the materials, metal and components of their bill comes back to the stores. */
+function DemolishBlock({ fac, r, f }: { fac: FacilityType; r: RegionView; f: FacilityView }) {
+  useLocale();
+  const s = useApp();
+  const [lv, setLv] = useState(1);
+  const [sure, setSure] = useState(false);
+  const n = Math.max(1, Math.min(lv, f.level));
+  const back = fac.cost.filter((g) => g.good === 'materials' || g.good === 'metal' || g.good === 'components').map((g) => ({ good: g.good, amount: Math.floor(g.amount * n * 25 / 100) })).filter((g) => g.amount > 0);
+  return (
+    <section class="wd-expand" data-testid={`demolish-${f.kind}`}>
+      <div class="wd-sub"><h5>{t('Demolish')}</h5><Stepper value={n} min={1} max={f.level} label={t('Levels')} testid={`demolish-levels-${f.kind}`} onChange={(v) => { setLv(v); setSure(false); }} /></div>
+      <p class="muted small" data-testid={`salvage-${f.kind}`}>{t('Salvage: a quarter of the materials, metal and components of the bill is recovered')}: <GoodsList items={back} empty={t('nothing to recover')} /></p>
+      <div class="wd-order">
+        {sure ? (
+          <>
+            <Btn kind="danger" icon="trash" disabled={s.busy} testid={`demolish-confirm-${f.kind}`} onClick={() => { setSure(false); void act({ kind: 'demolish', region: r.id, facility: f.kind, levels: n }, `works-${r.id}`); }}>{tn(n, 'Demolish {n} level now', 'Demolish {n} levels now', { n })}</Btn>
+            <Btn kind="ghost" onClick={() => setSure(false)}>{t('Keep')}</Btn>
+          </>
+        ) : <Btn kind="ghost" icon="trash" testid={`demolish-${f.kind}-ask`} onClick={() => setSure(true)}>{t('Demolish…')}</Btn>}
       </div>
     </section>
   );

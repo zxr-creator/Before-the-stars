@@ -7,7 +7,7 @@ import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Bonus, ClimateZone, Deposit, DepositView, Observation, RegionId, RegionView, Terrain } from '../protocol';
 import {
-  BONUS_LABEL, CLIMATE_LABEL, DEPOSIT_LABEL, EPISTEMIC_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, fmtDate, fmtDateShort, int, peopleNum, pct, range, tonnes,
+  BONUS_LABEL, CLIMATE_LABEL, DEPOSIT_LABEL, EPISTEMIC_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, fmtDate, fmtDateShort, fmtYear, int, peopleNum, pct, range, tonnes,
 } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import {
@@ -145,7 +145,8 @@ function buildData(obs: Observation): Map3DData {
   for (const f of obs.catalog.facilities) facilityCategories[f.kind] = f.category;
   return {
     world: obs.world,
-    regions: obs.regions,
+    // a principal city's own class (bts-protocol/2.3) sets the size of the settlement drawn
+    regions: obs.regions.map((r) => (r.city_size && r.city_size.class !== r.settlement ? { ...r, settlement: r.city_size.class } : r)),
     mySeat: obs.seat,
     seatColors,
     capital: obs.civ.capital,
@@ -535,8 +536,9 @@ function Tooltip({ obs, region, mode, pick, deposit, building }: { obs: Observat
         <div class="map-tip-row map-tip-warn">{t('Occupied by {name}', { name: seatName(obs, r.controller) ?? '' })}</div>
       )}
       {r.visibility === 'remembered' && (
-        <div class="map-tip-row map-tip-muted">{t('Last seen {date} — may have changed', { date: fmtDate(r.last_seen) })}</div>
+        <div class="map-tip-row map-tip-muted">{t('Seen in {year} — may have changed', { year: fmtYear(r.last_seen) })}</div>
       )}
+      {r.camp && <div class="map-tip-row map-tip-warn">{t('Raider camp: {name}', { name: r.camp.name })}</div>}
       {r.own && <div class="map-tip-row">{t('{n} people', { n: peopleNum(r.own.population) })}</div>}
       {r.own && mode === 'construction' && (
         <div class="map-tip-row">

@@ -9,7 +9,7 @@
 // so the rest of the client does not care which one is in use. What only a server
 // can do is listed in `api.features`.
 import type {
-  Action, AgentLogEntry, AgentTestResult, ApiErrorBody, MatchSummary, ProviderDetection, NewMatchRequest, Observation, Receipt, SeatId, SpectatorView,
+  Action, AgentLogEntry, BuildingTree, AgentTestResult, ApiErrorBody, MatchSummary, ProviderDetection, NewMatchRequest, Observation, Receipt, SeatId, SpectatorView,
 } from './protocol';
 import { EngineFailure, localAvailable, localCall, localFailure, localRestart, onLocalChange, onLocalFailure } from './local/transport';
 import type { LocalChange } from './local/transport';
@@ -256,6 +256,8 @@ export const api = {
   newMatch: (req: NewMatchRequest) => request<MatchSummary>('POST', '/api/match', req),
   observation: (seat: SeatId) =>
     request<Observation>('GET', `/api/observation?seat=${seat}&token=${encodeURIComponent(tokenOf(seat))}`),
+  /** The public building tree (protocol 2.3); the same for every seat, keyed by `Observation.building_tree_hash`. */
+  buildingTree: () => request<BuildingTree>('GET', '/api/building-tree'),
   actions: (seat: SeatId, actions: Action[]) =>
     request<{ receipts: Receipt[] }>('POST', '/api/actions', { seat, token: tokenOf(seat), actions }),
   ready: (seat: SeatId, throughRound: boolean) =>

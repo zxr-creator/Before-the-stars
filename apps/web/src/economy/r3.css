@@ -1,0 +1,48 @@
+/* Ruleset 3.0 client additions: building tree, urban block, market. */
+
+/* --- building tree ---------------------------------------------------------------------- */
+.bt .fs-body { background: var(--paper-3); color: var(--ink); }
+.bt-main { flex: 1; min-width: 0; display: flex; }
+.bt-scroll { flex: 1; min-width: 0; overflow: auto; padding: 12px 14px 28px; }
+.bt-grid { display: grid; gap: 4px 6px; align-items: start; min-width: 1100px; }
+.bt-era { position: sticky; top: -12px; z-index: 2; background: var(--paper-3); padding: 6px 4px; font: 600 10.5px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); border-bottom: 2px solid var(--line); }
+.bt-corner { position: sticky; top: -12px; background: var(--paper-3); }
+.bt-line { padding: 5px 6px; display: flex; flex-direction: column; border-top: 1px solid var(--line); font: 13px var(--serif); }
+.bt-line small { font: 10px var(--sans); color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; }
+.bt-cell { border-top: 1px solid var(--line); padding: 3px 0; display: grid; gap: 3px; min-height: 30px; }
+.bt-node { display: flex; align-items: center; gap: 5px; text-align: left; padding: 4px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper-2); color: var(--ink); font: 12px/1.25 var(--sans); cursor: pointer; }
+.bt-node:hover { border-color: var(--accent); }
+.bt-node.is-built { background: #e5efd5; border-color: #6f9466; font-weight: 600; }
+.bt-node.is-sel { box-shadow: 0 0 0 2px var(--accent); }
+.bt-node.is-tradition { border-style: dashed; }
+.bt-stage { flex: none; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; font: 700 9.5px var(--sans); background: var(--ink-3); color: #fff; }
+.bt-name { flex: 1; min-width: 0; }
+.bt-up { font-style: normal; color: var(--accent-2); font-weight: 700; }
+.bt-detail .kv dd { min-width: 0; overflow-wrap: anywhere; }
+.bt-detail { flex: none; width: 360px; overflow-y: auto; padding: 14px 16px 30px; background: var(--paper-2); border-left: 1px solid var(--line); }
+.bt-detail h3 { margin: 2px 0 6px; font-family: var(--serif); }
+.bt-have { color: #3c6a35; font-weight: 600; margin: 0 0 6px; }
+.bt-edges { margin: 8px 0; font-size: 12px; }
+
+/* --- urban block and region extras ------------------------------------------------------- */
+.urb-land { display: flex; height: 14px; border-radius: 3px; overflow: hidden; border: 1px solid var(--line); margin: 4px 0 6px; }
+.urb-land i { display: block; height: 100%; }
+.urb-legend { list-style: none; padding: 0; margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 11.5px; }
+.urb-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; }
+.urb-net { list-style: none; padding: 0; margin: 0; font-size: 12px; }
+.wd-convert { margin: 8px 0; padding: 8px 10px; border: 1px dashed var(--accent); border-radius: 6px; background: var(--paper-2); font-size: 12px; }
+.wt-obsolete { color: var(--warn, #a8601a); font-size: 10.5px; margin-left: 6px; }
+
+/* --- market ----------------------------------------------------------------------------- */
+.mk { flex: 1; min-width: 0; overflow: auto; padding: 14px 18px 30px; background: var(--paper-3); color: var(--ink); display: grid; gap: 14px; align-content: start; }
+.mk .fs-body { background: var(--paper-3); }
+.mk-cols { display: grid; grid-template-columns: minmax(420px, 3fr) minmax(300px, 2fr); gap: 16px; align-items: start; }
+.mk-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.mk-table th { text-align: left; font: 600 10.5px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding: 4px 6px; border-bottom: 2px solid var(--line); }
+.mk-table td, .mk-table th.mk-good { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.mk-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.mk-up { color: #3c6a35; } .mk-down { color: #a8402a; }
+.mk-order-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.mk-summary { display: flex; flex-wrap: wrap; gap: 18px; align-items: baseline; }
+.mk-summary b { font: 600 20px var(--serif); }
+@media (max-width: 1100px) { .mk-cols { grid-template-columns: 1fr; } .bt-detail { width: 260px; } }

@@ -336,6 +336,7 @@ function Counterpart({ obs, other, rules, onBack }: { obs: Observation; other: F
       </Section>
 
       <WarPolicy obs={obs} other={other} />
+      <EmbargoControl obs={obs} other={other} />
 
       <Section title={t('Correspondence')} aside={<small class="muted">{tn(thread.length, '{n} envelope', '{n} envelopes')}</small>}>
         {thread.length === 0 ? <Empty>{t('No messages have passed between us.')}</Empty> : (
@@ -743,4 +744,21 @@ function ClauseFields({ obs, other, c, parties, onChange }: {
       );
     }
   }
+}
+
+/** No market route with this counterpart while the embargo is on (bts-protocol/2.4). */
+function EmbargoControl({ obs, other }: { obs: Observation; other: ForeignCiv }) {
+  const s = useApp();
+  const on = (obs.market?.embargoes ?? []).includes(other.seat);
+  const route = (obs.market?.routes ?? []).find((r) => r.partner === other.seat);
+  return (
+    <Section title={t('Trade embargo')} aside={on ? <Badge tone="bad" icon="lock">{t('Embargoed')}</Badge> : route ? <Badge tone="ok" icon="link">{t('Route open')}</Badge> : <small class="muted">{t('no route')}</small>}>
+      <p class="muted small">{t('While an embargo is on, no market route is kept with {name}; goods cannot cross our regions for them either.', { name: tc(other.name) })}</p>
+      <div class="form-actions">
+        <Btn small kind={on ? 'ghost' : 'danger'} icon={on ? 'play' : 'lock'} disabled={s.busy} testid={`embargo-${other.seat}`}
+          onClick={() => void act({ kind: 'set_policy', setting: { kind: 'embargo', seat: other.seat, on: !on } }, 'embargo')}>{on ? t('Lift the embargo') : t('Embargo {name}', { name: tc(other.name) })}</Btn>
+      </div>
+      <ActionNote tag="embargo" />
+    </Section>
+  );
 }

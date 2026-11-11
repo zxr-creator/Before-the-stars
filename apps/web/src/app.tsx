@@ -42,6 +42,8 @@ import { TechTree, CivicsTree } from './trees';
 import { EraScreen } from './era';
 import { Almanac } from './tutorial/almanac';
 import { RegionalWorks, openWorks } from './economy/Construction';
+import { BuildingTreeOverlay } from './economy/BuildingTree';
+import { MarketOverlay } from './economy/MarketOverlay';
 import { TutorialLayer } from './tutorial';
 import { ObserverConsole } from './observer';
 import { Playback } from './observer/controls';
@@ -94,6 +96,8 @@ const OVERLAYS: { key: OverlayKey; icon: string; label: string; title: string; h
   { key: 'civics', icon: 'civics', label: 'Civics', title: 'Civics tree', hotkey: 'C' },
   { key: 'ledger', icon: 'layers', label: 'Ledger', title: 'Economy ledger', hotkey: 'L' },
   { key: 'works', icon: 'hammer', label: 'Works', title: 'Regional works', hotkey: 'B' },
+  { key: 'buildings', icon: 'techtree', label: 'Buildings', title: 'Building tree', hotkey: 'U' },
+  { key: 'market', icon: 'economy', label: 'Market', title: 'Market', hotkey: 'M' },
   { key: 'orders', icon: 'scroll', label: 'Orders', title: 'Standing orders', hotkey: 'O' },
   { key: 'almanac', icon: 'almanac', label: 'Almanac', title: 'Almanac', hotkey: '?' },
 ];
@@ -172,8 +176,8 @@ export function App() {
         const idx = e.key === '0' ? 9 : Number(e.key) - 1;
         togglePanel(PANEL_ORDER[idx]);
         e.preventDefault();
-      } else if (k === 't' || k === 'c' || k === 'l' || k === 'b' || k === 'o') {
-        toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : k === 'b' ? 'works' : k === 'o' ? 'orders' : 'ledger');
+      } else if (k === 't' || k === 'c' || k === 'l' || k === 'b' || k === 'o' || k === 'u' || k === 'm') {
+        toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : k === 'b' ? 'works' : k === 'o' ? 'orders' : k === 'u' ? 'buildings' : k === 'm' ? 'market' : 'ledger');
         e.preventDefault();
       } else if (k === 'h') {
         togglePanel('chronicle');
@@ -328,6 +332,8 @@ function Overlay({ state }: { state: AppState }) {
   if (state.overlay === 'civics') return <CivicsTree />;
   if (state.overlay === 'era') return <EraScreen />;
   if (state.overlay === 'almanac') return <Almanac />;
+  if (state.overlay === 'buildings' && state.obs) return <BuildingTreeOverlay obs={state.obs} />;
+  if (state.overlay === 'market' && state.obs) return <MarketOverlay obs={state.obs} />;
   if (state.overlay === 'orders' && state.obs) return <StandingOrders obs={state.obs} arg={state.overlayArg} />;
   if (state.overlay === 'works' && state.obs) {
     const arg = state.overlayArg !== null ? Number(state.overlayArg) : null;

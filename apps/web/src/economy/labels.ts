@@ -16,6 +16,7 @@ export const SECTOR_LABEL: Record<Sector, string> = {
 
 /** Building lines (`FacilityType.line`; design chapter 37, section 8.2). */
 export const LINE_LABEL: Record<string, string> = {
+  air: 'Air transport', canals: 'Canals', fortifications: 'Walls and fortifications', housing: 'Housing', urban_transit: 'Metro and urban transit',
   administration: 'Administration', aluminium: 'Aluminium', arms_works: 'Arms works', batteries: 'Batteries',
   building_materials: 'Building materials', chemicals: 'Chemicals', colleges: 'Colleges', computer_works: 'Computer works',
   computing: 'Computing', consumer_goods: 'Consumer goods', conversion: 'Power conversion', copper: 'Copper smelting',
@@ -43,6 +44,14 @@ export const GEN_ERA: string[] = [
 export function genCode(gen: number): string {
   return 'G' + gen;
 }
+
+// i18n-table
+/** Sites a stage of the public tree is built on (`BuildingNode.site`, the structured rule). */
+export const SITE_LABEL: Record<string, string> = {
+  any: 'Anywhere', arable: 'Arable land', coast: 'Coast', river: 'River', forest: 'Forest', hydro: 'Hydro site', pasture: 'Grazing land',
+  fishery: 'Fishing waters', spice_land: 'Spice land', test_node: 'Test node',
+};
+// i18n-end
 
 /** The display name of a building line: the table, else the key in words. */
 export function lineLabel(line: string): string {

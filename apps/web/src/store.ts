@@ -64,7 +64,7 @@ export type Intent =
  * regional works and the standing orders. The standing orders take an optional argument naming
  * what to open on: 'build' or 'build:<region id>', 'research', 'reform', 'settle' or 'settle:<region id>'.
  */
-export type OverlayKey = 'tech' | 'civics' | 'almanac' | 'ledger' | 'works' | 'orders' | 'era';
+export type OverlayKey = 'tech' | 'civics' | 'almanac' | 'ledger' | 'works' | 'orders' | 'era' | 'buildings' | 'market';
 
 /** A major moment announced across the top of the map (never modal). */
 export interface BannerItem {

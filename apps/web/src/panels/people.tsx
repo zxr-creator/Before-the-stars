@@ -1,6 +1,6 @@
 // People & education: who can work, learn, teach or needs support.
 import { useEffect, useState } from 'preact/hooks';
-import type { CourseType, Observation, ProgramView, RegionId } from '../protocol';
+import type { CourseType, Emigration, Immigration, Observation, ProgramView, RegionId } from '../protocol';
 import { QUAL_LABEL, fmtMonths, fmtYear, int, pct, peopleNum, tcChecks, tn, tx } from '../format';
 import type { DeathCount, RegionView } from '../protocol';
 import { isZh, t, tc, useLocale } from '../i18n';
@@ -9,7 +9,7 @@ import {
   ActionNote, Badge, Btn, Checklist, Empty, Field, GoodsList, Meter, NumInput, RegionLink, Section, Select, Stat, Why,
   cx, toneOfBp,
 } from '../ui';
-import { act, consumeIntent, useApp } from '../store';
+import { act, consumeIntent, isReadOnly, useApp } from '../store';
 import { AgeBar } from '../inspector';
 import { LaborBar } from './economy';
 
@@ -59,6 +59,8 @@ export function PeoplePanel() {
         <p class="muted small">{t('Access is the person-weighted share of need met over the last twelve months.')}</p>
         {civ.deaths_by_cause?.length ? <DeathsByCause causes={civ.deaths_by_cause} total={civ.deaths_last_round} span={lastRound} /> : null}
       </Section>
+
+      <MigrationSection obs={obs} />
 
       {outbreaks.length ? <Epidemics regions={outbreaks} /> : null}
 
@@ -284,5 +286,52 @@ function OpenProgramme({ obs, presetRegion, onDone }: { obs: Observation; preset
         <ActionNote tag="new-program" />
       </div>
     </div>
+  );
+}
+
+// i18n-table
+const IMMIGRATION_OPTS: { value: Immigration; label: string; hint: string }[] = [
+  { value: 'closed', label: 'Closed', hint: 'No voluntary immigrants; refugees still cross at half the rate.' },
+  { value: 'selective', label: 'Selective', hint: 'Qualified working-age people and their children, at most 0.1% of the population a year.' },
+  { value: 'open', label: 'Open to all', hint: 'Anyone may come.' },
+];
+const EMIGRATION_OPTS: { value: Emigration; label: string; hint: string }[] = [
+  { value: 'free', label: 'Free', hint: 'Our people may leave.' },
+  { value: 'restricted', label: 'Restricted', hint: 'Emigrants need twice the gain; stability falls by 1 in every region.' },
+];
+// i18n-end
+
+/** People who moved last round, and the border policy (bts-protocol/2.3). */
+function MigrationSection({ obs }: { obs: Observation }) {
+  const s = useApp();
+  const civ = obs.civ;
+  const m = civ.migration;
+  const imm = civ.immigration ?? 'selective';
+  const emi = civ.emigration ?? 'free';
+  const set = (immigration: Immigration, emigration: Emigration) => void act({ kind: 'set_policy', setting: { kind: 'borders', immigration, emigration } }, 'borders');
+  return (
+    <Section title={t('Migration and borders')}>
+      <div data-testid="migration">
+        {m ? (
+          <div class="stat-row">
+            <Stat label={t('Moved within')} value={peopleNum(m.internal)} sub={t('between our regions')} />
+            <Stat label={t('Arrived')} value={'+' + peopleNum(m.immigrated)} sub={t('immigrants')} />
+            <Stat label={t('Left')} value={'−' + peopleNum(m.emigrated)} sub={t('emigrants')} />
+            <Stat label={t('Refugees')} value={peopleNum(m.refugees)} sub={t('taken in')} />
+          </div>
+        ) : <p class="muted small">{t('No movement of people has been recorded yet.')}</p>}
+        <Field label={t('Immigration')} hint={t(IMMIGRATION_OPTS.find((o) => o.value === imm)!.hint)}>
+          <div class="segmented" role="radiogroup" aria-label={t('Immigration')}>
+            {IMMIGRATION_OPTS.map((o) => <button type="button" role="radio" aria-checked={imm === o.value} disabled={s.busy || isReadOnly()} class={cx('seg', imm === o.value && 'is-active')} data-testid={`imm-${o.value}`} onClick={() => set(o.value, emi)}>{t(o.label)}</button>)}
+          </div>
+        </Field>
+        <Field label={t('Emigration')} hint={t(EMIGRATION_OPTS.find((o) => o.value === emi)!.hint)}>
+          <div class="segmented" role="radiogroup" aria-label={t('Emigration')}>
+            {EMIGRATION_OPTS.map((o) => <button type="button" role="radio" aria-checked={emi === o.value} disabled={s.busy || isReadOnly()} class={cx('seg', emi === o.value && 'is-active')} data-testid={`emi-${o.value}`} onClick={() => set(imm, o.value)}>{t(o.label)}</button>)}
+          </div>
+        </Field>
+        <ActionNote tag="borders" />
+      </div>
+    </Section>
   );
 }

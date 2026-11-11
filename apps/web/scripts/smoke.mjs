@@ -142,7 +142,14 @@ async function buildViaUi(regionId, kind, levels = 1) {
   await page.selectOption(tid('build-region'), String(regionId));
   await page.click(tid(`fac-${kind}`));
   await page.waitForSelector(tid('build-detail'));
-  for (let i = 1; i < levels; i++) await page.click(tid('build-levels-inc'));
+  // the land budget (ruleset 3.0) may leave room for fewer levels than asked for: take what the form allows
+  for (let i = 1; i < levels; i++) {
+    if (await page.$eval(tid('build-levels-inc'), (b) => b.disabled)) break;
+    await page.click(tid('build-levels-inc'));
+  }
+  // a site with no room left says why on the button; nothing is ordered then
+  const blocked = await page.$eval(tid('build-submit'), (b) => (b.disabled ? b.title : ''));
+  if (blocked) return { status: 'blocked', reason: blocked };
   const res = await clickAndSettle(tid('build-submit'));
   return res?.receipts?.[0];
 }

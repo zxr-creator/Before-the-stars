@@ -4,7 +4,7 @@ import { useState } from 'preact/hooks';
 import type { FacilityView, Observation, OwnRegion, RegionView, SurveyView } from './protocol';
 import {
   BONUS_LABEL, CLIMATE_LABEL, DEPOSIT_LABEL, GOOD_SHORT, QUAL_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, computeQty, energy, fmtDate, int, joinList,
-  lc, pct, people, peopleNum, range, rations, tcAll, tonnes, tx,
+  fmtYear, lc, pct, people, peopleNum, range, rations, tcAll, tonnes, tx,
 } from './format';
 import type { DepositView, Good, OutbreakView } from './protocol';
 import { GoodIcon } from './theme/goods';
@@ -14,6 +14,8 @@ import { Icon } from './icons';
 import { ActionNote, Badge, Btn, EpistemicTag, Est, KV, Meter, SeatDot, Section, cx, toneOfBp } from './ui';
 import { act, civColor, civName, openPanel, selectRegion, useApp } from './store';
 import { openWorks } from './economy/Construction';
+import { UrbanBlock } from './economy/UrbanBlock';
+import { CampCard, ScoutButton } from './map/Camp';
 
 /** Standing order of a formation, as sent on the wire. */
 const ORDER_LABEL: Record<string, string> = { hold: 'hold', move: 'move', attack: 'attack' };
@@ -46,6 +48,7 @@ export function Inspector() {
           {r.city ? (
             <KV k={t('Principal city')} title={t('Where the region’s principal city stands; a natural harbour makes a port cheaper to work.')}>
               <span data-testid="inspector-city">{tc(r.city.name)}</span>
+              {r.city_size ? <small class="muted"> · {t(SETTLEMENT_LABEL[r.city_size.class])} · {peopleNum(r.city_size.residents)}</small> : null}
               {r.city.natural_harbour ? <>{' '}<Badge tone="muted" icon="compass" title={t('A sheltered anchorage on the coast')}>{t('Natural harbour')}</Badge></> : null}
             </KV>
           ) : null}
@@ -55,13 +58,14 @@ export function Inspector() {
           {occupied ? <KV k={t('Occupied by')}><SeatDot color={civColor(obs, r.controller)} /> {tc(civName(obs, r.controller))} {' '}<Badge tone="bad" icon="warn">{t('Contested')}</Badge></KV> : null}
           <KV k={t('Our knowledge')}>
             {r.visibility === 'remembered'
-              ? <Est kind="reported" title={t('This is a remembered record, not a current observation')}>{t('Remembered · last seen {date}', { date: fmtDate(r.last_seen) })}</Est>
+              ? <Est kind="reported" title={t('This is a remembered record, not a current observation')}>{t('Remembered · seen in {year}', { year: fmtYear(r.last_seen) })}</Est>
               : <>{t(VIS_LABEL[r.visibility])} <small class="muted">{t('as of {date}', { date: fmtDate(r.last_seen) })}</small></>}
           </KV>
           {r.test_node ? <KV k={t('Deployment')}><Badge tone="accent" icon="objectives">{t('Jump test node')}</Badge></KV> : null}
         </dl>
 
         {r.outbreak ? <OutbreakNote o={r.outbreak} /> : null}
+        {r.camp ? <CampCard obs={obs} r={r} camp={r.camp} /> : null}
 
         {mine ? <OwnDetails obs={obs} r={r} own={r.own!} /> : <ForeignDetails obs={obs} r={r} />}
 
@@ -109,6 +113,7 @@ export function Inspector() {
               <Btn small icon="flag" testid="qa-settle-to" why={adjacentOwn ? null : t('Settlers need a direct route from a region we govern')}
                 onClick={() => openPanel('projects', { kind: 'settle', to: r.id })}>{t('Settle here')}</Btn>
             ) : null}
+            {!mine ? <ScoutButton obs={obs} r={r} /> : null}
             {mine && obs.civ.capital !== r.id ? (
               <Btn small kind="ghost" icon="star" onClick={() => void act({ kind: 'set_policy', setting: { kind: 'move_capital', region: r.id } }, 'inspector')}>{t('Make capital')}</Btn>
             ) : null}
@@ -187,6 +192,8 @@ function OwnDetails({ obs, r, own }: { obs: Observation; r: RegionView; own: Own
           </ul>
         </Section>
       ) : null}
+
+      <UrbanBlock obs={obs} r={r} />
 
       <Section title={t('Links and power')}>
         <dl class="kvs">

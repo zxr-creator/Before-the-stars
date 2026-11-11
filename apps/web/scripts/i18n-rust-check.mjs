@@ -19,6 +19,9 @@ const FILES = [
   'crates/bts-engine/src/sim/directives.rs', 'crates/bts-engine/src/sim/outbreaks.rs', 'crates/bts-engine/src/sim/productivity.rs',
   // ruleset 3.0 slices 10 and 13: eras, charters, traditions
   'crates/bts-engine/src/sim/eras.rs',
+  // ruleset 3.0 jobs 2 and 3: cities, migration, networks, raiders, the market
+  'crates/bts-engine/src/sim/cities.rs', 'crates/bts-engine/src/sim/migration.rs', 'crates/bts-engine/src/sim/network.rs',
+  'crates/bts-engine/src/sim/raiders.rs', 'crates/bts-engine/src/sim/market.rs',
 ];
 // The referee binary: only its HTTP error replies and new-match validation are player-facing.
 const SERVER = 'crates/bts-server/src/main.rs';

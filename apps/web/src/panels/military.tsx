@@ -65,6 +65,8 @@ export function MilitaryPanel() {
         <ActionNote tag="army" />
       </Section>
 
+      <KitSection obs={obs} />
+
       <Section title={t('Foreign forces seen')} aside={<small class="muted">{t('estimates from our own reports')}</small>}>
         {obs.foreign_armies.length === 0 ? <Empty>{t('No foreign formation has been observed.')}</Empty> : (
           <ul class="plain-list foreign-armies">
@@ -207,6 +209,8 @@ function ArmyCard({ obs, a }: { obs: Observation; a: ArmyView }) {
           <span class="kicker">{tierName(tier, a.tier)} · <RegionLink id={a.region} /></span>
           <b class="project-title">{tc(a.name)}</b>
         </div>
+        {a.obsolete ? <Badge tone="bad" icon="warn" title={t('Three or more generations behind the best: morale is capped and upkeep is 50% higher')}>{t('Obsolete')}</Badge> : null}
+        {a.degraded ? <Badge tone="gold" icon="warn" title={t('Generations lost to shortages of critical upkeep goods')}>{t('Degraded by {n}', { n: a.degraded })}</Badge> : null}
         {a.in_battle ? <Badge tone="bad" icon="warn">{t('In battle')}</Badge> : a.training_months_left > 0 ? <Badge tone="gold" icon="clock">{t('Training · {months} left', { months: fmtMonths(a.training_months_left) })}</Badge> : null}
       </div>
       {a.variant ? <p class="muted small army-variant" data-testid="army-variant"><Icon name="flag" size={11} /> {t('Equipped as: {name}', { name: tc(a.variant) })}</p> : null}
@@ -221,6 +225,7 @@ function ArmyCard({ obs, a }: { obs: Observation; a: ArmyView }) {
         <div class="mini-meter"><span class="mini-label">{t('Supply')}</span><Meter value={a.supply_bp} max={10000} tone={toneOfBp(a.supply_bp, 8000, 5000)} height={6} label={t('Supply {pct}', { pct: pct(a.supply_bp) })} /><span class="mini-val">{pct(a.supply_bp)}</span></div>
         <div class="mini-meter"><span class="mini-label">{t('Morale')}</span><Meter value={a.morale_bp} max={10000} tone={toneOfBp(a.morale_bp, 7000, 4000)} height={6} label={t('Morale {pct}', { pct: pct(a.morale_bp) })} /><span class="mini-val">{pct(a.morale_bp)}</span></div>
       </div>
+      <RefitBlock obs={obs} a={a} total={total} />
       <p class="army-order"><span class="kicker">{t('Order')}</span> {ORDER_LABEL[a.order] ? t(ORDER_LABEL[a.order]) : a.order}{a.target !== null ? <> → <RegionLink id={a.target} /></> : null}</p>
       <div class="order-controls" role="group" aria-label={t('Orders for {name}', { name: tc(a.name) })}>
         <Btn small pressed={a.order === 'hold'} disabled={s.busy} testid="order-hold" onClick={() => void order({ kind: 'hold' })}>{t('Hold')}</Btn>
@@ -239,6 +244,61 @@ function ArmyCard({ obs, a }: { obs: Observation; a: ArmyView }) {
         ) : <Btn small kind="ghost" title={t('Soldiers return to civilian life; equipment is not recovered')} onClick={() => setConfirm(true)}>{t('Disband…')}</Btn>}
       </div>
       {!mergeable.length && obs.armies.length > 1 ? <Why>{t('Merging needs another formation of the same tier in the same region.')}</Why> : null}
+    </div>
+  );
+}
+
+/** The seat's kit store (soldier sets by generation) and the generation home militia fight with. */
+function KitSection({ obs }: { obs: Observation }) {
+  const kit = obs.civ.kit ?? [];
+  const mil = obs.civ.militia_generation;
+  if (!kit.length && mil === undefined) return null;
+  const sets = kit.map((n, g) => [g, n] as const).filter(([, n]) => n > 0);
+  return (
+    <Section title={t('Kit store and militia')}>
+      <div data-testid="kit-store">
+        {mil !== undefined ? <p>{t('Home militia fight with generation {gen} equipment.', { gen: genCode(mil) })}</p> : null}
+        {sets.length ? (
+          <ul class="plain-list">{sets.map(([g, n]) => <li><span class="mil-gen">{genCode(g)}</span> {t('{n} soldier sets in store', { n: peopleNum(n) })}</li>)}</ul>
+        ) : <p class="muted small">{t('No spare soldier sets are in store.')}</p>}
+      </div>
+    </Section>
+  );
+}
+
+/** Refit in place to a newer generation: the progress while it runs, else the choice with its cost and time. */
+function RefitBlock({ obs, a, total }: { obs: Observation; a: ArmyView; total: number }) {
+  const s = useApp();
+  const best = obs.civ.military_tier;
+  const options = obs.catalog.unit_tiers.filter((x) => x.available && x.tier > a.tier && x.tier <= best);
+  const [gen, setGen] = useState<number>(options.length ? options[0].tier : a.tier + 1);
+  const proj = obs.projects.find((p) => p.kind === 'refit' && p.title.includes(a.name));
+  if (a.refit_to !== null && a.refit_to !== undefined) {
+    const to = obs.catalog.unit_tiers.find((x) => x.tier === a.refit_to);
+    const bp = a.refit_bp ?? 0;
+    return (
+      <div class="mini-meter" data-testid="refit-progress">
+        <span class="mini-label">{t('Refit to {name}', { name: tierName(to, a.refit_to) })}</span>
+        <Meter value={bp} max={10000} tone="accent" height={6} label={t('Refit {pct}', { pct: pct(bp) })} />
+        <span class="mini-val">{pct(bp)}</span>
+        {proj?.eta_months_low ? <small class="muted"> · {t('about {n} months left', { n: proj.eta_months_low })}</small> : null}
+      </div>
+    );
+  }
+  if (!options.length) return null;
+  const ut = options.find((x) => x.tier === gen) ?? options[0];
+  const man = a.soldiers.find(([role]) => role === 'maneuver')?.[1] ?? 0;
+  const bill = [...ut.equipment.map((g) => ({ good: g.good, amount: Math.round((g.amount * total) / 1000) })), ...(ut.maneuver_extra ?? []).map((g) => ({ good: g.good, amount: Math.round((g.amount * man) / 1000) }))];
+  const months = ut.tier > a.tier + 1 ? ut.training_months : Math.ceil(ut.training_months / 2);
+  return (
+    <div class="refit" data-testid="refit-block">
+      <span class="kicker">{t('Refit in place')}</span>
+      <div class="row">
+        <Select value={ut.tier} label={t('Refit to')} testid="refit-gen" options={options.map((x) => ({ value: x.tier, label: tierName(x, x.tier) }))} onChange={setGen} />
+        <Btn small icon="military" disabled={s.busy} testid="refit-order" why={a.in_battle ? t('The formation is in battle') : null}
+          onClick={() => void act({ kind: 'start_project', spec: { kind: 'refit', army: a.id, generation: ut.tier }, priority: null }, 'army')}>{t('Refit')}</Btn>
+      </div>
+      <p class="muted small">{tx('Equipment: {equipment} · at least {months}; fit-out work and place are the referee’s to quote when ordered', { equipment: <GoodsList items={bill} empty={t('none')} />, months: fmtMonths(months) })}</p>
     </div>
   );
 }

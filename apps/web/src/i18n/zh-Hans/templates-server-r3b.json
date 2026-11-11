@@ -1,0 +1,118 @@
+[
+ {
+  "en": "Lets {n} residents be fed from the common stock",
+  "zh": "使{n}名居民可由公共储备供养"
+ },
+ {
+  "en": "Houses {n} residents",
+  "zh": "容纳{n}名居民"
+ },
+ {
+  "en": "a population of {n}",
+  "zh": "人口达{n}"
+ },
+ {
+  "en": "not enough {good} in store",
+  "zh": "库存的{good}不足"
+ },
+ {
+  "en": "the camp expects goods worth at least {n} credit for {years} years",
+  "zh": "营地期望{years}年内至少有价值{n}信用的货物"
+ },
+ {
+  "en": "{a} does not convert into {b}; build it new",
+  "zh": "{a}不能改建为{b}；请新建"
+ },
+ {
+  "en": "upgrade between 1 and {n} level(s) of {name} here",
+  "zh": "这里可升级{name}的1至{n}级"
+ },
+ {
+  "en": "Upgrade ordered: {n} level(s) stand idle until they reopen as {name}, at least {m} months.",
+  "zh": "已下令升级：{n}级停工，直到作为{name}重新开放，至少{m}个月。"
+ },
+ {
+  "en": "{civ} hold this land",
+  "zh": "{civ}占有这片土地"
+ },
+ {
+  "en": "generation {tier} is obsolete: generation {next} ({name}) can be fitted out",
+  "zh": "第{tier}代已过时：可改装为第{next}代（{name}）"
+ },
+ {
+  "en": "Upgrade {a} ×{n} to {b} in {r}",
+  "zh": "将{r}的{a}×{n}升级为{b}"
+ },
+ {
+  "en": "Refit {a} to {b}",
+  "zh": "将{a}换装为{b}"
+ },
+ {
+  "en": "Scout {r}",
+  "zh": "侦察{r}"
+ },
+ {
+  "en": "Fighting raiders at {rname}",
+  "zh": "在{rname}与劫掠者交战"
+ },
+ {
+  "en": "Our forces lost {a}; the raiders lost about {b}.",
+  "zh": "我军损失{a}；劫掠者损失约{b}。"
+ },
+ {
+  "en": "After {progress} months of control, {ln} administers {rname}. Its people, debts and damaged works come with it; cooperation does not.",
+  "zh": "经过{progress}个月的控制，{ln}治理{rname}。其人民、债务和受损的设施随之而来；合作则不然。"
+ },
+ {
+  "en": "Farmland lost to the city at {name}",
+  "zh": "{name}的农田被城市吞没"
+ },
+ {
+  "en": "{lost} level(s) of fields gave way to streets and works. Housing saves land.",
+  "zh": "{lost}级农田让位给了街道和工场。住房建设可以节约土地。"
+ },
+ {
+  "en": "the {a}{b}",
+  "zh": "{a}{b}部"
+ },
+ {
+  "en": "{n} band",
+  "zh": "{n}部"
+ },
+ {
+  "en": "A free people of {n}",
+  "zh": "自由民，{n}人"
+ },
+ {
+  "en": "{rname} subjugated",
+  "zh": "{rname}已被征服"
+ },
+ {
+  "en": "The camp of {name} is broken; its {n} survivors are now our subjects and the land is ours to govern.",
+  "zh": "{name}的营地已被攻破；其{n}名幸存者现已成为我们的臣民，土地由我们治理。"
+ },
+ {
+  "en": "Raiders scattered at {rname}",
+  "zh": "{rname}的劫掠者已被击散"
+ },
+ {
+  "en": "The camp of {name} is broken and its plunder recovered. The land is free to settle.",
+  "zh": "{name}的营地已被攻破，赃物已追回。这片土地可以自由定居了。"
+ },
+ {
+  "en": "Raid repelled at {tname}",
+  "zh": "{tname}击退了劫掠"
+ },
+ {
+  "en": "Raiders from {rname} were driven off.",
+  "zh": "来自{rname}的劫掠者被赶走了。"
+ },
+ {
+  "en": "Raiders struck {tname}",
+  "zh": "劫掠者袭击了{tname}"
+ },
+ {
+  "en": "Raiders from {rname} carried off stores and killed {n}. Garrison the region or clear their camp.",
+  "zh": "来自{rname}的劫掠者抢走了存粮并杀死{n}人。请驻军守卫该地区，或清剿其营地。"
+ }
+]
