@@ -145,3 +145,20 @@
 .m3-works.is-dev { gap: 5px; padding: 2px 6px; border-radius: 4px; }
 .m3-bar { display: flex; width: 58px; height: 8px; border: 1px solid rgba(43, 38, 32, 0.8); background: #efe6cf; }
 .m3-bar i { display: block; height: 100%; min-width: 1px; box-shadow: 1px 0 0 #f7f1e1; }
+
+/* Ruleset 3.0: principal city names, natural harbours and epidemics on the 3D map. */
+.m3-rank6 { font-size: 15px; padding: 2px 11px 3px 8px; border-radius: 14px; }
+.m3-cityname {
+  font-size: 11.5px;
+  font-style: italic;
+  font-weight: 600;
+  color: #3e3122;
+  text-shadow: 0 0 2px #fbf4dc, 0 0 2px #fbf4dc, 0 0 3px #fbf4dc, 0 0 5px #fbf4dc;
+}
+.m3-cityname.is-rem { color: #6b5a44; }
+.m3-harbour, .m3-outbreak { display: inline-flex; flex: none; font-style: normal; }
+.m3-harbour svg, .m3-outbreak svg { display: block; }
+.m3-wild .m3-outbreak { margin-left: 4px; vertical-align: middle; }
+.m3-site.is-rem { opacity: 0.7; }
+.m3-labels.is-far .m3-city .m3-harbour { display: none; }
+.m3-city .m3-outbreak { margin-left: -3px; }

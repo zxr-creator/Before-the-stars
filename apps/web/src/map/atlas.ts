@@ -6,9 +6,10 @@
 // Rendering is on demand: every state change calls invalidate(), which coalesces
 // into a single requestAnimationFrame. There is no continuous loop.
 import type {
-  ArmyView, Deposit, ForeignArmyView, RegionId, RegionView, Role, SettlementKind, Terrain, WorldFrame,
+  ArmyView, Bonus, ClimateZone, Deposit, ForeignArmyView, RegionId, RegionView, Role, SettlementKind, Terrain, WorldFrame,
 } from '../protocol';
 import { hash32, rng } from '../format';
+import { DEPOSIT_COLOR, drawAnchor, drawBonusPicto, drawDepositPicto, drawOutbreakSeal } from './pictos';
 import { SECTOR_COLOR, SECTORS, landUse, landUseSignature, type Building, type LandUse } from './landuse';
 import { BUILD_AMBER, drawChip, drawSite, chipRadius, sectorChips, siteExtent, type SiteKind } from './sites';
 
@@ -76,25 +77,25 @@ const GREY_PAPER = '#e2dccb';
  */
 export const POP_BREAKS = [50_000, 150_000, 500_000, 1_000_000, 4_000_000, 12_000_000];
 export const POP_RAMP = ['#efe3c2', '#e7d09f', '#deb87d', '#d09a5d', '#be7a44', '#a45a31', '#803e23'];
-export const DEPOSIT_COLOR: Record<Deposit, string> = {
-  copper_ore: '#b9743a',
-  iron_ore: '#5d6470',
-  coal: '#2a2724',
-  crude: '#4a3526',
-  tin: '#8a8f96',
-  salt: '#d8d4c8',
-  saltpetre: '#b8ae94',
-  precious: '#c9a227',
-  gas: '#5a8aa8',
-  bauxite: '#a8573a',
-  uranium_ore: '#7a9a3a',
-  rare_earths: '#6d5ca8',
-  lithium: '#9ab0bc',
-  cobalt_nickel: '#4a6a8a',
-  quartz: '#5c9c94',
-  volatiles: '#6aa8d0',
-  helium3: '#a0c0e0',
+export { DEPOSIT_COLOR };
+/**
+ * Climate washes (Earth-like world): polar ice and tundra, desert, rainforest, temperate
+ * (no shift) and the cooler continental interior. Mixed into the terrain tint by `weight`.
+ */
+export const CLIMATE_TINT: Record<ClimateZone, { color: string; weight: number }> = {
+  polar: { color: '#eef2f3', weight: 0.68 },
+  arid: { color: '#efd6a2', weight: 0.42 },
+  tropical: { color: '#9fcb80', weight: 0.38 },
+  temperate: { color: '#d9dea6', weight: 0 },
+  continental: { color: '#c3cfb0', weight: 0.34 },
 };
+/** Terrain tint shifted by the region's climate. */
+export function landTint(terrain: Terrain, climate: ClimateZone | null | undefined): string {
+  const base = TINT[terrain];
+  if (!climate) return base;
+  const c = CLIMATE_TINT[climate];
+  return c.weight > 0 ? mix(base, c.color, c.weight) : base;
+}
 export const TERRAIN_TINT = TINT;
 const COAST_INK = '#2c4650';
 /** Built levels per region (all sectors) and the wash classes of the development view. */
@@ -163,7 +164,8 @@ interface Layout { town: Town | null; sites: PlacedSite[]; fields: FieldPatch[];
 interface Prep {
   r: RegionView;
   idx: number;
-  edges: { e: Edge; rev: boolean }[];
+  /** Shared edges; `dx` shifts the edge's stored points into this region's frame (wrapped worlds). */
+  edges: { e: Edge; rev: boolean; dx: number }[];
   outline: number[];
   path: Path2D;
   ownerEdges: Path2D | null;
@@ -171,6 +173,9 @@ interface Prep {
   bbox: [number, number, number, number];
   cx: number;
   cy: number;
+  /** Where the settlement stands: the principal city site, in this region's frame. */
+  sx: number;
+  sy: number;
   glyphs: Glyph[];
   fields: FieldPatch[];
   ccw: boolean;
@@ -181,6 +186,9 @@ interface Prep {
   /** Distance from the centre to the nearest border, in world units. */
   inR: number;
 }
+
+/** A region drawn at a horizontal offset (one of its copies on a wrapped world). */
+interface Inst { p: Prep; ox: number }
 
 interface LinkLine { a: number; b: number; pts: number[] }
 interface PassMark { x: number; y: number; ux: number; uy: number }
@@ -231,14 +239,14 @@ function wobble(ax: number, ay: number, bx: number, by: number, seed: number, ro
   return pts;
 }
 
-function tracePolyline(path: Path2D, pts: number[], rev: boolean, move: boolean): void {
+function tracePolyline(path: Path2D, pts: number[], rev: boolean, move: boolean, dx = 0): void {
   const n = pts.length / 2;
   for (let k = 0; k < n; k++) {
     const i = (rev ? n - 1 - k : k) * 2;
     if (k === 0) {
-      if (move) path.moveTo(pts[i], pts[i + 1]);
-      else path.lineTo(pts[i], pts[i + 1]);
-    } else path.lineTo(pts[i], pts[i + 1]);
+      if (move) path.moveTo(pts[i] + dx, pts[i + 1]);
+      else path.lineTo(pts[i] + dx, pts[i + 1]);
+    } else path.lineTo(pts[i] + dx, pts[i + 1]);
   }
 }
 
@@ -248,6 +256,8 @@ const GLYPH_SPACING: Record<Terrain, number> = {
 const SETTLEMENT_RANK: Record<SettlementKind, number> = {
   wilderness: 0, camp: 1, village: 2, town: 3, city: 4, metropolis: 5, megalopolis: 6,
 };
+/** Atlas zoom from which a principal city's name is shown, by settlement rank. */
+const CITY_NAME_ZOOM = [9, 2.6, 1.9, 1.35, 0.95, 0.66, 0.5];
 
 // --- the renderer -------------------------------------------------------------
 
@@ -269,6 +279,9 @@ export class Atlas {
   private animRaf = 0;
   private reducedMotion: boolean;
   private grain: CanvasPattern | null = null;
+  private vignette: CanvasGradient | null = null;
+  private vignetteKey = '';
+  private baseCache = new Map<string, string>();
   private destroyed = false;
 
   private wobbleCache = new Map<string, number[]>();
@@ -284,6 +297,10 @@ export class Atlas {
   private riverPath = new Path2D();
   private seaLinks: { ax: number; ay: number; bx: number; by: number; cx: number; cy: number }[] = [];
   private passes: PassMark[] = [];
+  /** World width when the map wraps east-west, else 0. */
+  private wrapW = 0;
+  /** West and east extent of the known regions, each in its own frame. */
+  private contentX: [number, number] = [0, 0];
 
   /** Milliseconds spent in the most recent draw (for the dev harness). */
   lastDrawMs = 0;
@@ -363,12 +380,19 @@ export class Atlas {
     if (!d) return;
     const b = this.box();
     const keep = 90;
-    const minTx = b.x + keep - d.world.width * this.scale;
-    const maxTx = b.x + b.w - keep;
     const minTy = b.y + keep - d.world.height * this.scale;
     const maxTy = b.y + b.h - keep;
-    this.tx = clamp(this.tx, minTx, maxTx);
     this.ty = clamp(this.ty, minTy, maxTy);
+    if (this.wrapW) {
+      // The planet pans without end: keep the offset within one turn of the globe. The
+      // picture is the same one width over, so this jump is invisible.
+      const span = this.wrapW * this.scale;
+      this.tx = ((this.tx % span) + span) % span - span;
+      return;
+    }
+    const minTx = b.x + keep - d.world.width * this.scale;
+    const maxTx = b.x + b.w - keep;
+    this.tx = clamp(this.tx, minTx, maxTx);
   }
 
   private viewChanged(): void {
@@ -386,6 +410,7 @@ export class Atlas {
       x0 = Math.min(x0, p.bbox[0]); y0 = Math.min(y0, p.bbox[1]);
       x1 = Math.max(x1, p.bbox[2]); y1 = Math.max(y1, p.bbox[3]);
     }
+    if (this.wrapW) [x0, x1] = this.knownSpanX();
     const pad = 70;
     x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
     // Do not zoom absurdly far into a small known patch.
@@ -415,9 +440,50 @@ export class Atlas {
     this.goTo(s, tx, ty, animate);
   }
 
+  /**
+   * West-east extent of the known regions on a wrapped world: the complement of the widest
+   * empty stretch of longitude, so a realm astride the date line is framed as one piece.
+   */
+  private knownSpanX(): [number, number] {
+    const W = this.wrapW;
+    const iv: [number, number][] = [];
+    for (const p of this.preps) {
+      const a = ((p.bbox[0] % W) + W) % W;
+      iv.push([a, a + (p.bbox[2] - p.bbox[0])]);
+    }
+    iv.sort((a, b) => a[0] - b[0]);
+    // Merge on the circle and find the widest gap between covered stretches.
+    let bestGap = -1, gapEnd = 0;
+    let reach = iv[0][1];
+    for (let i = 1; i < iv.length; i++) {
+      if (iv[i][0] > reach && iv[i][0] - reach > bestGap) { bestGap = iv[i][0] - reach; gapEnd = iv[i][0]; }
+      reach = Math.max(reach, iv[i][1]);
+    }
+    const wrapGap = iv[0][0] + W - reach;
+    if (wrapGap > bestGap) { bestGap = wrapGap; gapEnd = iv[0][0]; }
+    if (bestGap <= 0) return [0, W];
+    return [gapEnd, gapEnd + W - bestGap];
+  }
+
+  /** The copy of world x nearest the middle of the uncovered box (wrapped worlds). */
+  private nearView(x: number): number {
+    if (!this.wrapW) return x;
+    const b = this.box();
+    const mid = (b.x + b.w / 2 - this.tx) / this.scale;
+    return x + this.wrapW * Math.round((mid - x) / this.wrapW);
+  }
+
   private goTo(s: number, tx: number, ty: number, animate: boolean): void {
     if (this.animRaf) cancelAnimationFrame(this.animRaf);
     this.animRaf = 0;
+    if (this.wrapW) {
+      // Travel the short way round the globe.
+      const b = this.box();
+      const cur = (b.x + b.w / 2 - this.tx) / this.scale;
+      let want = (b.x + b.w / 2 - tx) / s;
+      want += this.wrapW * Math.round((cur - want) / this.wrapW);
+      tx = b.x + b.w / 2 - want * s;
+    }
     if (!animate || this.reducedMotion) {
       this.scale = s; this.tx = tx; this.ty = ty;
       this.viewChanged();
@@ -472,9 +538,13 @@ export class Atlas {
   }
 
   regionAt(sx: number, sy: number): RegionId | null {
-    const [x, y] = this.screenToWorld(sx, sy);
+    const [x0, y] = this.screenToWorld(sx, sy);
+    const W = this.wrapW;
     for (const p of this.preps) {
-      if (x < p.bbox[0] || x > p.bbox[2] || y < p.bbox[1] || y > p.bbox[3]) continue;
+      if (y < p.bbox[1] || y > p.bbox[3]) continue;
+      // On a wrapped world either copy of a region answers.
+      const x = W ? x0 + W * Math.round(((p.bbox[0] + p.bbox[2]) / 2 - x0) / W) : x0;
+      if (x < p.bbox[0] || x > p.bbox[2]) continue;
       if (pointInPoly(p.outline, x, y)) return p.r.id;
     }
     return null;
@@ -482,7 +552,7 @@ export class Atlas {
 
   regionCenter(id: RegionId): [number, number] | null {
     const p = this.byId.get(id);
-    return p ? this.worldToScreen(p.cx, p.cy) : null;
+    return p ? this.worldToScreen(this.nearView(p.cx), p.cy) : null;
   }
 
   // --- state --------------------------------------------------------------------
@@ -529,16 +599,22 @@ export class Atlas {
 
   private prepare(d: AtlasData): void {
     const W = d.world.width, H = d.world.height;
+    const wrap = !!d.world.wrap_x;
+    this.wrapW = wrap ? W : 0;
+    const modW = (x: number) => (wrap ? ((x % W) + W) % W : x);
+    // Vertices are snapped in the normalised frame (x modulo the width on a wrapped world), so
+    // a border drawn past the date line by one region meets its neighbour's copy of it.
     const snap = new Map<string, [number, number]>();
     const canon = (x: number, y: number): [number, number] => {
+      const xn = modW(x);
       for (let dx = -2; dx <= 2; dx++) {
         for (let dy = -2; dy <= 2; dy++) {
-          const hit = snap.get(`${x + dx},${y + dy}`);
+          const hit = snap.get(`${modW(xn + dx)},${y + dy}`);
           if (hit) return hit;
         }
       }
-      const v: [number, number] = [x, y];
-      snap.set(`${x},${y}`, v);
+      const v: [number, number] = [xn, y];
+      snap.set(`${xn},${y}`, v);
       return v;
     };
 
@@ -548,31 +624,44 @@ export class Atlas {
     for (const r of d.regions) present.add(r.id);
 
     d.regions.forEach((r, idx) => {
-      const verts: [number, number][] = [];
+      // Canonical vertex, and the same vertex in this region's own frame.
+      const verts: { c: [number, number]; x: number; y: number }[] = [];
       for (const pt of r.poly) {
-        const v = canon(Math.round(pt[0]), Math.round(pt[1]));
-        if (!verts.length || verts[verts.length - 1] !== v) verts.push(v);
+        const x = Math.round(pt[0]), y = Math.round(pt[1]);
+        const c = canon(x, y);
+        const ax = wrap ? c[0] + W * Math.round((x - c[0]) / W) : c[0];
+        if (!verts.length || verts[verts.length - 1].c !== c) verts.push({ c, x: ax, y: c[1] });
       }
-      if (verts.length > 1 && verts[0] === verts[verts.length - 1]) verts.pop();
+      if (verts.length > 1 && verts[0].c === verts[verts.length - 1].c) verts.pop();
       let area2 = 0;
       for (let i = 0; i < verts.length; i++) {
         const a = verts[i], b = verts[(i + 1) % verts.length];
-        area2 += a[0] * b[1] - b[0] * a[1];
+        area2 += a.x * b.y - b.x * a.y;
+      }
+      const cx = r.center[0], cy = r.center[1];
+      let sx = cx, sy = cy;
+      if (r.city) {
+        sx = wrap ? r.city.at[0] + W * Math.round((cx - r.city.at[0]) / W) : r.city.at[0];
+        sy = r.city.at[1];
       }
       const p: Prep = {
         r, idx, edges: [], outline: [], path: new Path2D(), ownerEdges: null, unknownEdges: null,
-        bbox: [Infinity, Infinity, -Infinity, -Infinity], cx: r.center[0], cy: r.center[1],
+        bbox: [Infinity, Infinity, -Infinity, -Infinity], cx, cy, sx, sy,
         glyphs: [], fields: [], ccw: area2 < 0, use: null, town: null, sites: [], inR: 40,
       };
       for (let i = 0; i < verts.length; i++) {
-        const a = verts[i], b = verts[(i + 1) % verts.length];
+        const va = verts[i], vb = verts[(i + 1) % verts.length];
+        // Normalise the edge so its western end lies inside the sheet.
+        const m = Math.min(va.x, vb.x);
+        const shift = wrap ? m - modW(m) : 0;
+        const a: [number, number] = [va.x - shift, va.y], b: [number, number] = [vb.x - shift, vb.y];
         const fwd = a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1]);
         const p0 = fwd ? a : b, p1 = fwd ? b : a;
         const key = `${p0[0]},${p0[1]}|${p1[0]},${p1[1]}`;
         let e = edges.get(key);
         if (!e) {
           const frame =
-            (p0[0] <= 1 && p1[0] <= 1) || (p0[0] >= W - 1 && p1[0] >= W - 1) ||
+            (!wrap && ((p0[0] <= 1 && p1[0] <= 1) || (p0[0] >= W - 1 && p1[0] >= W - 1))) ||
             (p0[1] <= 1 && p1[1] <= 1) || (p0[1] >= H - 1 && p1[1] >= H - 1);
           let pts = this.wobbleCache.get(key);
           if (!pts) {
@@ -582,7 +671,7 @@ export class Atlas {
               // The world sheet ends here: bow the shore inward so land does not look cut off.
               const n = pts.length / 2;
               const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
-              const inx = p0[0] <= 1 && p1[0] <= 1 ? 1 : p0[0] >= W - 1 && p1[0] >= W - 1 ? -1 : 0;
+              const inx = !wrap && p0[0] <= 1 && p1[0] <= 1 ? 1 : !wrap && p0[0] >= W - 1 && p1[0] >= W - 1 ? -1 : 0;
               const iny = inx ? 0 : p0[1] <= 1 && p1[1] <= 1 ? 1 : -1;
               for (let k = 0; k < n; k++) {
                 const t = k / (n - 1);
@@ -604,14 +693,14 @@ export class Atlas {
           edges.set(key, e);
         }
         e.regions.push(idx);
-        p.edges.push({ e, rev: !fwd });
+        p.edges.push({ e, rev: !fwd, dx: shift });
       }
       // Outline: concatenate wobbled edges, skipping the duplicated joint.
-      for (const { e, rev } of p.edges) {
+      for (const { e, rev, dx } of p.edges) {
         const n = e.pts.length / 2;
         for (let k = 0; k < n - 1; k++) {
           const i = (rev ? n - 1 - k : k) * 2;
-          p.outline.push(e.pts[i], e.pts[i + 1]);
+          p.outline.push(e.pts[i] + dx, e.pts[i + 1]);
         }
       }
       for (let i = 0; i < p.outline.length; i += 2) {
@@ -628,6 +717,11 @@ export class Atlas {
 
     this.preps = preps;
     this.byId = new Map(preps.map((p) => [p.r.id, p]));
+    this.contentX = [Infinity, -Infinity];
+    for (const p of preps) {
+      this.contentX[0] = Math.min(this.contentX[0], p.bbox[0]);
+      this.contentX[1] = Math.max(this.contentX[1], p.bbox[2]);
+    }
 
     // Classify edges. Coast only when we can be sure; otherwise an edge of knowledge.
     for (const p of preps) {
@@ -639,7 +733,7 @@ export class Atlas {
       }
     }
 
-    // Combined line work.
+    // Combined line work, in the normalised frame (drawn once per visible copy).
     this.coastPath = new Path2D();
     this.unknownPath = new Path2D();
     this.internalPath = new Path2D();
@@ -655,17 +749,18 @@ export class Atlas {
         if (a.owner !== b.owner) tracePolyline(this.politicalPath, e.pts, false, true);
       }
     }
-    // Per-region: edges facing a different owner (for the inner coloured border) and coast ripples.
+    // Per-region (in the region's frame): edges facing a different owner (for the inner
+    // coloured border), edges of knowledge, and coast ripples.
     for (const p of preps) {
       if (p.r.owner != null || p.r.controller != null) {
         const path = new Path2D();
         let any = false;
-        for (const { e, rev } of p.edges) {
+        for (const { e, rev, dx } of p.edges) {
           let other: RegionView | null = null;
           if (e.regions.length >= 2) other = preps[e.regions[0] === p.idx ? e.regions[1] : e.regions[0]].r;
           // Colour the border only where we know what lies beyond: another owner, or the sea.
           if (e.kind === 'coast' || (other && other.owner !== p.r.owner)) {
-            tracePolyline(path, e.pts, rev, true);
+            tracePolyline(path, e.pts, rev, true, dx);
             any = true;
           }
         }
@@ -674,9 +769,9 @@ export class Atlas {
       {
         const path = new Path2D();
         let any = false;
-        for (const { e, rev } of p.edges) {
+        for (const { e, rev, dx } of p.edges) {
           if (e.kind === 'unknown') {
-            tracePolyline(path, e.pts, rev, true);
+            tracePolyline(path, e.pts, rev, true, dx);
             any = true;
           }
         }
@@ -684,11 +779,11 @@ export class Atlas {
       }
       const n = p.edges.length;
       for (let i = 0; i < n; i++) {
-        const { e, rev } = p.edges[i];
+        const { e, rev, dx } = p.edges[i];
         if (e.kind !== 'coast') continue;
         const np = e.pts.length / 2;
-        const ax = e.pts[rev ? (np - 1) * 2 : 0], ay = e.pts[rev ? (np - 1) * 2 + 1 : 1];
-        const bx = e.pts[rev ? 0 : (np - 1) * 2], by = e.pts[rev ? 1 : (np - 1) * 2 + 1];
+        const ax = e.pts[rev ? (np - 1) * 2 : 0] + dx, ay = e.pts[rev ? (np - 1) * 2 + 1 : 1];
+        const bx = e.pts[rev ? 0 : (np - 1) * 2] + dx, by = e.pts[rev ? 1 : (np - 1) * 2 + 1];
         const l = Math.hypot(bx - ax, by - ay) || 1;
         // Outward normal depends on polygon winding.
         let nx = (by - ay) / l, ny = -(bx - ax) / l;
@@ -696,14 +791,14 @@ export class Atlas {
         for (const [path, dist] of [[this.ripple1, 6.5], [this.ripple2, 14]] as [Path2D, number][]) {
           for (let k = 0; k < np; k++) {
             const j = (rev ? np - 1 - k : k) * 2;
-            const x = e.pts[j] + nx * dist, y = e.pts[j + 1] + ny * dist;
+            const x = e.pts[j] + dx + nx * dist, y = e.pts[j + 1] + ny * dist;
             if (k === 0) path.moveTo(x, y); else path.lineTo(x, y);
           }
           // Round the corner into the next coast edge of the same region.
           const nxt = p.edges[(i + 1) % n];
           if (nxt.e.kind === 'coast') {
             const mp = nxt.e.pts.length / 2;
-            const cx2 = nxt.e.pts[nxt.rev ? 0 : (mp - 1) * 2], cy2 = nxt.e.pts[nxt.rev ? 1 : (mp - 1) * 2 + 1];
+            const cx2 = nxt.e.pts[nxt.rev ? 0 : (mp - 1) * 2] + nxt.dx, cy2 = nxt.e.pts[nxt.rev ? 1 : (mp - 1) * 2 + 1];
             const l2 = Math.hypot(cx2 - bx, cy2 - by) || 1;
             let mx = (cy2 - by) / l2, my = -(cx2 - bx) / l2;
             if (p.ccw) { mx = -mx; my = -my; }
@@ -722,7 +817,7 @@ export class Atlas {
     const live = new Set<string>();
     for (const p of preps) {
       const r = p.r;
-      const gkey = `${r.id}:${r.terrain}:${r.center[0]},${r.center[1]}:${r.poly.length}:${r.poly[0]?.[0]},${r.poly[0]?.[1]}`;
+      const gkey = `${r.id}:${r.terrain}:${r.climate ?? ''}:${r.center[0]},${r.center[1]}:${p.sx},${p.sy}:${r.poly.length}:${r.poly[0]?.[0]},${r.poly[0]?.[1]}`;
       let glyphs = this.glyphCache.get(gkey);
       if (!glyphs) {
         glyphs = this.makeGlyphs(p);
@@ -743,28 +838,30 @@ export class Atlas {
       p.town = lay.town;
       p.sites = lay.sites;
     }
-    if (this.layoutCache.size > 400) for (const k of this.layoutCache.keys()) if (!live.has(k)) this.layoutCache.delete(k);
+    if (this.layoutCache.size > 600) for (const k of this.layoutCache.keys()) if (!live.has(k)) this.layoutCache.delete(k);
 
-    // Links: rivers through centres, sea routes as arcs, passes as notches.
+    // Links: rivers through centres, sea routes as arcs, passes as notches. Each link is laid
+    // out in the frame of its first region; the far end is brought to the nearest copy.
     this.rivers = [];
     this.riverPath = new Path2D();
     this.seaLinks = [];
     this.passes = [];
+    const near = (x: number, ref: number) => (wrap ? x + W * Math.round((ref - x) / W) : x);
     const seen = new Set<string>();
-    const sharedEdge = (a: Prep, b: Prep): Edge | null => {
-      let best: Edge | null = null;
-      for (const { e } of a.edges) {
-        if (e.regions.length >= 2 && e.regions.includes(b.idx) && (!best || e.len > best.len)) best = e;
+    const sharedEdge = (a: Prep, b: Prep): { e: Edge; dx: number } | null => {
+      let best: { e: Edge; dx: number } | null = null;
+      for (const s2 of a.edges) {
+        if (s2.e.regions.length >= 2 && s2.e.regions.includes(b.idx) && (!best || s2.e.len > best.e.len)) best = s2;
       }
       return best;
     };
     const coastPoint = (p: Prep, tx: number, ty: number): [number, number] | null => {
       let best: [number, number] | null = null;
       let bd = Infinity;
-      for (const { e } of p.edges) {
+      for (const { e, dx } of p.edges) {
         if (e.kind !== 'coast') continue;
-        const dd = Math.hypot(e.mx - tx, e.my - ty) + (e.frame ? 400 : 0);
-        if (dd < bd) { bd = dd; best = [e.mx, e.my]; }
+        const dd = Math.hypot(e.mx + dx - tx, e.my - ty) + (e.frame ? 400 : 0);
+        if (dd < bd) { bd = dd; best = [e.mx + dx, e.my]; }
       }
       return best;
     };
@@ -783,17 +880,19 @@ export class Atlas {
         if (seen.has(key)) continue;
         seen.add(key);
         const a = p.r.id < q.r.id ? p : q, b = p.r.id < q.r.id ? q : p;
+        const bcx = near(b.cx, a.cx);
         if (n.kind === 'river') {
-          const e = sharedEdge(a, b);
-          const mx = e ? e.mx : (a.cx + b.cx) / 2, my = e ? e.my : (a.cy + b.cy) / 2;
+          const se = sharedEdge(a, b);
+          const mx = se ? se.e.mx + se.dx : (a.cx + bcx) / 2, my = se ? se.e.my : (a.cy + b.cy) / 2;
           const s1 = hash32(a.r.id * 131 + 7, b.r.id);
           const pts = wobble(a.cx, a.cy, mx, my, s1, 0.13);
-          const pts2 = wobble(mx, my, b.cx, b.cy, s1 ^ 0x5bd1e995, 0.13);
+          const pts2 = wobble(mx, my, bcx, b.cy, s1 ^ 0x5bd1e995, 0.13);
           const all = pts.concat(pts2.slice(2));
           this.rivers.push({ a: a.r.id, b: b.r.id, pts: all });
         } else if (n.kind === 'sea') {
-          const pa = coastPoint(a, b.cx, b.cy) ?? [a.cx, a.cy];
-          const pb = coastPoint(b, a.cx, a.cy) ?? [b.cx, b.cy];
+          const pa = coastPoint(a, bcx, b.cy) ?? [a.cx, a.cy];
+          const pb0 = coastPoint(b, near(a.cx, b.cx), a.cy) ?? [b.cx, b.cy];
+          const pb: [number, number] = [near(pb0[0], pa[0]), pb0[1]];
           const dx = pb[0] - pa[0], dy = pb[1] - pa[1];
           const l = Math.hypot(dx, dy) || 1;
           const sign = hash32(a.r.id, b.r.id) & 1 ? 1 : -1;
@@ -803,23 +902,23 @@ export class Atlas {
             cx: (pa[0] + pb[0]) / 2 + (-dy / l) * bulge, cy: (pa[1] + pb[1]) / 2 + (dx / l) * bulge,
           });
         } else if (n.kind === 'pass') {
-          const e = sharedEdge(a, b);
-          if (e) {
-            const dx = b.cx - a.cx, dy = b.cy - a.cy;
+          const se = sharedEdge(a, b);
+          if (se) {
+            const dx = bcx - a.cx, dy = b.cy - a.cy;
             const l = Math.hypot(dx, dy) || 1;
-            this.passes.push({ x: e.mx, y: e.my, ux: dx / l, uy: dy / l });
+            this.passes.push({ x: se.e.mx + se.dx, y: se.e.my, ux: dx / l, uy: dy / l });
           }
         }
       }
       // River mouth: the lowest reach of a river in a region whose shore we know.
       if (p.r.river && riverLinks >= 1 && lowest) {
-        let mouth: Edge | null = null;
-        for (const { e } of p.edges) {
-          if (e.kind === 'coast' && !e.frame && (!mouth || e.len > mouth.len)) mouth = e;
+        let mouth: { e: Edge; dx: number } | null = null;
+        for (const s2 of p.edges) {
+          if (s2.e.kind === 'coast' && !s2.e.frame && (!mouth || s2.e.len > mouth.e.len)) mouth = s2;
         }
-        if (!mouth) for (const { e } of p.edges) if (e.kind === 'coast' && (!mouth || e.len > mouth.len)) mouth = e;
+        if (!mouth) for (const s2 of p.edges) if (s2.e.kind === 'coast' && (!mouth || s2.e.len > mouth.e.len)) mouth = s2;
         if (mouth) {
-          const pts = wobble(p.cx, p.cy, mouth.mx, mouth.my, hash32(p.r.id, 991), 0.13);
+          const pts = wobble(p.cx, p.cy, mouth.e.mx + mouth.dx, mouth.e.my, hash32(p.r.id, 991), 0.13);
           this.rivers.push({ a: p.r.id, b: -1, pts });
         }
       }
@@ -853,6 +952,8 @@ export class Atlas {
         // Keep the centre clear for the settlement, label and pictograms.
         const dx = gx - p.cx, dy = gy - p.cy;
         if (Math.abs(dx) < 36 && dy > -20 && dy < 30) continue;
+        const ex = gx - p.sx, ey = gy - p.sy;
+        if (Math.abs(ex) < 24 && ey > -24 && ey < 12) continue;
         if (!pointInPoly(p.outline, gx, gy)) continue;
         if (distToPolyEdge(r.poly, gx, gy) < margin) continue;
         out.push({ x: gx, y: gy, v, rank });
@@ -871,7 +972,9 @@ export class Atlas {
     const r = p.r;
     const use = p.use;
     const rand = rng(hash32(r.id * 31 + 5, 0xf1e1d));
-    const inR = p.inR;
+    // Everything is laid out round the settlement: the principal city site.
+    const ox = p.sx, oy = p.sy;
+    const inR = Math.max(6, Math.min(p.inR, distToPolyEdge(r.poly, ox, oy) + 4));
     const flat: number[] = [];
     for (const pt of r.poly) flat.push(pt[0], pt[1]);
     const rank = SETTLEMENT_RANK[r.settlement];
@@ -892,7 +995,7 @@ export class Atlas {
           const dd = Math.hypot(bx, by * 1.25) / rad;
           const v = rand(), w = rand(), h = rand();
           if (dd > 1 || v < dd * dd * 0.75) continue;
-          blocks.push(p.cx + bx, p.cy + by, cell * (0.6 + w * 0.22), cell * 0.8 * (0.55 + h * 0.2));
+          blocks.push(ox + bx, oy + by, cell * (0.6 + w * 0.22), cell * 0.8 * (0.55 + h * 0.2));
         }
       }
       town = { r: rad, blocks, era: use ? use.era : rank >= 3 ? 1 : 0 };
@@ -900,7 +1003,7 @@ export class Atlas {
 
     const sites: PlacedSite[] = [];
     const cityR = town ? town.r : 2;
-    const taken: number[] = [p.cx, p.cy, cityR + 0.5];
+    const taken: number[] = [ox, oy, cityR + 0.5];
     const free = (x: number, y: number, rad: number): boolean => {
       for (let i = 0; i < taken.length; i += 3) {
         if (Math.hypot(x - taken[i], y - taken[i + 1]) < rad + taken[i + 2] + 1) return false;
@@ -915,9 +1018,9 @@ export class Atlas {
         const dist = Math.max(minDist, cityR + size + 2) + ring * 3.4;
         for (const da of [0, 0.32, -0.32, 0.64, -0.64, 1, -1, 1.4, -1.4]) {
           const a = pref + da;
-          const x = p.cx + Math.cos(a) * dist * 1.15, y = p.cy + Math.sin(a) * dist * 0.85;
+          const x = ox + Math.cos(a) * dist * 1.15, y = oy + Math.sin(a) * dist * 0.85;
           // The ground under the settlement is kept for its name.
-          if (y > p.cy + 2 && Math.abs(x - p.cx) < 32) continue;
+          if (y > oy + 2 && Math.abs(x - ox) < 32) continue;
           if (!fits(x, y, size) || !free(x, y, size)) continue;
           taken.push(x, y, size);
           sites.push({ kind, x, y, size, n, active, color });
@@ -958,13 +1061,13 @@ export class Atlas {
         let bd = Infinity;
         for (const { e } of p.edges) {
           if (e.kind !== 'coast') continue;
-          const dd = Math.hypot(e.mx - p.cx, e.my - p.cy) + (e.frame ? 60 : 0);
+          const dd = Math.hypot(e.mx - ox, e.my - oy) + (e.frame ? 60 : 0);
           if (dd < bd) { bd = dd; best = e; }
         }
         const n = clamp(Math.ceil(use.port / 2), 1, 3);
         const size = 5.8 + n * 1.3;
         if (best) {
-          const dx = p.cx - best.mx, dy = p.cy - best.my;
+          const dx = ox - best.mx, dy = oy - best.my;
           const l = Math.hypot(dx, dy) || 1;
           for (const back of [size + 3, size + 7, size + 12]) {
             const x = best.mx + (dx / l) * back, y = best.my + (dy / l) * back;
@@ -990,14 +1093,14 @@ export class Atlas {
       for (let y = y0 + 8; y < y1; y += sp * 0.8, row++) {
         for (let x = x0 + (row & 1 ? sp / 2 : 0) + 6; x < x1; x += sp * 1.25) {
           const gx = x + (rand() - 0.5) * 5, gy = y + (rand() - 0.5) * 4;
-          cand.push({ x: gx, y: gy, d: Math.hypot(gx - p.cx, (gy - p.cy) * 1.25) });
+          cand.push({ x: gx, y: gy, d: Math.hypot(gx - ox, (gy - oy) * 1.25) });
         }
       }
       cand.sort((a, b) => a.d - b.d);
       for (const c of cand) {
         if (fields.length >= nf + np) break;
         const w = 13 + rand() * 6, h = 8 + rand() * 3.5;
-        if (Math.abs(c.x - p.cx) < 36 && c.y - p.cy > -3 && c.y - p.cy < 32) continue;
+        if (Math.abs(c.x - ox) < 36 && c.y - oy > -3 && c.y - oy < 32) continue;
         const corners = [[c.x - w / 2 - 3, c.y - h / 2], [c.x + w / 2 + 3, c.y - h / 2], [c.x + w / 2 + 3, c.y + h / 2], [c.x - w / 2 - 3, c.y + h / 2]];
         if (!corners.every((q) => pointInPoly(flat, q[0], q[1]) && distToPolyEdge(r.poly, q[0], q[1]) > 4.5)) continue;
         if (!free(c.x, c.y, Math.max(w, h) * 0.5)) continue;
@@ -1076,6 +1179,17 @@ export class Atlas {
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
   }
 
+  /** Horizontal offsets of the copies of the known world that reach into the view. */
+  private copies(vx0: number, vx1: number, pad: number): number[] {
+    const W = this.wrapW;
+    if (!W) return [0];
+    const out: number[] = [];
+    const [c0, c1] = this.contentX;
+    const k0 = Math.floor((vx0 - pad - c1) / W), k1 = Math.ceil((vx1 + pad - c0) / W);
+    for (let k = k0; k <= k1; k++) if (c1 + k * W >= vx0 - pad && c0 + k * W <= vx1 + pad) out.push(k * W);
+    return out;
+  }
+
   private draw(): void {
     if (this.destroyed) return;
     const t0 = performance.now();
@@ -1094,40 +1208,81 @@ export class Atlas {
     const px = 1 / s; // one CSS pixel in world units
     const mode = this.overlay.mode;
     const vx0 = -this.tx / s, vy0 = -this.ty / s, vx1 = (W - this.tx) / s, vy1 = (H - this.ty) / s;
-    const visible = this.preps.filter((p) => !(p.bbox[2] < vx0 - 40 || p.bbox[0] > vx1 + 40 || p.bbox[3] < vy0 - 40 || p.bbox[1] > vy1 + 40));
+    const offs = this.copies(vx0, vx1, 80);
+    const visible: Inst[] = [];
+    for (const ox of offs) {
+      for (const p of this.preps) {
+        if (p.bbox[2] + ox < vx0 - 40 || p.bbox[0] + ox > vx1 + 40 || p.bbox[3] < vy0 - 40 || p.bbox[1] > vy1 + 40) continue;
+        visible.push({ p, ox });
+      }
+    }
+    const each = (fn: () => void) => {
+      for (const ox of offs) {
+        if (ox) ctx.translate(ox, 0);
+        fn();
+        if (ox) ctx.translate(-ox, 0);
+      }
+    };
+    const at = (inst: Inst, fn: () => void) => {
+      if (inst.ox) ctx.translate(inst.ox, 0);
+      fn();
+      if (inst.ox) ctx.translate(-inst.ox, 0);
+    };
 
-    // 1. Sheet furniture: faint graticule and a neatline around the world frame.
+    // 1. Sheet furniture: faint graticule and a neatline around the world frame. A wrapped
+    // world has no east and west edge: only the polar edges are ruled.
     this.toWorld();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = alpha(INK_3, 0.11);
     ctx.lineWidth = 0.6 * px;
     ctx.beginPath();
-    for (let x = 200; x < d.world.width; x += 200) { ctx.moveTo(x, -16); ctx.lineTo(x, d.world.height + 16); }
-    for (let y = 200; y < d.world.height; y += 200) { ctx.moveTo(-16, y); ctx.lineTo(d.world.width + 16, y); }
+    if (this.wrapW) {
+      const gx0 = Math.floor(vx0 / 200) * 200;
+      for (let x = gx0; x < vx1; x += 200) { ctx.moveTo(x, -16); ctx.lineTo(x, d.world.height + 16); }
+      for (let y = 200; y < d.world.height; y += 200) { ctx.moveTo(vx0, y); ctx.lineTo(vx1, y); }
+    } else {
+      for (let x = 200; x < d.world.width; x += 200) { ctx.moveTo(x, -16); ctx.lineTo(x, d.world.height + 16); }
+      for (let y = 200; y < d.world.height; y += 200) { ctx.moveTo(-16, y); ctx.lineTo(d.world.width + 16, y); }
+    }
     ctx.stroke();
-    ctx.strokeStyle = alpha(INK_2, 0.5);
-    ctx.lineWidth = 1.1 * px;
-    ctx.strokeRect(-16, -16, d.world.width + 32, d.world.height + 32);
-    ctx.strokeStyle = alpha(INK_2, 0.28);
-    ctx.lineWidth = 0.6 * px;
-    ctx.strokeRect(-22, -22, d.world.width + 44, d.world.height + 44);
+    if (this.wrapW) {
+      ctx.beginPath();
+      for (const y of [-16, d.world.height + 16]) { ctx.moveTo(vx0, y); ctx.lineTo(vx1, y); }
+      ctx.strokeStyle = alpha(INK_2, 0.5);
+      ctx.lineWidth = 1.1 * px;
+      ctx.stroke();
+      ctx.beginPath();
+      for (const y of [-22, d.world.height + 22]) { ctx.moveTo(vx0, y); ctx.lineTo(vx1, y); }
+      ctx.strokeStyle = alpha(INK_2, 0.28);
+      ctx.lineWidth = 0.6 * px;
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = alpha(INK_2, 0.5);
+      ctx.lineWidth = 1.1 * px;
+      ctx.strokeRect(-16, -16, d.world.width + 32, d.world.height + 32);
+      ctx.strokeStyle = alpha(INK_2, 0.28);
+      ctx.lineWidth = 0.6 * px;
+      ctx.strokeRect(-22, -22, d.world.width + 44, d.world.height + 44);
+    }
 
     // 2. Coastal wash outside the known shore (land is painted over the inner half).
-    for (const [wd, a] of [[66, 0.07], [42, 0.09], [22, 0.11]] as [number, number][]) {
-      ctx.strokeStyle = alpha(SEA, a);
-      ctx.lineWidth = wd;
-      ctx.stroke(this.coastPath);
-    }
-    ctx.strokeStyle = alpha(RIVER, 0.3);
-    ctx.lineWidth = 0.8 * px;
-    ctx.stroke(this.ripple1);
-    ctx.strokeStyle = alpha(RIVER, 0.16);
-    ctx.lineWidth = 0.7 * px;
-    ctx.stroke(this.ripple2);
+    each(() => {
+      for (const [wd, a] of [[66, 0.07], [42, 0.09], [22, 0.11]] as [number, number][]) {
+        ctx.strokeStyle = alpha(SEA, a);
+        ctx.lineWidth = wd;
+        ctx.stroke(this.coastPath);
+      }
+      ctx.strokeStyle = alpha(RIVER, 0.3);
+      ctx.lineWidth = 0.8 * px;
+      ctx.stroke(this.ripple1);
+      ctx.strokeStyle = alpha(RIVER, 0.16);
+      ctx.lineWidth = 0.7 * px;
+      ctx.stroke(this.ripple2);
+    });
 
     // 3. Land.
-    for (const p of visible) this.drawRegionBase(p, mode, px);
+    for (const v of visible) at(v, () => this.drawRegionBase(v.p, mode, px));
 
     // 5. Paper grain over paper and tints alike.
     this.toScreen();
@@ -1136,150 +1291,164 @@ export class Atlas {
       ctx.fillStyle = grain;
       ctx.fillRect(0, 0, W, H);
     }
-    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.hypot(W, H) * 0.62);
-    vg.addColorStop(0, 'rgba(120,90,40,0)');
-    vg.addColorStop(1, 'rgba(120,90,40,0.13)');
-    ctx.fillStyle = vg;
+    if (!this.vignette || this.vignetteKey !== `${W}x${H}`) {
+      const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.hypot(W, H) * 0.62);
+      vg.addColorStop(0, 'rgba(120,90,40,0)');
+      vg.addColorStop(1, 'rgba(120,90,40,0.13)');
+      this.vignette = vg;
+      this.vignetteKey = `${W}x${H}`;
+    }
+    ctx.fillStyle = this.vignette;
     ctx.fillRect(0, 0, W, H);
 
     // 6. Terrain glyphs and tended fields.
     this.toWorld();
     if (mode !== 'population') {
       const gAlpha = mode === 'terrain' ? 0.9 : mode === 'political' ? 0.5 : mode === 'construction' ? 0.22 : 0.32;
-      for (const p of visible) this.drawGlyphs(p, px, gAlpha);
+      for (const v of visible) at(v, () => this.drawGlyphs(v.p, px, gAlpha));
       const fAlpha = mode === 'resources' ? 0.5 : 0.95;
-      for (const p of visible) this.drawFarmland(p, px, fAlpha);
-      for (const p of visible) this.drawTown(p, px, mode === 'resources' ? 0.55 : 1);
+      for (const v of visible) at(v, () => this.drawFarmland(v.p, px, fAlpha));
+      for (const v of visible) at(v, () => this.drawTown(v.p, px, mode === 'resources' ? 0.55 : 1));
     }
 
     // 7. Line work.
     // Border hierarchy: region borders are a thin secondary line, borders between
     // realms a continuous heavy one over the coloured bands, the coast a sea-ink line.
-    ctx.setLineDash([]);
-    ctx.strokeStyle = alpha(INK_2, mode === 'terrain' ? 0.34 : 0.5);
-    ctx.lineWidth = clamp(0.95 * Math.sqrt(s), 0.8, 1.5) * px;
-    ctx.stroke(this.internalPath);
-    ctx.strokeStyle = alpha(PAPER_LIGHT, mode === 'terrain' ? 0.25 : 0.5);
-    ctx.lineWidth = clamp(3.6 * Math.sqrt(s), 3, 5.6) * px;
-    ctx.stroke(this.politicalPath);
-    ctx.strokeStyle = alpha(INK, mode === 'terrain' ? 0.55 : 0.88);
-    ctx.lineWidth = clamp(1.9 * Math.sqrt(s), 1.6, 3.2) * px;
-    ctx.stroke(this.politicalPath);
-    ctx.strokeStyle = alpha(INK_3, 0.75);
-    ctx.lineWidth = 1.1 * px;
-    ctx.setLineDash([0.1 * px, 4.2 * px]);
-    ctx.stroke(this.unknownPath);
-    ctx.setLineDash([]);
-    ctx.strokeStyle = alpha(COAST_INK, 0.92);
-    ctx.lineWidth = clamp(1.6 * Math.sqrt(s), 1.2, 2.4) * px;
-    ctx.stroke(this.coastPath);
-
-    // Rivers.
-    const rw = clamp(2.4 * Math.sqrt(s), 1.6, 4.2) * px;
-    ctx.strokeStyle = alpha('#f4f7f4', 0.55);
-    ctx.lineWidth = rw + 1.6 * px;
-    ctx.stroke(this.riverPath);
-    ctx.strokeStyle = RIVER;
-    ctx.lineWidth = rw;
-    ctx.stroke(this.riverPath);
-
-    // Sea routes.
-    if (this.seaLinks.length) {
-      ctx.strokeStyle = alpha('#2f5d6e', 0.5);
-      ctx.lineWidth = 1.1 * px;
-      ctx.setLineDash([5 * px, 4.5 * px]);
-      ctx.beginPath();
-      for (const l of this.seaLinks) {
-        ctx.moveTo(l.ax, l.ay);
-        ctx.quadraticCurveTo(l.cx, l.cy, l.bx, l.by);
-      }
-      ctx.stroke();
+    each(() => {
       ctx.setLineDash([]);
-      ctx.fillStyle = alpha('#2f5d6e', 0.75);
-      for (const l of this.seaLinks) {
-        for (const [x, y] of [[l.ax, l.ay], [l.bx, l.by]]) {
-          ctx.beginPath();
-          ctx.arc(x, y, 2.2 * px, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
+      ctx.strokeStyle = alpha(INK_2, mode === 'terrain' ? 0.34 : 0.5);
+      ctx.lineWidth = clamp(0.95 * Math.sqrt(s), 0.8, 1.5) * px;
+      ctx.stroke(this.internalPath);
+      ctx.strokeStyle = alpha(PAPER_LIGHT, mode === 'terrain' ? 0.25 : 0.5);
+      ctx.lineWidth = clamp(3.6 * Math.sqrt(s), 3, 5.6) * px;
+      ctx.stroke(this.politicalPath);
+      ctx.strokeStyle = alpha(INK, mode === 'terrain' ? 0.55 : 0.88);
+      ctx.lineWidth = clamp(1.9 * Math.sqrt(s), 1.6, 3.2) * px;
+      ctx.stroke(this.politicalPath);
+      ctx.strokeStyle = alpha(INK_3, 0.75);
+      ctx.lineWidth = 1.1 * px;
+      ctx.setLineDash([0.1 * px, 4.2 * px]);
+      ctx.stroke(this.unknownPath);
+      ctx.setLineDash([]);
+      ctx.strokeStyle = alpha(COAST_INK, 0.92);
+      ctx.lineWidth = clamp(1.6 * Math.sqrt(s), 1.2, 2.4) * px;
+      ctx.stroke(this.coastPath);
 
-    // Passes: a short notched line crossing the border.
-    if (this.passes.length) {
-      const L = clamp(11 * px, 7, 22);
-      const N = L * 0.42;
-      ctx.lineWidth = 1.5 * px;
-      for (const ps of this.passes) {
-        const nx = -ps.uy, ny = ps.ux;
+      // Rivers.
+      const rw = clamp(2.4 * Math.sqrt(s), 1.6, 4.2) * px;
+      ctx.strokeStyle = alpha('#f4f7f4', 0.55);
+      ctx.lineWidth = rw + 1.6 * px;
+      ctx.stroke(this.riverPath);
+      ctx.strokeStyle = RIVER;
+      ctx.lineWidth = rw;
+      ctx.stroke(this.riverPath);
+
+      // Sea routes.
+      if (this.seaLinks.length) {
+        ctx.strokeStyle = alpha('#2f5d6e', 0.5);
+        ctx.lineWidth = 1.1 * px;
+        ctx.setLineDash([5 * px, 4.5 * px]);
+        ctx.beginPath();
+        for (const l of this.seaLinks) {
+          ctx.moveTo(l.ax, l.ay);
+          ctx.quadraticCurveTo(l.cx, l.cy, l.bx, l.by);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = alpha('#2f5d6e', 0.75);
+        ctx.beginPath();
+        for (const l of this.seaLinks) {
+          for (const [x, y] of [[l.ax, l.ay], [l.bx, l.by]]) {
+            ctx.moveTo(x + 2.2 * px, y);
+            ctx.arc(x, y, 2.2 * px, 0, Math.PI * 2);
+          }
+        }
+        ctx.fill();
+      }
+
+      // Passes: a short notched line crossing the border.
+      if (this.passes.length) {
+        const L = clamp(11 * px, 7, 22);
+        const N = L * 0.42;
         ctx.strokeStyle = alpha(PAPER_LIGHT, 0.9);
         ctx.lineWidth = 3.6 * px;
         ctx.beginPath();
-        ctx.moveTo(ps.x - ps.ux * L, ps.y - ps.uy * L);
-        ctx.lineTo(ps.x + ps.ux * L, ps.y + ps.uy * L);
+        for (const ps of this.passes) {
+          ctx.moveTo(ps.x - ps.ux * L, ps.y - ps.uy * L);
+          ctx.lineTo(ps.x + ps.ux * L, ps.y + ps.uy * L);
+        }
         ctx.stroke();
         ctx.strokeStyle = INK;
         ctx.lineWidth = 1.4 * px;
         ctx.beginPath();
-        ctx.moveTo(ps.x - ps.ux * L, ps.y - ps.uy * L);
-        ctx.lineTo(ps.x + ps.ux * L, ps.y + ps.uy * L);
-        for (const t of [-0.62, 0, 0.62]) {
-          const cx = ps.x + ps.ux * L * t, cy = ps.y + ps.uy * L * t;
-          ctx.moveTo(cx - nx * N, cy - ny * N);
-          ctx.lineTo(cx + nx * N, cy + ny * N);
+        for (const ps of this.passes) {
+          const nx = -ps.uy, ny = ps.ux;
+          ctx.moveTo(ps.x - ps.ux * L, ps.y - ps.uy * L);
+          ctx.lineTo(ps.x + ps.ux * L, ps.y + ps.uy * L);
+          for (const t of [-0.62, 0, 0.62]) {
+            const cx = ps.x + ps.ux * L * t, cy = ps.y + ps.uy * L * t;
+            ctx.moveTo(cx - nx * N, cy - ny * N);
+            ctx.lineTo(cx + nx * N, cy + ny * N);
+          }
         }
         ctx.stroke();
       }
-    }
+    });
 
-    // 8. Pick mode, hover and selection.
+    // 8. Pick mode, hover and selection (every visible copy).
     const ov = this.overlay;
     if (ov.targets !== undefined) {
       const tset = ov.targets ? new Set(ov.targets) : null;
-      for (const p of visible) {
-        const ok = !tset || tset.has(p.r.id);
-        if (!ok) {
+      for (const v of visible) {
+        const ok = !tset || tset.has(v.p.r.id);
+        if (!ok) at(v, () => {
           ctx.fillStyle = alpha(PAPER, 0.42);
-          ctx.fill(p.path);
-        }
+          ctx.fill(v.p.path);
+        });
       }
       if (tset) {
         ctx.setLineDash([6 * px, 3.5 * px]);
         ctx.lineWidth = 2.2 * px;
         ctx.strokeStyle = ACCENT;
-        for (const p of visible) {
-          if (!tset.has(p.r.id)) continue;
-          ctx.fillStyle = alpha(ACCENT, 0.08);
-          ctx.fill(p.path);
-          ctx.stroke(p.path);
+        for (const v of visible) {
+          if (!tset.has(v.p.r.id)) continue;
+          at(v, () => {
+            ctx.fillStyle = alpha(ACCENT, 0.08);
+            ctx.fill(v.p.path);
+            ctx.stroke(v.p.path);
+          });
         }
         ctx.setLineDash([]);
       }
     }
-    const hov = ov.hovered != null ? this.byId.get(ov.hovered) : undefined;
-    if (hov && ov.hovered !== ov.selected) {
-      ctx.fillStyle = alpha('#fffbea', 0.24);
-      ctx.fill(hov.path);
-      ctx.strokeStyle = alpha(PAPER_LIGHT, 0.9);
-      ctx.lineWidth = 4.2 * px;
-      ctx.stroke(hov.path);
-      ctx.strokeStyle = alpha(INK, 0.85);
-      ctx.lineWidth = 1.8 * px;
-      ctx.stroke(hov.path);
+    for (const v of visible) {
+      const id = v.p.r.id;
+      if (id === ov.hovered && ov.hovered !== ov.selected) at(v, () => {
+        ctx.fillStyle = alpha('#fffbea', 0.24);
+        ctx.fill(v.p.path);
+        ctx.strokeStyle = alpha(PAPER_LIGHT, 0.9);
+        ctx.lineWidth = 4.2 * px;
+        ctx.stroke(v.p.path);
+        ctx.strokeStyle = alpha(INK, 0.85);
+        ctx.lineWidth = 1.8 * px;
+        ctx.stroke(v.p.path);
+      });
     }
-    const sel = ov.selected != null ? this.byId.get(ov.selected) : undefined;
-    if (sel) {
-      ctx.fillStyle = alpha('#fffbea', 0.14);
-      ctx.fill(sel.path);
-      ctx.strokeStyle = alpha(PAPER_LIGHT, 0.96);
-      ctx.lineWidth = 7 * px;
-      ctx.stroke(sel.path);
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 4.4 * px;
-      ctx.stroke(sel.path);
-      ctx.strokeStyle = '#e3b64f';
-      ctx.lineWidth = 1.8 * px;
-      ctx.stroke(sel.path);
+    for (const v of visible) {
+      if (v.p.r.id !== ov.selected) continue;
+      at(v, () => {
+        ctx.fillStyle = alpha('#fffbea', 0.14);
+        ctx.fill(v.p.path);
+        ctx.strokeStyle = alpha(PAPER_LIGHT, 0.96);
+        ctx.lineWidth = 7 * px;
+        ctx.stroke(v.p.path);
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 4.4 * px;
+        ctx.stroke(v.p.path);
+        ctx.strokeStyle = '#e3b64f';
+        ctx.lineWidth = 1.8 * px;
+        ctx.stroke(v.p.path);
+      });
     }
 
     // 9. Symbols and lettering in screen space.
@@ -1293,13 +1462,17 @@ export class Atlas {
     const ctx = this.ctx;
     const r = p.r;
     const remembered = r.visibility === 'remembered';
-    const tint = TINT[r.terrain];
-    let base: string;
-    if (mode === 'terrain') base = tint;
-    else if (mode === 'political') base = mix(LAND_BASE, tint, 0.5);
-    else if (mode === 'construction') base = mix(LAND_BASE, tint, 0.12);
-    else base = mix(LAND_BASE, tint, 0.22);
-    if (remembered) base = mix(base, GREY_PAPER, 0.72);
+    const bkey = mode + (remembered ? 'r' : '') + (r.climate ?? '') + r.terrain;
+    let base = this.baseCache.get(bkey);
+    if (!base) {
+      const tint = landTint(r.terrain, r.climate);
+      if (mode === 'terrain') base = tint;
+      else if (mode === 'political') base = mix(LAND_BASE, tint, 0.55);
+      else if (mode === 'construction') base = mix(LAND_BASE, tint, 0.12);
+      else base = mix(LAND_BASE, tint, 0.22);
+      if (remembered) base = mix(base, GREY_PAPER, 0.72);
+      this.baseCache.set(bkey, base);
+    }
     ctx.fillStyle = base;
     ctx.fill(p.path);
     // Seal hairline gaps between neighbours.
@@ -1317,6 +1490,7 @@ export class Atlas {
     // Watercolour pooling toward the edge.
     if (!remembered) {
       const dark = mix(base, '#6b5a3a', 0.5);
+
       ctx.strokeStyle = dark;
       ctx.globalAlpha = 0.1;
       ctx.lineWidth = 20;
@@ -1477,7 +1651,7 @@ export class Atlas {
     ctx.globalAlpha = a * (rem ? 0.6 : 1);
     ctx.fillStyle = alpha(modern ? '#bdb8ae' : '#d2c3a0', 0.72);
     ctx.beginPath();
-    ctx.ellipse(p.cx, p.cy, t.r * 1.1, t.r * 0.92, 0, 0, Math.PI * 2);
+    ctx.ellipse(p.sx, p.sy, t.r * 1.1, t.r * 0.92, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = alpha(INK_2, 0.35);
     ctx.lineWidth = 0.7 * px;
@@ -1515,6 +1689,8 @@ export class Atlas {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     const t = r.terrain;
+    const cold = r.climate === 'polar' || r.climate === 'continental';
+    const hot = r.climate === 'tropical';
 
     for (const g of p.glyphs) {
       if (g.rank > keep) continue;
@@ -1522,6 +1698,27 @@ export class Atlas {
       switch (t) {
         case 'forest': {
           const u = 4.6 * grow;
+          if (cold) {
+            // Boreal forest: conifers.
+            const offs = g.v < 0.3 ? [[-0.65, 0.1], [0.7, 0.2]] : [[0, -0.6], [-1, 0.25], [0.95, 0.3]];
+            for (const o of offs) {
+              const tx2 = x + o[0] * u, ty2 = y + o[1] * u;
+              ctx.beginPath();
+              ctx.moveTo(tx2, ty2 - u * 1.25);
+              ctx.lineTo(tx2 + u * 0.62, ty2 + u * 0.55);
+              ctx.lineTo(tx2 - u * 0.62, ty2 + u * 0.55);
+              ctx.closePath();
+              ctx.fillStyle = remembered ? '#b6bca8' : g.v > 0.6 ? '#6f9466' : '#7ea374';
+              ctx.fill();
+              ctx.strokeStyle = alpha(ink, 0.75);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(tx2, ty2 + u * 0.55);
+              ctx.lineTo(tx2, ty2 + u * 1.05);
+              ctx.stroke();
+            }
+            break;
+          }
           const n = g.v < 0.3 ? 2 : 3;
           const offs = n === 3 ? [[0, -0.85], [-0.95, 0.1], [0.9, 0.2]] : [[-0.6, 0], [0.7, 0.1]];
           for (const o of offs) {
@@ -1533,7 +1730,7 @@ export class Atlas {
             ctx.stroke();
             ctx.beginPath();
             ctx.arc(tx2, ty2, u * 0.82, 0, Math.PI * 2);
-            ctx.fillStyle = remembered ? '#b9bfa8' : g.v > 0.6 ? '#86ab6c' : '#93b578';
+            ctx.fillStyle = remembered ? '#b9bfa8' : hot ? (g.v > 0.6 ? '#5f9a52' : '#6fa95e') : g.v > 0.6 ? '#86ab6c' : '#93b578';
             ctx.fill();
             ctx.strokeStyle = alpha(ink, 0.75);
             ctx.stroke();
@@ -1587,7 +1784,7 @@ export class Atlas {
           ctx.lineTo(x + u * 1.05, y + u * 0.45);
           ctx.strokeStyle = alpha(ink, 0.9);
           ctx.stroke();
-          if (g.v > 0.45) {
+          if (g.v > 0.45 || cold) {
             // Snow cap.
             ctx.beginPath();
             ctx.moveTo(ax - u * 0.3, ay + u * 0.42);
@@ -1705,19 +1902,21 @@ export class Atlas {
 
   // --- screen-space symbols -------------------------------------------------------------
 
-  private drawSymbols(visible: Prep[], mode: MapMode): void {
+  private drawSymbols(visible: Inst[], mode: MapMode): void {
     const ctx = this.ctx;
     const d = this.data;
     if (!d) return;
     const s = this.scale;
     const k = clamp(Math.pow(s / 0.8, 0.6), 0.72, 2);
     const ov = this.overlay;
+    const W = this.wrapW;
+    const near = (x: number, ref: number) => (W ? x + W * Math.round((ref - x) / W) : x);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     // Rings: revealed test nodes and externally marked regions.
-    for (const p of visible) {
-      const [x, y] = this.worldToScreen(p.cx, p.cy);
+    for (const { p, ox } of visible) {
+      const [x, y] = this.worldToScreen(p.cx + ox, p.cy);
       if (p.r.test_node) {
         const rad = 21 * k;
         ctx.strokeStyle = alpha(PAPER_LIGHT, 0.9);
@@ -1743,7 +1942,7 @@ export class Atlas {
     for (const id of ov.marked) {
       const p = this.byId.get(id);
       if (!p) continue;
-      const [x, y] = this.worldToScreen(p.cx, p.cy);
+      const [x, y] = this.worldToScreen(this.nearView(p.cx), p.cy);
       const rad = 30 * k;
       ctx.strokeStyle = alpha(PAPER_LIGHT, 0.95);
       ctx.lineWidth = 6;
@@ -1761,8 +1960,9 @@ export class Atlas {
       if (!showArmies || a.target == null || a.target === a.region) continue;
       const from = this.byId.get(a.region), to = this.byId.get(a.target);
       if (!from || !to) continue;
-      const [x0, y0] = this.worldToScreen(from.cx, from.cy);
-      const [x1, y1] = this.worldToScreen(to.cx, to.cy);
+      const fx = this.nearView(from.cx);
+      const [x0, y0] = this.worldToScreen(fx, from.cy);
+      const [x1, y1] = this.worldToScreen(near(to.cx, fx), to.cy);
       const attack = a.order === 'attack';
       const col = attack ? '#a23b2c' : this.colorOf(d.mySeat);
       const dx = x1 - x0, dy = y1 - y0;
@@ -1798,11 +1998,12 @@ export class Atlas {
     // read, and summed into the sector chips under the name when it cannot.
     if (mode !== 'population') {
       const drawn: { st: PlacedSite; x: number; y: number; rem: boolean }[] = [];
-      for (const p of visible) {
+      for (const { p, ox } of visible) {
         for (const st of p.sites) {
           // Too small to read is not drawn at all: the chips carry it. A large works shows from afar.
           if (st.size * s < (st.kind === 'industry' ? 4.6 : 6.2)) continue;
-          const [x, y] = this.worldToScreen(st.x, st.y);
+          const [x, y] = this.worldToScreen(st.x + ox, st.y);
+          if (x < -80 || x > this.w + 80 || y < -80 || y > this.h + 80) continue;
           drawn.push({ st, x, y, rem: p.r.visibility === 'remembered' });
         }
       }
@@ -1826,21 +2027,64 @@ export class Atlas {
       ctx.globalAlpha = 1;
     }
 
-    // Settlements and the capital star.
-    const rows: { p: Prep; x: number; y: number; labelY: number }[] = [];
-    for (const p of visible) {
-      const [x, y] = this.worldToScreen(p.cx, p.cy);
+    // Settlements (at the principal city site), harbours, epidemics and the capital star.
+    interface Row { p: Prep; x: number; y: number; labelY: number; tx: number; ty: number; halfW: number }
+    const rows: Row[] = [];
+    const showHarbour = mode === 'terrain' ? s >= 0.85 : s >= 1;
+    // From afar a crowded late world shows its towns and villages as dots; cities keep their skylines.
+    const far = s < 0.8;
+    for (const { p, ox } of visible) {
+      const [x, y] = this.worldToScreen(p.cx + ox, p.cy);
+      const [tx, ty] = this.worldToScreen(p.sx + ox, p.sy);
+      if (Math.max(x, tx) < -120 || Math.min(x, tx) > this.w + 120 || Math.max(y, ty) < -80 || Math.min(y, ty) > this.h + 80) continue;
       const r = p.r;
       const remembered = r.visibility === 'remembered';
+      // The name goes under the settlement when the city stands near the middle of its
+      // region, otherwise at the middle, where it reads as the region's name.
+      const apart = Math.hypot(tx - x, ty - y) > 30;
       let labelY = y + 9 * k;
-      if (r.settlement !== 'wilderness') {
+      const rank = SETTLEMENT_RANK[r.settlement];
+      const asDot = far && rank > 0 && (rank <= 3 || (rank === 4 && r.visibility !== 'own')) && d.capital !== r.id && r.id !== ov.selected && r.id !== ov.hovered;
+      const halfW = r.settlement === 'wilderness' ? 3 : asDot ? 3 : this.settlementHalfWidth(r.settlement) * k;
+      if (asDot) {
+        ctx.beginPath();
+        ctx.arc(tx, ty, 1.6 + rank * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = remembered ? '#9a9488' : mix(r.owner != null ? this.colorOf(r.owner) : '#a8573a', '#3a2a20', 0.25);
+        ctx.fill();
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = alpha(PAPER_LIGHT, 0.9);
+        ctx.stroke();
+        if (!apart) labelY = ty + 13;
+      } else if (r.settlement !== 'wilderness') {
         const roof = remembered ? '#9a9488' : mix(r.owner != null ? this.colorOf(r.owner) : '#a8573a', '#3a2a20', 0.12);
         const era = p.town?.era ?? 0;
-        this.drawSettlement(r.settlement, x, y + 4 * k, k, roof, remembered, era);
-        labelY = y + 4 * k + 12 + 2 * k;
-        if (d.capital === r.id) this.drawStar(x, y + 4 * k - this.settlementHeight(r.settlement) * k - 8 * k, 5.2 * k, this.colorOf(d.mySeat));
+        this.drawSettlement(r.settlement, tx, ty + 4 * k, k, roof, remembered, era);
+        if (!apart) labelY = ty + 4 * k + 12 + 2 * k;
+        if (d.capital === r.id) this.drawStar(tx, ty + 4 * k - this.settlementHeight(r.settlement) * k - 8 * k, 5.2 * k, this.colorOf(d.mySeat));
+      } else if (r.city && s >= 1.6 && mode !== 'population') {
+        // An unsettled site: a small ring where a city could stand.
+        ctx.beginPath();
+        ctx.arc(tx, ty, 2.4 * k, 0, Math.PI * 2);
+        ctx.fillStyle = alpha(PAPER_LIGHT, 0.9);
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = alpha(INK_2, 0.7);
+        ctx.stroke();
       }
-      rows.push({ p, x, y, labelY });
+      if (r.city?.natural_harbour && mode !== 'population' && (r.settlement !== 'wilderness' ? showHarbour : s >= 1.6)) {
+        const ax = r.settlement !== 'wilderness' ? tx - halfW - 7 * k : tx - 8 * k;
+        drawAnchor(ctx, ax, ty + 1 * k, 5.6 * clamp(k, 0.85, 1.35), remembered);
+      }
+      rows.push({ p, x, y, labelY, tx, ty, halfW });
+    }
+    // Epidemics: a seal by the settlement (after all settlements, so none covers it).
+    for (const row of rows) {
+      const ob = row.p.r.outbreak;
+      if (!ob || mode === 'construction') continue;
+      const r = row.p.r;
+      const hgt = r.settlement === 'wilderness' || row.halfW <= 3 ? 6 : this.settlementHeight(r.settlement);
+      const ex = row.tx + Math.max(row.halfW * 0.7, 9 * k), ey = row.ty + 4 * k - hgt * k * 0.85;
+      drawOutbreakSeal(ctx, ex, ey, clamp(5.2 * k, 4.6, 8.5), ob.severity_band, r.visibility === 'remembered');
     }
 
     // Labels with greedy collision avoidance: the most important name wins the space.
@@ -1848,7 +2092,7 @@ export class Atlas {
     const placed: [number, number, number, number][] = [];
     const hits = (rect: [number, number, number, number]) => placed.some((q) => rect[0] < q[2] && rect[2] > q[0] && rect[1] < q[3] && rect[3] > q[1]);
     const order = rows.slice().sort((a, b) => this.labelPriority(b.p) - this.labelPriority(a.p));
-    const labelled = new Map<number, number>();
+    const labelled = new Map<Row, number>();
     for (const row of order) {
       const r = row.p.r;
       const forced = r.id === ov.selected || r.id === ov.hovered;
@@ -1860,11 +2104,11 @@ export class Atlas {
       ctx.font = `small-caps ${weight} ${size}px ${SERIF}`;
       this.setLetterSpacing('0.7px');
       const text = r.name;
-      const tw = ctx.measureText(text).width;
+      const tw = this.measure(text, ctx.font);
       const rect: [number, number, number, number] = [row.x - tw / 2 - 4, row.labelY - size * 0.9, row.x + tw / 2 + 4, row.labelY + size * 0.34];
       if (!forced && hits(rect)) continue;
       placed.push(rect);
-      labelled.set(r.id, rect[3]);
+      labelled.set(row, rect[3]);
       ctx.globalAlpha = al;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
@@ -1877,15 +2121,46 @@ export class Atlas {
     }
     this.setLetterSpacing('0px');
 
+    // City names: a lighter italic beside the settlement, shown by size as the view closes in.
+    if (mode !== 'population') {
+      for (const row of order) {
+        const r = row.p.r;
+        if (!r.city || r.settlement === 'wilderness' || r.city.name === r.name) continue;
+        const rank = SETTLEMENT_RANK[r.settlement];
+        const forced = r.id === ov.selected || r.id === ov.hovered;
+        let need = CITY_NAME_ZOOM[rank] ?? 9;
+        if (d.capital === r.id || r.visibility === 'own') need *= 0.75;
+        if (!forced && s < need) continue;
+        const size = clamp((rank >= 5 ? 12.5 : rank >= 4 ? 11.5 : 10.5) * clamp(k, 0.9, 1.25), 10, 15);
+        ctx.font = `italic ${rank >= 4 ? 600 : 500} ${size}px ${SERIF}`;
+        const text = r.city.name;
+        const tw = this.measure(text, ctx.font);
+        const lx = row.tx + row.halfW + 4;
+        const ly = row.ty - (rank >= 3 ? 3 : 1) * k;
+        const rect: [number, number, number, number] = [lx - 2, ly - size * 0.62, lx + tw + 3, ly + size * 0.42];
+        if (!forced && hits(rect)) continue;
+        placed.push(rect);
+        ctx.globalAlpha = r.visibility === 'remembered' ? 0.75 : 1;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = alpha(PAPER_LIGHT, 0.92);
+        ctx.lineWidth = 3;
+        ctx.strokeText(text, lx, ly);
+        ctx.fillStyle = INK_2;
+        ctx.fillText(text, lx, ly);
+        ctx.globalAlpha = 1;
+      }
+    }
+
     // Under the name: what the region holds, sector by sector. A row that would run into
     // another region's name is dropped rather than overprinted.
     const ck = clamp(k, 0.9, 1.3);
     for (const row of order) {
       const r = row.p.r;
       const forced = r.id === ov.selected || r.id === ov.hovered;
-      const under = labelled.get(r.id);
+      const under = labelled.get(row);
       if (mode === 'resources') {
-        this.drawResources(row.p, row.x, row.labelY + (under !== undefined ? 11 : -3), k);
+        this.drawResources(row.p, row.x, row.labelY + (under !== undefined ? 11 : -3), k, placed, forced);
         continue;
       }
       // Top of the row: just clear of the name, or where the name would have been.
@@ -1924,6 +2199,8 @@ export class Atlas {
     }
 
     // Armies: own formations by dominant role, foreign sightings as dotted diamonds.
+    // At most three markers stand side by side; the rest of a stack is counted ("+N").
+    const MAX_MARKERS = 3;
     const perRegion = new Map<number, number>();
     const slot = (region: number): number => {
       const n = perRegion.get(region) ?? 0;
@@ -1933,8 +2210,9 @@ export class Atlas {
     for (const a of showArmies ? d.armies : []) {
       const p = this.byId.get(a.region);
       if (!p) continue;
-      const [x, y] = this.worldToScreen(p.cx, p.cy);
+      const [x, y] = this.worldToScreen(this.nearView(p.sx), p.sy);
       const i = slot(a.region);
+      if (i >= MAX_MARKERS) continue;
       let role: Role = 'assault';
       let best = -1;
       let total = 0;
@@ -1951,11 +2229,40 @@ export class Atlas {
     for (const a of showArmies ? d.foreignArmies : []) {
       const p = this.byId.get(a.region);
       if (!p) continue;
-      const [x, y] = this.worldToScreen(p.cx, p.cy);
+      const [x, y] = this.worldToScreen(this.nearView(p.sx), p.sy);
       const i = slot(a.region);
+      if (i >= MAX_MARKERS) continue;
       const stale = d.month - a.observed_month > 12;
       this.drawForeignArmy(x + (20 + i * 17) * k, y - 17 * k, 7.5 * k, this.colorOf(a.owner), stale);
     }
+    for (const [region, n] of perRegion) {
+      if (n <= MAX_MARKERS) continue;
+      const p = this.byId.get(region);
+      if (!p) continue;
+      const [x, y] = this.worldToScreen(this.nearView(p.sx), p.sy);
+      const lx = x + (20 + MAX_MARKERS * 17 - 6) * k, ly = y - 17 * k;
+      ctx.font = `700 ${Math.round(10.5 * clamp(k, 0.9, 1.3))}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = alpha(PAPER_LIGHT, 0.95);
+      ctx.strokeText('+' + (n - MAX_MARKERS), lx, ly);
+      ctx.fillStyle = INK;
+      ctx.fillText('+' + (n - MAX_MARKERS), lx, ly);
+    }
+  }
+
+  /** Text width with a small cache (labels are measured every frame). */
+  private measureCache = new Map<string, number>();
+  private measure(text: string, font: string): number {
+    const key = font + '|' + text;
+    let w = this.measureCache.get(key);
+    if (w === undefined) {
+      w = this.ctx.measureText(text).width;
+      if (this.measureCache.size > 4000) this.measureCache.clear();
+      this.measureCache.set(key, w);
+    }
+    return w;
   }
 
   private setLetterSpacing(v: string): void {
@@ -1975,14 +2282,18 @@ export class Atlas {
   }
 
   private settlementHeight(kind: SettlementKind): number {
-    return kind === 'camp' ? 8 : kind === 'village' ? 9 : kind === 'town' ? 17 : kind === 'city' ? 20 : 28;
+    return kind === 'camp' ? 8 : kind === 'village' ? 9 : kind === 'town' ? 17 : kind === 'city' ? 20 : kind === 'megalopolis' ? 36 : 28;
+  }
+  private settlementHalfWidth(kind: SettlementKind): number {
+    return kind === 'camp' ? 11 : kind === 'village' ? 13 : kind === 'town' ? 16 : kind === 'city' ? 21 : kind === 'megalopolis' ? 31 : 25;
   }
 
   private drawSettlement(kind0: SettlementKind, x: number, y: number, k0: number, roof: string, faded: boolean, era = 0): void {
     const ctx = this.ctx;
-    // An industrial-age city is drawn as a smaller skyline rather than a walled town.
-    const kind: SettlementKind = era >= 3 && kind0 === 'city' ? 'metropolis' : kind0;
-    const k = kind !== kind0 ? k0 * 0.8 : k0;
+    // An industrial-age city is drawn as a smaller skyline rather than a walled town; a
+    // megalopolis as a larger one.
+    const kind: SettlementKind = (era >= 3 && kind0 === 'city') || kind0 === 'megalopolis' ? 'metropolis' : kind0;
+    const k = kind0 === 'megalopolis' ? k0 * 1.24 : kind !== kind0 ? k0 * 0.8 : k0;
     const modernTown = era >= 3 && kind === 'town';
     ctx.save();
     ctx.translate(x, y);
@@ -2217,24 +2528,42 @@ export class Atlas {
     ctx.fillText(String(use.total), x + w + 5, y + h / 2 + 0.5);
   }
 
-  private drawResources(p: Prep, x: number, y: number, k: number): void {
+  /** Deposits (from the viewer's own survey), then site bonuses and spice land, then two bars. */
+  private drawResources(p: Prep, x: number, y: number, k: number, placed: [number, number, number, number][], forced: boolean): void {
     const ctx = this.ctx;
     const sv = p.r.survey;
     if (!sv) return;
     const kk = clamp(k, 0.85, 1.25);
     const deps = sv.deposits.slice(0, 6);
+    const bonus: (Bonus | 'spice')[] = (sv.bonuses ?? []).map((b) => b.kind);
+    if ((sv.spice_land ?? 0) > 0) bonus.push('spice');
     const step = 17 * kk;
+    const bars = this.scale >= 0.5;
+    const rowsH = (deps.length ? 14 * kk : 0) + (bonus.length && this.scale >= 0.62 ? 15 * kk : 0) + (bars ? 10 * kk : 0);
+    const wMax = Math.max(deps.length, bonus.length, 2) * step;
+    // (The top edge sits just under the region's own name, which it may touch but not cross.)
+    const rect: [number, number, number, number] = [x - wMax / 2, y - 3, x + wMax / 2, y - 5 * kk + rowsH];
+    if (!forced && placed.some((q) => rect[0] < q[2] && rect[2] > q[0] && rect[1] < q[3] && rect[3] > q[1])) return;
+    placed.push(rect);
     let ix = x - ((deps.length - 1) * step) / 2;
     for (const dpz of deps) {
-      drawDepositGlyph(ctx, dpz.kind, ix, y + 1, 6.2 * kk, dpz.epistemic === 'verified');
+      drawDepositPicto(ctx, dpz.kind, ix, y + 1, 6.2 * kk, dpz.epistemic === 'verified');
       ix += step;
     }
-    if (this.scale < 0.5) return;
+    let by = y + (deps.length ? 14 * kk : 0);
+    if (bonus.length && this.scale >= 0.62) {
+      let bx = x - ((bonus.length - 1) * step) / 2;
+      for (const b of bonus) {
+        drawBonusPicto(ctx, b, bx, by + 1, 6.4 * kk);
+        bx += step;
+      }
+      by += 13 * kk;
+    }
+    if (!bars) return;
     // Arable and water hints as two short bars.
-    const by = y + (deps.length ? 12 * kk : 0);
     const bw = 26 * kk;
-    const bars: [number, string][] = [[clamp(sv.arable / 60, 0.04, 1), '#6f8f3a'], [clamp(sv.water / 4500, 0.04, 1), RIVER]];
-    bars.forEach(([v, col], i) => {
+    const hints: [number, string][] = [[clamp(sv.arable / 60, 0.04, 1), '#6f8f3a'], [clamp(sv.water / 4500, 0.04, 1), RIVER]];
+    hints.forEach(([v, col], i) => {
       const yy = by + i * 4.5 * kk;
       ctx.fillStyle = alpha(PAPER_LIGHT, 0.9);
       ctx.fillRect(x - bw / 2, yy, bw, 3 * kk);
@@ -2360,43 +2689,5 @@ export function armyShape(ctx: CanvasRenderingContext2D, role: Role, x: number, 
 
 /** Deposit pictograms with a distinct outline per kind; hollow and dotted when not verified. */
 export function drawDepositGlyph(ctx: CanvasRenderingContext2D, kind: Deposit, x: number, y: number, r: number, verified: boolean): void {
-  ctx.beginPath();
-  switch (kind) {
-    case 'copper_ore':
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      break;
-    case 'iron_ore':
-      ctx.rect(x - r * 0.88, y - r * 0.88, r * 1.76, r * 1.76);
-      break;
-    case 'coal':
-      ctx.moveTo(x, y - r * 1.15); ctx.lineTo(x + r * 1.15, y); ctx.lineTo(x, y + r * 1.15); ctx.lineTo(x - r * 1.15, y);
-      ctx.closePath();
-      break;
-    case 'crude':
-      ctx.moveTo(x, y - r * 1.25);
-      ctx.bezierCurveTo(x + r * 1.5, y + r * 0.2, x + r * 0.8, y + r * 1.1, x, y + r * 1.1);
-      ctx.bezierCurveTo(x - r * 0.8, y + r * 1.1, x - r * 1.5, y + r * 0.2, x, y - r * 1.25);
-      ctx.closePath();
-      break;
-    default:
-      for (let i = 0; i < 6; i++) {
-        const a = -Math.PI / 2 + (Math.PI / 3) * i;
-        if (i === 0) ctx.moveTo(x + Math.cos(a) * r * 1.1, y + Math.sin(a) * r * 1.1);
-        else ctx.lineTo(x + Math.cos(a) * r * 1.1, y + Math.sin(a) * r * 1.1);
-      }
-      ctx.closePath();
-      break;
-  }
-  const col = DEPOSIT_COLOR[kind];
-  ctx.fillStyle = verified ? col : alpha(PAPER_LIGHT, 0.92);
-  ctx.fill();
-  ctx.strokeStyle = PAPER_LIGHT;
-  ctx.lineWidth = 2.6;
-  if (verified) ctx.stroke();
-  ctx.strokeStyle = verified ? INK : col;
-  ctx.lineWidth = verified ? 1 : 1.6;
-  ctx.setLineDash(verified ? [] : [0.1, 2.7]);
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  ctx.setLineDash([]);
+  drawDepositPicto(ctx, kind, x, y, r, verified);
 }

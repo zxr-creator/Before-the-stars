@@ -47,15 +47,20 @@ export function makeNoiseTexture(): THREE.DataTexture {
 const PAPER_GLSL = /* glsl */`
 uniform sampler2D tNoise;
 uniform float uTime;
+// Wrapped world: noise scales are nudged so a whole number of tiles fits one turn of the
+// globe (uPer = its width), and the ground matches its copy across the date line.
+uniform float uPer;
+float perD(float d) { return uPer > 0.0 ? uPer / max(1.0, floor(uPer / d + 0.5)) : d; }
+vec2 nP(vec2 p, float d) { return p / perD(d); }
 vec3 toLin(vec3 c) { return pow(max(c, vec3(0.0)), vec3(2.2)); }
 vec3 paperColor(vec2 p) {
-  float n = texture2D(tNoise, p / 330.0).r;
-  float f = texture2D(tNoise, p / 27.0).g;
-  float g = texture2D(tNoise, p / 4.5).b;
+  float n = texture2D(tNoise, nP(p, 330.0)).r;
+  float f = texture2D(tNoise, nP(p, 27.0)).g;
+  float g = texture2D(tNoise, nP(p, 4.5)).b;
   vec3 c = mix(vec3(0.945, 0.890, 0.735), vec3(0.885, 0.805, 0.625), n);
   c *= 0.95 + 0.07 * f + 0.035 * g;
   // Foxing: a few faint brown blooms.
-  float fox = smoothstep(0.78, 0.92, texture2D(tNoise, p / 150.0 + 0.37).a);
+  float fox = smoothstep(0.78, 0.92, texture2D(tNoise, nP(p, 150.0) + 0.37).a);
   return mix(c, vec3(0.78, 0.66, 0.48), fox * 0.22);
 }
 `;
@@ -72,13 +77,14 @@ export interface GroundUniforms {
   uClouds: { value: number };
   uHatchPeriod: { value: number };
   uLens: { value: number };
+  uPer: { value: number };
 }
 
 export function makeGroundUniforms(): GroundUniforms {
   return {
     tNoise: { value: null }, tWash: { value: null }, tHatch: { value: null }, tInfo: { value: null },
     uRect: { value: new THREE.Vector4(0, 0, 1, 1) }, uTime: { value: 0 }, uWashGain: { value: 0.4 }, uDesat: { value: 0 },
-    uClouds: { value: 1 }, uHatchPeriod: { value: 7 }, uLens: { value: 0 },
+    uClouds: { value: 1 }, uHatchPeriod: { value: 7 }, uLens: { value: 0 }, uPer: { value: 0 },
   };
 }
 
@@ -109,9 +115,9 @@ varying vec2 vTex;`)
   vec4 wash = texture2D(tWash, wuv);
   vec4 hatch = texture2D(tHatch, wuv);
   vec4 info = texture2D(tInfo, wuv);
-  float n1 = texture2D(tNoise, vWorld.xz / 43.0).r;
-  float n2 = texture2D(tNoise, vWorld.xz / 8.3).g;
-  float n3 = texture2D(tNoise, vWorld.xz / 2.3).b;
+  float n1 = texture2D(tNoise, nP(vWorld.xz, 43.0)).r;
+  float n2 = texture2D(tNoise, nP(vWorld.xz, 8.3)).g;
+  float n3 = texture2D(tNoise, nP(vWorld.xz, 2.3)).b;
   vec3 base = diffuseColor.rgb;
   // Painterly mottling at three scales.
   base *= 0.9 + 0.1 * n1 + 0.07 * n2 + 0.04 * n3;
@@ -136,7 +142,7 @@ varying vec2 vTex;`)
   // Hatching: occupation (animated, the occupier's colour) or survey gaps.
   if (hatch.a > 0.02) {
     float dir = info.a > 0.5 ? -1.0 : 1.0;
-    float hc = (vWorld.x + dir * vWorld.z) / uHatchPeriod + (dir > 0.0 ? uTime * 0.22 : 0.0);
+    float hc = (vWorld.x + dir * vWorld.z) / perD(uHatchPeriod) + (dir > 0.0 ? uTime * 0.22 : 0.0);
     float hd = abs(fract(hc) - 0.5);
     float aa = fwidth(hc);
     float w = dir > 0.0 ? 0.13 : 0.07;
@@ -148,7 +154,7 @@ varying vec2 vTex;`)
   diffuseColor.rgb = base;`)
       .replace('#include <opaque_fragment>', /* glsl */`#include <opaque_fragment>
   // Drifting cloud shadows, then the fade into blank parchment at the edge of knowledge.
-  float cl = texture2D(tNoise, (vWorld.xz + uTime * vec2(5.0, 2.2)) / 620.0).a;
+  float cl = texture2D(tNoise, nP(vWorld.xz + uTime * vec2(5.0, 2.2), 620.0)).a;
   gl_FragColor.rgb *= 1.0 - 0.2 * smoothstep(0.55, 0.8, cl) * uClouds;
   float relief = clamp(dot(gl_FragColor.rgb, vec3(0.3, 0.59, 0.11)) / max(dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)), 1e-3), 0.6, 1.2);
   gl_FragColor.rgb = mix(gl_FragColor.rgb, inkFlat * (1.0 - 0.5 * info.b) * mix(1.0, relief, 0.45), rem);
@@ -171,6 +177,9 @@ export interface TableUniforms {
   uFrame: { value: THREE.Vector4 };
   uTime: { value: number };
   uGrid: { value: number };
+  uPer: { value: number };
+  /** World width when the map wraps east-west (the sheet then has no east or west edge), else 0. */
+  uWrap: { value: number };
 }
 
 /** The table: desk, parchment sheet with graticule and neat-line, and the known sea. */
@@ -191,6 +200,7 @@ uniform vec4 uRect;
 uniform vec4 uSheet;
 uniform vec4 uFrame;
 uniform float uGrid;
+uniform float uWrap;
 varying vec3 vWorld;
 float lineAA(float d, float w) { return 1.0 - smoothstep(w, w + max(fwidth(d), 1e-4) * 1.2, d); }
 void main() {
@@ -200,6 +210,7 @@ void main() {
   float nB = texture2D(tNoise, p / 21.0 - uTime * vec2(0.006, 0.003)).g;
   // The sheet and the desk it lies on.
   vec2 q = abs(p - uSheet.xy) - uSheet.zw;
+  if (uWrap > 0.0) q.x = -1e4;
   float sdS = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
   float deckle = (texture2D(tNoise, p / 95.0).b - 0.5) * 30.0 + (texture2D(tNoise, p / 15.0).r - 0.5) * 6.0;
   float sd = sdS + deckle;
@@ -212,6 +223,7 @@ void main() {
   vec2 g2 = abs(fract(p / (uGrid * 0.2) - 0.5) - 0.5) * uGrid * 0.2;
   float fine = max(lineAA(g2.x, 0.12), lineAA(g2.y, 0.12));
   vec2 fq = abs(p - uFrame.xy) - uFrame.zw;
+  if (uWrap > 0.0) fq.x = -1e4;
   float sdF = length(max(fq, 0.0)) + min(max(fq.x, fq.y), 0.0);
   float neat = max(lineAA(abs(sdF - 26.0), 1.1), lineAA(abs(sdF - 33.0), 0.35));
   float tick = lineAA(abs(sdF - 29.5), 3.5) * step(0.5, fract((fq.x > fq.y ? p.y : p.x) / 50.0));
@@ -219,7 +231,9 @@ void main() {
   float inkA = max(grat * 0.1 * inside, max(neat * 0.55, tick * 0.28));
   col = mix(col, inkc, inkA * (0.75 + 0.5 * nB));
   // Known sea: a living wash that thins out toward what has not been charted.
-  vec4 s = texture2D(tSea, (p - uRect.xy) * uRect.zw);
+  vec2 sp = p;
+  if (uWrap > 0.0) sp.x = mod(p.x, uWrap);
+  vec4 s = texture2D(tSea, (sp - uRect.xy) * uRect.zw);
   float d = s.r * 160.0;
   float kk = smoothstep(0.32, 0.6, s.g + (nA - 0.5) * 0.3 + (nB - 0.5) * 0.12);
   if (kk > 0.001) {
@@ -260,6 +274,7 @@ export interface RiverUniforms {
   tInfo: { value: THREE.Texture | null };
   uRect: { value: THREE.Vector4 };
   uTime: { value: number };
+  uPer: { value: number };
 }
 
 export function makeRiverMaterial(u: RiverUniforms): THREE.ShaderMaterial {
