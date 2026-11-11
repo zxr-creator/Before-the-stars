@@ -125,6 +125,67 @@ export interface Observation {
   era?: EraView | null;
   /** bts-protocol/2.3: hash of the public building tree (GET /api/building-tree). */
   building_tree_hash?: string;
+  /** bts-protocol/2.4: the seat's market (aggregates only), when it has a route or orders. */
+  market?: MarketView | null;
+}
+
+/** bts-protocol/2.4: the seat's market (design chapter 36, section 6.8). */
+export interface MarketView {
+  members: SeatId[];
+  lines: MarketLineView[];
+  orders: MarketOrderView[];
+  routes: RouteView[];
+  /** Trade credit held (never negative). */
+  credit: number;
+  embargoes: SeatId[];
+}
+
+export type MarketSide = 'buy' | 'sell';
+
+export interface MarketLineView {
+  good: Good;
+  /** Credit per display unit. */
+  price: number;
+  prev_price: number;
+  base_price: number;
+  /** Base units cleared last month, and total sale and buy orders. */
+  volume: number;
+  sale_orders: number;
+  buy_orders: number;
+}
+
+export interface MarketOrderView {
+  good: Good;
+  side: MarketSide;
+  per_month: number;
+  limit_price: number | null;
+  keep_stock: number;
+  /** Last month: bought (shipped), received after loss, sold, credit paid or earned. */
+  bought: number;
+  received: number;
+  sold: number;
+  credit: number;
+}
+
+export interface RouteView {
+  partner: SeatId;
+  sea: boolean;
+  length: number;
+  loss_bp: number;
+  /** Tonnes a month. */
+  capacity_t: number;
+}
+
+/** bts-protocol/2.4: a raider camp as sighted (bands, never counts). */
+export interface CampView {
+  name: string;
+  people_low: number;
+  people_high: number;
+  warriors_low: number;
+  warriors_high: number;
+  /** Completed months when last seen. */
+  seen: number;
+  tribute_until?: number | null;
 }
 
 /** bts-protocol/2.3: who may immigrate, and whether the seat's people may leave. */
@@ -612,6 +673,10 @@ export interface OwnCiv {
   military_tier: number;
   /** How many more people would currently agree to serve (absent on older referees). */
   recruit_room?: number;
+  /** bts-protocol/2.4: soldier sets in the kit store, by generation. */
+  kit?: number[];
+  /** bts-protocol/2.4: the generation home militia fight with. */
+  militia_generation?: number;
   overlord: SeatId | null;
   subordinates: SeatId[];
 }
@@ -783,6 +848,8 @@ export interface RegionView {
   city_size?: CityView | null;
   /** The principal city site and natural harbour (design chapter 38, section 2; public geography). */
   city?: CitySiteView | null;
+  /** bts-protocol/2.4: a raider camp this seat has sighted here, as last seen. */
+  camp?: CampView | null;
 }
 
 /** Where a region's principal city stands (design chapter 38, section 2.1). */
@@ -1146,6 +1213,13 @@ export interface ArmyView {
   in_battle: boolean;
   /** bts-protocol/2.2: the tradition variant the formation was equipped as. */
   variant?: string | null;
+  /** bts-protocol/2.4: refit in place under way (generation, share converted in bp). */
+  refit_to?: number | null;
+  refit_bp?: number;
+  /** Generations lost to shortages of critical upkeep goods. */
+  degraded?: number;
+  /** Three or more generations behind the best: morale capped, upkeep +50%. */
+  obsolete?: boolean;
 }
 
 export interface ForeignArmyView {
@@ -1363,7 +1437,11 @@ export type ProjectSpec =
   /** Revisit study of a rival family's question (bts-protocol/2.1). */
   | { kind: 'revisit'; card: string }
   /** bts-protocol/2.3: convert levels in place into the next stage (60% of its bill and work). */
-  | { kind: 'upgrade'; region: RegionId; from: string; to: string; levels: number };
+  | { kind: 'upgrade'; region: RegionId; from: string; to: string; levels: number }
+  /** bts-protocol/2.4: refit a formation in place to a newer equipment generation. */
+  | { kind: 'refit'; army: number; generation: number }
+  /** bts-protocol/2.4: send a 300-person scout party to chart a region and its neighbours. */
+  | { kind: 'scout'; region: RegionId };
 
 export type ManageOp = 'pause' | 'resume' | 'cancel';
 
@@ -1390,7 +1468,15 @@ export type PolicySetting =
   /** bts-protocol/1.3: accept a white peace with `seat` after this many months of unchanged lines (null withdraws). */
   | { kind: 'war_policy'; seat: SeatId; accept_white_peace_after_months?: number | null; accept_cession_max?: number }
   /** bts-protocol/2.3: border policy. */
-  | { kind: 'borders'; immigration: Immigration; emigration?: Emigration };
+  | { kind: 'borders'; immigration: Immigration; emigration?: Emigration }
+  /** bts-protocol/2.4: survivors of a camp this seat breaks become subjects (true) or refugees. */
+  | { kind: 'camp_policy'; subjugate: boolean }
+  /** bts-protocol/2.4: pay tribute to the camp sighted in `region` for `years`. */
+  | { kind: 'tribute'; region: RegionId; goods: GoodQty[]; years: number }
+  /** bts-protocol/2.4: standing market order for one good (per_month 0 cancels). */
+  | { kind: 'market_order'; good: Good; side: MarketSide; per_month: number; limit_price?: number | null; keep_stock?: number }
+  /** bts-protocol/2.4: no route with that seat while on. */
+  | { kind: 'embargo'; seat: SeatId; on: boolean };
 
 export type Action =
   | { kind: 'select_contacts'; seats: SeatId[] }

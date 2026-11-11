@@ -89,6 +89,27 @@ choice of a production method changes which recipe runs; every recipe passes the
 mass balance, and none of the methods added with slice D yields more per unit of
 material than the method it replaces.
 
+### 2.1 Ruleset 3.0 job 3: raiders, refits and the market
+
+- **Raider arms** (`raider_arms`) are a declared environment source like the initial
+  endowment: camp warriors fight with them, and they never enter any seat's stock.
+  Defeated raiders leave no kit.
+- **Camp stores** are outside every seat's books. Raids and tribute take goods out of a
+  seat's stock as `lost`; a seat that breaks a camp books its plunder store as
+  `produced` ("recovered plunder"). `World.wild` keeps the cumulative ledger, and the
+  audit checks, for every good: `held in camps = plundered + tribute - eaten -
+  recovered - abandoned`.
+- **Refits and kit**: a refit commits its whole equipment bill as a project's inputs
+  (`consumed`, never refunded). Kit sets in `Civ.kit` are a count of soldier sets, not
+  a good: they are filled by completed refits and disbanding and emptied by recruits
+  from the store; militia use them without consuming them.
+- **The market** moves goods only with `trade_out` / `trade_in`, and books what the
+  route loses as the buyer's `lost`; the world-wide traded-in total still equals the
+  traded-out total. **Trade credit** (thousandths of a credit) is never created: the
+  audit checks that the world holds none in total, that no seat holds a negative
+  balance, and that each balance is what it earned less what it spent. With no credit
+  at the start, a seat pays for what it buys with what it sells the same month.
+
 ## 3. Sources of people
 
 | Source | Where | What backs it | Ledger | Tests |
@@ -99,6 +120,13 @@ material than the method it replaces.
 | Battle losses of formations | `sim/military.rs`, `apply_losses` | soldiers removed from formations | `flows.deaths` | scripted match, all-AI campaigns |
 | Militia losses | `sim/military.rs` | working adults removed from the region; exactly as many deaths recorded as people removed | `flows.deaths`; their qualifications `enlisted` | scripted match |
 | Formations destroyed with nowhere to withdraw | `sim/military.rs` | soldiers removed | `flows.deaths` | scripted match |
+
+| Raider camps: initial free peoples, births and deaths | `sim/raiders.rs` | camp blocks of the camp's lineage in an unclaimed region; war deaths in raids and battles | `World.wild.births` / `deaths` (the audit adds them to the seats' births and deaths) | `raids_take_capped_goods_kill_and_damage_and_the_books_balance`, all-AI campaigns |
+| Scouts lost on reconnaissance | `sim/projects.rs` | adults of the supplying region | `flows.deaths` (war) | `a_scout_party_charts_a_region_and_its_neighbours` |
+
+Camp people who leave for a seat's region (decline, refugees of a broken camp,
+subjects with the land) are that seat's immigrants and `World.wild.migrated_out`;
+the audit counts them with the seats' emigrants.
 
 Everything else moves people without changing their number: annual ageing;
 settlement, resettlement, migration and drift to work (`move_people`); relocation of

@@ -121,6 +121,11 @@ fn action_reference(obs: &Observation) -> Value {
         json!({"kind":"demolish","region":0,"facility":"known_catalog_kind","levels":1}),
         json!({"kind":"start_project","spec":{"kind":"upgrade","region":0,"from":"known_catalog_kind","to":"its_upgrades_to_kind","levels":1},"priority":5}),
         json!({"kind":"set_policy","setting":{"kind":"borders","immigration":"selective","emigration":"free"}}),
+        json!({"kind":"start_project","spec":{"kind":"refit","army":0,"generation":1},"priority":4}),
+        json!({"kind":"start_project","spec":{"kind":"scout","region":0},"priority":6}),
+        json!({"kind":"set_policy","setting":{"kind":"camp_policy","subjugate":false}}),
+        json!({"kind":"set_policy","setting":{"kind":"market_order","good":"metal","side":"sell","per_month":10000,"limit_price":null,"keep_stock":0}}),
+        json!({"kind":"set_policy","setting":{"kind":"embargo","seat":0,"on":true}}),
     ];
     if obs.culture.movement.is_some() {
         examples.push(json!({"kind":"start_project","spec":{"kind":"religion","beliefs":[],"name":null},"priority":5}));
