@@ -12,6 +12,7 @@ import { LanguageSwitch } from '../setup';
 import { Almanac } from '../tutorial/almanac';
 import { TitleBackdrop } from './backdrop';
 import { BrandMark } from './brand';
+import { SoundButton } from '../audio/SoundSettings';
 
 /** The designed wordmark; the English name stays as a subtitle in other languages. */
 export function Wordmark({ small }: { small?: boolean }) {
@@ -187,6 +188,7 @@ export function Title() {
         <div class="title-lang">
           <span class="title-lang-label">{t('Language')}</span>
           <LanguageSwitch />
+          <SoundButton />
         </div>
       </div>
 
