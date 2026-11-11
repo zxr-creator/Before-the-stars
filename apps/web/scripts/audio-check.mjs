@@ -4,18 +4,24 @@
 //   node scripts/audio-check.mjs http://127.0.0.1:8799/Before-the-stars/   (pages build)
 //
 // Proves, in headless Chromium with the browser's normal autoplay policy:
-//   1. nothing audible exists before a gesture: no AudioContext, the engine chunk not fetched;
+//   1. nothing audible exists before a gesture: no AudioContext, the engine chunk not fetched,
+//      no recording fetched;
 //   2. the first click creates and resumes the context, fetches the engine lazily, and the
-//      title theme plays;
+//      title recording starts (the "Now playing" notice shows it);
 //   3. M mutes (master to 0, context suspended), the setting persists across a reload, and
 //      M again restores the sound; the menu's controls change and persist volumes;
-//   4. a hidden page fades out and suspends; visible again resumes;
-//   5. starting a match switches to the civilization's era (from the observation), and a
-//      forced era change crossfades to the new era;
+//   4. a hidden page fades out, suspends and pauses the recording; visible again resumes it;
+//   5. recorded music: starting a match plays a recording of the civilization's era; a forced
+//      era change crossfades (old recording fading while the new one plays); war plays a war
+//      recording; a sting ducks the recording and lets it back up; with every recording file
+//      missing (404), the composed score takes over without an error;
+//      composed score (source "generated"): the era's piece plays, an era change crossfades;
 //   6. the cost: main-thread milliseconds per second spent scheduling over a minute of
 //      play with the 3D map on screen, the longest single tick, and live audio nodes over
 //      time (no growth);
-// and that no console error or page error appears throughout.
+// and that no console error or page error appears throughout (the deliberate 404s of the
+// missing-file check excepted).
+import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const BASE = (process.argv[2] ?? process.env.BTS_URL ?? 'http://127.0.0.1:7989').replace(/\/?$/, '/');
@@ -28,16 +34,30 @@ const check = (ok, what) => { log((ok ? 'ok   ' : 'FAIL ') + what); if (!ok) fai
 const browser = await chromium.launch({ args: ['--enable-precise-memory-info', '--js-flags=--expose-gc'] });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await context.newPage();
-page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+let expect404 = false;
+page.on('console', (m) => {
+  if (m.type() !== 'error') return;
+  // the missing-file check answers recordings with 404 on purpose
+  if (expect404 && /Failed to load resource/.test(m.text()) && /\.webm$/.test(m.location()?.url ?? '')) return;
+  errors.push('console: ' + m.text());
+});
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 const engineRequests = [];
-page.on('request', (r) => { if (/\/assets\/engine-[^/]*\.js$/.test(r.url())) engineRequests.push(r.url()); });
+const musicRequests = [];
+page.on('request', (r) => {
+  if (/\/assets\/engine-[^/]*\.js$/.test(r.url())) engineRequests.push(r.url());
+  if (/\.webm$/.test(r.url())) musicRequests.push(r.url());
+});
+// the recordings of each era and mood, from the catalogue the game ships
+const catalogue = JSON.parse(readFileSync(new URL('../src/audio/tracks/tracks.json', import.meta.url), 'utf8'));
+const fits = (key, mood) => catalogue.filter((x) => x.eras.includes(key) && x.moods.includes(mood)).map((x) => x.id);
 
 const A = (fn, arg) => page.evaluate(fn, arg);
 const status = () => A(() => window.__btsAudio?.status());
 const stats = () => A(() => window.__btsAudio?.stats());
 const ctxState = () => A(() => window.__btsAudio?.contextState());
 const waitFor = (fn, arg, timeout = 15000) => page.waitForFunction(fn, arg, { timeout, polling: 100 });
+let st = null;
 
 await page.goto(BASE);
 await page.waitForSelector('[data-testid="title-screen"], [data-testid="map-canvas"]');
@@ -50,6 +70,7 @@ await page.waitForTimeout(800);
 check((await status()) === 'idle', 'before a gesture the audio is idle');
 check((await ctxState()) === null, 'before a gesture no AudioContext exists');
 check(engineRequests.length === 0, 'before a gesture the engine chunk is not fetched');
+check(musicRequests.length === 0, 'before a gesture no recording is fetched');
 
 // 2. first gesture: a click on an empty part of the page
 await page.mouse.click(1300, 120);
@@ -59,14 +80,18 @@ await waitFor(() => window.__btsAudio.contextState() === 'running');
 check(true, 'the AudioContext is running after the click');
 const onTitle = await page.$('[data-testid="title-screen"]');
 if (onTitle) {
-  await waitFor(() => window.__btsAudio.stats()?.key === 'title');
-  check(true, `title theme playing (${(await stats()).form})`);
+  await waitFor((ids) => ids.includes(window.__btsAudio.stats()?.rec.playing), fits('title', 'title'), 20000);
+  st = await stats();
+  check(st.source === 'recorded' && st.rec.gain > 0, `after the first click the title recording plays: ${st.rec.playing} (${musicRequests.length} file fetched, gain ${st.rec.gain.toFixed(2)})`);
+  const np = await A(() => window.__btsAudio.nowPlaying());
+  const notice = await page.$('[data-testid="now-playing"]');
+  check(!!np && !!notice && (await notice.innerText()).includes(np.composer), `"Now playing" shows it: ${notice ? (await notice.innerText()).replace(/\s+/g, ' ') : '(none)'}`);
 }
 
 // 3. mute with M, persistence, unmute
 await page.keyboard.press('m');
 await page.waitForTimeout(1200);
-let st = await stats();
+st = await stats();
 check(st.master < 0.01, `M mutes: master gain ${st.master.toFixed(4)}`);
 check((await ctxState()) === 'suspended', 'muted: the context is suspended (no audio-thread work)');
 const saved = await A(() => JSON.parse(localStorage.getItem('bts.audio') ?? 'null'));
@@ -103,16 +128,21 @@ const setHidden = (h) => A((hh) => {
   Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (hh ? 'hidden' : 'visible') });
   document.dispatchEvent(new Event('visibilitychange'));
 }, h);
+// the reload above made a new engine: let its title recording start before hiding the page
+if (onTitle) await waitFor(() => !!window.__btsAudio.stats()?.rec.playing, null, 20000).catch(() => {});
+const playingBefore = (await stats()).rec.playing;
 await setHidden(true);
 await page.waitForTimeout(1300);
 st = await stats();
 check(st.hidden && st.master < 0.01, `hidden: faded out (master ${st.master.toFixed(4)})`);
 check((await ctxState()) === 'suspended', 'hidden: context suspended');
+check(!playingBefore || st.rec.paused, `hidden: the recording is paused (${playingBefore ?? 'none playing'})`);
 await setHidden(false);
 await waitFor(() => window.__btsAudio.contextState() === 'running');
 await page.waitForTimeout(900);
 st = await stats();
 check(!st.hidden && st.master > 0.3, `visible again: resumed (master ${st.master.toFixed(3)})`);
+check(!st.rec.paused && st.rec.playing === playingBefore, `visible again: the same recording carries on (${st.rec.playing})`);
 
 // 5. a match: the era comes from the observation
 if (onTitle) {
@@ -126,8 +156,53 @@ if (onTitle) {
 await page.waitForSelector('[data-testid="map-canvas"]', { timeout: 60000 });
 await waitFor(() => { const s = window.__btsAudio.stats(); return s && s.target && s.target.mood !== 'title'; }, null, 20000);
 st = await stats();
-check(st.target.key === 'ancient' && st.target.mood === 'peace', `in a fresh match the score follows the era: ${st.target.key}/${st.target.mood}, intensity ${st.target.intensity.toFixed(2)}`);
-await waitFor(() => window.__btsAudio.stats().key === 'ancient', null, 20000);
+check(st.target.key === 'ancient' && st.target.mood === 'peace', `in a fresh match the music follows the era: ${st.target.key}/${st.target.mood}, intensity ${st.target.intensity.toFixed(2)}`);
+
+// 5a. recorded music (the default source)
+await waitFor((ids) => ids.includes(window.__btsAudio.stats().rec.playing), fits('ancient', 'peace'), 20000);
+st = await stats();
+check(st.scoreTarget === null, `an ancient recording plays (${st.rec.playing}) and the composed score is silent`);
+// era change: sample every 100 ms; the old recording must still be fading while the new one plays
+const classical = fits('classical', 'peace');
+await A(() => window.__btsAudio.force({ key: 'classical', mood: 'peace', intensity: 1 }));
+let overlap = false;
+const tx = Date.now();
+while (Date.now() - tx < 12000) {
+  const s = await stats();
+  if (classical.includes(s.rec.playing) && s.rec.fading > 0) { overlap = true; break; }
+  await page.waitForTimeout(100);
+}
+st = await stats();
+check(classical.includes(st.rec.playing) && overlap, `era change crossfades: ${st.rec.playing} came in while the ancient recording faded out`);
+await A(() => window.__btsAudio.force({ key: 'classical', mood: 'war', intensity: 1 }));
+await waitFor((ids) => ids.includes(window.__btsAudio.stats().rec.playing), fits('classical', 'war'), 15000);
+check(true, `peace to war: a war recording plays (${(await stats()).rec.playing})`);
+// a sting ducks the recording and lets it back up
+await page.waitForTimeout(3500);
+const before = await stats();
+await A(() => window.__btsAudio.sting('victory'));
+await page.waitForTimeout(700);
+const ducked = await stats();
+check(before.duck > 0.95 && ducked.duck < 0.5 && ducked.rec.playing === before.rec.playing, `a sting ducks the recording (${before.duck.toFixed(2)} → ${ducked.duck.toFixed(2)}, still ${ducked.rec.playing})`);
+await waitFor(() => window.__btsAudio.stats().duck > 0.9, null, 20000);
+check(true, 'after the sting the recording comes back up');
+// a missing file: every recording answers 404; the composed score takes over, no page error
+expect404 = true;
+await page.route('**/*.webm', (r) => r.fulfill({ status: 404, contentType: 'text/plain', body: 'missing' }));
+await A(() => window.__btsAudio.force({ key: 'modern', mood: 'peace', intensity: 1 }));
+await waitFor(() => { const s = window.__btsAudio.stats(); return s.key === 'modern' && s.rec.playing === null; }, null, 20000);
+st = await stats();
+const modern = fits('modern', 'peace');
+check(modern.length > 0 && modern.every((id) => st.rec.failed.includes(id)) && st.scoreTarget?.key === 'modern', `missing files: ${st.rec.failed.join(', ')} set aside; the composed modern piece plays (${st.form})`);
+await page.unroute('**/*.webm');
+await page.waitForTimeout(500);
+expect404 = false;
+check(errors.length === 0, `missing files raised no page or console error${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
+
+// 5b. the composed score (source "generated"), as before
+await A(() => window.__btsAudio.source('generated'));
+await A(() => window.__btsAudio.force(undefined));
+await waitFor(() => window.__btsAudio.stats().key === 'ancient' && window.__btsAudio.stats().rec.playing === null, null, 20000);
 check(true, `ancient piece playing: ${(await stats()).form}`);
 
 // forced era change: the classical piece takes over within a few seconds
@@ -199,8 +274,15 @@ if (SOAK > 0) {
   }
   check(Math.max(...soak.map((x) => x.liveNodes)) < 4000, `soak: live audio nodes bounded (max ${Math.max(...soak.map((x) => x.liveNodes))})`);
 }
+// "Both, in turn": a recording first, the composed score after it
+await A(() => window.__btsAudio.source('both'));
+await A(() => window.__btsAudio.force({ key: 'industrial', mood: 'peace', intensity: 1 }));
+await waitFor((ids) => ids.includes(window.__btsAudio.stats().rec.playing), fits('industrial', 'peace'), 20000);
+st = await stats();
+check(st.source === 'both' && st.turn === 'rec', `"both": an industrial recording takes the first turn (${st.rec.playing})`);
+await A(() => window.__btsAudio.source('recorded'));
 await A(() => window.__btsAudio.force(undefined));
-const heap = await A(() => (performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null));
+const heap =await A(() => (performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null));
 if (heap !== null) log(`JS heap in use: ${heap} MB`);
 
 check(errors.length === 0, `no console or page errors${errors.length ? ': ' + errors.slice(0, 5).join(' | ') : ''}`);

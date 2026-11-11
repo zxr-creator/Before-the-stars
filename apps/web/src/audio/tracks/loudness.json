@@ -1,0 +1,192 @@
+[
+ {
+  "id": "vltava",
+  "seconds": 209.5,
+  "kB": 2698,
+  "lufs": -18,
+  "lra": 20.1,
+  "truePeak": -3.3,
+  "gainDb": -3.3,
+  "limited": false
+ },
+ {
+  "id": "danse-sacree",
+  "seconds": 290,
+  "kB": 3795,
+  "lufs": -18,
+  "lra": 14.3,
+  "truePeak": -2.2,
+  "gainDb": 10.1,
+  "limited": true
+ },
+ {
+  "id": "lamentation",
+  "seconds": 179.8,
+  "kB": 2380,
+  "lufs": -18.1,
+  "lra": 11.7,
+  "truePeak": -2.4,
+  "gainDb": 3.7,
+  "limited": true
+ },
+ {
+  "id": "coriolan",
+  "seconds": 179.9,
+  "kB": 2220,
+  "lufs": -18,
+  "lra": 18,
+  "truePeak": -3.4,
+  "gainDb": -3.1,
+  "limited": false
+ },
+ {
+  "id": "breves-dies",
+  "seconds": 211.9,
+  "kB": 2709,
+  "lufs": -18.2,
+  "lra": 19,
+  "truePeak": -2,
+  "gainDb": 9.3,
+  "limited": true
+ },
+ {
+  "id": "veni-sancte",
+  "seconds": 157.3,
+  "kB": 1902,
+  "lufs": -18.1,
+  "lra": 16.9,
+  "truePeak": -2.1,
+  "gainDb": -0.6,
+  "limited": true
+ },
+ {
+  "id": "dies-irae",
+  "seconds": 180,
+  "kB": 2156,
+  "lufs": -18.2,
+  "lra": 15.6,
+  "truePeak": -1.8,
+  "gainDb": 6.4,
+  "limited": true
+ },
+ {
+  "id": "byrd-ave-verum",
+  "seconds": 258.2,
+  "kB": 3310,
+  "lufs": -18,
+  "lra": 14.3,
+  "truePeak": -2.2,
+  "gainDb": 1.4,
+  "limited": true
+ },
+ {
+  "id": "albinoni-adagio",
+  "seconds": 257.7,
+  "kB": 3553,
+  "lufs": -18,
+  "lra": 7.7,
+  "truePeak": -2.1,
+  "gainDb": 3.1,
+  "limited": true
+ },
+ {
+  "id": "water-music-sarabande",
+  "seconds": 167.4,
+  "kB": 2292,
+  "lufs": -18,
+  "lra": 10.4,
+  "truePeak": -2.3,
+  "gainDb": 13.6,
+  "limited": true
+ },
+ {
+  "id": "vivaldi-summer-presto",
+  "seconds": 176.6,
+  "kB": 2276,
+  "lufs": -18,
+  "lra": 7.1,
+  "truePeak": -2.4,
+  "gainDb": 0.6,
+  "limited": true
+ },
+ {
+  "id": "haydn-lark-adagio",
+  "seconds": 290,
+  "kB": 3920,
+  "lufs": -18,
+  "lra": 9,
+  "truePeak": -2.1,
+  "gainDb": 6.6,
+  "limited": true
+ },
+ {
+  "id": "holberg-air",
+  "seconds": 316.9,
+  "kB": 3993,
+  "lufs": -18,
+  "lra": 16.3,
+  "truePeak": -2.1,
+  "gainDb": 6.8,
+  "limited": true
+ },
+ {
+  "id": "brahms-tragic",
+  "seconds": 179.9,
+  "kB": 2293,
+  "lufs": -18,
+  "lra": 14.7,
+  "truePeak": -2,
+  "gainDb": -1.1,
+  "limited": true
+ },
+ {
+  "id": "elgar-serenade",
+  "seconds": 351.5,
+  "kB": 4464,
+  "lufs": -18.2,
+  "lra": 18,
+  "truePeak": -1.8,
+  "gainDb": 1.2,
+  "limited": true
+ },
+ {
+  "id": "holst-chaconne",
+  "seconds": 269.8,
+  "kB": 3713,
+  "lufs": -18.1,
+  "lra": 21,
+  "truePeak": -1.9,
+  "gainDb": 0.9,
+  "limited": true
+ },
+ {
+  "id": "pathetique-march",
+  "seconds": 250,
+  "kB": 2928,
+  "lufs": -18,
+  "lra": 7.7,
+  "truePeak": -1.8,
+  "gainDb": 0,
+  "limited": true
+ },
+ {
+  "id": "bach-busoni-nun-komm",
+  "seconds": 277.7,
+  "kB": 3999,
+  "lufs": -18,
+  "lra": 11.5,
+  "truePeak": -2.1,
+  "gainDb": 5.4,
+  "limited": true
+ },
+ {
+  "id": "mendelssohn-quartet-6",
+  "seconds": 179.7,
+  "kB": 2320,
+  "lufs": -18,
+  "lra": 8.7,
+  "truePeak": -1.9,
+  "gainDb": 0.9,
+  "limited": true
+ }
+]

@@ -1,0 +1,38 @@
+[
+ {
+  "en": "The {t} tradition held",
+  "zh": "所持傳統：{t}"
+ },
+ {
+  "en": "every investigation line is in use ({#n} for the research staff this civilization has)",
+  "zh": "所有研究線都已佔用（按本文明的研究人員數量為 {n} 條）"
+ },
+ {
+  "en": "{p} must be repealed first: a polity holds only one of them",
+  "zh": "必須先廢止{p}：一個政體只能持有其中之一"
+ },
+ {
+  "en": "every reform slot is in use ({#n} for the institutions this civilization has)",
+  "zh": "所有改革名額都已佔用（按本文明現有的制度為 {n} 個）"
+ },
+ {
+  "en": "Revisit study: {x}",
+  "zh": "重新審視研究：{x}"
+ },
+ {
+  "en": "Repeal: {x}",
+  "zh": "廢止：{x}"
+ },
+ {
+  "en": "Revisit study completed: {x}",
+  "zh": "重新審視研究完成：{x}"
+ },
+ {
+  "en": "Repealed: {x}",
+  "zh": "已廢止：{x}"
+ },
+ {
+  "en": "Know-how lost: {x}",
+  "zh": "技藝失傳：{x}"
+ }
+]

@@ -1,7 +1,7 @@
 // The conductor: plays pieces on the audio clock. It keeps one piece sounding (and the
 // ones fading out behind it), reads each piece's note list with a look-ahead window, and
 // when a piece ends leaves a rest and composes the next one. Era and mood changes
-// crossfade; stings duck the score. It runs the same on an AudioContext (driven by a
+// crossfade; stings duck the score (and the recordings, which enter at `input`). It runs the same on an AudioContext (driven by a
 // timer that calls `tick`) and on an OfflineAudioContext (one `tick` over the whole
 // render), so the offline renders are exactly what players hear.
 import { buildPiece, type Mood, type NoteEv, type Piece } from './arrange';
@@ -11,8 +11,6 @@ import { SCORES, type ScoreKey } from './score';
 import { degSemis, parseMelody } from './theory';
 
 export interface Target { key: ScoreKey; mood: Mood }
-/** A decoded recording chosen for a piece (see tracks.ts). */
-export interface Recording { buf: AudioBuffer; gainDb: number; mix: 'replace' | 'layer'; title: string }
 export type StingKind = 'moment' | 'victory' | 'defeat';
 
 interface Playing {
@@ -56,8 +54,11 @@ export class Conductor {
   lastForm = '';
   /** Milliseconds the last piece took to compose. */
   composeMs = 0;
-  /** Recordings to use instead of (or under) a composed piece; none ship (tracks.ts). */
-  recorded: ((key: ScoreKey, mood: Mood, roll: number) => Recording | null) | null = null;
+  /**
+   * Asked when a piece has ended, before the next is composed: false leaves the score
+   * silent (the engine plays a recording instead) until the target is set again.
+   */
+  onPieceEnd: (() => boolean) | null = null;
 
   /**
    * `offline`: the whole graph is built before an OfflineAudioContext renders, so a bus must
@@ -101,6 +102,16 @@ export class Conductor {
     this.stingBus.connect(stingWet).connect(this.reverb);
   }
 
+  /** Where other music joins the score's dry path, ducked under stings like the score. */
+  get input(): AudioNode {
+    return this.scoreDry;
+  }
+
+  /** The score's current duck level (1 = not ducked). */
+  get duck(): number {
+    return this.scoreDry.gain.value;
+  }
+
   get state(): { key: ScoreKey | null; mood: Mood | null; form: string; layers: number; voices: number; nodes: number } {
     const p = this.current?.piece;
     return { key: p?.key ?? null, mood: p?.mood ?? null, form: p?.form ?? '', layers: this.layers, voices: this.synth.active, nodes: this.synth.created - this.synth.released };
@@ -138,22 +149,20 @@ export class Conductor {
   /** Play a given piece at `at` (offline renders of single statements). */
   playPiece(piece: Piece, at: number): void {
     this.target = { key: piece.key, mood: piece.mood };
-    this.current = this.attach(piece, at, null);
+    this.current = this.attach(piece, at);
     this.nextAt = Infinity;
   }
 
   private begin(t: Target, at: number): Playing {
     const seed = (this.seed + this.pieces * 7919) >>> 0;
     const c0 = performance.now();
-    let piece = buildPiece(t.key, t.mood, seed);
+    const piece = buildPiece(t.key, t.mood, seed);
     this.composeMs = performance.now() - c0;
     this.pieces++;
-    const rec = this.recorded?.(t.key, t.mood, ((seed * 2654435761) >>> 0) / 4294967296) ?? null;
-    if (rec?.mix === 'replace') piece = { ...piece, events: [], durSec: rec.buf.duration, form: 'recording: ' + rec.title };
-    return this.attach(piece, at, rec);
+    return this.attach(piece, at);
   }
 
-  private attach(piece: Piece, at: number, rec: Recording | null): Playing {
+  private attach(piece: Piece, at: number): Playing {
     this.lastForm = piece.form;
     const bus = this.ctx.createGain();
     bus.gain.setValueAtTime(0, at);
@@ -165,15 +174,6 @@ export class Conductor {
     bus.connect(this.scoreDry);
     bus.connect(wet).connect(this.scoreWet);
     bus.connect(echo).connect(this.echoIn);
-    if (rec) {
-      const src = this.ctx.createBufferSource();
-      src.buffer = rec.buf;
-      const g = this.ctx.createGain();
-      g.gain.value = Math.pow(10, rec.gainDb / 20);
-      src.connect(g).connect(bus);
-      src.start(at);
-      src.onended = () => { src.disconnect(); g.disconnect(); };
-    }
     return { piece, start: at, idx: 0, prep: 0, bus, wet, echo, parts: new Map(), cutoff: Infinity, done: at + piece.durSec + 8 };
   }
 
@@ -237,7 +237,8 @@ export class Conductor {
           this.fading.push(cur);
           this.current = null;
           this.nextAt = end + cur.piece.rest;
-          if (until >= this.nextAt) this.current = this.begin(this.target, this.nextAt);
+          if (this.onPieceEnd && !this.onPieceEnd()) this.nextAt = Infinity;
+          else if (until >= this.nextAt) this.current = this.begin(this.target, this.nextAt);
         }
       }
     }

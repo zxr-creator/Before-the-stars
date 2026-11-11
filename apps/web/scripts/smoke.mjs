@@ -605,9 +605,14 @@ async function partA(browser) {
 // =====================================================================================
 async function partB() {
   log('Part B: two human seats; diplomacy through the interface for seat 0, API for seat 1');
-  await apiCall('POST', '/api/match', { seed: 'duo-3', regions: 24, controllers: ['human', 'human', 'medium', 'medium'] });
-  // Explore until the two human seats have met.
+  // Explore until the two human seats have met. Whether two seats meet within a few
+  // (long) rounds depends on the generated world, so try a few seeds.
   let met = false;
+  let duoSeed = '';
+  for (const seed of ['duo-3', 'duo-4', 'duo-5', 'duo-6', 'duo-7', 'duo-8', 'duo-9', 'duo-10']) {
+  if (met) break;
+  duoSeed = seed;
+  await apiCall('POST', '/api/match', { seed, regions: 24, controllers: ['human', 'human', 'medium', 'medium'] });
   for (let i = 0; i < 12 && !met; i++) {
     for (const seat of [0, 1]) {
       const o = await getObs(seat);
@@ -626,7 +631,9 @@ async function partB() {
     const o0 = await getObs(0);
     met = o0.others.some((x) => x.seat === 1 && x.contacted);
   }
+  }
   assert(met, 'the two human seats made contact');
+  note(`two human seats met in world ${duoSeed}`);
   let o0 = await getObs(0);
   const them = o0.others.find((x) => x.seat === 1);
   assert(o0.phase === 'contact', 'round starts in the contact phase');
