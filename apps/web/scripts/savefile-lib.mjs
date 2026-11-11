@@ -80,7 +80,10 @@ export function unplayableFile(file) {
   const { text } = readSaveFile(file);
   const save = JSON.parse(text);
   const world = JSON.parse(save.world);
-  const list = Object.entries(world).find(([, v]) => Array.isArray(v) && (v.length === 24 || v.length === 48 || v.length === 72));
+  // the map presets of ruleset 3.0 (30, 60, 90, 120, 200) and the earlier 24, 48, 72; prefer the key named for them
+  const sizes = [30, 60, 90, 120, 200, 24, 48, 72];
+  const list = (world.regions && Array.isArray(world.regions) ? [['regions', world.regions]] : []).concat(Object.entries(world))
+    .find(([, v]) => Array.isArray(v) && sizes.includes(v.length));
   if (!list) throw new Error('the world does not list its regions');
   world[list[0]] = list[1].slice(0, 3);
   save.world = JSON.stringify(world);

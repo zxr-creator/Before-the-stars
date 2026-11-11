@@ -66,7 +66,7 @@ async function part1() {
   const text = await state();
   const got = await call('GET', '/api/savefile?kind=manual&name=first%20export&created=1700000000000');
   assert(got.status === 200 && got.bytes, 'GET /api/savefile answers with a save file');
-  assert(/attachment; filename="before-the-stars-first-export-y3\.btsave"/.test(got.headers.get('content-disposition') ?? ''), `it is offered as a download with a name (${got.headers.get('content-disposition')})`);
+  assert(/attachment; filename="before-the-stars-first-export-y\d+\.btsave"/.test(got.headers.get('content-disposition') ?? ''), `it is offered as a download with a name (${got.headers.get('content-disposition')})`);
   const file = got.bytes;
   const read = readSaveFile(file);
   assert(read.text === text, 'the file unpacks (in Node) to exactly the session export');
@@ -188,7 +188,7 @@ async function part2(browser, { exportsDir }) {
   await page.fill(tid('saves-name'), 'ui-save');
   await page.click(tid('saves-save'));
   await page.waitForSelector(tid('saves-row-ui-save'));
-  assert(((await page.textContent(tid('saves-row-ui-save'))) ?? '').includes('Year 2'), 'the new save is listed with its year');
+  assert(((await page.textContent(tid('saves-row-ui-save'))) ?? '').includes('4950 BC'), 'the new save is listed with its historical year (round 2 of the standard calendar)');
   assert((await page.$(tid('saves-row-autosave'))) !== null, 'the autosave is listed');
 
   // export as a download
@@ -210,7 +210,7 @@ async function part2(browser, { exportsDir }) {
   await page.click(tid('saves-preview-confirm'));
   await page.waitForSelector(tid('saves-manager'), { state: 'detached' });
   assert((await state()) === before, 'the import restored the exported state on the referee');
-  await page.waitForFunction(() => /2/.test(document.querySelector('[data-testid="year"]')?.textContent ?? ''));
+  await page.waitForFunction(() => document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') === '2');
 
   // a damaged file is refused in the preview
   const bad = join(TMP, 'bad.btsave');
