@@ -36,6 +36,14 @@ const SHIELDS = [
   'M4 3.500h32V25a16 16 0 0 1-32 0z',
   'M4 6l6-2.500h20L36 6v16c0 11-7 17.500-16 21.500C11 39.500 4 33 4 22z',
   'M20 2.500 36 9v15c0 9.500-6.500 15.500-16 19.500C10.500 39.500 4 33.500 4 24V9z',
+  // ten seats (design chapter 40, section 2.7): kite, oval, swallowtail banner, notched
+  // tournament shield, Iberian point, roundel
+  'M20 2.500 36.500 15 20 44 3.500 15z',
+  'M20 2.500c9 0 16 8.500 16 20.500S29 43.500 20 43.500 4 35 4 23 11 2.500 20 2.500z',
+  'M5 3.500h30v38.500l-15-8.500-15 8.500z',
+  'M4 3.500h8l4 3.500 4-3.500 4 3.500 4-3.500h8V22c0 11-7 17.500-16 21.500C11 39.500 4 33 4 22z',
+  'M4 3.500h32v24.500L20 43.500 4 28z',
+  'M20 4.500a18 18 0 1 1 0 36 18 18 0 1 1 0-36z',
 ];
 
 type Division = (b: string) => JSX.Element | null;
@@ -84,7 +92,7 @@ export interface EmblemProps {
 
 export function Emblem({ seat, color, name = '', size = 28, class: cls, title }: EmblemProps) {
   const h = hashStr(name || 'seat' + seat);
-  const shield = SHIELDS[((seat % 4) + 4) % 4];
+  const shield = SHIELDS[((seat % SHIELDS.length) + SHIELDS.length) % SHIELDS.length];
   const division = DIVISIONS[(h >>> 4) % DIVISIONS.length];
   const charge = CHARGES[((h >>> 9) + seat * 3) % CHARGES.length];
   const second = (h >>> 14) % 2 === 0 ? darker(color, 0.42) : lighter(color, 0.5);

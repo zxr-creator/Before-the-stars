@@ -5,15 +5,18 @@
 // and the pick banner. Everything shown is derived from the seat's Observation.
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { Deposit, DepositView, Observation, RegionId, RegionView, Terrain } from '../protocol';
+import type { Bonus, ClimateZone, Deposit, DepositView, Observation, RegionId, RegionView, Terrain } from '../protocol';
 import {
-  DEPOSIT_LABEL, EPISTEMIC_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, fmtDate, fmtDateShort, int, peopleNum, pct, range, tonnes,
+  BONUS_LABEL, CLIMATE_LABEL, DEPOSIT_LABEL, EPISTEMIC_LABEL, SETTLEMENT_LABEL, TERRAIN_LABEL, VIS_LABEL, fmtDate, fmtDateShort, int, peopleNum, pct, range, tonnes,
 } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import {
-  Atlas, BUILT_RAMP, DEPOSIT_COLOR, POP_BREAKS, POP_RAMP, TERRAIN_TINT,
+  Atlas, BUILT_RAMP, CLIMATE_TINT, POP_BREAKS, POP_RAMP, TERRAIN_TINT,
   type AtlasOverlay, type Insets, type MapMode,
 } from './atlas';
+import {
+  ANCHOR_D, BONUS_KINDS, BONUS_PICTO, HARBOUR_COLOR, depositColor, depositPicto, OUTBREAK_COLOR, OUTBREAK_RING, PICTO_INK, PICTO_PAPER,
+} from './pictos';
 import type { DepositHit, Map3D, Map3DData } from '../map3d';
 import { SECTOR_COLOR, type Building, type Sector } from './landuse';
 import { BUILD_AMBER, type ChipGlyph } from './sites';
@@ -103,6 +106,8 @@ declare global {
       lastDrawMs(): number;
       /** Which renderer is live. */
       tier?(): MapTier;
+      /** Move the picture by (dx, dy) pixels (dev harness and screenshot scripts). */
+      panBy?(dx: number, dy: number): void;
     };
     /** The live 3D engine, for the dev harness and screenshot scripts. */
     __map3d?: Map3D;
@@ -120,6 +125,10 @@ const MODES: { key: MapMode; label: string; hint: string }[] = [
 const TERRAIN_TINT_3D: Record<Terrain, string> = {
   plains: '#a5bb73', hills: '#afb777', mountains: '#a49982', forest: '#7b9962', marsh: '#8da47b', steppe: '#cdc384',
   desert: '#e4cf98', tundra: '#c9ccaf',
+};
+/** Climate washes of the 3D tier's ground, for the terrain legend. */
+const CLIMATE_TINT_3D: Record<ClimateZone, string> = {
+  polar: '#e6ecee', arid: '#e2c88e', tropical: '#6f9e52', temperate: '#a5bb73', continental: '#93a98a',
 };
 const NO_INSETS: Insets = { left: 0, right: 0, top: 0, bottom: 0 };
 const NO_MARKS: RegionId[] = [];
@@ -208,19 +217,69 @@ function Compass(): JSX.Element {
 }
 
 function DepositSwatch({ kind, verified = true }: { kind: Deposit; verified?: boolean }): JSX.Element {
-  const c = DEPOSIT_COLOR[kind];
-  const common = verified
-    ? { fill: c, stroke: '#2b2620', 'stroke-width': 1 }
-    : { fill: '#f7f1e1', stroke: c, 'stroke-width': 1.6, 'stroke-dasharray': '0.1 2.6', 'stroke-linecap': 'round' as const };
-  let shape: JSX.Element;
-  switch (kind) {
-    case 'copper_ore': shape = <circle cx="8" cy="8" r="5" {...common} />; break;
-    case 'iron_ore': shape = <rect x="3.500" y="3.500" width="9" height="9" {...common} />; break;
-    case 'coal': shape = <path d="M8 2.200 13.800 8 8 13.800 2.200 8Z" {...common} />; break;
-    case 'crude': shape = <path d="M8 1.800C15 9 12 13.500 8 13.500S1 9 8 1.800Z" {...common} />; break;
-    default: shape = <path d="M8 2.500 12.800 5.250V10.750L8 13.500 3.200 10.750V5.250Z" {...common} />; break;
-  }
-  return <svg class="map-swatch" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">{shape}</svg>;
+  const c = depositColor(kind);
+  const def = depositPicto(kind);
+  const markCol = verified ? (kind === 'salt' || kind === 'lithium' || kind === 'helium3' ? 'rgba(43,38,32,0.7)' : 'rgba(247,241,225,0.9)') : c;
+  return (
+    <svg class="map-swatch" viewBox="-13 -13 26 26" width="16" height="16" aria-hidden="true">
+      <path
+        d={def.d}
+        fill={verified ? c : PICTO_PAPER}
+        fill-rule={def.evenodd ? 'evenodd' : undefined}
+        stroke={verified ? PICTO_INK : c}
+        stroke-width={verified ? 1.3 : 2}
+        stroke-dasharray={verified ? undefined : '0.1 3.4'}
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      {def.mark && <path d={def.mark} fill="none" stroke={markCol} stroke-width={def.mark.includes('h.1') ? 3 : 1.4} stroke-linecap="round" />}
+    </svg>
+  );
+}
+
+function BonusSwatch({ kind }: { kind: Bonus | 'spice' }): JSX.Element {
+  const def = BONUS_PICTO[kind];
+  return (
+    <svg class="map-swatch" viewBox="-12 -12 24 24" width="16" height="16" aria-hidden="true">
+      <rect x="-10.5" y="-10.5" width="21" height="21" rx="4.5" fill={PICTO_PAPER} stroke={def.color} stroke-width="1.2" />
+      <path
+        d={def.d}
+        transform="scale(0.82)"
+        fill={def.fill ?? 'none'}
+        stroke={def.fill ? def.color : def.stroke ?? def.color}
+        stroke-width={def.fill ? 1 : 1.8}
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+}
+
+function AnchorSwatch(): JSX.Element {
+  return (
+    <svg class="map-swatch" viewBox="-12 -12 24 24" width="16" height="16" aria-hidden="true">
+      <circle r="10.5" fill={PICTO_PAPER} stroke={HARBOUR_COLOR} stroke-width="1.2" />
+      <path d={ANCHOR_D} fill="none" stroke={HARBOUR_COLOR} stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  );
+}
+
+function OutbreakSwatch({ band }: { band: number }): JSX.Element {
+  const pts = band <= 1 ? [[0, 0]] : band === 2 ? [[-2.4, 0], [2.4, 0]] : [[0, -2.4], [-2.6, 1.8], [2.6, 1.8]];
+  return (
+    <svg class="map-swatch" viewBox="-11 -11 22 22" width="16" height="16" aria-hidden="true">
+      <circle r="9.6" fill={OUTBREAK_RING} />
+      <circle r="8" fill={OUTBREAK_COLOR} stroke="rgba(43,38,32,0.75)" stroke-width="1" />
+      {pts.map(([x, y]) => <circle cx={x} cy={y} r="1.7" fill={OUTBREAK_RING} />)}
+    </svg>
+  );
+}
+
+// i18n-fields
+const OUTBREAK_BAND: Record<number, string> = { 1: 'Epidemic: mild', 2: 'Epidemic: serious', 3: 'Epidemic: severe' };
+// i18n-end
+function outbreakLabel(band: number): string {
+  return t(OUTBREAK_BAND[Math.max(1, Math.min(3, Math.round(band)))]);
 }
 
 function HatchSwatch({ color, dir = 1, bg = '#e4dccb', dotted = false }: { color: string; dir?: 1 | -1; bg?: string; dotted?: boolean }): JSX.Element {
@@ -314,6 +373,11 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
       rows.push(<li><LineSwatch color="#2c4650" width={2} />{t('Known coast')}</li>);
       rows.push(<li title={t('What lies beyond has not been seen')}><LineSwatch color="#8a7d6a" dash="0.1 3.6" width={1.6} />{t('Edge of knowledge')}</li>);
     }
+    const bands = new Set<number>();
+    for (const r of regions) if (r.outbreak) bands.add(Math.max(1, Math.min(3, Math.round(r.outbreak.severity_band))));
+    for (const b of [1, 2, 3]) {
+      if (bands.has(b)) rows.push(<li title={t('An epidemic in the region; the dots tell its severity')}><OutbreakSwatch band={b} />{outbreakLabel(b)}</li>);
+    }
     if (seesWorks) rows.push(<WorksKey />);
   } else if (mode === 'terrain') {
     const present = new Set<Terrain>(regions.map((r) => r.terrain));
@@ -321,6 +385,17 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
       if (!present.has(tt)) continue;
       rows.push(<li><span class="map-chip map-chip-sq" style={{ background: (tier === '3d' ? TERRAIN_TINT_3D : TERRAIN_TINT)[tt] }} />{t(TERRAIN_LABEL[tt])}</li>);
     }
+    const climates = new Set<ClimateZone>();
+    for (const r of regions) if (r.climate) climates.add(r.climate);
+    if (climates.size) {
+      rows.push(<li class="map-legend-note">{t('Climate shades the land:')}</li>);
+      for (const c of Object.keys(CLIMATE_LABEL) as ClimateZone[]) {
+        if (!climates.has(c)) continue;
+        const col = tier === '3d' ? CLIMATE_TINT_3D[c] : CLIMATE_TINT[c].weight > 0 ? CLIMATE_TINT[c].color : CLIMATE_TINT.temperate.color;
+        rows.push(<li><span class="map-chip map-chip-sq" style={{ background: col }} />{t(CLIMATE_LABEL[c])}</li>);
+      }
+    }
+    if (regions.some((r) => r.city?.natural_harbour)) rows.push(<li title={t('A sheltered anchorage at the principal city')}><AnchorSwatch />{t('Natural harbour')}</li>);
     const kinds = new Set<string>();
     for (const r of regions) for (const n of r.neighbors) kinds.add(n.kind);
     if (regions.some((r) => r.river)) rows.push(<li><LineSwatch color="#3f7592" width={2.2} />{t('River')}</li>);
@@ -343,6 +418,17 @@ function Legend({ obs, mode, tier }: { obs: Observation; mode: MapMode; tier: Ma
       rows.push(<li><DepositSwatch kind={first} verified={false} />{tier === '3d' ? t('Dashed rim and “?”: reported or estimated') : t('Dotted outline: reported or estimated')}</li>);
     }
     if (!seen.size) rows.push(<li class="map-legend-note">{t('No deposits are known yet.')}</li>);
+    const bonuses = new Set<Bonus | 'spice'>();
+    for (const r of regions) {
+      for (const b of r.survey?.bonuses ?? []) bonuses.add(b.kind);
+      if ((r.survey?.spice_land ?? 0) > 0) bonuses.add('spice');
+    }
+    if (bonuses.size) {
+      rows.push(<li class="map-legend-note">{t('Site bonuses (square tokens):')}</li>);
+      for (const b of [...BONUS_KINDS, 'spice' as const]) {
+        if (bonuses.has(b)) rows.push(<li><BonusSwatch kind={b} />{b === 'spice' ? t('Spice land') : t(BONUS_LABEL[b])}</li>);
+      }
+    }
     if (regions.some((r) => r.survey) && tier === '3d') {
       rows.push(<li class="map-legend-note">{t('Chips: arable, pasture, fishery, forest, hydro potential')}</li>);
     } else if (regions.some((r) => r.survey)) {
@@ -416,9 +502,24 @@ function Tooltip({ obs, region, mode, pick, deposit, building }: { obs: Observat
       <div class="map-tip-title">{r.name}</div>
       <div class="map-tip-sub">
         {t(TERRAIN_LABEL[r.terrain])}
+        {r.climate ? ' · ' + t(CLIMATE_LABEL[r.climate]) : ''}
         {' · '}{r.settlement !== 'wilderness' ? t(SETTLEMENT_LABEL[r.settlement]) : t('no settlement seen')}
         {r.coastal ? ' · ' + t('coastal') : ''}{r.river ? ' · ' + t('river') : ''}
       </div>
+      {r.city && (
+        <div class="map-tip-row map-tip-city">
+          <span>
+            {r.settlement !== 'wilderness' ? t('Principal city: {name}', { name: r.city.name }) : t('City site: {name}', { name: r.city.name })}
+            {r.city.natural_harbour ? ' · ' + t('natural harbour') : ''}
+          </span>
+        </div>
+      )}
+      {r.outbreak && (
+        <div class="map-tip-row map-tip-outbreak">
+          <OutbreakSwatch band={r.outbreak.severity_band} />
+          <span>{outbreakLabel(r.outbreak.severity_band)} · {t('since {date}', { date: fmtDateShort(r.outbreak.since) })}</span>
+        </div>
+      )}
       <div class="map-tip-row">
         {owner ? (
           <span><span class="map-chip" style={{ background: seatColor(obs, r.owner) }} />{owner}</span>
@@ -461,6 +562,12 @@ function Tooltip({ obs, region, mode, pick, deposit, building }: { obs: Observat
               </div>
             ) : (
               <div class="map-tip-muted">{sv.detailed ? t('No deposits found') : t('No deposits found so far')}</div>
+            )}
+            {((sv.bonuses?.length ?? 0) > 0 || (sv.spice_land ?? 0) > 0) && (
+              <div class="map-tip-bonus">
+                {(sv.bonuses ?? []).map((b) => <span><BonusSwatch kind={b.kind} />{t(BONUS_LABEL[b.kind])}</span>)}
+                {(sv.spice_land ?? 0) > 0 && <span><BonusSwatch kind="spice" />{t('Spice land')}</span>}
+              </div>
             )}
             <div class="map-tip-muted">
               {sv.detailed ? t('Surveyed') : t('Surface observations only')} {fmtDateShort(sv.surveyed_month)}
@@ -800,6 +907,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       mode: () => engine.mode,
       lastDrawMs: () => engine.lastDrawMs,
       tier: () => (m3 ? '3d' : 'flat'),
+      panBy: (dx: number, dy: number) => engine.panBy(dx, dy),
     };
     if (m3) window.__map3d = m3; else delete window.__map3d;
 

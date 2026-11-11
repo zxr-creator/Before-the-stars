@@ -4,13 +4,14 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { AgentInfo, SeatId } from '../protocol';
-import { fmtYear, int, yearOf } from '../format';
+import { fmtYear, int, roundLength, totalRounds, yearOf } from '../format';
 import { Icon } from '../icons';
 import { cx } from '../ui';
 import { getState, observerPlay, observerRun, observerSpeed, useApp, viewAsSeat } from '../store';
 import type { AppState } from '../store';
 import { t, tc } from '../i18n';
 import { Emblem } from '../theme/emblem';
+import { keySeatIndex, seatKey } from '../theme/seats';
 import { recentRate, useHistory } from './history';
 
 export const SPEEDS = [1, 2, 4, 8];
@@ -84,7 +85,7 @@ export function PerspectiveSwitch({ compact }: { compact?: boolean }) {
         return (
           <button type="button" role="radio" aria-checked={on} class={cx('persp-opt', on && 'is-active', x.status !== 'active' && 'is-out', x.agent && 'is-' + x.agent.state)}
             data-testid={`observer-seat-${x.seat}`} style={{ '--civ': x.color }}
-            title={on ? t('Showing what {name} knows (read-only)', { name: tc(x.name) }) : `${t('View as {name}', { name: tc(x.name) })}${cur === null && i < 4 ? ` (${i + 1})` : ''}`}
+            title={on ? t('Showing what {name} knows (read-only)', { name: tc(x.name) }) : `${t('View as {name}', { name: tc(x.name) })}${cur === null && seatKey(i) ? ` (${seatKey(i)})` : ''}`}
             onClick={() => { if (!on) void viewAsSeat(x.seat); }}>
             <Emblem seat={x.seat} color={x.color} name={x.name} size={compact ? 18 : 20} />
             <span class="persp-name">{tc(x.name)}</span>
@@ -111,8 +112,8 @@ function loadRunN(): number {
 
 /**
  * Keyboard: Space play/pause, "." one round, R run N rounds, [ and ] slower and
- * faster, V next perspective (Shift+V back), 1–4 a civilization's view from the
- * world view. Registered in the capture phase so the focused map does not also
+ * faster, V next perspective (Shift+V back), 1–9 and 0 a civilization's view from the
+ * world view (0 is the tenth). Registered in the capture phase so the focused map does not also
  * take Space as "choose the region under the centre".
  */
 function useObserverKeys(runN: number): void {
@@ -150,8 +151,8 @@ function useObserverKeys(runN: number): void {
         observerSpeed(next);
       } else if (key === 'v') {
         cyclePerspective(st, e.shiftKey);
-      } else if (st.viewAs === null && /^[1-4]$/.test(key)) {
-        const seat = st.summary?.seats?.[Number(key) - 1];
+      } else if (st.viewAs === null && keySeatIndex(key) !== null) {
+        const seat = st.summary?.seats?.[keySeatIndex(key)!];
         if (seat) void viewAsSeat(seat.seat); else used = false;
       } else used = false;
       if (used) { e.preventDefault(); e.stopPropagation(); }
@@ -161,14 +162,14 @@ function useObserverKeys(runN: number): void {
   }, []);
 }
 
-function Shortcuts({ runN }: { runN: number }) {
+function Shortcuts({ runN, seatCount }: { runN: number; seatCount: number }) {
   const rows: [string, string][] = [
     ['Space', t('play or pause')],
     ['.', t('step one round')],
     ['R', t('run {n} rounds, then pause', { n: runN })],
     ['[  ]', t('slower, faster')],
     ['V', t('next perspective (Shift+V: previous)')],
-    ['1–4', t('a civilization’s own view, from the world view')],
+    [seatCount > 9 ? '1–9, 0' : `1–${Math.max(2, seatCount)}`, t('a civilization’s own view, from the world view')],
   ];
   return (
     <span class="pb-keys">
@@ -204,7 +205,9 @@ export function Playback({ state, docked }: { state: AppState; docked?: boolean 
   const round = (docked ? obs?.round : sp?.round) ?? summary?.round ?? 0;
   const horizon = sp?.horizon ?? obs?.horizon ?? summary?.horizon ?? 0;
   const per = sp?.months_per_round ?? obs?.months_per_round ?? summary?.months_per_round ?? 12;
-  const rounds = Math.max(1, Math.round(horizon / per));
+  const cal = (docked ? obs?.calendar : sp?.calendar) ?? sp?.calendar ?? obs?.calendar ?? summary?.calendar ?? null;
+  const rounds = totalRounds({ calendar: cal, horizon, months_per_round: per });
+  const roundMonths = cal?.round_months ?? per;
   const finished = !!summary?.finished || !!sp?.outcome || sp?.phase === 'finished' || obs?.phase === 'finished';
   const year = yearOf(month);
   // the referee's calendar, when it keeps one, for the date now shown; never derived from the round
@@ -214,6 +217,8 @@ export function Playback({ state, docked }: { state: AppState; docked?: boolean 
     ? Math.max(...waitSeats.map((x) => (x.agent!.state === 'thinking' ? thinkingOf(x.agent!) : 0)), pb.waitingSince ? (now - pb.waitingSince) / 1000 : 0)
     : 0;
   const rate = running ? recentRate(history, now) : null;
+  // a round of fifty years early and two late: playing speed in years of history a second too
+  const yearsRate = rate !== null && cal ? (rate * roundMonths) / 12 : null;
   const viewed = docked && state.viewAs !== null ? seats.find((x) => x.seat === state.viewAs) : undefined;
 
   let tone = 'idle';
@@ -265,10 +270,11 @@ export function Playback({ state, docked }: { state: AppState; docked?: boolean 
         <span class="pb-state" role="status" aria-live="polite"><Icon name={icon} size={13} /><span>{label}</span></span>
         <span class="pb-when">
           <b data-testid="observer-year">{nowText}</b>
-          <small>{t('round {r} of {n}', { r: int(round), n: int(rounds) })}</small>
+          <small>{t('round {r} of {n}', { r: int(round), n: int(rounds) })}{cal ? <> · <span data-testid="observer-round-length">{roundLength(roundMonths)}</span></> : null}</small>
         </span>
         <span class={cx('pb-rate', rate === null && 'is-none')} data-testid="observer-rate" title={t('Rounds resolved per second, measured over the last few seconds')}>
           {rate !== null ? t('{n} rounds/s', { n: rate >= 10 ? Math.round(rate) : rate.toFixed(1) }) : running ? t('— rounds/s') : t('time stands still')}
+          {yearsRate !== null ? <small> · {t('{n} years/s', { n: yearsRate >= 10 ? Math.round(yearsRate) : yearsRate.toFixed(1) })}</small> : null}
         </span>
       </div>
       <div class="pb-controls">
@@ -300,7 +306,7 @@ export function Playback({ state, docked }: { state: AppState; docked?: boolean 
             <Icon name="pause" size={15} /><span>{t('Stop')}</span>
           </button>
         ) : null}
-        <Shortcuts runN={runN} />
+        <Shortcuts runN={runN} seatCount={seats.length} />
       </div>
       <div class="pb-detail" data-testid="observer-detail">{detail}</div>
     </div>

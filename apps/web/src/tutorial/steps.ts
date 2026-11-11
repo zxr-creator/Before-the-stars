@@ -59,9 +59,9 @@ export const STEPS: Step[] = [
   },
   {
     key: 'dock', icon: 'hourglass', mode: 'info', anchors: ['[data-tut="dock"]'], side: 'left',
-    title: 'A round is twelve months of lived time',
+    title: 'A round is years of lived time',
     body: [
-      'Every round runs the same way for all four civilizations: contact selection, five negotiation windows, then planning. The referee then resolves twelve months at once; the date in the top bar shows where history stands.',
+      'Every round runs the same way for every civilization: contact selection, five negotiation windows, then planning. The referee then resolves the whole round at once — fifty years in antiquity, shortening to two in the modern age; the dock shows the years the round covers. Standing orders act year by year inside it.',
       'The ring shows where you are. “End round” passes every remaining phase; you are never required to negotiate.',
       'The number on the orb counts things worth a look before you end the round.',
     ],

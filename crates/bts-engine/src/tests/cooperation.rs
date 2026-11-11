@@ -78,7 +78,8 @@ fn seconded_experts_leave_the_lender_work_abroad_and_come_home_at_term() {
     let (l0, b0) = (held(&m.world, 0, q), held(&m.world, 1, q));
     let (lp, bp) = (people(&m.world, 0), people(&m.world, 1));
     let before = m.ledger_snapshot();
-    let ti = sign(&mut m, secondment(6)).expect("the secondment is signed");
+    // the shortest term twelve-month rounds allow (design chapter 36, section 2.5)
+    let ti = sign(&mut m, secondment(12)).expect("the secondment is signed");
     assert_balanced(&before, &m.ledger_snapshot());
     // real people left the lender's regions and labour pool with their qualification
     assert_eq!(held(&m.world, 0, q), l0 - LEND);
@@ -99,7 +100,7 @@ fn seconded_experts_leave_the_lender_work_abroad_and_come_home_at_term() {
     // they staff the borrower's posts
     audited(&mut m);
     assert!(m.world.civs[1].qual_employed[q.index()] > 0, "the borrower's assembly line employs the seconded engineers");
-    for _ in 1..6 {
+    for _ in 1..12 {
         assert_eq!(m.world.treaties[ti].status, "active");
         audited(&mut m);
     }
@@ -480,10 +481,10 @@ fn a_small_civilization_can_import_hardware_borrow_crews_and_share_a_partners_in
     second.push(Clause::Secondment { from: 1, qual: Qual::FtlEngineer, count: 10_000, months: 120 });
     second.push(Clause::Secondment { from: 1, qual: Qual::Orbital, count: 10_000, months: 120 });
     let n1 = first.len();
-    w.treaties.push(Treaty { id: 7001, parties: [0, 1], clauses: first, signed: month, remaining: vec![24; n1], ends: Some(month + 24), status: "active".into(), performance: vec![], shortfalls: 0, secondments: vec![], programmes: vec![], broken_by: None });
+    w.treaties.push(Treaty { id: 7001, parties: [0, 1], clauses: first, signed: month, remaining: vec![24; n1], ends: Some(month + 24), status: "active".into(), performance: vec![], shortfalls: 0, secondments: vec![], programmes: vec![], broken_by: None, notice_by: None });
     let programmes = services.iter().enumerate().map(|(i, s)| Programme { clause: i as u16, host: 1, client: 0, service: *s, ends: month + 120, served: true, shortfalls: 0 }).collect();
     let secondments = [Qual::FtlEngineer, Qual::Orbital].iter().enumerate().map(|(i, q)| Secondment { clause: 3 + i as u16, lender: 1, borrower: 0, qual: *q, sent: 10_000, owed: 10_000, home: ri as RegionId, due: month + 120, returned: 0, lost: 0, exits_seen: 0 }).collect();
-    w.treaties.push(Treaty { id: 7002, parties: [0, 1], clauses: second, signed: month, remaining: vec![0; 5], ends: Some(month + 120), status: "active".into(), performance: vec![], shortfalls: 0, secondments, programmes, broken_by: None });
+    w.treaties.push(Treaty { id: 7002, parties: [0, 1], clauses: second, signed: month, remaining: vec![0; 5], ends: Some(month + 120), status: "active".into(), performance: vec![], shortfalls: 0, secondments, programmes, broken_by: None, notice_by: None });
     assert!(failing(&w).is_empty(), "{:#?}", victory::ftl_checks(&w, 0));
     // every substitute ends with its treaty
     let mut x = w.clone();

@@ -47,11 +47,23 @@ export const DEPOSIT_RGB: Record<Deposit, RGB> = {
   iron_ore: [0.5, 0.54, 0.6],
   coal: [0.16, 0.15, 0.16],
   crude: [0.22, 0.16, 0.14],
-  minerals: [0.56, 0.42, 0.82],
+  tin: [0.54, 0.56, 0.59],
+  salt: [0.85, 0.83, 0.78],
+  saltpetre: [0.72, 0.68, 0.58],
+  precious: [0.79, 0.64, 0.15],
+  gas: [0.35, 0.54, 0.66],
+  bauxite: [0.66, 0.34, 0.23],
+  uranium_ore: [0.48, 0.60, 0.23],
+  rare_earths: [0.43, 0.36, 0.66],
+  lithium: [0.60, 0.69, 0.74],
+  cobalt_nickel: [0.29, 0.42, 0.54],
+  quartz: [0.36, 0.61, 0.58],
+  volatiles: [0.42, 0.66, 0.82],
+  helium3: [0.63, 0.75, 0.88],
 };
 
 export function settlementRadius(kind: SettlementKind): number {
-  return kind === 'camp' ? 6 : kind === 'village' ? 9.5 : kind === 'town' ? 13 : kind === 'city' ? 18.5 : kind === 'metropolis' ? 25 : 0;
+  return kind === 'camp' ? 6 : kind === 'village' ? 9.5 : kind === 'town' ? 13 : kind === 'city' ? 18.5 : kind === 'metropolis' || kind === 'megalopolis' ? 25 : 0;
 }
 
 /** Fan of triangles that follows the ground: worn earth, plazas, yards. */
@@ -164,8 +176,9 @@ export interface SettlementOpts {
 
 /** Height of the tallest structure, for label and marker placement. */
 export function settlementHeight(kind: SettlementKind, era: number, capital: boolean): number {
-  const base = kind === 'camp' ? 4 : kind === 'village' ? 5 : kind === 'town' ? 8.5 : kind === 'city' ? 13 : kind === 'metropolis' ? 20 : 0;
-  return base + (kind === 'city' || kind === 'metropolis' ? era * 1.6 : 0) + (capital && (kind === 'city' || kind === 'metropolis') ? 6 : 0);
+  const k = kind === 'megalopolis' ? 'metropolis' : kind;
+  const base = k === 'camp' ? 4 : k === 'village' ? 5 : k === 'town' ? 8.5 : k === 'city' ? 13 : k === 'metropolis' ? 20 : 0;
+  return base + (k === 'city' || k === 'metropolis' ? era * 1.6 : 0) + (capital && (k === 'city' || k === 'metropolis') ? 6 : 0);
 }
 
 export function buildSettlement(b: Builder, G: Ground, cx: number, cz: number, o: SettlementOpts, fx: Fx): void {

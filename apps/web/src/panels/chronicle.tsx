@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ChronicleEntry, MomentCategory } from '../protocol';
 import { api } from '../api';
-import { CATEGORY_LABEL, EPISTEMIC_LABEL, fmtDate, fmtYear, tn, yearOf } from '../format';
+import { CATEGORY_LABEL, EPISTEMIC_LABEL, fmtDate, fmtYear, tn, yearAt, yearOf, yearSpan } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { Badge, Btn, Empty, RegionLink, cx } from '../ui';
@@ -12,7 +12,10 @@ import { clearFreshMoments, consumeIntent, markChronicleSeen, openPanel, showOnM
 import { Vignette } from '../art/vignette';
 
 function when(e: ChronicleEntry): string {
-  if (e.end_month !== null && yearOf(e.end_month) !== yearOf(e.month)) return t('Years {a}–{b}', { a: yearOf(e.month), b: yearOf(e.end_month) });
+  if (e.end_month !== null && yearOf(e.end_month) !== yearOf(e.month)) {
+    const a = yearAt(e.month), b = yearAt(e.end_month);
+    return a !== null && b !== null ? yearSpan(a, b) : t('Years {a}–{b}', { a: yearOf(e.month), b: yearOf(e.end_month) });
+  }
   return fmtYear(e.month);
 }
 

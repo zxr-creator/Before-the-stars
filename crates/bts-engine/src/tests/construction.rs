@@ -122,11 +122,11 @@ fn an_order_stalls_without_each_thing_it_needs_and_resumes_when_it_is_supplied()
     m.world.civs[0].stock[Good::Metal.index()] = 0;
     for _ in 0..3 {
         audited_month(&mut m);
-        stalled(&m, id, "Waiting for structural metal");
+        stalled(&m, id, "Waiting for iron and steel");
     }
     // the crew stays reserved while the order waits: that is the price of leaving it open
     assert_eq!(project(&m, id).crew_on_site, vec![2_000, 1_000]);
-    assert_eq!(queue(&m, capital)[0].waiting_for, vec!["Waiting for structural metal".to_string()]);
+    assert_eq!(queue(&m, capital)[0].waiting_for, vec!["Waiting for iron and steel".to_string()]);
     assert_eq!(queue(&m, capital)[0].goods_bp, 0);
     m.world.civs[0].stock[Good::Metal.index()] = 50_000_000;
     audited_month(&mut m);
@@ -359,6 +359,8 @@ fn the_order_charged_is_the_quote_times_the_levels() {
 
 #[test]
 fn a_site_crew_holds_no_other_post_and_returns_when_the_order_ends() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let c = content();
     let (mut m, capital, home) = site_world("crew-posts");
     // two levels of workshops need four thousand artisans, and exactly that many live here
@@ -519,8 +521,9 @@ fn site_engines_never_burn_the_fuel_the_fields_need_in_store() {
     let (mut m, capital, home) = site_world("engines-fields");
     endow(&mut m.world, home, Qual::Builder, 20_000);
     endow(&mut m.world, home, Qual::Mechanic, 20_000);
-    // ten levels of mechanized fields: a hundred thousand cultivators draw a
-    // thousand tonnes of fuel a month, and must find that much in store to start
+    // ten levels of mechanized fields (fertilizer is not yet understood here): 100 t
+    // of fuel a level, a thousand tonnes a month, which must be in store to start
+    m.world.civs[0].tech[content().t("T095")].state = ST_DISCOVERED;
     put_works(&mut m.world.regions[home], "fields", 10);
     assert_eq!(crate::sim::economy::fields_fuel_month(&m.world, 0), 1_000);
     let id = order(&mut m, capital, "machine_shop", 2);
@@ -710,8 +713,8 @@ impl crate::content::ReqCtx for Reach {
     fn fac(&self, i: usize) -> bool {
         self.fac[i]
     }
-    fn pop(&self) -> u32 {
-        u32::MAX
+    fn pop(&self) -> u64 {
+        u64::MAX
     }
     fn regions(&self) -> u32 {
         u32::MAX
@@ -826,7 +829,7 @@ fn no_site_crew_needs_people_who_cannot_exist_yet() {
     for q in Qual::ALL {
         assert!(all.qual[q.index()], "nobody can ever qualify as {q:?}");
     }
-    for g in Good::ALL {
+    for g in Good::ALL.iter().filter(|g| !crate::content::offworld_good(**g)) {
         assert!(all.good[g.index()], "{g:?} can never be made");
     }
     // every facility can be built for the first time: its own requirement, its bill

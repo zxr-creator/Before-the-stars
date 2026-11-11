@@ -149,7 +149,11 @@ pub fn briefing(obs: &Observation, delegates: &[String]) -> String {
     let mut s = String::new();
     let own: Vec<&RegionView> = obs.regions.iter().filter(|r| r.own.is_some()).collect();
     let name = |seat: SeatId| obs.others.iter().find(|o| o.seat == seat).map(|o| o.name.clone()).unwrap_or_else(|| if seat == obs.seat { obs.civ.name.clone() } else { format!("seat {seat}") });
-    s += &format!("YEAR {} (round {} of {}), phase: {}{}. You are {} (seat {}).\n", obs.month / 12 + 1, obs.round, obs.horizon / obs.months_per_round, obs.phase.label(), if obs.phase == Phase::Negotiate { format!(" window {}", obs.window) } else { String::new() }, obs.civ.name, obs.seat);
+    let (date, rounds) = match &obs.calendar {
+        Some(c) => (format!("{} ({}-month round to {})", obs.date.as_ref().map(|d| d.label.clone()).unwrap_or_default(), c.round_months, c.round_end.label), c.rounds),
+        None => (format!("YEAR {}", obs.month / 12 + 1), obs.horizon / obs.months_per_round.max(1)),
+    };
+    s += &format!("{} (round {} of {}), phase: {}{}. You are {} (seat {}).\n", date, obs.round, rounds, obs.phase.label(), if obs.phase == Phase::Negotiate { format!(" window {}", obs.window) } else { String::new() }, obs.civ.name, obs.seat);
     s += &format!("Steward currently runs: {}\n", if delegates.is_empty() { "nothing".to_string() } else { delegates.join(", ") });
     s += &format!("People {} (working age {}), stability {}/100, food access {}%, water {}%, callable labour {}%, administration {}/{} regions, military tier {}, people who would serve now {}.\n", obs.civ.population, obs.civ.working_age, obs.civ.stability, obs.civ.food_fulfillment_bp / 100, obs.civ.water_fulfillment_bp / 100, obs.civ.mobilization_cap_bp / 100, obs.civ.admin_load, obs.civ.admin_capacity, obs.civ.military_tier, obs.civ.recruit_room);
     let l = &obs.civ.labor;

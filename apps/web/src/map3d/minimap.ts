@@ -16,6 +16,8 @@ export class Minimap {
   private h = 0;
   private dpr = 1;
   private world: [number, number] = [1600, 1000];
+  /** World width when the map wraps east-west: shapes past an edge are drawn again one width over. */
+  private wrap = 0;
   private down = false;
 
   constructor(private canvas: HTMLCanvasElement, private onJump: (x: number, z: number) => void) {
@@ -52,6 +54,8 @@ export class Minimap {
     c.width = Math.round(this.w * this.dpr);
     c.height = Math.round(this.h * this.dpr);
     this.world = [topo.width, topo.height];
+    this.wrap = topo.wrap;
+    const offs = topo.wrap ? [-topo.wrap, 0, topo.wrap] : [0];
     const base = document.createElement('canvas');
     base.width = c.width; base.height = c.height;
     const g = base.getContext('2d');
@@ -66,17 +70,18 @@ export class Minimap {
     g.strokeStyle = 'rgba(60,150,190,0.9)';
     g.lineWidth = 16 * this.dpr;
     g.lineJoin = 'round';
-    for (const e of topo.edges) {
+    for (const off of offs) for (const e of topo.edges) {
       if (e.kind !== 'coast') continue;
       g.beginPath();
-      for (let i = 0; i < e.pts.length; i += 2) { if (i === 0) g.moveTo(e.pts[i] * sx, e.pts[i + 1] * sy); else g.lineTo(e.pts[i] * sx, e.pts[i + 1] * sy); }
+      for (let i = 0; i < e.pts.length; i += 2) { if (i === 0) g.moveTo((e.pts[i] + off) * sx, e.pts[i + 1] * sy); else g.lineTo((e.pts[i] + off) * sx, e.pts[i + 1] * sy); }
       g.stroke();
     }
     g.restore();
-    for (const p of topo.regions) {
+    for (const off of offs) for (const p of topo.regions) {
+      if (off && p.bbox[0] + off > topo.width && p.bbox[2] + off < 0) continue;
       const o = p.outline;
       g.beginPath();
-      for (let i = 0; i < o.length; i += 2) { if (i === 0) g.moveTo(o[i] * sx, o[i + 1] * sy); else g.lineTo(o[i] * sx, o[i + 1] * sy); }
+      for (let i = 0; i < o.length; i += 2) { if (i === 0) g.moveTo((o[i] + off) * sx, o[i + 1] * sy); else g.lineTo((o[i] + off) * sx, o[i + 1] * sy); }
       g.closePath();
       const own = seatColor(p.r.owner);
       let col: RGB = own ? mixRgb(hexRgb(own), TERRAIN_TINT[p.r.terrain] ?? PAPER, 0.18) : mixRgb(TERRAIN_TINT[p.r.terrain] ?? PAPER, PAPER, 0.25);
@@ -99,9 +104,14 @@ export class Minimap {
     g.drawImage(this.base, 0, 0);
     if (view && view.length >= 8) {
       const sx = c.width / this.world[0], sy = c.height / this.world[1];
+      const W = this.wrap;
+      // On a wrapped world the view is drawn at whichever copies fall on the sheet.
+      const base = W ? -W * Math.floor((view[0] + view[2] + view[4] + view[6]) / 4 / W) : 0;
       g.beginPath();
-      for (let i = 0; i < 8; i += 2) { if (i === 0) g.moveTo(view[i] * sx, view[i + 1] * sy); else g.lineTo(view[i] * sx, view[i + 1] * sy); }
-      g.closePath();
+      for (const off of W ? [base - W, base, base + W] : [0]) {
+        for (let i = 0; i < 8; i += 2) { if (i === 0) g.moveTo((view[i] + off) * sx, view[i + 1] * sy); else g.lineTo((view[i] + off) * sx, view[i + 1] * sy); }
+        g.closePath();
+      }
       g.fillStyle = 'rgba(255,255,255,0.16)';
       g.fill();
       g.lineWidth = 2.6 * this.dpr;

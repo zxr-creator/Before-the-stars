@@ -5,7 +5,9 @@
 //! ```text
 //! bts                                   start the game in its own window (packaged use)
 //! bts serve   [--port 7878] [--web apps/web/dist] [--require-tokens]
-//! bts run     [--seed S] [--rounds N] [--ai hard,medium,medium,easy] [--regions 48] [--horizon 2880] [--every 20] [--matches M]
+//! bts run     [--seed S] [--rounds N] [--ai hard,medium,medium,easy] [--regions 60] [--horizon 2880] [--every 20] [--matches M]
+//!             [--calendar standard|quick] [--world earth_like|classic] [--curve out.csv] [--checkpoints DIR [--at m1,m2,... | --at-years -1000,1000,...]]
+//!             [--save out.json] [--first K] [--threads T]   (--horizon M: development clock of 12-month rounds)
 //! bts verify  [--seed S] [--rounds N]
 //! bts observe --seat N [--url http://127.0.0.1:7878] [--token T]
 //! bts act     --seat N --file actions.json [--url ...] [--token T]
@@ -302,7 +304,7 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
 }
 
 fn print_table(s: &Session) {
-    println!("round {:>3}  month {:>4}  phase {:?}", s.m.round(), s.m.month(), s.m.phase());
+    println!("round {:>3}  month {:>5}  {}  phase {:?}", s.m.round(), s.m.month(), s.m.date().label, s.m.phase());
     for d in s.m.diagnostics() {
         println!(
             "  seat {} {:<11} {:<10} pop {:>7} reg {:>2} tech {:>3} (tier {}) prac {:>2} army {:>5} stab {:>2} food {:>3}% sci {:<5} gov {:>2} ftl {:>2}{}",
@@ -317,7 +319,7 @@ fn print_table(s: &Session) {
             d.soldiers,
             d.stability,
             d.food_bp / 100,
-            d.sci_method.map(|m| format!("y{}", m / 12)).unwrap_or_else(|| "-".into()),
+            d.sci_method.map(|m| bts_engine::calendar::year_label(s.m.config().calendar.date(m).0)).unwrap_or_else(|| "-".into()),
             d.gov_streak,
             d.ftl_streak,
             d.overlord.map(|o| format!(" under {o}")).unwrap_or_default()
@@ -326,51 +328,156 @@ fn print_table(s: &Session) {
 }
 
 fn run_config(args: &Args) -> MatchConfig {
-    let mut cfg = MatchConfig { seed: args.get("seed", "riverland"), regions: args.num("regions", 48), horizon: args.num("horizon", 2880), pace_bp: args.num("pace", 10_000), ..Default::default() };
+    let mut cfg = MatchConfig { seed: args.get("seed", "riverland"), regions: args.num("regions", 60), pace_bp: args.num("pace", 10_000), ..Default::default() };
+    cfg.calendar = match args.get("calendar", "standard").as_str() {
+        "quick" => bts_engine::calendar::CalendarId::Quick,
+        _ => bts_engine::calendar::CalendarId::Standard,
+    };
+    if args.has("horizon") {
+        // a development clock: twelve-month rounds from 5000 BC
+        cfg.calendar = MatchConfig::fixture_calendar(args.num("horizon", 2880u32) / 12);
+    }
     let ai = args.get("ai", "hard,medium,medium,easy");
     let kinds: Vec<ControllerKind> = ai.split(',').filter_map(controller).collect();
     cfg.controllers = if kinds.len() == 4 { kinds } else { vec![ControllerKind::NativeMedium; 4] };
     cfg.disclosed_objective = args.has("disclosed");
+    if args.get("world", "earth_like") == "classic" {
+        cfg.world = bts_protocol::WorldKind::Classic;
+    }
     cfg
+}
+
+/// Calibration checkpoints requested with `--checkpoints DIR --at m1,m2,...`: the
+/// match is saved at the first round boundary at or after each month.
+fn checkpoint_months(args: &Args, cfg: &MatchConfig) -> Vec<u32> {
+    let mut v: Vec<u32> = args.get("at", "").split(',').filter_map(|x| x.trim().parse().ok()).collect();
+    // historical years (negative = BC); by default the era checkpoints of design section 10
+    let years = if v.is_empty() { args.get("at-years", "-1000,1000,1700,1900,2100") } else { args.get("at-years", "") };
+    for y in years.split(',').filter_map(|x| x.trim().parse::<i32>().ok()) {
+        let astro = bts_engine::calendar::astronomical(y);
+        let m = (astro - cfg.calendar.start_astro_year()) * 12;
+        if m >= 0 {
+            v.push(m as u32);
+        }
+    }
+    v.sort_unstable();
+    v
+}
+
+/// Run one match to its end or the round limit, recording the curve and writing
+/// checkpoints when asked. Returns the session and its curve rows.
+fn run_one(cfg: MatchConfig, args: &Args, rounds: u32, every: u32, print: bool) -> (Session, Vec<bts_engine::curve::CurveRow>) {
+    let mut pending = checkpoint_months(args, &cfg);
+    let mut s = Session::new(cfg, 7);
+    let want_curve = args.has("curve");
+    if want_curve {
+        s.m.record_curve(true);
+    }
+    let dir = args.flags.get("checkpoints").cloned();
+    let mut rows = Vec::new();
+    let mut since = 0;
+    while !s.m.finished() && s.m.round() <= rounds {
+        let before = s.m.round();
+        s.run_rounds(1);
+        if s.m.round() == before && !s.m.finished() {
+            break;
+        }
+        since += 1;
+        if let Some(d) = &dir {
+            while let Some(&at) = pending.first() {
+                if s.m.month() < at {
+                    break;
+                }
+                pending.remove(0);
+                let year = s.m.date().year;
+                let path = Path::new(d).join(format!("{}-{}{}.json", s.m.config().seed, year.abs(), if year < 0 { "bc" } else { "ad" }));
+                std::fs::create_dir_all(d).expect("checkpoint directory");
+                std::fs::write(&path, s.save()).expect("write checkpoint");
+            }
+        }
+        if want_curve {
+            rows.extend(s.m.take_curve());
+        }
+        if print && since >= every.max(1) {
+            since = 0;
+            print_table(&s);
+        }
+    }
+    if want_curve {
+        rows.extend(s.m.take_curve());
+    }
+    (s, rows)
+}
+
+fn write_curve(path: &str, rows: &[(String, bts_engine::curve::CurveRow)]) {
+    let mut out = format!("seed,{}\n", bts_engine::curve::CurveRow::csv_header());
+    for (seed, r) in rows {
+        out += &format!("{seed},{}\n", r.csv());
+    }
+    std::fs::write(path, out).expect("write curve");
 }
 
 fn run(args: &Args) {
     let matches: u32 = args.num("matches", 1);
-    let rounds: u32 = args.num("rounds", 240);
+    let rounds: u32 = args.num("rounds", 100_000);
     let every: u32 = args.num("every", 20);
     if matches <= 1 {
-        let mut s = Session::new(run_config(args), 7);
         let start = std::time::Instant::now();
-        while !s.m.finished() && s.m.round() <= rounds {
-            s.run_rounds(every.max(1));
-            if !args.has("quiet") {
-                print_table(&s);
-            }
-        }
+        let cfg = run_config(args);
+        let seed = cfg.seed.clone();
+        let (s, rows) = run_one(cfg, args, rounds, every, !args.has("quiet"));
         print_table(&s);
-        println!("finished: {}  winner: {:?}  elapsed {:.1}s  state hash {:016x}", s.m.finished(), s.m.winner(), start.elapsed().as_secs_f64(), s.m.state_hash());
+        println!("finished: {}  winner: {:?}  {}  elapsed {:.1}s  state hash {:016x}", s.m.finished(), s.m.winner(), s.m.date().label, start.elapsed().as_secs_f64(), s.m.state_hash());
         if let Some(path) = args.flags.get("save") {
             std::fs::write(path, s.save()).expect("write save");
+        }
+        if let Some(path) = args.flags.get("curve") {
+            write_curve(path, &rows.into_iter().map(|r| (seed.clone(), r)).collect::<Vec<_>>());
         }
         return;
     }
     // Independent matches run in parallel across CPU cores; each match is itself deterministic.
     let base = args.get("seed", "eval");
-    let handles: Vec<_> = (0..matches)
-        .map(|i| {
-            let mut cfg = run_config(args);
-            cfg.seed = format!("{base}-{i}");
+    let first: u32 = args.num("first", 0);
+    let threads: usize = args.num("threads", std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4));
+    let queue = std::sync::Arc::new(std::sync::Mutex::new((first..first + matches).collect::<Vec<u32>>()));
+    let results = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let flags = args.flags.clone();
+    let workers: Vec<_> = (0..threads.max(1))
+        .map(|_| {
+            let queue = queue.clone();
+            let results = results.clone();
+            let flags = flags.clone();
+            let base = base.clone();
             std::thread::spawn(move || {
-                let mut s = Session::new(cfg, 7);
-                s.run_rounds(rounds);
-                (i, s.m.winner(), s.m.month(), s.m.diagnostics())
+                let args = Args { flags };
+                loop {
+                    let Some(i) = queue.lock().unwrap().pop() else { break };
+                    let mut cfg = run_config(&args);
+                    cfg.seed = format!("{base}-{i}");
+                    let seed = cfg.seed.clone();
+                    let start = std::time::Instant::now();
+                    let (s, rows) = run_one(cfg, &args, rounds, u32::MAX, false);
+                    let secs = start.elapsed().as_secs_f64();
+                    results.lock().unwrap().push((i, seed, s.m.winner(), s.m.month(), s.m.diagnostics(), rows, secs));
+                }
             })
         })
         .collect();
-    for h in handles {
-        let (i, winner, month, diag) = h.join().expect("match thread");
+    for w in workers {
+        w.join().expect("match thread");
+    }
+    let mut results = std::mem::take(&mut *results.lock().unwrap());
+    results.sort_by_key(|r| r.0);
+    let mut all_rows = Vec::new();
+    for (i, seed, winner, month, diag, rows, secs) in results {
         let line: Vec<String> = diag.iter().map(|d| format!("{}:{}p/{}r/{}t", d.seat, d.population, d.regions, d.understood)).collect();
-        println!("match {i:>2}  winner {:?}  month {month:>4}  {}", winner, line.join("  "));
+        let date = bts_engine::calendar::year_label(run_config(args).calendar.date(month).0);
+        println!("match {i:>2}  winner {:?}  month {month:>5} ({date})  {:.1}s  {}", winner, secs, line.join("  "));
+        all_rows.extend(rows.into_iter().map(|r| (seed.clone(), r)));
+    }
+    if let Some(path) = args.flags.get("curve") {
+        write_curve(path, &all_rows);
     }
 }
 
@@ -385,6 +492,7 @@ fn inspect(args: &Args) {
     let u = |v: i64| v as f64 / 1000.0;
     println!("== {} seat {} year {} pop {} stability {} admin {}/{} mob cap {}bp", o.civ.name, seat, o.month / 12, o.civ.population, o.civ.stability, o.civ.admin_load, o.civ.admin_capacity, o.civ.mobilization_cap_bp);
     println!("labor: {:?}", o.civ.labor);
+    println!("last round ({} months): births {} deaths {} by cause {:?}", o.calendar.as_ref().map(|c| c.last_round_months).unwrap_or(0), o.civ.births_last_round, o.civ.deaths_last_round, o.civ.deaths_by_cause.iter().map(|d| (d.cause.as_str(), d.deaths)).collect::<Vec<_>>());
     print!("goods:");
     for g in &o.civ.goods {
         if g.stock != 0 || g.produced != 0 || g.consumed != 0 {
@@ -426,7 +534,7 @@ fn inspect(args: &Args) {
     println!("-- regions:");
     for r in o.regions.iter().filter(|r| r.own.is_some()) {
         let w = r.own.as_ref().unwrap();
-        println!(" {} [{}] {:?} pop {} labor f{} fac{} proj{} idle{} stu{} water {} food {}% link {} unrest {}", r.name, r.id, r.terrain, w.population, w.labor.food, w.labor.facilities, w.labor.projects, w.labor.household, w.labor.students, w.water_capacity, w.food_fulfillment_bp / 100, w.link_efficiency_bp, w.unrest_bp);
+        println!(" {} [{}] {:?} pop {} labor f{} fac{} proj{} idle{} stu{} water {} food {}% link {} unrest {} health {}{}", r.name, r.id, r.terrain, w.population, w.labor.food, w.labor.facilities, w.labor.projects, w.labor.household, w.labor.students, w.water_capacity, w.food_fulfillment_bp / 100, w.link_efficiency_bp, w.unrest_bp, w.health_pressure_bp, r.outbreak.as_ref().map(|x| format!(" OUTBREAK band {}", x.severity_band)).unwrap_or_default());
         for f in &w.facilities {
             let b: Vec<String> = f.runs.iter().flat_map(|x| x.blockers.clone()).collect();
             println!("    {} L{}/{} staff {}/{} util {}% {:?}", f.name, f.level, f.max_level, f.staffed, f.staff_needed, f.utilization_bp / 100, b);

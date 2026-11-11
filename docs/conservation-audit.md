@@ -49,21 +49,34 @@ These are referee-side diagnostics and are never part of a seat's observation.
 | Starting stores: 900,000 rations, 90 kt materials, 45,000 tool lots per seat | `worldgen.rs` | the declared initial endowment | opening stock | `starting_stocks_and_qualifications_are_the_declared_endowment` |
 | Food: forage, fields, pasture, fishing | `sim/economy.rs` section 1 and 3 | workers actually assigned x yield; workers bounded by what grows wild and by levels of fields, pasture and fishing grounds, which the site bounds; a method that needs chemicals or fuel is used only when a full month's draw is in store, and the draw is taken first | `produced[Food]`; chemicals and fuel `consumed` | `a_level_employs_thousands_and_yields_per_thousand_workers`, `field_methods_are_used_only_when_their_inputs_are_delivered`, monthly audits |
 | Recipes of works | `sim/economy.rs` section 4 | filled posts, inputs taken from month-start stock, service actually available, condition; the method each works runs is fixed once a month, so its posts, service and goods belong to one recipe; outputs never exceed `recipe x level x rate`; mass out <= mass in for every method | `produced` gross; inputs and upkeep `consumed`; carriage and congestion `lost`; `InfraMonth.made` per region | `no_recipe_puts_out_more_mass_than_it_takes_in`, `the_new_methods_trade_one_real_thing_for_another`, `choosing_a_method_changes_the_inputs_outputs_service_and_posts_of_a_works`, `carriage_loss_and_spoilage_are_booked_as_lost`, `industrial_scale_reduces_general_posts_but_does_not_multiply_goods`, `shared_support_saves_posts_only_and_shrinks_when_freight_is_congested`, monthly audits |
-| Ore, coal, crude, rare minerals | same; recipes with `depletes` | the deposit: every tonne raised is drawn from it, shallow workings draw two | `produced[ore]` = deposit `delivered` <= `drawn` | `extraction_draws_from_the_deposit_at_least_what_it_delivers`, monthly audits |
-| Timber, stone, clay (camps); fired brick (kilns) | same; works flagged `extractive` | labour on the site: forest levels bound camps; kilns dig their clay where they stand | `produced[Materials]` | `no_recipe_puts_out_more_mass_than_it_takes_in` (the list of extractive works is asserted) |
+| Ore, coal, crude, gas and the other deposits of ruleset 3.0 | same; recipes with `depletes` | the deposit: every tonne raised is drawn from it, shallow workings draw two | `produced[g]` = deposits' `delivered` <= `drawn` (salt: at least what the salt deposits delivered, coastal pans make the rest) | `extraction_draws_from_the_deposit_at_least_what_it_delivers`, monthly audits |
+| Helium (ruleset 3.0) | gas wells with separation | the gas raised that month times the field's `helium_bp`, never above the recipe | `produced[Helium]` | `bronze_tools_need_tin_and_helium_comes_only_from_rich_gas` |
+| Timber (forestry camps), stone and clay (quarries), fired brick (kilns), salt from pans, fibres, spices, horses (ruleset 3.0) | same; works flagged `extractive` (land works also `land`) | labour on the site: forest, arable, pasture and spice land bound the levels (fields and fibre plantations share arable land, pastures and horse breeding share pasture); a land works' output follows its site bonus, at most twice its recipe, and the audit's ceiling includes that factor | `produced[g]` | `no_recipe_puts_out_more_mass_than_it_takes_in` (the list of extractive works is asserted), monthly audits |
+| Fertilizer by ammonia synthesis, food synthesis (declared atmospheric recipes) | same | nitrogen or carbon of the air: output mass at most three times the mass taken from stock | `produced`, inputs `consumed` | `no_recipe_puts_out_more_mass_than_it_takes_in` |
 | Household craft: 0.3 t of materials per idle adult-month | `sim/economy.rs` | adults of working age with no post that month; stops when stores are at twice their target | `produced[Materials]` | `household_craft_is_bounded_by_idle_adults` |
 | Copy houses (belief): up to 2,000 media lots a month | `sim/culture.rs` | the filled posts of the precinct, in proportion, and a tonne of materials taken from stock for every three lots | `produced[Media]`, `consumed[Materials]` | `copy_houses_make_media_only_from_a_staffed_precinct_and_real_material` |
 | Treaty deliveries | `sim/diplomacy.rs` | the sender's stock; what is not there is not delivered and is recorded as a shortfall | `traded_out` / `traded_in` | `a_signed_treaty_delivers_goods_once_and_knowledge_is_not_unlearned`, `treaty_goods_and_tribute_leave_one_stock_and_enter_another` |
 | Tribute of a subordinate | `sim/diplomacy.rs` | the subordinate's stock, at most a quarter of it a month | `traded_out` / `traded_in` | same |
 
 Goods leave through: eating (`consumed`, one ration per resident and soldier);
-spoilage (`lost`); recipe inputs, upkeep of works and formations, field chemicals and
-fuel, fuel of power stations, coal and fuel burned by the engines of construction
+spoilage (`lost`); recipe inputs, upkeep of works and formations, field horses,
+fertilizer, chemicals and fuel, salt that slows spoilage, fuel of power stations, coal and fuel burned by the engines of construction
 sites, course materials, and the bills of projects -
 construction, surveys, settlers' stores, equipment of recruits, reforms, foundings,
 jump trials - (`consumed`, never refunded); carriage from outlying regions (`lost`);
 deliveries and tribute (`traded_out`); and the stores of a polity that ceases to
 govern (`lost`).
+
+Labour productivity (ruleset 3.0 slice 6, units chapter section 15) is not a source
+of anything either: it changes how many posts a works needs (the audit checks every
+works' posts against the formula with the month's stored factors, and the factors'
+bounds) and how many worker-months a called-up worker supplies (project work is at
+most the called-up workers times the month's construction factor, at most 1.5). The
+recipe's ceiling `recipe x level x rate` is unchanged (`productivity_frees_people_and_never_makes_goods`);
+a field level yields at most twice its method's base
+(`field_yield_per_level_is_capped_at_twice_the_method`). Fields with partial inputs
+reserve every level's month of inputs from month-start stock before the food plan,
+and draw only what the cultivators at work need.
 
 Economies of scale (units chapter, section 7) are not a source of anything, and the
 audit holds them to that. Shared support posts change how many general posts a works

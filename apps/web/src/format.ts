@@ -1,26 +1,39 @@
 // Display helpers: units, dates and enum labels. Wire quantities of goods, work,
 // power and research are integer milli-units; shares are basis points.
 import type {
-  ControllerKind, Deposit, Epistemic, Good, Intent, KnowledgeState, LaborCategory, MomentCategory,
+  Bonus, ClimateZone, ControllerKind, Deposit, Epistemic, Good, Intent, KnowledgeState, LaborCategory, MomentCategory,
   Month, Phase, PracticeState, Qual, ResearchClass, Role, SeatStatus, SettlementKind, Terrain, Visibility,
 } from './protocol';
 import type { ComponentChildren } from 'preact';
 import { isZh, t, tc } from './i18n';
 
 export const GOOD_LABEL: Record<Good, string> = {
-  food: 'Food', materials: 'Timber, stone and clay', tools: 'Tools', copper_ore: 'Copper ore', iron_ore: 'Iron ore',
-  coal: 'Coal', crude: 'Crude oil', minerals: 'Rare minerals', copper: 'Copper', metal: 'Structural metal',
-  components: 'Mechanical components', conductors: 'Conductors', insulation: 'Insulation and seals',
-  fuel: 'Refined fuel', chemicals: 'Chemicals', substrate: 'High-purity substrate', electronics: 'Electronic devices',
+  food: 'Food', materials: 'Building materials', tools: 'Tools', copper_ore: 'Copper ore', iron_ore: 'Iron ore',
+  coal: 'Coal', crude: 'Crude oil', copper: 'Copper', metal: 'Iron and steel',
+  components: 'Mechanical components', conductors: 'Conductors', insulation: 'Rubber, plastics and insulation',
+  fuel: 'Refined fuel', chemicals: 'Chemicals', substrate: 'Semiconductor materials', electronics: 'Electronic devices',
   hardware: 'Computing hardware', spares: 'Spare parts', media: 'Record media', instruments: 'Instruments',
   medicine: 'Medicine and bioproducts',
+  timber: 'Timber', fibres: 'Fibres', horses: 'Horses', salt: 'Salt', spices: 'Spices and stimulants',
+  precious: 'Precious metals', tin: 'Tin', saltpetre: 'Saltpetre', gas: 'Natural gas', bauxite: 'Bauxite',
+  uranium_ore: 'Uranium ore', rare_earths: 'Rare-earth ore', lithium: 'Lithium', cobalt_nickel: 'Cobalt and nickel',
+  quartz: 'High-purity quartz', helium: 'Helium', aluminium: 'Aluminium', fertilizer: 'Fertilizer', munitions: 'Munitions',
+  magnets: 'Magnets and superconductors', batteries: 'Batteries', nuclear_fuel: 'Nuclear fuel', textiles: 'Textiles',
+  consumer_goods: 'Consumer goods', fine_wares: 'Fine wares', lattice: 'Interface lattice',
+  volatiles: 'Volatiles (water and ices)', propellant: 'Propellant', helium3: 'Helium-3',
 };
 export const GOOD_SHORT: Record<Good, string> = {
   food: 'Food', materials: 'Materials', tools: 'Tools', copper_ore: 'Copper ore', iron_ore: 'Iron ore', coal: 'Coal',
-  crude: 'Crude', minerals: 'Minerals', copper: 'Copper', metal: 'Metal', components: 'Components',
+  crude: 'Crude', copper: 'Copper', metal: 'Metal', components: 'Components',
   conductors: 'Conductors', insulation: 'Insulation', fuel: 'Fuel', chemicals: 'Chemicals', substrate: 'Substrate',
   electronics: 'Electronics', hardware: 'Hardware', spares: 'Spares', media: 'Media', instruments: 'Instruments',
   medicine: 'Medicine',
+  timber: 'Timber', fibres: 'Fibres', horses: 'Horses', salt: 'Salt', spices: 'Spices', precious: 'Precious',
+  tin: 'Tin', saltpetre: 'Saltpetre', gas: 'Gas', bauxite: 'Bauxite', uranium_ore: 'Uranium', rare_earths: 'Rare earths',
+  lithium: 'Lithium', cobalt_nickel: 'Cobalt-nickel', quartz: 'Quartz', helium: 'Helium', aluminium: 'Aluminium',
+  fertilizer: 'Fertilizer', munitions: 'Munitions', magnets: 'Magnets', batteries: 'Batteries', nuclear_fuel: 'Nuclear fuel',
+  textiles: 'Textiles', consumer_goods: 'Consumer goods', fine_wares: 'Fine wares', lattice: 'Lattice',
+  volatiles: 'Volatiles', propellant: 'Propellant', helium3: 'Helium-3',
 };
 export const GOODS: Good[] = Object.keys(GOOD_LABEL) as Good[];
 
@@ -36,8 +49,19 @@ export const TERRAIN_LABEL: Record<Terrain, string> = {
   desert: 'Desert', tundra: 'Tundra',
 };
 export const DEPOSIT_LABEL: Record<Deposit, string> = {
-  copper_ore: 'Copper ore', iron_ore: 'Iron ore', coal: 'Coal', crude: 'Crude oil', minerals: 'Rare minerals',
+  copper_ore: 'Copper ore', iron_ore: 'Iron ore', coal: 'Coal', crude: 'Crude oil', tin: 'Tin', salt: 'Salt',
+  saltpetre: 'Saltpetre', precious: 'Precious metals', gas: 'Natural gas', bauxite: 'Bauxite', uranium_ore: 'Uranium ore',
+  rare_earths: 'Rare-earth ore', lithium: 'Lithium brine', cobalt_nickel: 'Cobalt and nickel', quartz: 'High-purity quartz',
+  volatiles: 'Volatiles (water and ices)', helium3: 'Helium-3',
 };
+// i18n-table
+export const BONUS_LABEL: Record<Bonus, string> = {
+  floodplain: 'Floodplain', fish_banks: 'Fish banks', wild_herds: 'Wild herds', old_growth: 'Old-growth forest', rich_pasture: 'Rich pasture',
+};
+export const CLIMATE_LABEL: Record<ClimateZone, string> = {
+  tropical: 'Tropical', arid: 'Arid', temperate: 'Temperate', continental: 'Continental', polar: 'Polar',
+};
+// i18n-end
 export const ROLE_LABEL: Record<Role, string> = { assault: 'Assault', maneuver: 'Maneuver', denial: 'Denial' };
 export const ROLES: Role[] = ['assault', 'maneuver', 'denial'];
 export const RESEARCH_LABEL: Record<ResearchClass, string> = {
@@ -66,7 +90,7 @@ export const CONTROLLER_LABEL: Record<ControllerKind, string> = {
 };
 export const VIS_LABEL: Record<Visibility, string> = { own: 'Governed', visible: 'Observed', remembered: 'Remembered' };
 export const SETTLEMENT_LABEL: Record<SettlementKind, string> = {
-  wilderness: 'Wilderness', camp: 'Camp', village: 'Village', town: 'Town', city: 'City', metropolis: 'Metropolis',
+  wilderness: 'Wilderness', camp: 'Camp', village: 'Village', town: 'Town', city: 'City', metropolis: 'Metropolis', megalopolis: 'Megalopolis',
 };
 export const INTENT_LABEL: Record<Intent, string> = {
   inquiry: 'Inquiry', quotation: 'Quotation', counteroffer: 'Counteroffer', claim: 'Claim', need: 'Need',
@@ -195,27 +219,33 @@ export function milli(n: number): string {
 // below take base units and name the unit. English scales to k/M (kt/Mt, GWh); Chinese
 // counts in 万/亿 (34万吨, 1,500万千瓦时).
 
-export type GoodUnitKind = 'ration' | 't' | 'lot';
-const LOT_GOODS: Good[] = ['tools', 'spares', 'electronics', 'hardware', 'media', 'instruments', 'medicine'];
+export type GoodUnitKind = 'ration' | 't' | 'lot' | 'head';
+// The doc's table (units-and-scale §14): used until the referee sends `Observation.units`.
+const DEFAULT_KG: Partial<Record<Good, [GoodUnitKind, number]>> = {
+  food: ['ration', 50], horses: ['head', 500], tools: ['lot', 250], spares: ['lot', 250], electronics: ['lot', 50],
+  munitions: ['lot', 50], batteries: ['lot', 50], hardware: ['lot', 500], media: ['lot', 150], instruments: ['lot', 400],
+  medicine: ['lot', 40], consumer_goods: ['lot', 100], textiles: ['lot', 10], fine_wares: ['lot', 10], lattice: ['lot', 10],
+  precious: ['lot', 1], nuclear_fuel: ['lot', 1], helium3: ['lot', 1],
+};
 const unitOf: Partial<Record<Good, GoodUnitKind>> = {};
 const massOf: Partial<Record<Good, number>> = {};
 
 /** Adopt the running ruleset's unit table (`Observation.units`); the doc's table is the default. */
 export function setUnits(units: { goods: { good: Good; unit: string; tonnes_per_unit_milli: number }[] } | null | undefined): void {
   for (const g of units?.goods ?? []) {
-    if (g.unit === 'ration' || g.unit === 't' || g.unit === 'lot') unitOf[g.good] = g.unit;
+    if (g.unit === 'ration' || g.unit === 't' || g.unit === 'lot' || g.unit === 'head') unitOf[g.good] = g.unit;
     massOf[g.good] = g.tonnes_per_unit_milli;
   }
 }
 
-/** What one base unit of a good is: a ration (food), a tonne (bulk) or a standard lot. */
+/** What one base unit of a good is: a ration (food), a head (horses), a tonne (bulk) or a standard lot. */
 export function goodUnit(good: Good): GoodUnitKind {
-  return unitOf[good] ?? (good === 'food' ? 'ration' : LOT_GOODS.includes(good) ? 'lot' : 't');
+  return unitOf[good] ?? DEFAULT_KG[good]?.[0] ?? 't';
 }
 
-/** Mass of `n` base units of a good in tonnes (rations 0.05 t, lots 0.04–0.5 t). */
+/** Mass of `n` base units of a good in tonnes (rations 0.05 t, a horse 0.5 t, lots 1 kg–0.5 t). */
 export function goodTonnes(good: Good, n: number): number {
-  const kg = massOf[good] ?? (good === 'food' ? 50 : good === 'electronics' ? 50 : good === 'hardware' ? 500 : good === 'media' ? 150 : good === 'instruments' ? 400 : good === 'medicine' ? 40 : LOT_GOODS.includes(good) ? 250 : 1000);
+  const kg = massOf[good] ?? DEFAULT_KG[good]?.[1] ?? 1000;
   return (n * kg) / 1000;
 }
 
@@ -244,10 +274,15 @@ export function lots(n: number): string {
   return t('{n} lots', { n: compact(n) });
 }
 
-/** A quantity of a good in its own unit, without the good's name: "30 kt", "30k rations", "5,000 lots". */
+/** Horses: "300 head", "12k head" / "300匹", "1.2万匹". */
+export function head(n: number): string {
+  return t('{n} head', { n: compact(n) });
+}
+
+/** A quantity of a good in its own unit, without the good's name: "30 kt", "30k rations", "5,000 lots", "300 head". */
 export function qty(good: Good, n: number): string {
   const u = goodUnit(good);
-  return u === 'ration' ? rations(n) : u === 'lot' ? lots(n) : tonnes(n);
+  return u === 'ration' ? rations(n) : u === 'lot' ? lots(n) : u === 'head' ? head(n) : tonnes(n);
 }
 
 /** Signed quantity of a good: "+12 kt", "−3k rations". */
@@ -256,16 +291,16 @@ export function qtySigned(good: Good, n: number): string {
   return (n > 0 ? '+' : '−') + qty(good, Math.abs(n));
 }
 
-/** The unit word alone, for column heads and axis titles: "kt", "rations", "lots". */
+/** The unit word alone, for column heads and axis titles: "t", "rations", "lots", "head". */
 export function unitLabel(good: Good): string {
   const u = goodUnit(good);
-  return u === 'ration' ? t('rations') : u === 'lot' ? t('lots') : isZh() ? t('tonnes') : 't';
+  return u === 'ration' ? t('rations') : u === 'lot' ? t('lots') : u === 'head' ? (isZh() ? t('head (horses)') : 'head') : isZh() ? t('tonnes') : 't';
 }
 
 /** The display unit (1,000 base units) of a good, for inputs that count in it: "kt", "thousand rations", "thousand lots". */
 export function displayUnit(good: Good): string {
   const u = goodUnit(good);
-  return u === 'ration' ? t('thousand rations') : u === 'lot' ? t('thousand lots') : t('kt');
+  return u === 'ration' ? t('thousand rations') : u === 'lot' ? t('thousand lots') : u === 'head' ? t('thousand head') : t('kt');
 }
 
 /** People, compact above ten thousand: "8,400 people", "240k people", "1.2M people" / "24万人". */
@@ -321,13 +356,38 @@ export function yearOf(month: Month): number {
 
 // --- dates ------------------------------------------------------------------------------
 // One formatter for every year the interface shows. A referee with a historical calendar
-// sends `date: { year }` (a signed year: negative is BC, there is no year zero) on the
-// observation, the spectator view and the match summary; until then the campaign year
-// ("Year N", counted from the first month) is shown. Pass the record's own `date` when it
-// has one; `month` is always the fallback.
+// (ruleset 3.0: 5000 BC to AD 2500) sends `date: { year, month, label }` and `calendar` on the
+// observation, the spectator view and the match summary. The store hands the calendar to
+// `setCalendar`, after which any month the referee mentions (a treaty signed, a region last
+// seen, a chronicle entry) is shown as its historical year: month 0 is January of the
+// calendar's first year, and there is no year zero. Without a calendar the campaign year
+// ("Year N", counted from the first month) is shown.
 
 /** A historical date as the referee states it. */
-export interface HistDate { year: number }
+export interface HistDate { year: number; month?: number; label?: string }
+
+/** Astronomical year (1 BC = 0, 2 BC = −1) of a signed historical year. */
+const astro = (y: number) => (y < 0 ? y + 1 : y);
+/** Signed historical year of an astronomical year. */
+const signed = (a: number) => (a <= 0 ? a - 1 : a);
+
+/** Astronomical year of month 0 of the running match's calendar; null without one. */
+let calStart: number | null = null;
+
+/** Adopt the running match's calendar (`Observation.calendar`, `SpectatorView.calendar`, `MatchSummary.calendar`). */
+export function setCalendar(cal: { start: HistDate } | null | undefined): void {
+  calStart = cal && Number.isFinite(cal.start?.year) ? astro(cal.start.year) : null;
+}
+
+/** Whether the running match keeps a historical calendar. */
+export function hasCalendar(): boolean {
+  return calStart !== null;
+}
+
+/** The signed historical year a match month falls in, or null without a calendar. */
+export function yearAt(month: Month): number | null {
+  return calStart === null ? null : signed(calStart + Math.floor(month / 12));
+}
 
 /** "5000 BC" / "AD 1850" — "公元前5000年" / "公元1850年". Year 0 does not exist; it is read as 1 BC. */
 export function histYear(year: number): string {
@@ -335,27 +395,72 @@ export function histYear(year: number): string {
   return y <= 0 ? t('{y} BC', { y: String(y === 0 ? 1 : -y) }) : t('AD {y}', { y: String(y) });
 }
 
-/** "Year 4" / "第4年", or the historical year when a date is given. */
+/**
+ * A span of years, the way a historian writes it: "4000–3950 BC", "AD 25–50", "1450–1460",
+ * "50 BC – AD 25" — "公元前4000—前3950年", "公元25—50年", "1450—1460年", "公元前50年—公元25年".
+ */
+export function yearSpan(a: number, b: number): string {
+  if (a === b) return histYear(a);
+  if (a < 0 && b < 0) return t('{a}–{b} BC', { a: String(-a), b: String(-b) });
+  if (a > 0 && b > 0) return a >= 1000 ? t('{a}–{b}', { a: String(a), b: String(b) }) : t('AD {a}–{b}', { a: String(a), b: String(b) });
+  return t('{a} – {b}', { a: histYear(a), b: histYear(b) });
+}
+
+/** "Year 4" / "第4年", or the historical year from the given date or the match's calendar. */
 export function fmtYear(month: Month, date?: HistDate | null): string {
   if (date && Number.isFinite(date.year)) return histYear(date.year);
+  const y = yearAt(month);
+  if (y !== null) return histYear(y);
   return t('Year {y}', { y: yearOf(month) });
 }
 
-/** "Year 4, month 7" / "第4年7月", or the historical year when a date is given. */
+/** "Year 4, month 7" / "第4年7月", or the historical year from the given date or the match's calendar. */
 export function fmtDate(month: Month, date?: HistDate | null): string {
-  if (date && Number.isFinite(date.year)) return histYear(date.year);
-  return t('Year {y}, month {m}', { y: yearOf(month), m: (month % 12) + 1 });
+  return date || calStart !== null ? fmtYear(month, date) : t('Year {y}, month {m}', { y: yearOf(month), m: (month % 12) + 1 });
 }
 
-/** "Y4·m7" for tight spaces / "4年7月", or the historical year when a date is given. */
+/** "Y4·m7" for tight spaces / "4年7月", or the historical year from the given date or the match's calendar. */
 export function fmtDateShort(month: Month, date?: HistDate | null): string {
-  if (date && Number.isFinite(date.year)) return histYear(date.year);
-  return t('Y{y}·m{m}', { y: yearOf(month), m: (month % 12) + 1 });
+  return date || calStart !== null ? fmtYear(month, date) : t('Y{y}·m{m}', { y: yearOf(month), m: (month % 12) + 1 });
 }
 
 /** The current date of a record that carries `month` and, from a calendar referee, `date`. */
 export function fmtNow(x: { month: Month; date?: HistDate | null }): string {
   return fmtYear(x.month, x.date);
+}
+
+/** The round schedule as the referee states it (a subset of `CalendarView`). */
+export interface RoundCalendar {
+  rounds: number;
+  round_months: number;
+  round_start: HistDate;
+  round_end: HistDate;
+  last_round_months?: number;
+}
+
+/** The years the round in hand covers: "1450–1460", "4000–3950 BC"; one year for a round of a year or less. */
+export function roundSpan(cal: RoundCalendar | null | undefined): string | null {
+  if (!cal) return null;
+  const a = cal.round_start.year;
+  if (cal.round_months <= 12) return histYear(a);
+  return yearSpan(a, cal.round_end.year);
+}
+
+/** How long a round lasts: "50 years a round", "a year a round", "6 months a round". */
+export function roundLength(months: number): string {
+  if (months % 12 === 0) return months === 12 ? t('a year a round') : t('{n} years a round', { n: months / 12 });
+  return t('{n} months a round', { n: months });
+}
+
+/** "round 181 of 525" with the referee's count of rounds (the calendar's, else horizon ÷ round). */
+export function roundOf(round: number, x: { calendar?: { rounds: number } | null; horizon?: number; months_per_round?: number }): string {
+  const total = x.calendar?.rounds ?? Math.max(1, Math.round((x.horizon ?? 0) / Math.max(1, x.months_per_round ?? 12)));
+  return t('round {r} of {n}', { r: int(round), n: int(total) });
+}
+
+/** Rounds in the whole match: the calendar's count, else horizon ÷ months a round. */
+export function totalRounds(x: { calendar?: { rounds: number } | null; horizon?: number; months_per_round?: number }): number {
+  return x.calendar?.rounds ?? Math.max(1, Math.round((x.horizon ?? 0) / Math.max(1, x.months_per_round ?? 12)));
 }
 
 /** Duration in months as "8 months" / "2 years 3 months"; "8个月" / "2年3个月". */

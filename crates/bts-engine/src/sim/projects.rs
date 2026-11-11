@@ -321,7 +321,9 @@ pub fn step(w: &mut World, seat: SeatId) {
             // work is done only by people called up in the project's region this
             // month: the site's own crew first, then the region's other workers
             let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
-            let own = crew_on * unrest_factor / 10_000;
+            // the construction factor of the month: a called-up worker's worker-months
+            let construction = (w.regions[ri].last.construction_bp as i64).clamp(10_000, crate::sim::productivity::CONSTRUCTION_MAX);
+            let own = crew_on * unrest_factor / 10_000 * construction / 10_000;
             let free = w.regions[ri].last.project_labor_free.max(0);
             if own + free < progress && !blockers.contains(&labour_short) {
                 blockers.push(labour_short);
@@ -417,6 +419,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
     let c = content();
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let title = project_title(w, &p.kind, p.region);
     match p.kind {
         ProjKind::Build { facility, levels } => {
@@ -455,7 +458,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                     Some(ri as RegionId),
                     art,
                     def.work >= 100_000,
-                    vec![format!("Construction accepted in month {month}"), format!("Site: {rname}")],
+                    vec![format!("Construction accepted in {when}"), format!("Site: {rname}")],
                 );
             }
             brief(w, seat, "good", format!("Completed: {title}"), format!("{} is ready for staff.", def.name), Some(ri as RegionId), "economy");
@@ -490,7 +493,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                     _ => "jump",
                 },
                 t.tier >= 3 || matches!(t.id.as_str(), "T005" | "T025" | "T023" | "T049"),
-                vec![format!("Work completed in month {month}"), format!("Field: {}", t.group_title)],
+                vec![format!("Work completed in {when}"), format!("Field: {}", t.group_title)],
             );
             brief(w, seat, "good", format!("Understood: {}", t.name), t.capability.clone(), None, "knowledge");
             crate::sim::knowledge::mark_used(w, seat, &t.prereq.clone());
@@ -532,13 +535,13 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                     Some(to),
                     "camp",
                     count == 2,
-                    vec![format!("Arrival recorded in month {month}"), format!("{} settlers", group(moved as i64))],
+                    vec![format!("Arrival recorded in {when}"), format!("{} settlers", group(moved as i64))],
                 );
                 brief(w, seat, "good", format!("Settled {name}"), format!("{} people arrived with their stores.", group(moved as i64)), Some(to), "map");
             }
         }
         ProjKind::Study { tag } => {
-            let found = crate::sim::knowledge::study_result(w, seat, tag);
+            let found = crate::sim::knowledge::study_result(w, seat, tag, p.work_needed);
             w.civs[si].study_done[tag] += 1;
             let dname = Tag::ALL[tag].name();
             if found > 0 {
@@ -633,6 +636,7 @@ fn step_programs(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let n = w.civs[si].programs.len();
     let mut lost: Vec<usize> = Vec::new();
     for i in 0..n {
@@ -810,7 +814,7 @@ fn step_programs(w: &mut World, seat: SeatId) {
                         Some(ri as RegionId),
                         "school",
                         course.months >= 36,
-                        vec![format!("Cohort verified in month {month}"), format!("{} graduates", group(grads as i64))],
+                        vec![format!("Cohort verified in {when}"), format!("{} graduates", group(grads as i64))],
                     );
                 }
                 brief(w, seat, "good", format!("{} new {}", group(grads as i64), course.output.label().to_lowercase()), format!("A cohort of {} graduated at {rname}.", course.name.to_lowercase()), Some(ri as RegionId), "population");

@@ -1,0 +1,87 @@
+Ruleset 3.0, slice 0: baseline under ruleset 2.0 rules (bts-rules/2.0.0), branch ruleset3 from c5bafd8.
+Recorded before any rule change, with the slice-0 tooling (bts run --curve, scripts/curve_summary.py,
+crates/bts-host/examples/bench.rs). Ruleset 2.0 has no calendar: 'AD n' below is game year n (12-month
+rounds, 240 rounds, horizon month 2,880). Release build, Apple M5 Pro.
+
+== eval-0..63, --ai hard,medium,medium,easy (64 matches, all cores: 28.4 s wall, ~5.5 s per match under contention)
+   target/release/bts run --matches 64 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+
+matches without a winner: 64
+
+
+Population (median seat excludes seats without land; largest and world are medians over matches)
+      date  median seat    largest      world  regions (median)
+      AD 1        242 k      246 k      968 k               1.0
+     AD 20        427 k      449 k     1.70 M               3.0
+     AD 40        921 k      989 k     3.63 M               4.0
+     AD 60       2.20 M     2.38 M     8.66 M               6.0
+     AD 80       5.29 M     5.89 M    20.78 M               9.0
+    AD 100      12.52 M    13.85 M    49.35 M              11.0
+    AD 120      26.20 M    30.08 M   101.98 M              11.0
+    AD 140      38.08 M    46.98 M   152.35 M              12.0
+    AD 160      42.35 M    59.01 M   177.94 M              12.0
+    AD 180      44.03 M    64.80 M   185.75 M              12.0
+    AD 200      45.83 M    65.61 M   184.51 M                11
+    AD 220      47.19 M    66.30 M   179.64 M              11.0
+    AD 240      43.82 M    68.21 M   164.22 M              10.0
+
+Era milestones: first sampled decade at which a seat had it
+  node  median seat  reached  leader (median)  leader (earliest)
+  T007        AD 10  256/256            AD 10              AD 10
+  T008        AD 10  256/256            AD 10              AD 10
+  T010        AD 10  256/256            AD 10              AD 10
+  T011        AD 10  256/256            AD 10              AD 10
+  T015        AD 10  256/256            AD 10              AD 10
+  T025        AD 20  256/256            AD 20              AD 10
+  T022        AD 20  256/256            AD 20              AD 20
+  T023        AD 20  256/256            AD 20              AD 10
+  T024        AD 20  256/256            AD 20              AD 10
+  T027        AD 10  256/256            AD 10              AD 10
+  T028        AD 20  256/256            AD 20              AD 20
+  T029        AD 10  256/256            AD 10              AD 10
+  T030        AD 20  256/256            AD 20              AD 20
+  T036        AD 70  256/256            AD 50              AD 40
+  T048        AD 60  256/256            AD 40              AD 30
+   SCI        AD 70  256/256            AD 60              AD 40
+  T080        AD 90  256/256            AD 80              AD 60
+  T060        AD 90  256/256            AD 80              AD 60
+  T061        AD 80  256/256            AD 80              AD 60
+  T100       AD 100  256/256            AD 90              AD 70
+  T111       AD 120  248/256           AD 110              AD 90
+  T142       AD 170  243/256           AD 150             AD 130
+  T147       AD 180  234/256           AD 160             AD 130
+  T162       AD 200  207/256           AD 190             AD 160
+  T167       AD 220  149/256           AD 220             AD 180
+ALL138       AD 220  149/256           AD 220             AD 180
+
+highest seat-decade growth: 8.53%/yr at ('eval-38', '0', '200', '210')
+
+== riverland (single match, single thread)
+round 240  month 2880  phase Finished
+  seat 0 Farcape     Active     pop 12310491 reg  4 tech  51 (tier 3) prac 42 army 240000 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 1 Highmere    Active     pop 59302747 reg 18 tech 138 (tier 9) prac 64 army 752739 stab 95 food 100% sci y60   gov  0 ftl  0
+  seat 2 Stonewold   Active     pop 65872028 reg 12 tech 138 (tier 9) prac 64 army 1121535 stab 95 food 100% sci y55   gov  0 ftl  0
+  seat 3 Amberfen    Active     pop 41725312 reg  8 tech  89 (tier 7) prac 49 army 266395 stab 95 food 100% sci y65   gov  0 ftl  0
+finished: true  winner: None  elapsed 2.6s  state hash edc238fb7acaee34
+
+Population (median seat excludes seats without land; largest and world are medians over matches)
+      date  median seat    largest      world  regions (median)
+      AD 1        243 k      247 k      974 k               1.0
+     AD 40        911 k      918 k     3.48 M               4.0
+     AD 80       5.12 M     5.40 M    19.11 M               9.0
+    AD 120      22.36 M    29.11 M    86.62 M               9.5
+    AD 160      47.70 M    59.73 M   166.96 M              10.0
+    AD 200      55.51 M    70.98 M   194.45 M              10.0
+    AD 240      49.64 M    66.06 M   177.64 M              10.0
+
+Era milestones: first sampled decade at which a seat had it
+
+== examples/bench from riverland checkpoints (10 rounds; no seat actions, then with native policy)
+riverland-m00240.json: 10 rounds, 120 months, no seat actions: total 9.6 ms, per round p50 0.64 ms p95 3.95 ms max 3.95 ms, per month 0.080 ms
+riverland-m00240.json: 10 rounds, 120 months, with native policy: total 38.4 ms, per round p50 3.56 ms p95 6.66 ms max 6.66 ms, per month 0.320 ms
+riverland-m00720.json: 10 rounds, 120 months, no seat actions: total 9.4 ms, per round p50 0.88 ms p95 1.45 ms max 1.45 ms, per month 0.078 ms
+riverland-m00720.json: 10 rounds, 120 months, with native policy: total 67.7 ms, per round p50 6.78 ms p95 7.66 ms max 7.66 ms, per month 0.564 ms
+riverland-m01440.json: 10 rounds, 120 months, no seat actions: total 36.1 ms, per round p50 3.61 ms p95 4.12 ms max 4.12 ms, per month 0.301 ms
+riverland-m01440.json: 10 rounds, 120 months, with native policy: total 138.6 ms, per round p50 13.75 ms p95 15.16 ms max 15.16 ms, per month 1.155 ms
+riverland-m02160.json: 10 rounds, 120 months, no seat actions: total 40.7 ms, per round p50 4.01 ms p95 4.74 ms max 4.74 ms, per month 0.339 ms
+riverland-m02160.json: 10 rounds, 120 months, with native policy: total 165.8 ms, per round p50 16.74 ms p95 19.02 ms max 19.02 ms, per month 1.382 ms

@@ -121,10 +121,15 @@ async function selectRegion(id) {
   return true;
 }
 
+/** Wait until the top bar shows a round after `before` (the date plate carries the round it shows). */
+async function waitRoundAfter(before) {
+  await page.waitForFunction((b) => Number(document.querySelector('.topbar-date')?.getAttribute('data-round') ?? 0) > b, before, { timeout: 30000 });
+}
+
 async function endRound() {
   const before = (await getMatch()).round;
   await clickAndSettle(tid('end-round'), { expect: '/api/ready' });
-  await page.waitForFunction((b) => document.querySelector('[data-testid="year"]')?.textContent !== `Year ${b}`, before, { timeout: 15000 });
+  await waitRoundAfter(before);
   await clearToasts();
 }
 
@@ -156,8 +161,19 @@ async function partA(browser) {
   await page.click(tid('menu-new-match'));
   await page.waitForSelector(tid('setup-screen'));
   await page.fill(tid('setup-seed'), 'smoke-atlas');
-  await page.click(tid('setup-regions-24'));
-  await page.click(tid('setup-length-standard'));
+  // Seats by map preset (design chapter 40): Huge takes six to ten civilizations.
+  await page.click(tid('setup-world-earth_like'));
+  await page.click(tid('setup-regions-200'));
+  while (Number(await page.textContent(tid('setup-seat-count'))) < 10) await page.click(tid('setup-seats-plus'));
+  assert(await page.isDisabled(tid('setup-seats-plus')), 'ten seats is the most a Huge map takes');
+  assert((await page.locator('[data-testid^="setup-seat-"][data-testid$="-remove"]').count()) === 10, 'ten seat cards with their controls');
+  await shot('01a-setup-ten-seats');
+  // Small takes two or three: the list shrinks from the end, keeping the human seat.
+  await page.click(tid('setup-regions-30'));
+  assert(Number(await page.textContent(tid('setup-seat-count'))) === 3, 'a Small map keeps three seats');
+  assert(await page.isDisabled(tid('setup-seats-plus')), 'three seats is the most a Small map takes');
+  assert(await page.locator(tid('setup-seat-0-human') + '[aria-checked="true"]').count() === 1, 'the human seat is kept');
+  await page.click(tid('setup-calendar-standard'));
   await page.click(tid('setup-objective-discovery'));
   await shot('01-setup');
   const created = page.waitForResponse((r) => r.url().endsWith('/api/match') && r.request().method() === 'POST');
@@ -167,6 +183,11 @@ async function partA(browser) {
   await page.waitForTimeout(500);
   let obs = await getObs();
   assert(obs.round === 1 && obs.phase === 'contact', 'fresh match starts in round 1, contact phase');
+  assert((await getMatch()).seats.length === 3 && obs.world.region_count === 30 && obs.world.wrap_x === true, 'a Small Earth-like world with three civilizations');
+  assert(obs.calendar?.rounds === 525 && obs.date?.year === -5000, 'the standard calendar from 5000 BC');
+  assert((await page.textContent(tid('year'))) === '5000 BC', 'the top bar shows the historical year');
+  const span = await page.textContent(tid('dock-span'));
+  assert(span.includes('5000') && span.includes('4950 BC') && span.includes('of 525'), `the dock shows the round's span and count (${span})`);
   const capital = obs.civ.capital;
   assert((await page.textContent(tid('civ-name'))) === obs.civ.name, 'top bar shows the civilization name');
   await shot('02-main-briefing-round1');
@@ -215,6 +236,31 @@ async function partA(browser) {
   const after = obs.civ.policies.labor_weights.find((w) => w[0] === 'industry')[1];
   assert(after === before + 1, `industry labour weight ${before} -> ${after}`);
   await clickAndSettle(tid('food-reserve-inc'));
+
+  // Standing orders (ruleset 3.0): automatic research and a build target, reordered and removed.
+  await closePanel();
+  await page.keyboard.press('o');
+  await page.waitForSelector(tid('overlay-orders'));
+  assert((await page.textContent(tid('orders-explain'))).includes('every year'), 'the overlay says standing orders act year by year in a long round');
+  await page.click(tid('orders-add-auto'));
+  await clickAndSettle(tid('orders-auto-toggle'));
+  obs = await getObs();
+  assert(obs.directives.some((d) => d.directive.kind === 'auto_research' && d.directive.on), 'automatic research is a standing order');
+  await page.click(tid('orders-add-build'));
+  await page.selectOption(tid('orders-build-region'), String(capital));
+  await clickAndSettle(tid('orders-build-add'));
+  obs = await getObs();
+  const target = obs.directives.find((d) => d.directive.kind === 'build_target');
+  assert(target, 'a build target is a standing order');
+  await page.waitForSelector(tid(`order-${target.id}`));
+  await shot('08a-standing-orders');
+  await clickAndSettle(tid(`order-${target.id}-up`));
+  obs = await getObs();
+  assert(obs.directives[0].id === target.id, 'a standing order can be moved earlier');
+  await clickAndSettle(tid(`order-${target.id}-remove`));
+  obs = await getObs();
+  assert(!obs.directives.some((d) => d.id === target.id), 'a standing order can be removed');
+  await page.click(tid('overlay-close'));
 
   // A rejection must be surfaced: no teaching venue exists yet.
   await openPanel('people');
@@ -390,6 +436,9 @@ async function partA(browser) {
   }
 
   obs = await getObs();
+  const auto = obs.directives.find((d) => d.directive.kind === 'auto_research');
+  assert(auto && auto.last_result && auto.last_month > 0, `the automatic research order reports what it did (${auto?.last_status}: ${auto?.last_result})`);
+  assert((await page.textContent(tid('year'))) === (obs.date.year < 0 ? `${-obs.date.year} BC` : `AD ${obs.date.year}`), 'the top bar follows the calendar');
   note(`after ${obs.round - 1} rounds: pop ${obs.civ.population}, regions governed ${obs.regions.filter((r) => r.own).length}, known ${obs.regions.length}, techs ${obs.knowledge.techs.length}, practices ${obs.culture.practices.length}, projects ${obs.projects.length}, programmes ${obs.programs.length}, armies ${obs.armies.length}, chronicle ${obs.chronicle.length}, briefing ${obs.briefing.length}, others ${obs.others.length}`);
   note(`projects: ${obs.projects.map((p) => `${p.kind} ${Math.round((100 * p.work_done) / Math.max(1, p.work_needed))}%${p.blockers.length ? ' [' + p.blockers[0] + ']' : ''}`).join('; ')}`);
   note(`done: leads ${done.leads}, research ${done.research}, reforms ${done.reforms}, builds ${done.builds.join(',')}, programmes ${[...done.programmes].join(',')}, surveyed ${done.surveyed.size}, settled ${done.settled}, recruited ${done.recruited}`);
@@ -654,10 +703,17 @@ async function partB() {
   for (const kind of ['subordination', 'peace', 'defensive_pact', 'practice', 'knowledge']) {
     await page.click(`${tid(`clause-${kind}`)} .clause-head .linklike`);
   }
-  await page.selectOption(tid('clause-kind'), 'cede_region');
-  await page.click(tid('clause-add'));
-  assert(await page.$(tid('clause-cede_region')), 'clause builder offers cede_region');
-  await page.click(`${tid('clause-cede_region')} .clause-head .linklike`);
+  // the ninth to eleventh: cession, and the cooperation clauses of ruleset 2.0 (secondment, joint programme)
+  for (const kind of ['cede_region', 'secondment', 'joint_programme']) {
+    await page.selectOption(tid('clause-kind'), kind);
+    await page.click(tid('clause-add'));
+    assert(await page.$(tid(`clause-${kind}`)), `clause builder offers ${kind}`);
+  }
+  // terms are bounded by the round (a round of fifty years: 600 to 1,800 months) or open-ended
+  assert(await page.$(`${tid('clause-non_aggression')} ${tid('clause-term-open')}`), 'a non-aggression pact may run until notice');
+  await page.click(`${tid('clause-non_aggression')} ${tid('clause-term-open')}`);
+  await shot('75a-treaty-composer-cooperation');
+  for (const kind of ['cede_region', 'secondment', 'joint_programme']) await page.click(`${tid(`clause-${kind}`)} .clause-head .linklike`);
   await page.fill(tid('proposal-text'), 'Food now, maps both ways would be better, and five years of quiet between us.');
   await shot('75-treaty-composer-ready');
   rec = (await clickAndSettle(tid('proposal-send'))).receipts[0];
@@ -665,7 +721,7 @@ async function partB() {
   assert(rec.status === 'accepted', 'proposal accepted: ' + rec.reason);
   await clearToasts();
   // The other seat proposes something of its own.
-  const r1 = await apiAct(1, { kind: 'propose_treaty', to: 0, clauses: [{ kind: 'maps', from: 1 }, { kind: 'goods', from: 0, good: 'tools', amount_per_month: 5000, months: 1 }], text: 'Our maps for a few of your tools.' });
+  const r1 = await apiAct(1, { kind: 'propose_treaty', to: 0, clauses: [{ kind: 'maps', from: 1 }, { kind: 'goods', from: 0, good: 'tools', amount_per_month: 5000, months: 1 }, { kind: 'non_aggression', months: 0 }], text: 'Our maps for a few of your tools, and peace until either of us gives notice.' });
   assert(r1.receipts[0].status === 'accepted', 'seat 1 proposal accepted: ' + r1.receipts[0].reason);
   await nextWindow(3);
 
@@ -688,7 +744,10 @@ async function partB() {
   await shot('77-treaties-signed');
 
   // Withdraw / decline paths.
-  await apiAct(1, { kind: 'propose_treaty', to: 0, clauses: [{ kind: 'non_aggression', months: 120 }], text: null });
+  const r2 = await apiAct(1, { kind: 'propose_treaty', to: 0, clauses: [{ kind: 'non_aggression', months: 600 }], text: null });
+  assert(r2.receipts[0].status === 'accepted', 'a term of one round is accepted: ' + r2.receipts[0].reason);
+  const r3 = await apiAct(1, { kind: 'propose_treaty', to: 0, clauses: [{ kind: 'non_aggression', months: 120 }], text: null });
+  assert(r3.receipts[0].status !== 'accepted', 'a term shorter than the round is refused');
   await page.click(tid('compose-open'));
   await page.selectOption(tid('clause-kind'), 'maps');
   await page.click(tid('clause-add'));
@@ -714,7 +773,7 @@ async function partB() {
   if (await page.$(tid('handover-continue'))) await page.click('.overlay .btn-ghost');
   const roundBefore = (await getMatch()).round;
   await apiReady(1, true);
-  await page.waitForFunction((b) => document.querySelector('[data-testid="year"]')?.textContent !== `Year ${b}`, roundBefore, { timeout: 15000 });
+  await waitRoundAfter(roundBefore);
   if (await page.$(tid('handover-continue'))) await page.click('.overlay .btn-ghost');
   await clearToasts();
   await shot('79-briefing-after-diplomacy-round');
@@ -723,6 +782,19 @@ async function partB() {
   await page.waitForSelector(tid('counterpart-view'));
   await page.locator('.drawer-body').evaluate((el) => el.scrollTo(0, el.scrollHeight));
   await shot('80-treaty-performance');
+  // War policy: accept an armistice after four years without ground changing hands.
+  await page.fill(tid('war-policy-months'), '48');
+  await clickAndSettle(tid('war-policy-set'));
+  const wp = (await getObs()).civ.policies.war_policies ?? [];
+  assert(wp.some((p) => p.seat === 1 && p.accept_white_peace_after_months === 48), 'the war policy is recorded');
+  // An open-ended clause can be ended by notice, without a breach.
+  if (await page.$(tid('treaty-notice'))) {
+    await page.locator(tid('treaty-notice')).first().click();
+    rec = (await clickAndSettle(tid('treaty-notice-confirm'))).receipts[0];
+    note(`notice -> ${rec.status}: ${rec.reason}`);
+    assert(rec.status === 'accepted', 'notice accepted');
+    await clearToasts();
+  } else note('no treaty with open-ended clauses was in force to give notice on');
   if (await page.$(tid('treaty-break'))) {
     await page.locator(tid('treaty-break')).first().click();
     rec = (await clickAndSettle(tid('treaty-break-confirm'))).receipts[0];
@@ -924,7 +996,7 @@ async function partE() {
   await page.waitForSelector(tid('map-canvas'));
   await page.waitForTimeout(300);
   assert((await getMatch()).round === 1, 'loading the save restored round 1');
-  assert((await page.textContent(tid('year'))) === 'Year 1', 'the interface shows the loaded match');
+  assert((await page.textContent(tid('year'))) === '5000 BC', 'the interface shows the loaded match');
 }
 
 // =====================================================================================

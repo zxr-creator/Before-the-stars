@@ -10,10 +10,15 @@ export type SeatId = number;
 export type RegionId = number;
 export type Month = number;
 
+/** bts-protocol/2.0 (ruleset 3.0): fifty goods; 'minerals' retired. */
 export type Good =
-  | 'food' | 'materials' | 'tools' | 'copper_ore' | 'iron_ore' | 'coal' | 'crude' | 'minerals'
+  | 'food' | 'materials' | 'tools' | 'copper_ore' | 'iron_ore' | 'coal' | 'crude'
   | 'copper' | 'metal' | 'components' | 'conductors' | 'insulation' | 'fuel' | 'chemicals'
-  | 'substrate' | 'electronics' | 'hardware' | 'spares' | 'media' | 'instruments' | 'medicine';
+  | 'substrate' | 'electronics' | 'hardware' | 'spares' | 'media' | 'instruments' | 'medicine'
+  | 'timber' | 'fibres' | 'horses' | 'salt' | 'spices' | 'precious' | 'tin' | 'saltpetre' | 'gas'
+  | 'bauxite' | 'uranium_ore' | 'rare_earths' | 'lithium' | 'cobalt_nickel' | 'quartz' | 'helium'
+  | 'aluminium' | 'fertilizer' | 'munitions' | 'magnets' | 'batteries' | 'nuclear_fuel'
+  | 'textiles' | 'consumer_goods' | 'fine_wares' | 'lattice' | 'volatiles' | 'propellant' | 'helium3';
 
 export type Qual =
   | 'lorekeeper' | 'artisan' | 'agronomist' | 'tallier' | 'smith' | 'builder' | 'navigator'
@@ -22,17 +27,45 @@ export type Qual =
   | 'ftl_engineer';
 
 export type Terrain = 'plains' | 'hills' | 'mountains' | 'forest' | 'marsh' | 'steppe' | 'desert' | 'tundra';
-export type Deposit = 'copper_ore' | 'iron_ore' | 'coal' | 'crude' | 'minerals';
+/** Climate zone of a region (generator 2.0). */
+export type ClimateZone = 'tropical' | 'arid' | 'temperate' | 'continental' | 'polar';
+/** Kind of home world (design chapter 37, section 5). */
+export type WorldKind = 'earth_like' | 'classic';
+/** bts-protocol/2.0: seventeen deposits; 'minerals' retired. */
+export type Deposit =
+  | 'copper_ore' | 'iron_ore' | 'coal' | 'crude' | 'tin' | 'salt' | 'saltpetre' | 'precious' | 'gas'
+  | 'bauxite' | 'uranium_ore' | 'rare_earths' | 'lithium' | 'cobalt_nickel' | 'quartz' | 'volatiles' | 'helium3';
+/** Site bonuses of a region (bts-protocol/2.0). */
+export type Bonus = 'floodplain' | 'fish_banks' | 'wild_herds' | 'old_growth' | 'rich_pasture';
 export type Role = 'assault' | 'maneuver' | 'denial';
 export type ResearchClass = 'craft' | 'scholarly' | 'scientific' | 'industrial' | 'advanced' | 'frontier';
 export type KnowledgeState = 'hinted' | 'discovered' | 'investigating' | 'understood' | 'prototyped' | 'adopted';
 export type PracticeState = 'recognized' | 'reforming' | 'enacted' | 'established';
 export type LaborCategory = 'extraction' | 'industry' | 'services' | 'knowledge' | 'construction';
+/** Economic sectors of labour productivity (bts-protocol/2.0, ruleset 3.0 slice 6). */
+export type Sector = 'food' | 'extraction' | 'industry' | 'services' | 'knowledge' | 'construction';
+
+/** One factor of productivity, named by its source (bts-protocol/2.0). */
+export interface FactorView {
+  /** "education", "culture", "religion", "technology", "city", "health", "automation" or "land". */
+  source: string;
+  bp: number;
+  detail: string;
+}
+
+/** Labour productivity of one sector in a region (bts-protocol/2.0). */
+export interface ProductivityView {
+  sector: Sector;
+  /** Product of the factors (automation excluded), 5,000-40,000 bp. */
+  total_bp: number;
+  factors: FactorView[];
+  posts_saved: number;
+}
 export type Phase = 'contact' | 'negotiate' | 'plan' | 'finished';
 export type SeatStatus = 'active' | 'eliminated' | 'forfeited';
 export type ControllerKind = 'human' | 'external' | 'native_easy' | 'native_medium' | 'native_hard';
 export type Visibility = 'own' | 'visible' | 'remembered';
-export type SettlementKind = 'wilderness' | 'camp' | 'village' | 'town' | 'city' | 'metropolis';
+export type SettlementKind = 'wilderness' | 'camp' | 'village' | 'town' | 'city' | 'metropolis' | 'megalopolis';
 export type Intent = 'inquiry' | 'quotation' | 'counteroffer' | 'claim' | 'need' | 'warning' | 'alliance_proposal';
 export type Epistemic = 'verified' | 'reported' | 'estimated' | 'forecast' | 'unknown';
 export type MomentCategory =
@@ -75,15 +108,99 @@ export interface Observation {
   units?: UnitsView;
   /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
   date?: HistoricalDate | null;
+  /** Ruleset 3.0 (bts-protocol/1.3): the round schedule and where this round sits in it. */
+  calendar?: CalendarView | null;
+  /** Ruleset 3.0: this seat's standing orders, in the order they are evaluated. */
+  directives?: DirectiveView[];
 }
 
 /** A historical year: negative is BC, positive AD; there is no year zero. */
-export interface HistoricalDate { year: number }
+export interface HistoricalDate {
+  year: number;
+  /** Month of the year, 1 (January) to 12 (bts-protocol/1.3). */
+  month?: number;
+  /** "5000 BC", "AD 1066" (bts-protocol/1.3). */
+  label?: string;
+}
+
+/** One segment of the round schedule (bts-protocol/1.3). */
+export interface CalendarSegment {
+  first_round: number;
+  last_round: number;
+  years_per_round: number;
+  /** Historical years (signed, no year zero) at the segment's start and end. */
+  from: number;
+  to: number;
+}
+
+/** The calendar of the match (design chapter 36, section 2.2; bts-protocol/1.3). */
+export interface CalendarView {
+  /** "standard", "quick" or "fixture". */
+  id: string;
+  start: HistoricalDate;
+  horizon: HistoricalDate;
+  horizon_month: Month;
+  /** Wins are scored from this date: reward 2 - (T - R)/(H - R), clamped to [1, 2]. */
+  reward_reference: HistoricalDate;
+  reward_reference_month: Month;
+  rounds: number;
+  round_months: number;
+  round_start: HistoricalDate;
+  round_end: HistoricalDate;
+  next_round_months: number;
+  /** Months the last resolved round lasted: the span of the round totals; 0 before the first. */
+  last_round_months: number;
+  segments: CalendarSegment[];
+}
+
+/** A standing order (design chapter 36, section 2.6; bts-protocol/1.3). */
+export type Directive =
+  | { kind: 'build_target'; region: RegionId; facility: string; levels: number; priority?: number | null }
+  | { kind: 'research_agenda'; techs: string[] }
+  | { kind: 'auto_research'; on: boolean }
+  | { kind: 'reform_agenda'; practices: string[] }
+  | { kind: 'settle_target'; from: RegionId; to: RegionId; people: number; when_crowd_bp: number };
+
+export type DirectiveOp = 'add' | 'remove' | 'move';
+
+export interface DirectiveView {
+  id: number;
+  directive: Directive;
+  /** What happened the last time it was evaluated (empty before then). */
+  last_result: string;
+  /** "acted", "idle", "skipped" or "" (not yet evaluated). */
+  last_status?: string;
+  last_month?: Month;
+}
+
+/** An epidemic in a region (bts-protocol/1.3). */
+export interface OutbreakView {
+  since: Month;
+  /** 1 (mild) to 3 (severe). */
+  severity_band: number;
+}
+
+/** Deaths of one cause over the last round (bts-protocol/1.3). */
+export interface DeathCount {
+  /** "age_and_illness", "hunger_and_crowding", "town_conditions", "epidemic" or "war". */
+  cause: string;
+  deaths: number;
+}
+
+/** A standing war policy toward one seat (bts-protocol/1.3). */
+export interface WarPolicyView {
+  seat: SeatId;
+  accept_white_peace_after_months: number | null;
+  accept_cession_max: number;
+}
 
 export interface WorldFrame {
   width: number;
   height: number;
   region_count: number;
+  /** The map wraps east-west: a polygon may extend past an edge and is drawn again one width over. */
+  wrap_x?: boolean;
+  kind?: WorldKind | null;
 }
 
 export interface MatchOutcome {
@@ -144,6 +261,8 @@ export interface Policies {
   food_reserve_months: number;
   labor_weights: [LaborCategory, number][];
   mobilization_bp: number;
+  /** bts-protocol/1.3: standing war policies, one per seat they name. */
+  war_policies?: WarPolicyView[];
 }
 
 export interface FactionView {
@@ -166,6 +285,8 @@ export interface OwnCiv {
   elders: number;
   births_last_round: number;
   deaths_last_round: number;
+  /** bts-protocol/1.3: the last round's deaths by cause; they add up to `deaths_last_round`. */
+  deaths_by_cause?: DeathCount[];
   migration_last_round: number;
   goods: GoodLine[];
   quals: QualCount[];
@@ -197,6 +318,13 @@ export interface DepositView {
   remaining: number;
   quality_bp: number;
   epistemic: Epistemic;
+  /** Gas fields: helium per 10,000 t of gas, to a seat that understands cryogenics. */
+  helium_bp?: number | null;
+}
+
+export interface BonusView {
+  kind: Bonus;
+  bp: number;
 }
 
 export interface SurveyView {
@@ -208,6 +336,9 @@ export interface SurveyView {
   water: number;
   hydro: number;
   deposits: DepositView[];
+  /** Levels of land fit for spice plantations (bts-protocol/2.0). */
+  spice_land?: number;
+  bonuses?: BonusView[];
   surveyed_month: Month;
   detailed: boolean;
 }
@@ -245,6 +376,14 @@ export interface FacilityView {
    * the land was worked by. (serde default)
    */
   active_method?: string | null;
+  /** Posts at the method's base, after shared support, after productivity (bts-protocol/2.0). */
+  posts_base?: number;
+  posts_after_scale?: number;
+  posts_after_productivity?: number;
+  productivity_bp?: number;
+  /** Land works: one level's yield and its factors. */
+  yield_per_level?: number;
+  yield_factors?: FactorView[];
 }
 
 export interface BlockView {
@@ -294,6 +433,8 @@ export interface OwnRegion {
   venues?: VenueSeats[];
   /** The region's shared infrastructure and what it saves or costs its works. (serde default) */
   infrastructure?: InfraView;
+  /** Labour productivity by sector (bts-protocol/2.0, ruleset 3.0 slice 6). */
+  productivity?: ProductivityView[];
 }
 
 export interface ForeignRegion {
@@ -321,6 +462,20 @@ export interface RegionView {
   own: OwnRegion | null;
   foreign: ForeignRegion | null;
   test_node: boolean;
+  /** bts-protocol/1.3: an epidemic, seen by the region's government and by seats observing it. */
+  outbreak?: OutbreakView | null;
+  /** Climate zone (generator 2.0). */
+  climate?: ClimateZone | null;
+  /** The principal city site and natural harbour (design chapter 38, section 2; public geography). */
+  city?: CitySiteView | null;
+}
+
+/** Where a region's principal city stands (design chapter 38, section 2.1). */
+export interface CitySiteView {
+  name: string;
+  /** Map position, in the frame of `RegionView.center` (may lie past an edge on a wrapped map). */
+  at: [number, number];
+  natural_harbour: boolean;
 }
 
 export interface ForeignCiv {
@@ -528,6 +683,10 @@ export interface FacilityType {
   build_power?: number;
   /** Minimum months of construction before any first-of-kind surcharge. (serde default) */
   build_months?: number;
+  /** Building line, stage and era (bts-protocol/2.0; design chapter 37, section 8.2). */
+  line?: string;
+  stage?: number;
+  era?: number;
 }
 
 export interface CourseType {
@@ -556,6 +715,10 @@ export interface UnitTier {
   training_months: number;
   requirements: KnownRequirement[];
   available: boolean;
+  /** Equipment generation G0-G7 (bts-protocol/2.0). */
+  generation?: number;
+  maneuver_extra?: GoodQty[];
+  alternative?: GoodQty[];
 }
 
 export interface CatalogView {
@@ -820,6 +983,8 @@ export interface ChronicleEntry {
   /** Vignette template key and palette seed, "key:n". */
   art: string;
   major: boolean;
+  /** bts-protocol/1.3: shown in the round recap (at most twelve moments a round, plus the era summary). */
+  recap?: boolean;
 }
 
 // --- Actions ---------------------------------------------------------------
@@ -858,16 +1023,19 @@ export type PolicySetting =
    * type's recipes that is `available`. For fields the choice is a ceiling. `method` null or
    * absent returns the choice to the works.
    */
-  | { kind: 'method'; region: RegionId; facility: string; method?: string | null };
+  | { kind: 'method'; region: RegionId; facility: string; method?: string | null }
+  /** bts-protocol/1.3: accept a white peace with `seat` after this many months of unchanged lines (null withdraws). */
+  | { kind: 'war_policy'; seat: SeatId; accept_white_peace_after_months?: number | null; accept_cession_max?: number };
 
 export type Action =
   | { kind: 'select_contacts'; seats: SeatId[] }
   | { kind: 'message'; to: SeatId; text: string; intent: Intent | null }
-  | { kind: 'propose_treaty'; to: SeatId; clauses: Clause[]; text: string | null }
+  | { kind: 'propose_treaty'; to: SeatId; clauses: AnyClause[]; text: string | null }
   | { kind: 'withdraw_offer'; offer: number }
   | { kind: 'sign_treaty'; offer: number }
   | { kind: 'decline_offer'; offer: number }
-  | { kind: 'break_treaty'; treaty: number }
+  /** With `notice` (bts-protocol/1.3) on a treaty with open-ended clauses: they end with the next round, nothing breached. */
+  | { kind: 'break_treaty'; treaty: number; notice?: boolean }
   | { kind: 'set_policy'; setting: PolicySetting }
   | { kind: 'start_project'; spec: ProjectSpec; priority: number | null }
   | { kind: 'manage_project'; project: number; op: ManageOp; priority: number | null; position?: number | null }
@@ -877,7 +1045,9 @@ export type Action =
   | { kind: 'manage_program'; program: number; op: ManageOp; seats: number | null }
   | { kind: 'demolish'; region: RegionId; facility: string; levels: number }
   | { kind: 'military_order'; army: number; order: ArmyOrder }
-  | { kind: 'forfeit' };
+  | { kind: 'forfeit' }
+  /** bts-protocol/1.3: add, remove or reorder a standing order. */
+  | { kind: 'directive'; op: DirectiveOp; id?: number | null; directive?: Directive | null; position?: number | null };
 
 export interface Receipt {
   round: number;
@@ -940,6 +1110,8 @@ export interface AgentInfo {
 export interface MatchSummary {
   /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
   date?: HistoricalDate | null;
+  /** bts-protocol/1.3: the round schedule. */
+  calendar?: CalendarView | null;
   exists: boolean;
   match_id?: string;
   seed?: string;
@@ -981,7 +1153,13 @@ export interface AgentOptions {
 
 export interface NewMatchRequest {
   seed?: string;
-  regions?: 24 | 48 | 72;
+  /** Map preset (design chapter 40): Small 30, Standard 60, Large 120, Huge 200; 90 is a test size; 24/48/72 earlier sizes. */
+  regions?: 30 | 60 | 90 | 120 | 200 | 24 | 48 | 72;
+  /** "earth_like" (the default generated planet) or "classic" (the flat map of ruleset 2.0). */
+  world?: WorldKind;
+  /** "standard" (525 rounds, 5000 BC to AD 2500) or "quick" (230 rounds on the same dates). */
+  calendar?: 'standard' | 'quick';
+  /** A fixture clock of twelve-month rounds ending at this month (tests); overrides `calendar`. */
   horizon?: number;
   pace_bp?: number;
   controllers?: SetupController[];
@@ -1057,6 +1235,8 @@ export interface SpectatorOutcome {
 export interface SpectatorView {
   /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
   date?: HistoricalDate | null;
+  /** bts-protocol/1.3: the round schedule. */
+  calendar?: CalendarView | null;
   match_id: string;
   month: Month;
   round: number;

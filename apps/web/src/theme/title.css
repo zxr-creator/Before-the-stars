@@ -152,9 +152,12 @@
 .summary-seats li { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
 .summary-seats b { font: 600 13.5px var(--serif); color: #fffaf0; }
 .summary-seats small { display: block; color: var(--cream-3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+.summary-seats.is-many { grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.summary-seats.is-many small { max-width: 120px; }
+.summary-seats.is-many b { font-size: 12.5px; }
 .summary-facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; margin-bottom: 12px; }
 .summary-facts dt { color: var(--cream-3); }
-.summary-facts dd { color: var(--cream); font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summary-facts dd { color: var(--cream); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .summary-card .setup-actions { margin-top: 0; flex-direction: column; align-items: stretch; gap: 8px; }
 .summary-card .btn-primary { width: 100%; min-height: 46px; font-size: 16px; }
 .summary-card .btn-ghost { color: var(--cream-2); }

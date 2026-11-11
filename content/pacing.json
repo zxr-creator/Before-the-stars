@@ -1,0 +1,187 @@
+{
+  "_doc": "Knowledge pacing of ruleset 3.0 (design chapter 36, section 2.7). Read by crates/bts-engine/src/content.rs at load; no technology id is paced in code. 'tiers' gives, per graph tier, the evidence at which a node becomes a lead (hint; discovered at 2.5 x hint), the research work in thousands of researcher-months and the minimum months of an investigation. 'eras' are pacing classes for nodes whose graph tier misplaces them in history: each has its own hint threshold and the median-seat target window (historical years, negative = BC) its threshold was calibrated for. 'nodes' assigns a node to an era and may also give the tier and evidence tags of a node the code does not know (nodes added to content/technologies.json later); a node absent here is paced by its tier.",
+  "map_scale": {
+    "_doc": "Larger maps hold larger civilizations with more practitioners and more research posts. Evidence thresholds (technologies and practices) and research and reform work are multiplied by 1 + bp x (regions - reference) / reference / 10,000: work with the expected research capacity (about +25% on 60 regions), evidence with practitioner activity, which grows as the square root of the people engaged (about half as fast).",
+    "reference_regions": 48,
+    "evidence_bp": -2000,
+    "work_bp": 0
+  },
+  "tiers": [
+    {
+      "tier": 0,
+      "hint": 1000000,
+      "work_k": 50,
+      "min_months": 120
+    },
+    {
+      "tier": 1,
+      "hint": 4000000,
+      "work_k": 300,
+      "min_months": 180
+    },
+    {
+      "tier": 2,
+      "hint": 6000000,
+      "work_k": 1000,
+      "min_months": 120
+    },
+    {
+      "tier": 3,
+      "hint": 800000,
+      "work_k": 2000,
+      "min_months": 60
+    },
+    {
+      "tier": 4,
+      "hint": 600000,
+      "work_k": 2000,
+      "min_months": 36
+    },
+    {
+      "tier": 5,
+      "hint": 640000,
+      "work_k": 4000,
+      "min_months": 30
+    },
+    {
+      "tier": 6,
+      "hint": 800000,
+      "work_k": 6000,
+      "min_months": 30
+    },
+    {
+      "tier": 7,
+      "hint": 900000,
+      "work_k": 12000,
+      "min_months": 30
+    },
+    {
+      "tier": 8,
+      "hint": 1100000,
+      "work_k": 20000,
+      "min_months": 36
+    },
+    {
+      "tier": 9,
+      "hint": 1100000,
+      "work_k": 30000,
+      "min_months": 36
+    }
+  ],
+  "eras": {
+    "classical": {
+      "hint": 14000000,
+      "target": [
+        -1500,
+        300
+      ]
+    },
+    "late_antiquity": {
+      "hint": 20000000,
+      "target": [
+        300,
+        800
+      ]
+    },
+    "medieval": {
+      "hint": 14000000,
+      "target": [
+        800,
+        1200
+      ]
+    },
+    "high_medieval": {
+      "hint": 10000000,
+      "target": [
+        1100,
+        1400
+      ]
+    },
+    "renaissance": {
+      "hint": 16000000,
+      "target": [
+        1350,
+        1550
+      ]
+    },
+    "early_modern": {
+      "hint": 8000000,
+      "target": [
+        1550,
+        1700
+      ]
+    },
+    "scientific_method": {
+      "hint": 6000000,
+      "target": [
+        1550,
+        1700
+      ]
+    }
+  },
+  "nodes": {
+    "T023": {
+      "era": "classical"
+    },
+    "T027": {
+      "era": "classical"
+    },
+    "T028": {
+      "era": "classical"
+    },
+    "T029": {
+      "era": "classical"
+    },
+    "T033": {
+      "era": "classical"
+    },
+    "T035": {
+      "era": "classical"
+    },
+    "T030": {
+      "era": "late_antiquity"
+    },
+    "T031": {
+      "era": "medieval"
+    },
+    "T034": {
+      "era": "medieval"
+    },
+    "T036": {
+      "era": "high_medieval"
+    },
+    "T041": {
+      "era": "high_medieval"
+    },
+    "T040": {
+      "era": "high_medieval"
+    },
+    "T045": {
+      "era": "high_medieval"
+    },
+    "T047": {
+      "era": "high_medieval"
+    },
+    "T037": {
+      "era": "early_modern"
+    },
+    "T044": {
+      "era": "early_modern"
+    },
+    "T046": {
+      "era": "early_modern"
+    },
+    "T048": {
+      "era": "renaissance"
+    },
+    "T042": {
+      "era": "early_modern"
+    },
+    "T043": {
+      "era": "early_modern"
+    },
+    "T049": {
+      "era": "scientific_method"
+    }
+  }
+}

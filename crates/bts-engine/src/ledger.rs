@@ -54,6 +54,11 @@ pub struct RegionLedger {
     /// Workers called up for projects last month and the work projects accepted from them.
     pub project_workers: u32,
     pub project_work_done: i64,
+    /// The month's construction factor (basis points; 0 = before ruleset 3.0 slice 6, one).
+    pub construction_bp: u16,
+    /// Works whose posts last month were not the productivity formula with the
+    /// month's factors, or whose factors were out of bounds (ruleset 3.0 slice 6).
+    pub posts_off: Vec<String>,
     /// People reserved as site crews by the orders sited here. They are among the
     /// workers called up, and hold no other post.
     pub site_crew: u32,
@@ -91,15 +96,38 @@ pub struct LedgerSnapshot {
     pub people: u64,
 }
 
-/// The good a deposit yields.
-pub fn deposit_good(d: Deposit) -> Good {
-    match d {
-        Deposit::CopperOre => Good::CopperOre,
-        Deposit::IronOre => Good::IronOre,
-        Deposit::Coal => Good::Coal,
-        Deposit::Crude => Good::Crude,
-        Deposit::Minerals => Good::Minerals,
+pub use crate::content::deposit_good;
+
+/// Works of a region whose posts are not what productivity allows (design chapter
+/// 36, section 4.4): `skilled / LPq + general x (1 - shared support) / LP`, each
+/// rounded up, with `LP` in 5,000-40,000 and `LPq` in 10,000-15,000.
+fn posts_off(r: &Region) -> Vec<String> {
+    use crate::sim::productivity::{general_posts_for, qualified_posts_for, LPQ_MAX, LP_MAX, LP_MIN};
+    let c = content();
+    let mut out = Vec::new();
+    if r.last.seat.is_none() {
+        return out;
     }
+    for f in r.facilities.iter().filter(|f| f.enabled && f.level > 0 && f.staff_needed > 0 && f.lp_bp > 0) {
+        let def = &c.facilities[f.kind];
+        let (lp, lpq) = (f.lp_bp as i64, f.lpq_bp as i64);
+        if !(LP_MIN..=LP_MAX).contains(&lp) || !(10_000..=LPQ_MAX).contains(&lpq) {
+            out.push(format!("{}: productivity {lp}/{lpq} out of bounds", def.key));
+            continue;
+        }
+        let rec = f.run.as_ref().and_then(|run| def.recipes.get(run.recipe));
+        let lv = f.staff_level as u32;
+        let skilled: u32 = def.skilled.iter().chain(rec.iter().flat_map(|x| x.extra_skilled.iter())).map(|(_, n)| qualified_posts_for(*n * lv, lpq)).sum();
+        let saving = f.staff_saving_bp;
+        if saving as i64 > crate::sim::economy::SUPPORT_SAVING_CAP_BP {
+            out.push(format!("{}: shared support saved {saving} bp", def.key));
+        }
+        let general = general_posts_for(def.general, lv, rec.map(|x| x.general_bp).unwrap_or(10_000), saving, lp);
+        if f.staff_needed != skilled + general {
+            out.push(format!("{}: {} posts where productivity allows {}", def.key, f.staff_needed, skilled + general));
+        }
+    }
+    out
 }
 
 pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
@@ -151,6 +179,8 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
             power: r.last.power.clone(),
             project_workers: r.last.labor.projects,
             project_work_done: r.last.project_work_done,
+            construction_bp: r.last.construction_bp,
+            posts_off: posts_off(r),
             // the crews were reserved by the seat whose economy ran the month here
             site_crew: r.last.seat.map(|s| w.civs[s as usize].projects.iter().filter(|p| p.region == Some(ri as RegionId)).map(|p| p.crew_counts().1).sum()).unwrap_or(0),
             labor: r.last.labor.clone(),
@@ -159,8 +189,12 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
                 let mut cap = vec![0i64; NG];
                 for f in &r.facilities {
                     if let Some(rec) = f.run.as_ref().and_then(|run| c.facilities[f.kind].recipes.get(run.recipe).map(|rec| (rec, run.rate_bp as i64))) {
+                        // a land works grows up to the land's yield on its recipe, never
+                        // more than twice it (design chapter 36, section 4.1)
+                        let def = &c.facilities[f.kind];
+                        let land_bp = if def.land { crate::sim::economy::land_yield_bp(r, def).min(20_000) } else { 10_000 };
                         for (g, a) in &rec.0.outputs {
-                            cap[g.index()] += a * f.level as i64 * rec.1 / 10_000;
+                            cap[g.index()] += a * f.level as i64 * rec.1 / 10_000 * land_bp / 10_000;
                         }
                     }
                 }
@@ -335,7 +369,12 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
         } else if *p != PowerLedger::default() {
             out.push(format!("{name}: a service account nobody ran {p:?}"));
         }
-        if r.project_work_done > r.project_workers as i64 || r.project_work_done < 0 {
+        for o in &r.posts_off {
+            out.push(format!("{name}: {o}"));
+        }
+        // a called-up worker supplies at most the month's construction factor (<= 1.5)
+        let factor = (r.construction_bp as i64).clamp(10_000, crate::sim::productivity::CONSTRUCTION_MAX);
+        if r.project_work_done > r.project_workers as i64 * factor / 10_000 || r.project_work_done < 0 {
             out.push(format!("{name}: projects accepted {} worker-months from {} called-up workers", r.project_work_done, r.project_workers));
         }
         // site crews are people called up for projects, and nobody holds two roles
@@ -445,7 +484,9 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
     }
     for d in Deposit::ALL {
         let g = deposit_good(*d).index();
-        if made[g] != delivered[g] {
+        // salt also comes from coastal pans (renewable): there the deposits are only part of it
+        let mismatch = if *d == Deposit::Salt { made[g] < delivered[g] } else { made[g] != delivered[g] };
+        if mismatch {
             out.push(format!("{at}: {:?}: {} was booked as produced but the deposits delivered {}", Good::from_index(g), made[g], delivered[g]));
         }
     }

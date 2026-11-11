@@ -3,7 +3,7 @@
 // are no empty slots, counts or silhouettes for anything not yet discovered.
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { KnowledgeState, Lead, Observation, TechCard } from '../protocol';
-import { KSTATE_LABEL, KSTATE_ORDER, RESEARCH_LABEL, fmtDate, pct, researchMonths, tcAll, tcChecks, tn, tx, yearOf } from '../format';
+import { KSTATE_LABEL, KSTATE_ORDER, RESEARCH_LABEL, fmtDate, fmtYear, pct, researchMonths, tcAll, tcChecks, tn, tx, yearOf } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { ActionNote, Badge, Btn, Checklist, Empty, Est, Meter, Section, Tabs, Why, cx, work } from '../ui';
@@ -11,6 +11,7 @@ import type { Tone } from '../ui';
 import { act, consumeIntent, setWide, useApp } from '../store';
 import { StudyForm } from './projects';
 import { LorePassage } from '../lore';
+import { OrdersLink } from './orders';
 
 type View = 'frontier' | 'graph' | 'implementation' | 'history';
 
@@ -108,6 +109,7 @@ function Frontier({ obs, onOpen }: { obs: Observation; onOpen: (h: string) => vo
   return (
     <>
       <p class="panel-lede">{t('Current questions and clues. Nothing here promises a result: a lead may come to little, and a question may need knowledge nobody has named yet.')}</p>
+      <p class="orders-row"><OrdersLink obs={obs} section="research" /> <small class="muted">{t('A research agenda and automatic research keep capacity busy year by year inside long rounds.')}</small></p>
       {cap.length ? (
         <p class="cap-inline">
           {cap.map((l, i) => <span>{i ? ' · ' : ''}{tx('{label}: {used}/{capacity} {unit}', { label: t(RESEARCH_LABEL[l.class]), used: <b>{work(l.used)}</b>, capacity: work(l.capacity), unit: <small>{t('researcher-months a month in use')}</small> })}</span>)}
@@ -364,7 +366,7 @@ function History({ techs, leads, onOpen }: { techs: TechCard[]; leads: Lead[]; o
       <ol class="history">
         {years.map((y) => (
           <li class="history-year">
-            <span class="history-when">{t('Year {y}', { y: y.year })}</span>
+            <span class="history-when">{fmtYear((y.year - 1) * 12)}</span>
             <ul>
               {y.items.map((e) => (
                 <li class={cx('history-ev', 'ev-' + e.kind)}>

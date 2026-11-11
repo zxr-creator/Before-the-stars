@@ -4,7 +4,9 @@
 //! [`Match::observe`] and [`Match::act`]; nothing else leaves this crate.
 
 pub mod actions;
+pub mod calendar;
 pub mod content;
+pub mod curve;
 pub mod ledger;
 pub mod observe;
 pub mod sim;
@@ -25,11 +27,14 @@ pub struct Match {
     /// Referee-side books kept while a conservation audit is running; never saved
     /// and never shown to a seat.
     ledger_trace: Option<Vec<ledger::LedgerSnapshot>>,
+    /// Calibration curve kept while recording (`curve::CurveRecorder`); never saved
+    /// and never shown to a seat.
+    curve: Option<curve::CurveRecorder>,
 }
 
 impl Match {
     pub fn new(cfg: MatchConfig, entropy: u64) -> Match {
-        Match { world: worldgen::generate(cfg, entropy), ledger_trace: None }
+        Match { world: worldgen::generate(cfg, entropy), ledger_trace: None, curve: None }
     }
 
     /// The whole world's books at this moment. Referee-level disclosure for
@@ -52,6 +57,37 @@ impl Match {
             Some(t) => std::mem::take(t),
             None => Vec::new(),
         }
+    }
+
+    /// Start (or stop) recording the calibration curve: one row per seat at the
+    /// start of every decade resolved from now on (and now, if this is one).
+    /// Referee-level disclosure for calibration only.
+    pub fn record_curve(&mut self, on: bool) {
+        self.curve = if on {
+            let mut rec = self.curve.take().unwrap_or_else(|| curve::CurveRecorder::new(&self.world));
+            rec.sample_if_due(&self.world);
+            Some(rec)
+        } else {
+            None
+        };
+    }
+
+    /// The curve rows recorded since the last call, oldest first.
+    pub fn take_curve(&mut self) -> Vec<curve::CurveRow> {
+        match self.curve.as_mut() {
+            Some(c) => std::mem::take(&mut c.rows),
+            None => Vec::new(),
+        }
+    }
+
+    /// The calendar as every seat sees it (public scenario information).
+    pub fn calendar_view(&self) -> CalendarView {
+        observe::calendar_view(&self.world)
+    }
+
+    /// The historical date of the month about to be simulated.
+    pub fn date(&self) -> DateView {
+        observe::date_view(&self.world.cfg, self.world.month)
     }
 
     pub fn config(&self) -> &MatchConfig {
@@ -159,17 +195,29 @@ impl Match {
                 // receipts of the round being resolved stay readable through the next round,
                 // so orders given late (including a steward's) can still be reviewed
                 let round = w.round;
-                for c in w.civs.iter_mut() {
+                for s in 0..w.civs.len() {
+                    let pop = w.civ_population(s as SeatId) as u64;
+                    let c = &mut w.civs[s];
                     c.briefing.clear();
+                    c.tallies.clear();
+                    c.round_start_pop = pop;
                     c.receipts.retain(|r| r.round >= round);
                 }
                 if let Some(trace) = self.ledger_trace.as_mut() {
                     trace.push(ledger::snapshot(w, true));
                 }
-                for _ in 0..w.cfg.months_per_round {
+                let months = w.cfg.round_months(w.round);
+                w.round_start = w.month;
+                for _ in 0..months {
+                    if let Some(c) = self.curve.as_mut() {
+                        c.before_month(w);
+                    }
                     sim::step_month(w);
                     if let Some(trace) = self.ledger_trace.as_mut() {
                         trace.push(ledger::snapshot(w, false));
+                    }
+                    if let Some(c) = self.curve.as_mut() {
+                        c.after_month(w);
                     }
                     if w.outcome.is_some() {
                         break;
@@ -229,11 +277,13 @@ impl Match {
         let running = content::RULESET_VERSION;
         match head.versions.first() {
             Some(v) if v == running => {}
+            Some(v) if v.starts_with("bts-rules/3.") => return Err(format!("this save was written by ruleset {v}, an earlier development build of ruleset 3.0; this build runs {running} and cannot load it: the world, the goods and productivity differ")),
+            Some(v) if v.starts_with("bts-rules/2.") => return Err(format!("this save was written by ruleset {v}; this build runs {running} and cannot load it: the calendar, the goods and the population rules differ")),
             Some(v) => return Err(format!("this save was written by ruleset {v}; this build runs {running} and cannot load it: people, posts and goods are counted in different units")),
             None => return Err(format!("this save does not record the ruleset that wrote it; this build runs {running} and cannot load it")),
         }
         let world: World = serde_json::from_str(s).map_err(|e| e.to_string())?;
-        Ok(Match { world, ledger_trace: None })
+        Ok(Match { world, ledger_trace: None, curve: None })
     }
 
     /// Referee-side diagnostics for headless evaluation. Never exposed to seats.
@@ -271,7 +321,7 @@ pub struct SeatDiagnostics {
     pub seat: SeatId,
     pub name: String,
     pub status: SeatStatus,
-    pub population: u32,
+    pub population: u64,
     pub regions: usize,
     pub understood: usize,
     pub highest_tier: u8,

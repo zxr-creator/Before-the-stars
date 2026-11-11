@@ -18,11 +18,17 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/2.0.0";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6";
 /// Ruleset 2.0 counts real people, posts and base units of goods
-/// (`docs/units-and-scale.md`); saves written by earlier rulesets are refused.
-pub const RULESET_VERSION: &str = "bts-rules/2.0.0";
-pub const GENERATOR_VERSION: &str = "bts-worldgen/1.2.0";
+/// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
+/// historical calendar from 5000 BC with historical population and knowledge
+/// pacing; saves written by earlier rulesets are refused. Until ruleset 3.0 is
+/// released each slice that changes saved state carries a pre-release tag
+/// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
+/// that a save of an earlier slice is refused by name.
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6";
+/// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
+pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s5";
 
 /// Base units in one display unit of goods, work, research or service.
 pub const DISPLAY_DIVISOR: i64 = 1000;
@@ -32,39 +38,101 @@ pub const PER_THOUSAND: i64 = 1000;
 pub const FOOD_PER_PERSON_MONTH: i64 = 1;
 
 /// Mass of one base unit of a good in kilograms: a tonne of bulk goods, a 50 kg
-/// ration, or the standard lot of a manufacture (units chapter, section 2).
+/// ration, a 500 kg horse, or the standard lot of a manufacture (units chapter,
+/// section 2; design chapter 36, table 5.2).
 pub fn good_mass_kg(g: Good) -> i64 {
     match g {
         Good::Food => 50,
+        Good::Horses => 500,
         Good::Tools | Good::Spares => 250,
-        Good::Electronics => 50,
+        Good::Electronics | Good::Munitions | Good::Batteries => 50,
         Good::Hardware => 500,
         Good::Media => 150,
         Good::Instruments => 400,
         Good::Medicine => 40,
-        Good::Materials
-        | Good::CopperOre
-        | Good::IronOre
-        | Good::Coal
-        | Good::Crude
-        | Good::Minerals
-        | Good::Copper
-        | Good::Metal
-        | Good::Components
-        | Good::Conductors
-        | Good::Insulation
-        | Good::Fuel
-        | Good::Chemicals
-        | Good::Substrate => 1000,
+        Good::ConsumerGoods => 100,
+        Good::Textiles | Good::FineWares | Good::Lattice => 10,
+        Good::Precious | Good::NuclearFuel | Good::Helium3 => 1,
+        _ => 1000,
     }
 }
 
-/// Name of one base unit of a good: "ration", "t" (tonne) or "lot".
+/// Name of one base unit of a good: "ration", "head", "t" (tonne) or "lot".
 pub fn good_unit(g: Good) -> &'static str {
     match g {
         Good::Food => "ration",
-        Good::Tools | Good::Spares | Good::Electronics | Good::Hardware | Good::Media | Good::Instruments | Good::Medicine => "lot",
-        _ => "t",
+        Good::Horses => "head",
+        _ if good_mass_kg(g) == 1000 => "t",
+        _ => "lot",
+    }
+}
+
+/// Goods that are grown rather than made: food, fibres, horses, spices and timber
+/// come out of the land and the works that grow them are extractive (design
+/// chapter 36, section 5.4); they are outside the mass balance like food.
+pub fn grown(g: Good) -> bool {
+    matches!(g, Good::Food | Good::Fibres | Good::Horses | Good::Spices | Good::Timber)
+}
+
+/// The good a deposit yields.
+pub fn deposit_good(d: Deposit) -> Good {
+    match d {
+        Deposit::CopperOre => Good::CopperOre,
+        Deposit::IronOre => Good::IronOre,
+        Deposit::Coal => Good::Coal,
+        Deposit::Crude => Good::Crude,
+        Deposit::Tin => Good::Tin,
+        Deposit::Salt => Good::Salt,
+        Deposit::Saltpetre => Good::Saltpetre,
+        Deposit::Precious => Good::Precious,
+        Deposit::Gas => Good::Gas,
+        Deposit::Bauxite => Good::Bauxite,
+        Deposit::UraniumOre => Good::UraniumOre,
+        Deposit::RareEarths => Good::RareEarths,
+        Deposit::Lithium => Good::Lithium,
+        Deposit::CobaltNickel => Good::CobaltNickel,
+        Deposit::Quartz => Good::Quartz,
+        Deposit::Volatiles => Good::Volatiles,
+        Deposit::Helium3 => Good::Helium3,
+    }
+}
+
+/// The technologies whose understanding reveals a deposit kind (any one of them;
+/// design chapter 36, section 5.3). Empty: seen from the start. Volatiles and
+/// helium-3 lie only off the Earth and are revealed by technologies of a later
+/// slice: until then no technology reveals them.
+pub fn deposit_reveal(d: Deposit) -> &'static [&'static str] {
+    match d {
+        Deposit::Salt | Deposit::Precious => &[],
+        Deposit::CopperOre | Deposit::Tin | Deposit::Coal => &["T014"],
+        Deposit::IronOre => &["T023"],
+        Deposit::Saltpetre => &["T036"],
+        Deposit::Crude => &["T064", "T090"],
+        Deposit::Gas => &["T090"],
+        Deposit::CobaltNickel => &["T060"],
+        Deposit::Bauxite | Deposit::Quartz => &["T103"],
+        Deposit::RareEarths => &["T103", "T043"],
+        Deposit::Lithium => &["T105"],
+        Deposit::UraniumOre => &["T146"],
+        Deposit::Volatiles | Deposit::Helium3 => &["-"],
+    }
+}
+
+/// Goods of the off-world economy (design chapter 37, section 1.1): in the catalog
+/// from now, made and used only once the space slice (14) adds their works.
+pub fn offworld_good(g: Good) -> bool {
+    matches!(g, Good::Volatiles | Good::Propellant | Good::Helium3)
+}
+
+/// The technology whose understanding shows the helium content of gas fields.
+pub const HELIUM_REVEAL: &str = "T108";
+
+/// Class of a resource for display (design chapter 36, section 5.1).
+pub fn deposit_class(d: Deposit) -> &'static str {
+    match d {
+        Deposit::Salt => "bonus",
+        Deposit::Precious => "luxury",
+        _ => "strategic",
     }
 }
 
@@ -78,7 +146,7 @@ pub enum Req {
     Tech(usize),
     Prac(usize),
     Fac(usize),
-    Pop(u32),
+    Pop(u64),
     Regions(u32),
     QualAtLeast(Qual, u32),
     Contact,
@@ -93,7 +161,7 @@ pub trait ReqCtx {
     fn tech(&self, i: usize) -> bool;
     fn prac(&self, i: usize) -> bool;
     fn fac(&self, i: usize) -> bool;
-    fn pop(&self) -> u32;
+    fn pop(&self) -> u64;
     fn regions(&self) -> u32;
     fn qual(&self, q: Qual) -> u32;
     fn contact(&self) -> bool;
@@ -341,6 +409,12 @@ pub struct Tech {
     pub min_months: u32,
     /// Investigation needs this kind of installation to be operating.
     pub needs_facility: Option<&'static str>,
+    /// Evidence at which the node becomes a lead, before scenario pace scaling: its
+    /// tier's `H[t]`, or its pacing era's (`content/pacing.json`).
+    pub hint: i64,
+    /// The era of the technology (design chapter 37, section 8.3): a works receives
+    /// its productivity only if this is at most the works' era plus one.
+    pub era: u8,
 }
 
 fn tech_needs_facility(id: &str) -> Option<&'static str> {
@@ -353,9 +427,92 @@ fn tech_needs_facility(id: &str) -> Option<&'static str> {
     }
 }
 
-/// Thousands of researcher-months by tier.
-const TIER_WORK: [i64; 10] = [18, 50, 120, 230, 400, 620, 950, 1450, 2200, 3400];
-const TIER_MIN_MONTHS: [u32; 10] = [4, 6, 9, 12, 15, 18, 20, 24, 30, 36];
+/// Knowledge pacing read from `content/pacing.json` (design chapter 36, section
+/// 2.7): per tier the lead threshold `H[t]`, research work and minimum months;
+/// pacing eras for nodes whose tier misplaces them in history; and, for nodes the
+/// code does not know, their tier and evidence tags. Nothing is paced by id in code.
+#[derive(Deserialize)]
+pub struct PacingJson {
+    pub tiers: Vec<TierPacing>,
+    #[serde(default)]
+    pub map_scale: MapScale,
+    #[serde(default)]
+    pub eras: HashMap<String, EraPacing>,
+    #[serde(default)]
+    pub nodes: HashMap<String, NodePacing>,
+}
+
+/// How knowledge pacing scales with the size of the map (`content/pacing.json`).
+#[derive(Deserialize, Clone, Copy)]
+pub struct MapScale {
+    pub reference_regions: u16,
+    pub evidence_bp: i64,
+    pub work_bp: i64,
+}
+
+impl Default for MapScale {
+    fn default() -> Self {
+        MapScale { reference_regions: 48, evidence_bp: 0, work_bp: 0 }
+    }
+}
+
+impl MapScale {
+    fn factor(&self, regions: u16, bp: i64) -> i64 {
+        let r = self.reference_regions.max(1) as i64;
+        (10_000 + bp * (regions as i64 - r) / r).max(2_500)
+    }
+    /// Multiplier (basis points) of evidence thresholds on a map of `regions`.
+    pub fn evidence(&self, regions: u16) -> i64 {
+        self.factor(regions, self.evidence_bp)
+    }
+    /// Multiplier (basis points) of research and reform work on a map of `regions`.
+    pub fn work(&self, regions: u16) -> i64 {
+        self.factor(regions, self.work_bp)
+    }
+}
+
+#[derive(Deserialize, Clone, Copy)]
+pub struct TierPacing {
+    pub tier: u8,
+    pub hint: i64,
+    pub work_k: i64,
+    pub min_months: u32,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct EraPacing {
+    pub hint: i64,
+    /// Median-seat target window the threshold was calibrated for (historical years).
+    #[serde(default)]
+    pub target: Vec<i32>,
+}
+
+#[derive(Deserialize, Clone, Default)]
+pub struct NodePacing {
+    #[serde(default)]
+    pub era: Option<String>,
+    #[serde(default)]
+    pub tier: Option<u8>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+pub fn pacing() -> &'static PacingJson {
+    static P: OnceLock<PacingJson> = OnceLock::new();
+    P.get_or_init(|| {
+        let p: PacingJson = serde_json::from_str(include_str!("../../../content/pacing.json")).expect("pacing.json");
+        assert_eq!(p.tiers.len(), 10, "pacing.json has one entry per tier");
+        for (i, t) in p.tiers.iter().enumerate() {
+            assert_eq!(t.tier as usize, i, "pacing.json tiers are in order");
+        }
+        for (id, n) in &p.nodes {
+            if let Some(e) = &n.era {
+                assert!(p.eras.contains_key(e), "pacing.json: {id} names an unknown era {e}");
+            }
+        }
+        p
+    })
+}
 
 pub fn class_for_tier(tier: u8) -> ResearchClass {
     match tier {
@@ -368,9 +525,15 @@ pub fn class_for_tier(tier: u8) -> ResearchClass {
     }
 }
 
-fn tech_tier(id: &str) -> u8 {
-    let n: u32 = id[1..].parse().unwrap();
-    match n {
+/// The graph tier of a node: from `content/pacing.json` if it states one, then the
+/// tier table of the atlas, then (a node added later) one above its deepest
+/// prerequisite that has a tier.
+fn tech_tier_known(id: &str) -> Option<u8> {
+    if let Some(t) = pacing().nodes.get(id).and_then(|n| n.tier) {
+        return Some(t);
+    }
+    let n: u32 = id[1..].parse().ok()?;
+    Some(match n {
         1..=16 => 0,
         36 | 37 => 2,
         38 => 5,
@@ -398,13 +561,19 @@ fn tech_tier(id: &str) -> u8 {
         160 => 6,
         161 => 8,
         162..=167 => 9,
-        _ => panic!("no tier for {id}"),
-    }
+        _ => return None,
+    })
 }
 
+/// The evidence tags of a node: from `content/pacing.json` if it lists them, then
+/// the atlas table, then materials and handwork.
 fn tech_tags(id: &str) -> Vec<Tag> {
     use Tag::*;
-    let n: u32 = id[1..].parse().unwrap();
+    let listed: Vec<Tag> = pacing().nodes.get(id).map(|n| n.tags.iter().filter_map(|k| Tag::from_key(k)).collect()).unwrap_or_default();
+    if !listed.is_empty() {
+        return listed;
+    }
+    let n: u32 = id[1..].parse().unwrap_or(0);
     let t: &[Tag] = match n {
         1 => &[Craft],
         2 => &[Craft],
@@ -544,7 +713,7 @@ fn tech_tags(id: &str) -> Vec<Tag> {
         165 => &[HighEnergy, Space],
         166 => &[Space, HighEnergy],
         167 => &[Space, Machine, Teach],
-        _ => panic!("no tags for {id}"),
+        _ => &[Craft],
     };
     t.to_vec()
 }
@@ -762,6 +931,8 @@ pub enum Site {
     River,
     Coast,
     Hydro,
+    /// Warm, wet land fit for spice plantations (`Region.spice_land`).
+    SpiceLand,
     Deposit(Deposit),
     TestNode,
     /// Requires another facility in the same region.
@@ -835,6 +1006,12 @@ pub struct Recipe {
     pub disturb_bp: i64,
     /// Progress toward one jump assembly per month at full rate, in thousandths.
     pub assembly: i64,
+    /// Separation at a gas well: helium comes out with the gas raised, at the
+    /// field's helium content (`DepositState::helium_bp`), never more than the
+    /// stated output.
+    pub helium: bool,
+    /// The latest era among the technologies the method rests on (set at load).
+    pub era: u8,
 }
 
 impl Recipe {
@@ -899,6 +1076,15 @@ pub struct FacDef {
     pub build_power: i64,
     /// Months a level takes at least, whatever is supplied.
     pub build_months: u16,
+    /// Building line, stage within it and era of the stage (design chapter 37,
+    /// section 8.2): metadata, inert until the building lifecycle (slice 7), and the
+    /// era that gates productivity technologies (slice 6).
+    pub line: &'static str,
+    pub stage: u8,
+    pub era: u8,
+    /// A land works whose grown output follows the land's yield (design chapter 36,
+    /// section 4.1, channel 2): capped at twice its recipe.
+    pub land: bool,
 }
 
 /// Service a tonne of coal, and of refined fuel, gives when burned in site engines:
@@ -935,10 +1121,18 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
     let (crew, power, months): (&[(&[Qual], u32)], f64, u16) = match key {
         // subsistence and simple works: hands and time
         "fields" | "pasture" | "fishery" | "granary" | "camp" | "workshop" | "kiln" | "clinic" | "lodge" | "makers_circle" => (&[], 0.0, 2),
+        "quarry" | "salt_pans" | "fibre_farm" | "spice_farm" | "horse_farm" | "weaving" => (&[], 0.0, 2),
+        "salt_works" | "nitre_works" | "fine_wares" | "powder_mill" => (&[(B, 500)], 0.0, 3),
+        "mine_tin" | "mine_precious" | "mine_bauxite" | "mine_uranium" | "mine_rare_earths" | "mine_cobalt_nickel" | "mine_quartz" => (&[(B, 500)], 0.0, 4),
+        "textile_mill" | "consumer_works" | "nitrate_works" | "arsenal" | "brine_works" | "gas_well" => (&[(B, 1_000), (ME, 500)], 5.0, 6),
+        "ammonia_plant" | "magnet_works" | "battery_works" => (&[(B, 2_000), (MT, 500)], 10.0, 9),
+        "aluminium_smelter" => (&[(B, 2_000), (MT, 500), (EL, 500)], 20.0, 12),
+        "fuel_plant" => (&[(&[Builder], 2_000), (&[Technician], 1_000), (&[Scientist], 500)], 50.0, 24),
+        "lattice_works" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Scientist], 2_000), (&[FtlEngineer, Scientist], 1_000)], 200.0, 24),
         "holy_site" => (&[], 0.0, 3),
         // civil works and early industry: builders
         "copper_smelter" | "bloomery" | "press" | "instrument_shop" | "archive" | "barracks" => (&[(B, 500)], 0.0, 3),
-        "irrigation" | "mine_copper" | "mine_iron" | "mine_coal" | "mine_minerals" | "waterwheel" | "waterworks" | "school" => (&[(B, 500)], 0.0, 4),
+        "irrigation" | "mine_copper" | "mine_iron" | "mine_coal" | "waterwheel" | "waterworks" | "school" => (&[(B, 500)], 0.0, 4),
         "port" | "admin" | "insulation_works" => (&[(B, 1_000)], 0.0, 5),
         "roads" | "sewers" | "hospital" | "college" | "laboratory" | "tech_institute" => (&[(B, 1_000)], 0.0, 6),
         // industrial works: builders, millwrights and site power
@@ -957,6 +1151,7 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
         "datacenter" => (&[(B, 1_000), (MT, 500), (EL, 1_000)], 20.0, 9),
         "computer_works" => (&[(B, 1_000), (MT, 500), (EL, 1_000)], 20.0, 10),
         "synfuel" => (&[(B, 2_000), (MT, 1_000), (EL, 500)], 30.0, 12),
+        "food_synthesis" => (&[(B, 2_000), (MT, 1_000), (EL, 500)], 30.0, 12),
         "purifier" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 20.0, 12),
         "fab" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 30.0, 12),
         "advanced_lab" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 20.0, 12),
@@ -1014,6 +1209,8 @@ fn rec(key: &'static str, name: &'static str) -> RB {
         depletes: None,
         disturb_bp: 10_000,
         assembly: 0,
+        helium: false,
+        era: 0,
     })
 }
 impl RB {
@@ -1070,6 +1267,10 @@ impl RB {
         self.0.assembly = m(v);
         self
     }
+    fn helium(mut self) -> Self {
+        self.0.helium = true;
+        self
+    }
     /// The method needs only this share of the facility's general posts (basis points).
     fn general_bp(mut self, bp: u16) -> Self {
         self.0.general_bp = bp.min(10_000);
@@ -1089,6 +1290,21 @@ impl RB {
 fn mechanized_workings(ore: Good, raised: f64, deposit: Deposit, shaft: f64) -> RB {
     rec("mechanized", "Mechanized workings").req("T063 & T094").shaft(shaft).out(&[(ore, raised)]).depletes(deposit)
         .general_bp(5_000).extra(&[Qual::Mechanic, Qual::Technician], 1_000)
+}
+
+/// Workings on a deposit of the ruleset 3.0 kinds: shallow workings that spoil as
+/// much again as they raise, drained deep workings (T063) and mechanized workings
+/// (T063 and T094), as for the copper, iron and coal mines. `raised` is what the
+/// deep workings raise per level-month, display units.
+#[allow(clippy::too_many_arguments)]
+fn deposit_works(key: &'static str, name: &'static str, desc: &'static str, req: &'static str, d: Deposit, raised: f64, general: u32, shaft: f64, tags: &[Tag]) -> FB {
+    let g = deposit_good(d);
+    fac(key, name, "Extraction", desc)
+        .req(req).site(Site::Deposit(d)).cost(&[(Good::Materials, 6.0), (Good::Tools, 3.0)]).work(40.0).general(general)
+        .recipe(rec("deep", "Drained deep workings").req("T063").shaft(shaft).out(&[(g, raised)]).depletes(d))
+        .recipe(rec("shallow", "Shallow workings").out(&[(g, raised / 2.0)]).depletes(d).disturbs(2.0))
+        .recipe(mechanized_workings(g, raised, d, shaft * 4.0))
+        .upkeep(&[(Good::Tools, 0.5)]).labor(LaborCategory::Extraction).tags(tags).extracts()
 }
 
 struct FB(FacDef);
@@ -1118,6 +1334,10 @@ fn fac(key: &'static str, name: &'static str, category: &'static str, desc: &'st
         crew: vec![],
         build_power: 0,
         build_months: 2,
+        line: "",
+        stage: 0,
+        era: 0,
+        land: false,
     })
 }
 impl FB {
@@ -1195,6 +1415,12 @@ impl FB {
         self.0.extractive = true;
         self
     }
+    /// A land works: it grows its output and takes it out of the site.
+    fn grows(mut self) -> Self {
+        self.0.extractive = true;
+        self.0.land = true;
+        self
+    }
 }
 
 fn facilities() -> Vec<FacDef> {
@@ -1207,7 +1433,7 @@ fn facilities() -> Vec<FacDef> {
         // ---- food -------------------------------------------------------
         fac("fields", "Fields", "Food", "Cleared and tended plots. Ten thousand cultivators work each level; yield depends on seed, traction, water and inputs actually supplied, and falls by three tenths when no tools are in store.")
             .req("T005").site(Site::Arable).cost(&[(Materials, 2.0), (Tools, 1.0)]).work(24.0).general(10_000)
-            .tags(&[Tag::Farm]).scale(4, "C007").scale(14, "C017").food(),
+            .tags(&[Tag::Farm]).max(250).scale(4, "C007").scale(14, "C017").scale(20, "T056").food(),
         fac("pasture", "Pastures", "Food", "Managed herds on rough grazing. Animals also provide traction once the methods are known.")
             .req("T006").site(Site::Pasture).cost(&[(Materials, 2.0)]).work(16.0).general(5_000)
             .tags(&[Tag::Farm, Tag::Forage]).scale(4, "C007").food(),
@@ -1221,10 +1447,35 @@ fn facilities() -> Vec<FacDef> {
             .req("T011").site(Site::River).cost(&[(Materials, 8.0), (Tools, 1.0)]).work(40.0).general(1_000)
             .provides(Cap::Irrigation, 5.0).labor(L::Services).tags(&[Tag::Water, Tag::Farm]).scale(1, "C008"),
         // ---- extraction -------------------------------------------------
-        fac("camp", "Timber and quarry camps", "Extraction", "Felling, quarrying and clay digging for building material, taken from the forest and rock of the site.")
+        // ruleset 3.0 splits timber from building materials (design chapter 36, 5.2)
+        fac("camp", "Forestry camps", "Extraction", "Felling and hauling timber within what the forest renews: fuel for furnaces, ships, handles and frames.")
             .site(Site::Forest).cost(&[(Tools, 1.0)]).work(8.0).general(8_000)
-            .recipe(rec("materials", "Timber, stone and clay").out(&[(Materials, 16.0)]))
+            .recipe(rec("timber", "Felling").out(&[(Timber, 12.0)]))
+            .upkeep(&[(Tools, 0.25)]).labor(L::Extraction).tags(&[Tag::Craft, Tag::Build]).grows(),
+        fac("quarry", "Quarries and clay pits", "Extraction", "Stone, clay and sand dug wherever the ground allows: building material for everything that is built.")
+            .cost(&[(Tools, 1.0)]).work(8.0).general(8_000)
+            .recipe(rec("materials", "Stone, clay and sand").out(&[(Materials, 16.0)]))
             .upkeep(&[(Tools, 0.25)]).labor(L::Extraction).tags(&[Tag::Craft, Tag::Build]).extracts(),
+        fac("salt_works", "Salt works", "Extraction", "Rock salt and brine springs on a known salt deposit. Salt keeps stored food from spoiling.")
+            .req("T007").site(Site::Deposit(Deposit::Salt)).cost(&[(Materials, 4.0), (Tools, 1.0)]).work(20.0).general(6_000)
+            .recipe(rec("salt", "Salt working").out(&[(Salt, 8.0)]).depletes(Deposit::Salt))
+            .upkeep(&[(Tools, 0.2)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Farm]).extracts(),
+        fac("salt_pans", "Coastal salt pans", "Extraction", "Sea water evaporated in shallow pans: a little salt that never runs out.")
+            .req("T007").site(Site::Coast).cost(&[(Materials, 2.0)]).work(8.0).general(1_000)
+            .recipe(rec("sea_salt", "Evaporation").out(&[(Salt, 0.5)]))
+            .labor(L::Extraction).tags(&[Tag::Sea, Tag::Farm]).max(20).extracts(),
+        fac("fibre_farm", "Fibre plantations", "Extraction", "Flax, hemp and cotton on arable land: the raw fibre of cloth, taken from the same land as the fields.")
+            .req("T004 & T005").site(Site::Arable).cost(&[(Materials, 2.0), (Tools, 1.0)]).work(20.0).general(8_000)
+            .recipe(rec("fibre", "Fibre crops").out(&[(Fibres, 2.0)]))
+            .labor(L::Extraction).tags(&[Tag::Farm, Tag::Craft]).grows(),
+        fac("spice_farm", "Spice plantations", "Extraction", "Pepper, tea, cane and dyes on warm, wet land: luxuries every people prizes.")
+            .req("T005").site(Site::SpiceLand).cost(&[(Materials, 2.0), (Tools, 1.0)]).work(20.0).general(8_000)
+            .recipe(rec("spices", "Spice crops").out(&[(Spices, 0.5)]))
+            .labor(L::Extraction).tags(&[Tag::Farm, Tag::Trade]).grows(),
+        fac("horse_farm", "Horse breeding", "Extraction", "Studs and herds on grazing land: draught animals for fields and roads, mounts for armies. Shares the pasture with the herds.")
+            .req("T006").site(Site::Pasture).cost(&[(Materials, 2.0)]).work(16.0).general(5_000)
+            .recipe(rec("horses", "Breeding").out(&[(Horses, 0.3)]))
+            .labor(L::Extraction).tags(&[Tag::Farm]).grows(),
         fac("mine_copper", "Copper mines", "Extraction", "Workings on a surveyed copper orebody. Every tonne raised comes out of the deposit; shallow workings spoil as much again, drained deep workings do not.")
             .req("T014").site(Site::Deposit(Deposit::CopperOre)).cost(&[(Materials, 6.0), (Tools, 3.0)]).work(40.0).general(12_000)
             .recipe(rec("deep", "Drained deep workings").req("T063").shaft(10.0).out(&[(CopperOre, 36.0)]).depletes(Deposit::CopperOre))
@@ -1243,12 +1494,28 @@ fn facilities() -> Vec<FacDef> {
             .recipe(rec("shallow", "Shallow workings").out(&[(Coal, 18.0)]).depletes(Deposit::Coal).disturbs(2.0))
             .recipe(mechanized_workings(Coal, 36.0, Deposit::Coal, 40.0))
             .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Steam]).extracts(),
-        fac("mine_minerals", "Rare-mineral workings", "Extraction", "Small workings for the minerals that analysis has shown to matter. Selective surface workings spoil as much as they raise; drained deep workings do not.")
-            .req("T043").site(Site::Deposit(Deposit::Minerals)).cost(&[(Materials, 8.0), (Tools, 4.0)]).work(60.0).general(10_000)
-            .recipe(rec("deep", "Drained deep workings").req("T063").shaft(8.0).out(&[(Minerals, 12.0)]).depletes(Deposit::Minerals))
-            .recipe(rec("shallow", "Selective workings").out(&[(Minerals, 6.0)]).depletes(Deposit::Minerals).disturbs(2.0))
-            .recipe(mechanized_workings(Minerals, 12.0, Deposit::Minerals, 30.0))
-            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Chem]).extracts(),
+        deposit_works("mine_tin", "Tin mines", "Workings on a rare tin lode: the other half of bronze.", "T014", Deposit::Tin, 3.0, 8_000, 4.0, &[Tag::Mine, Tag::Metal]),
+        deposit_works("mine_precious", "Precious-metal mines", "Gold and silver workings: luxury, fine wares and, much later, the contacts of electronics.", "T014", Deposit::Precious, 0.004, 6_000, 2.0, &[Tag::Mine, Tag::Trade]),
+        deposit_works("mine_bauxite", "Bauxite mines", "Open workings on a bauxite deposit: the ore of aluminium.", "T103", Deposit::Bauxite, 24.0, 10_000, 10.0, &[Tag::Mine, Tag::Electric]),
+        deposit_works("mine_uranium", "Uranium mines", "Workings on a uranium orebody under safeguards.", "T146", Deposit::UraniumOre, 0.8, 6_000, 4.0, &[Tag::Mine, Tag::HighEnergy]),
+        deposit_works("mine_rare_earths", "Rare-earth workings", "Workings on a rare-earth orebody: magnets and lasers.", "T043 | T103", Deposit::RareEarths, 2.0, 8_000, 6.0, &[Tag::Mine, Tag::Chem]),
+        deposit_works("mine_cobalt_nickel", "Cobalt and nickel mines", "Workings on a cobalt-nickel orebody: alloy steel and batteries.", "T060", Deposit::CobaltNickel, 2.0, 8_000, 6.0, &[Tag::Mine, Tag::Metal]),
+        deposit_works("mine_quartz", "Quartz quarries", "Quarries of high-purity quartz: semiconductors and optics.", "T103", Deposit::Quartz, 4.0, 6_000, 6.0, &[Tag::Mine, Tag::Electric]),
+        fac("nitre_works", "Nitre works", "Extraction", "Saltpetre leached from a known nitre deposit: powder for guns, nitrate for fields.")
+            .req("T036").site(Site::Deposit(Deposit::Saltpetre)).cost(&[(Materials, 4.0), (Tools, 2.0)]).work(30.0).general(6_000)
+            .recipe(rec("saltpetre", "Leaching").out(&[(Saltpetre, 2.0)]).depletes(Deposit::Saltpetre))
+            .upkeep(&[(Tools, 0.3)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Chem]).extracts(),
+        fac("brine_works", "Lithium brine works", "Extraction", "Evaporation ponds on an arid basin's brine: lithium for batteries and fusion fuel.")
+            .req("T105").site(Site::Deposit(Deposit::Lithium)).cost(&[(Metal, 4.0), (Components, 1.0), (Materials, 6.0)]).work(60.0)
+            .skilled(&[Q::Technician, Q::Mechanic], 500).general(2_000)
+            .recipe(rec("lithium", "Brine evaporation").shaft(4.0).out(&[(Lithium, 0.5)]).depletes(Deposit::Lithium))
+            .upkeep(&[(Spares, 0.1)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Chem]).extracts(),
+        fac("gas_well", "Gas wells", "Extraction", "Wells and gathering lines on a known gas field; with cryogenic separation, helium from helium-rich gas.")
+            .req("T090").site(Site::Deposit(Deposit::Gas)).cost(&[(Metal, 6.0), (Components, 2.0), (Tools, 2.0)]).work(60.0)
+            .skilled(&[Q::Mechanic, Q::Artisan], 1_000).general(4_000)
+            .recipe(rec("separation", "Gas with helium separation").req("T108").shaft(6.0).elec(20.0).out(&[(Gas, 30.0), (Helium, 0.45)]).depletes(Deposit::Gas).helium())
+            .recipe(rec("gas", "Gas extraction").shaft(6.0).out(&[(Gas, 30.0)]).depletes(Deposit::Gas))
+            .upkeep(&[(Tools, 0.5)]).labor(L::Extraction).tags(&[Tag::Mine, Tag::Fuel]).extracts(),
         fac("oilwell", "Oil wells", "Extraction", "Drilled wells and gathering lines on a known field. Every tonne pumped comes out of the field.")
             .req("T090").site(Site::Deposit(Deposit::Crude)).cost(&[(Metal, 6.0), (Components, 2.0), (Tools, 2.0)]).work(60.0)
             .skilled(&[Q::Mechanic, Q::Artisan], 1_000).general(6_000)
@@ -1257,8 +1524,11 @@ fn facilities() -> Vec<FacDef> {
         // ---- craft and industry ----------------------------------------
         fac("workshop", "Craft workshops", "Industry", "Toolmakers. Better metal gives more and better tools from the same hands.")
             .cost(&[(Materials, 4.0)]).work(14.0).skilled(&[Q::Artisan], 2_000).general(4_000)
-            .recipe(rec("iron_tools", "Iron tools").req("T023").inp(&[(Metal, 1.5), (Materials, 2.0)]).out(&[(Tools, 12.0)]))
-            .recipe(rec("copper_tools", "Copper and bronze tools").req("T015").inp(&[(Copper, 1.5), (Materials, 2.0)]).out(&[(Tools, 9.0)]))
+            .recipe(rec("iron_tools", "Iron tools").req("T023").inp(&[(Metal, 1.5), (Timber, 2.0)]).out(&[(Tools, 12.0)]))
+            // bronze (design chapter 36, 5.4): copper alloyed with a little tin makes
+            // half as many tools again as soft copper; copper tools are its substitute
+            .recipe(rec("bronze_tools", "Bronze tools").req("T022").inp(&[(Copper, 1.4), (Tin, 0.2), (Timber, 2.0)]).out(&[(Tools, 9.0)]))
+            .recipe(rec("copper_tools", "Copper tools").req("T015").inp(&[(Copper, 1.5), (Timber, 2.0)]).out(&[(Tools, 6.0)]))
             .recipe(rec("stone_tools", "Stone, bone and wood tools").inp(&[(Materials, 4.0)]).out(&[(Tools, 5.0)]))
             .labor(L::Industry).tags(&[Tag::Craft]).scale(3, "C018").scale(10, "C022"),
         fac("kiln", "Kilns", "Industry", "Fired brick, tile and vessels from clay dug at the works: building material without a forest.")
@@ -1267,11 +1537,11 @@ fn facilities() -> Vec<FacDef> {
             .upkeep(&[(Tools, 0.2)]).labor(L::Industry).tags(&[Tag::Craft, Tag::Build]).extracts(),
         fac("copper_smelter", "Copper furnaces", "Industry", "Charcoal furnaces reducing copper ore.")
             .req("T015").cost(&[(Materials, 8.0), (Tools, 2.0)]).work(30.0).skilled(&[Q::Smith, Q::Artisan], 2_000).general(4_000)
-            .recipe(rec("copper", "Copper smelting").inp(&[(CopperOre, 8.0), (Materials, 4.0)]).out(&[(Copper, 4.0)]))
+            .recipe(rec("copper", "Copper smelting").inp(&[(CopperOre, 8.0), (Timber, 4.0)]).out(&[(Copper, 4.0)]))
             .upkeep(&[(Tools, 0.3)]).labor(L::Industry).tags(&[Tag::Metal]),
         fac("bloomery", "Iron bloomeries", "Industry", "Small furnaces and forges turning ore into workable iron.")
             .req("T023").cost(&[(Materials, 8.0), (Tools, 2.0)]).work(30.0).skilled(&[Q::Smith, Q::Artisan], 2_000).general(4_000)
-            .recipe(rec("iron", "Bloomery iron").inp(&[(IronOre, 8.0), (Materials, 6.0)]).out(&[(Metal, 4.0)]))
+            .recipe(rec("iron", "Bloomery iron").inp(&[(IronOre, 8.0), (Timber, 6.0)]).out(&[(Metal, 4.0)]))
             .upkeep(&[(Tools, 0.3)]).labor(L::Industry).tags(&[Tag::Metal]),
         fac("steelworks", "Steelworks", "Industry", "Coke furnaces and controlled steelmaking at scale.")
             .req("T060").cost(&[(Metal, 20.0), (Materials, 20.0), (Tools, 5.0)]).work(160.0)
@@ -1310,7 +1580,7 @@ fn facilities() -> Vec<FacDef> {
             .req("T064").cost(&[(Metal, 15.0), (Components, 4.0), (Materials, 10.0)]).work(140.0)
             .skilled(&[Q::Technician, Q::Scholar, Q::Researcher], 2_000).general(6_000)
             .recipe(rec("chemicals", "Industrial chemicals").inp(&[(Coal, 6.0), (Materials, 4.0)]).out(&[(Chemicals, 10.0)]).shaft(6.0))
-            .recipe(rec("chemicals_wood", "Wood and mineral chemistry").inp(&[(Materials, 14.0)]).out(&[(Chemicals, 5.0)]).shaft(4.0))
+            .recipe(rec("chemicals_wood", "Wood and mineral chemistry").inp(&[(Timber, 10.0), (Materials, 4.0)]).out(&[(Chemicals, 5.0)]).shaft(4.0))
             .upkeep(&[(Tools, 0.8)]).labor(L::Industry).tags(&[Tag::Chem]).scale(3, "C033"),
         fac("insulation_works", "Insulation and seal works", "Industry", "Ceramic, rubber and polymer parts with known thermal and electrical limits.")
             .req("T031 | T064").cost(&[(Metal, 6.0), (Materials, 10.0), (Tools, 3.0)]).work(80.0)
@@ -1329,15 +1599,24 @@ fn facilities() -> Vec<FacDef> {
             .skilled(&[Q::Technician], 4_000).general(6_000)
             .recipe(rec("synfuel", "Synthetic hydrocarbons").inp(&[(Coal, 10.0), (Chemicals, 2.0)]).out(&[(Fuel, 12.0)]).elec(60.0))
             .upkeep(&[(Spares, 0.8)]).labor(L::Industry).tags(&[Tag::Fuel, Tag::Chem]),
+        // ruleset 3.0 (design chapter 36, section 3.3): food from electricity, chemicals
+        // and the carbon of the air (a declared atmospheric-input recipe), not limited by land
+        fac("food_synthesis", "Food synthesis works", "Industry", "Food made from electricity, chemicals and the carbon of the air: not limited by land, only by power and inputs. Two hundred thousand rations a month per level.")
+            .req("T132 & T135").cost(&[(Metal, 30.0), (Components, 15.0), (Conductors, 6.0), (Instruments, 4.0)]).work(400.0)
+            .skilled(&[Q::Technician], 2_000).general(2_000)
+            .recipe(rec("food_synthesis", "Atmospheric food synthesis").inp(&[(Chemicals, 4.0)]).out(&[(Food, 200.0)]).elec(400.0))
+            .upkeep(&[(Spares, 0.5)]).labor(L::Industry).tags(&[Tag::Chem, Tag::Bio]),
         fac("purifier", "High-purity materials works", "Industry", "Electrochemical purification into substrates that ordinary glass or metal cannot replace.")
             .req("T103").cost(&[(Metal, 20.0), (Components, 10.0), (Conductors, 6.0), (Instruments, 4.0)]).work(300.0)
             .skilled(&[Q::Technician], 3_000).general(3_000)
-            .recipe(rec("substrate", "High-purity substrate").inp(&[(Minerals, 4.0), (Chemicals, 2.0)]).out(&[(Substrate, 2.0)]).elec(30.0))
+            .recipe(rec("substrate", "Semiconductor materials from quartz").inp(&[(Quartz, 4.0), (Chemicals, 1.0)]).out(&[(Substrate, 2.0)]).elec(30.0))
+            // the substitute without quartz: metallurgical silicon refined twice
+            .recipe(rec("metallurgical", "Twice-refined metallurgical silicon").inp(&[(Materials, 8.0), (Chemicals, 3.0)]).out(&[(Substrate, 2.0)]).elec(90.0))
             .upkeep(&[(Spares, 0.5)]).labor(L::Industry).tags(&[Tag::Electric, Tag::Chem]),
         fac("fab", "Electronics cells", "Industry", "Clean manufacturing cells for electronic devices.")
             .req("T104 | T106").cost(&[(Metal, 10.0), (Components, 20.0), (Conductors, 6.0), (Instruments, 5.0)]).work(400.0)
             .skilled(&[Q::Technician, Q::Electrician], 4_000).general(4_000)
-            .recipe(rec("integrated", "Integrated devices").req("T106").inp(&[(Substrate, 0.4), (Conductors, 0.6), (Chemicals, 0.5)]).out(&[(Electronics, 20.0)]).elec(40.0))
+            .recipe(rec("integrated", "Integrated devices").req("T106").inp(&[(Substrate, 0.4), (Conductors, 0.6), (Chemicals, 0.5), (Precious, 0.005)]).out(&[(Electronics, 20.0)]).elec(40.0))
             .recipe(rec("vacuum", "Vacuum devices").req("T104").inp(&[(Conductors, 1.0), (Insulation, 0.5), (Components, 0.5)]).out(&[(Electronics, 4.0)]).elec(15.0))
             .upkeep(&[(Spares, 0.8)]).labor(L::Industry).tags(&[Tag::Electric, Tag::Compute]),
         fac("computer_works", "Computer works", "Industry", "Assembly and acceptance testing of computing hardware.")
@@ -1373,6 +1652,75 @@ fn facilities() -> Vec<FacDef> {
             .recipe(rec("bio", "Controlled biological manufacture").req("T132").inp(&[(Food, 10.0), (Chemicals, 1.0)]).out(&[(Medicine, 30.0)]).elec(20.0))
             .recipe(rec("pharma", "Pharmaceutical manufacture").inp(&[(Chemicals, 4.0), (Food, 4.0)]).out(&[(Medicine, 10.0)]))
             .upkeep(&[(Spares, 0.3)]).labor(L::Industry).tags(&[Tag::Bio, Tag::Health, Tag::Chem]),
+        // ---- ruleset 3.0 chains (design chapter 36, section 5.4) ----------
+        fac("weaving", "Weaving workshops", "Industry", "Hand looms turning fibre into cloth: the first industry of every people.")
+            .req("T004").cost(&[(Materials, 3.0), (Timber, 1.0)]).work(14.0).skilled(&[Q::Artisan], 1_000).general(6_000)
+            .recipe(rec("hand_looms", "Hand looms").inp(&[(Fibres, 1.1)]).out(&[(Textiles, 100.0)]))
+            .upkeep(&[(Tools, 0.1)]).labor(L::Industry).tags(&[Tag::Craft]),
+        fac("textile_mill", "Textile mills", "Industry", "Powered spinning and weaving: the same cloth from a fifth of the hands.")
+            .req("T062").cost(&[(Metal, 8.0), (Components, 2.0), (Materials, 8.0)]).work(90.0)
+            .skilled(&[Q::Mechanic, Q::Artisan], 500).general(1_200)
+            .recipe(rec("synthetic", "Synthetic fibre").req("T093").inp(&[(Chemicals, 1.2)]).out(&[(Textiles, 100.0)]).elec(30.0)
+                .general_bp(8_400).extra(&[Q::Technician, Q::Mechanic], 500))
+            .recipe(rec("mill", "Powered looms").inp(&[(Fibres, 1.1)]).out(&[(Textiles, 100.0)]).shaft(20.0))
+            .upkeep(&[(Spares, 0.1)]).labor(L::Industry).tags(&[Tag::Machine, Tag::Craft]).scale(3, "C033"),
+        fac("powder_mill", "Powder works", "Industry", "Saltpetre, charcoal and sulphur ground and corned into gunpowder, and the shot to go with it.")
+            .req("T036").cost(&[(Materials, 6.0), (Timber, 2.0), (Tools, 2.0)]).work(30.0).skilled(&[Q::Artisan, Q::Smith], 1_000).general(3_000)
+            .recipe(rec("powder", "Gunpowder and shot").inp(&[(Saltpetre, 0.6), (Timber, 0.2)]).out(&[(Munitions, 15.0)]))
+            .upkeep(&[(Tools, 0.2)]).labor(L::Industry).tags(&[Tag::War, Tag::Chem]),
+        fac("arsenal", "Arsenal", "Industry", "Chemical propellants and machined cartridges and shells at industrial scale.")
+            .req("T064").cost(&[(Metal, 10.0), (Components, 3.0), (Materials, 8.0)]).work(100.0)
+            .skilled(&[Q::Technician, Q::Mechanic], 1_000).general(2_000)
+            .recipe(rec("cartridges", "Propellant and ammunition").inp(&[(Chemicals, 0.5), (Metal, 0.3)]).out(&[(Munitions, 15.0)]).shaft(10.0))
+            .upkeep(&[(Spares, 0.2)]).labor(L::Industry).tags(&[Tag::War, Tag::Chem]),
+        fac("nitrate_works", "Nitrate fertilizer works", "Industry", "Saltpetre refined into field nitrate: the first manufactured fertilizer.")
+            .req("T095").cost(&[(Metal, 6.0), (Components, 1.0), (Materials, 6.0)]).work(60.0)
+            .skilled(&[Q::Technician, Q::Mechanic], 500).general(2_000)
+            .recipe(rec("nitrate", "Nitrate refining").inp(&[(Saltpetre, 6.0)]).out(&[(Fertilizer, 5.0)]).shaft(10.0))
+            .upkeep(&[(Spares, 0.1)]).labor(L::Industry).tags(&[Tag::Chem, Tag::Farm]),
+        fac("ammonia_plant", "Ammonia synthesis plant", "Industry", "Nitrogen taken from the air and bound with hydrogen from gas (or from coal): fertilizer without saltpetre.")
+            .req("T095 & T064").cost(&[(Metal, 20.0), (Components, 8.0), (Materials, 10.0)]).work(200.0)
+            .skilled(&[Q::Technician], 500).general(1_000)
+            // a modern synthesis train is large (design chapter 36's 1.2 kt a level-month
+            // would need a fertilizer works for every three levels of intensive fields):
+            // ten times the design's table, the same ratios
+            .recipe(rec("ammonia", "Ammonia from gas").inp(&[(Gas, 5.0)]).out(&[(Fertilizer, 12.0)]).elec(60.0))
+            .recipe(rec("ammonia_coal", "Ammonia from coal").inp(&[(Coal, 10.0)]).out(&[(Fertilizer, 12.0)]).elec(150.0))
+            .upkeep(&[(Spares, 0.3)]).labor(L::Industry).tags(&[Tag::Chem, Tag::Farm]),
+        fac("aluminium_smelter", "Aluminium smelter", "Industry", "Electrolysis of alumina: light metal for aircraft, launchers and lines, at about fifteen megawatt-hours a tonne.")
+            .req("T103").cost(&[(Metal, 20.0), (Components, 6.0), (Conductors, 8.0), (Materials, 10.0)]).work(250.0)
+            .skilled(&[Q::Electrician, Q::Technician], 500).general(1_500)
+            .recipe(rec("aluminium", "Electrolytic reduction").inp(&[(Bauxite, 4.0), (Chemicals, 0.4)]).out(&[(Aluminium, 1.0)]).elec(150.0))
+            .upkeep(&[(Spares, 0.3)]).labor(L::Industry).tags(&[Tag::Electric, Tag::Metal]),
+        fac("magnet_works", "Magnet works", "Industry", "Rare-earth permanent magnets and superconducting coils for generators, motors, fusion and accelerators.")
+            .req("T103").cost(&[(Metal, 10.0), (Components, 6.0), (Instruments, 2.0), (Materials, 6.0)]).work(200.0)
+            .skilled(&[Q::Technician], 1_000).general(1_500)
+            .recipe(rec("magnets", "Rare-earth magnets").inp(&[(RareEarths, 3.0), (Metal, 1.0), (Chemicals, 0.5)]).out(&[(Magnets, 1.0)]).elec(40.0))
+            .upkeep(&[(Spares, 0.2)]).labor(L::Industry).tags(&[Tag::Electric, Tag::Chem]),
+        fac("battery_works", "Battery works", "Industry", "Electrochemical cells and packs: storage, electric transport and autonomous forces.")
+            .req("T105").cost(&[(Metal, 10.0), (Components, 6.0), (Instruments, 2.0), (Materials, 6.0)]).work(200.0)
+            .skilled(&[Q::Technician], 1_000).general(2_000)
+            .recipe(rec("lithium_cells", "Lithium cells").inp(&[(Lithium, 0.1), (CobaltNickel, 0.1), (Metal, 0.2), (Chemicals, 0.1)]).out(&[(Batteries, 10.0)]).elec(20.0))
+            // without lithium or cobalt: sodium cells from salt, half the output
+            .recipe(rec("sodium_cells", "Sodium cells").inp(&[(Salt, 0.3), (Metal, 0.2), (Chemicals, 0.1)]).out(&[(Batteries, 5.0)]).elec(20.0))
+            .upkeep(&[(Spares, 0.2)]).labor(L::Industry).tags(&[Tag::Electric, Tag::Chem]),
+        fac("fuel_plant", "Nuclear fuel plant", "Industry", "Enrichment and fabrication of reactor fuel under safeguards; later, fusion fuel from lithium.")
+            .req("T147 & C045").cost(&[(Metal, 40.0), (Components, 20.0), (Instruments, 10.0), (Electronics, 6.0)]).work(800.0)
+            .skilled(&[Q::Scientist, Q::Technician], 1_500).general(2_000)
+            .recipe(rec("enrichment", "Enrichment and fabrication").inp(&[(UraniumOre, 4.0), (Chemicals, 0.5)]).out(&[(NuclearFuel, 40.0)]).elec(300.0))
+            .recipe(rec("fusion_fuel", "Fusion fuel from lithium").req("T149").inp(&[(Lithium, 0.3)]).out(&[(NuclearFuel, 100.0)]).elec(200.0)
+                .general_bp(5_000))
+            .upkeep(&[(Spares, 0.5)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Chem]),
+        fac("consumer_works", "Consumer goods works", "Industry", "Furniture, wares and, later, appliances for households.")
+            .req("T062").cost(&[(Metal, 8.0), (Components, 3.0), (Materials, 8.0)]).work(90.0)
+            .skilled(&[Q::Mechanic, Q::Artisan], 1_000).general(4_000)
+            .recipe(rec("appliances", "Electrical appliances").req("T101").inp(&[(Metal, 0.6), (Insulation, 0.3), (Textiles, 0.2), (Electronics, 0.02)]).out(&[(ConsumerGoods, 8.0)]).elec(30.0))
+            .recipe(rec("household", "Household goods").inp(&[(Metal, 0.6), (Insulation, 0.3), (Textiles, 0.2)]).out(&[(ConsumerGoods, 7.0)]).shaft(20.0))
+            .upkeep(&[(Spares, 0.1)]).labor(L::Industry).tags(&[Tag::Machine, Tag::Trade]),
+        fac("fine_wares", "Fine-wares workshops", "Industry", "Jewellery, glazed and painted wares and fine cloth: luxuries for home and for export.")
+            .req("T008 | T031").cost(&[(Materials, 4.0), (Tools, 1.0)]).work(20.0).skilled(&[Q::Artisan], 1_500).general(3_000)
+            .recipe(rec("fine_wares", "Fine craft").inp(&[(Precious, 0.02), (Fibres, 0.1), (Materials, 0.3)]).out(&[(FineWares, 20.0)]))
+            .upkeep(&[(Tools, 0.1)]).labor(L::Industry).tags(&[Tag::Craft, Tag::Trade]),
         // ---- power ------------------------------------------------------
         fac("waterwheel", "Water and wind mills", "Power", "Shaft power from a real fall of water or a steady wind. Each level delivers 20.")
             .req("T029").site(Site::Hydro).cost(&[(Materials, 10.0), (Tools, 2.0)]).work(40.0).general(1_000)
@@ -1398,6 +1746,9 @@ fn facilities() -> Vec<FacDef> {
         fac("hydro", "Hydroelectric works", "Power", "Dams, wheels and generators on a surveyed site. No fuel; the river sets the limit.")
             .req("T100").site(Site::Hydro).cost(&[(Metal, 20.0), (Conductors, 2.0), (Components, 3.0), (Insulation, 0.5), (Materials, 20.0)]).work(500.0)
             .skilled(&[Q::Electrician, Q::Mechanic], 2_000).general(2_000)
+            // permanent-magnet generators lose less (design chapter 36, 5.4); without
+            // magnets the plain machines are the substitute, with no gain
+            .recipe(rec("magnet_hydro", "Permanent-magnet generators").req("T101").inp(&[(Magnets, 0.1)]).gives_elec(99.0))
             .recipe(rec("hydro", "Hydroelectric generation").gives_elec(90.0))
             .upkeep(&[(Tools, 1.0)]).labor(L::Industry).tags(&[Tag::Electric, Tag::Water]).power(),
         fac("grid", "Grid and substations", "Power", "Joins this region to the national grid so electricity can be shared, with losses.")
@@ -1410,15 +1761,17 @@ fn facilities() -> Vec<FacDef> {
         // A level of these plants is a station of several units: eleven fission
         // levels, four fusion levels or seven receivers carry the programme, each
         // with its fuel, upkeep and qualified crew - a generating base, not a building.
-        fac("fission", "Fission plant", "Power", "Safeguarded reactors: 2,000 units of steady electricity a level from three kilotonnes of rare minerals a month.")
+        fac("fission", "Fission plant", "Power", "Safeguarded reactors: 2,000 units of steady electricity a level from three thousand lots of nuclear fuel a month.")
             .req("T147 & C045").cost(&[(Metal, 160.0), (Components, 80.0), (Electronics, 40.0), (Conductors, 40.0), (Insulation, 20.0)]).work(4000.0)
             .skilled(&[Q::Scientist], 2_000).skilled(&[Q::Technician], 6_000).skilled(&[Q::Electrician], 4_000).general(4_000)
-            .recipe(rec("fission", "Fission generation").inp(&[(Minerals, 3.0)]).gives_elec(2000.0))
+            .recipe(rec("fission", "Fission generation").inp(&[(NuclearFuel, 3.0)]).gives_elec(2000.0))
             .upkeep(&[(Spares, 4.0), (Electronics, 0.6)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Electric]).power(),
         fac("fusion", "Fusion plant", "Power", "Maintainable net-power fusion: 6,000 units of electricity a level. Enormous output, enormous upkeep.")
-            .req("T149 & C045").cost(&[(Metal, 400.0), (Components, 240.0), (Electronics, 160.0), (Conductors, 120.0), (Insulation, 60.0), (Hardware, 12.0)]).work(10000.0)
+            .req("T149 & C045").cost(&[(Metal, 400.0), (Components, 240.0), (Electronics, 160.0), (Conductors, 120.0), (Insulation, 60.0), (Hardware, 12.0), (Magnets, 20.0)]).work(10000.0)
             .skilled(&[Q::Scientist], 6_000).skilled(&[Q::Technician], 10_000).skilled(&[Q::Electrician], 6_000).general(4_000)
-            .recipe(rec("fusion", "Fusion generation").inp(&[(Chemicals, 2.0)]).gives_elec(6000.0))
+            .recipe(rec("fusion", "Fusion generation").inp(&[(NuclearFuel, 5.0), (Helium, 0.05)]).gives_elec(6000.0))
+            // high-temperature superconductors cooled by liquid nitrogen: no helium, more of the output spent on cooling
+            .recipe(rec("fusion_hts", "Fusion with nitrogen-cooled superconductors").inp(&[(NuclearFuel, 5.0)]).gives_elec(5400.0))
             .upkeep(&[(Spares, 10.0), (Electronics, 2.0)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Electric]).power(),
         fac("orbital_power", "Orbital power receiver", "Power", "Ground station for power collected in orbit: 3,000 units of electricity a level. Needs an orbital construction yard.")
             .req("T150 & F:orbital_yard").cost(&[(Metal, 120.0), (Components, 80.0), (Electronics, 80.0), (Conductors, 80.0)]).work(4000.0)
@@ -1428,9 +1781,10 @@ fn facilities() -> Vec<FacDef> {
         // ---- transport and civic ----------------------------------------
         fac("roads", "Roads and waystations", "Transport", "Maintained roads, bridges and staged carriage linking this region to the rest.")
             .req("T027").cost(&[(Materials, 15.0), (Tools, 2.0)]).work(80.0).general(2_000)
-            .provides(Cap::Transport, 1.0).upkeep(&[(Tools, 0.4)]).labor(L::Services).tags(&[Tag::Build, Tag::Trade]).max(1),
+            // draught horses for the carts until motor vehicles (T094) take over
+            .provides(Cap::Transport, 1.0).upkeep(&[(Tools, 0.4), (Horses, 0.02)]).labor(L::Services).tags(&[Tag::Build, Tag::Trade]).max(1),
         fac("port", "Harbour", "Transport", "Moorings, slips and stores. Opens sea links and deep-water fishing.")
-            .req("T013").site(Site::Coast).cost(&[(Materials, 15.0), (Tools, 2.0)]).work(60.0).general(4_000)
+            .req("T013").site(Site::Coast).cost(&[(Materials, 8.0), (Timber, 8.0), (Tools, 2.0)]).work(60.0).general(4_000)
             .provides(Cap::Port, 1.0).provides(Cap::Transport, 1.0).upkeep(&[(Tools, 0.4)]).labor(L::Services).tags(&[Tag::Sea, Tag::Trade]).max(1),
         fac("rail", "Railway", "Transport", "Heavy freight on fixed track.")
             .req("T068").cost(&[(Metal, 40.0), (Components, 8.0), (Materials, 20.0)]).work(400.0)
@@ -1524,15 +1878,18 @@ fn facilities() -> Vec<FacDef> {
         // that completed the graph (docs/calibration/slice-e-*.txt). 1,000 units is ten
         // times ruleset 1.0's draw and half a level of fission.
         fac("high_energy", "High-energy laboratory", "Research", "Accelerators, plasma devices and the sixty thousand people who can run them. Draws 1,000 units of electricity a month.")
-            .req("T146 & C045").cost(&[(Metal, 150.0), (Components, 80.0), (Electronics, 80.0), (Conductors, 80.0), (Instruments, 50.0)]).work(4000.0)
+            .req("T146 & C045").cost(&[(Metal, 150.0), (Components, 80.0), (Electronics, 80.0), (Conductors, 80.0), (Instruments, 50.0), (Magnets, 20.0)]).work(4000.0)
             .skilled(&[Q::Scientist], 40_000).skilled(&[Q::Technician], 12_000).skilled(&[Q::Electrician], 8_000)
-            .recipe(rec("frontier", "Frontier experiments").research(RC::Frontier, 60.0).elec(1000.0).compute(50.0))
+            .recipe(rec("frontier", "Frontier experiments").research(RC::Frontier, 60.0).inp(&[(Helium, 0.05)]).elec(1000.0).compute(50.0))
+            .recipe(rec("frontier_hts", "Frontier experiments, nitrogen-cooled magnets").research(RC::Frontier, 60.0).elec(1500.0).compute(50.0))
             .upkeep(&[(Instruments, 6.0), (Electronics, 4.0), (Spares, 4.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Science]),
         // ---- space and jump engineering ----------------------------------
         fac("launch_complex", "Launch complex", "Space", "Pads, tracking and propellant handling worked by sixty thousand people. Keeps a launch cadence only while supplied.")
             .req("T140 & T141 & C045").cost(&[(Metal, 160.0), (Components, 120.0), (Electronics, 60.0), (Conductors, 30.0)]).work(4000.0)
             .skilled(&[Q::Technician], 16_000).skilled(&[Q::Scientist], 6_000).skilled(&[Q::Mechanic], 16_000).general(22_000)
-            .recipe(rec("cadence", "Launch cadence").inp(&[(Fuel, 30.0), (Components, 6.0), (Electronics, 3.0)]).elec(400.0))
+            .recipe(rec("cadence", "Launch cadence").inp(&[(Fuel, 30.0), (Components, 6.0), (Electronics, 3.0), (Aluminium, 2.0), (CobaltNickel, 0.1), (Batteries, 5.0)]).elec(400.0))
+            // without aluminium and superalloys: heavier steel vehicles and more propellant
+            .recipe(rec("cadence_steel", "Launch cadence with steel vehicles").inp(&[(Fuel, 36.0), (Components, 6.0), (Electronics, 3.0), (Metal, 6.5), (Batteries, 5.0)]).elec(400.0))
             .provides(Cap::Launch, 1.0).upkeep(&[(Spares, 3.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Fuel]).max(1),
         fac("orbital_station", "Orbital station", "Space", "A crewed, resupplied station. Requires a working launch complex in the same region.")
             .req("T142 & T144").site(Site::With("launch_complex"))
@@ -1544,7 +1901,8 @@ fn facilities() -> Vec<FacDef> {
             .req("T145 & C058").site(Site::With("orbital_station"))
             .cost(&[(Metal, 270.0), (Components, 270.0), (Electronics, 150.0), (Hardware, 18.0), (Fuel, 360.0)]).work(9000.0)
             .skilled(&[Q::Orbital], 30_000).skilled(&[Q::Mechanic], 16_000).skilled(&[Q::Technician], 16_000).general(10_000)
-            .recipe(rec("yard_ops", "Orbital operations").inp(&[(Fuel, 30.0), (Components, 10.0), (Electronics, 4.0)]).elec(600.0))
+            .recipe(rec("yard_ops", "Orbital operations").inp(&[(Fuel, 30.0), (Components, 10.0), (Electronics, 4.0), (Aluminium, 3.0)]).elec(600.0))
+            .recipe(rec("yard_ops_steel", "Orbital operations with steel structures").inp(&[(Fuel, 36.0), (Components, 10.0), (Electronics, 4.0), (Metal, 9.0)]).elec(600.0))
             .provides(Cap::OrbitalYard, 1.0).upkeep(&[(Spares, 8.0), (Electronics, 4.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Machine]).max(1),
         fac("interferometer", "Orbital interferometer array", "Space", "Large-baseline optical instruments assembled in orbit.")
             .req("T151 & F:orbital_yard").cost(&[(Components, 60.0), (Electronics, 60.0), (Instruments, 40.0), (Hardware, 6.0), (Fuel, 60.0)]).work(2000.0)
@@ -1553,35 +1911,218 @@ fn facilities() -> Vec<FacDef> {
             .upkeep(&[(Spares, 1.0), (Electronics, 1.0)]).labor(L::Knowledge).tags(&[Tag::Space, Tag::Science]).max(1),
         fac("jump_testbed", "Jump testbed", "Jump engineering", "The first installation able to reproduce the anomaly under load. Needs an orbital yard and vast power.")
             .req("T163 & C045 & C056 & F:orbital_yard & F:high_energy")
-            .cost(&[(Metal, 250.0), (Components, 250.0), (Electronics, 200.0), (Conductors, 200.0), (Hardware, 30.0), (Instruments, 80.0)]).work(8000.0)
+            .cost(&[(Metal, 250.0), (Components, 250.0), (Electronics, 200.0), (Conductors, 200.0), (Hardware, 30.0), (Instruments, 80.0), (Magnets, 40.0)]).work(8000.0)
             .skilled(&[Q::Scientist], 30_000).skilled(&[Q::FtlEngineer, Q::Technician], 12_000).skilled(&[Q::Orbital], 10_000)
-            .recipe(rec("jump_trials", "Jump-interface experiments").research(RC::Frontier, 60.0).elec(8000.0).compute(100.0))
+            .recipe(rec("jump_trials", "Jump-interface experiments").research(RC::Frontier, 60.0).inp(&[(Helium, 0.2)]).elec(8000.0).compute(100.0))
+            .recipe(rec("jump_trials_hts", "Jump-interface experiments, nitrogen-cooled").research(RC::Frontier, 60.0).elec(9600.0).compute(100.0))
             .upkeep(&[(Spares, 6.0), (Electronics, 5.0), (Instruments, 3.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Space]).max(1),
         fac("jump_yard", "Jump assembly line", "Jump engineering", "An independently operable line of seventy-six thousand people that completes one standard jump assembly in twenty-four months of full work.")
             .req("T166 & C056")
             .cost(&[(Metal, 300.0), (Components, 300.0), (Electronics, 150.0), (Hardware, 30.0), (Conductors, 100.0)]).work(9000.0)
             .skilled(&[Q::FtlEngineer], 16_000).skilled(&[Q::Technician], 16_000).skilled(&[Q::Mechanic], 16_000).skilled(&[Q::Electrician], 8_000).general(20_000)
             .recipe(rec("assembly", "Jump assembly manufacture")
-                .inp(&[(Components, 60.0), (Electronics, 45.0), (Hardware, 3.0), (Conductors, 18.0), (Insulation, 9.0), (Metal, 45.0), (Substrate, 3.0)])
+                .inp(&[(Components, 60.0), (Electronics, 45.0), (Hardware, 3.0), (Conductors, 18.0), (Insulation, 9.0), (Metal, 45.0), (Substrate, 3.0), (Lattice, 30.0), (Magnets, 6.0), (Helium, 0.1)])
                 .elec(4000.0).assembly(1.0 / 24.0))
+            .recipe(rec("assembly_hts", "Jump assembly manufacture, nitrogen-cooled")
+                .inp(&[(Components, 60.0), (Electronics, 45.0), (Hardware, 3.0), (Conductors, 18.0), (Insulation, 9.0), (Metal, 45.0), (Substrate, 3.0), (Lattice, 30.0), (Magnets, 6.0)])
+                .elec(4800.0).assembly(1.0 / 24.0))
             .provides(Cap::FtlYard, 1.0).upkeep(&[(Spares, 8.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::HighEnergy, Tag::Machine]).max(1),
         fac("jump_base", "Jump deployment node", "Jump engineering", "Transport, maintenance and recovery capability at one of the three test nodes.")
             .req("T167 & C057").site(Site::TestNode)
             .cost(&[(Metal, 110.0), (Components, 80.0), (Electronics, 55.0), (Conductors, 30.0)]).work(3500.0)
             .skilled(&[Q::FtlEngineer], 6_000).skilled(&[Q::Orbital], 8_000).skilled(&[Q::Technician], 8_000).general(10_000)
-            .recipe(rec("node_ops", "Node operations").inp(&[(Fuel, 12.0), (Electronics, 3.0)]).elec(1000.0))
+            .recipe(rec("node_ops", "Node operations").inp(&[(Fuel, 12.0), (Electronics, 3.0), (Lattice, 2.0), (Helium, 0.05)]).elec(1000.0))
+            .recipe(rec("node_ops_hts", "Node operations, nitrogen-cooled").inp(&[(Fuel, 12.0), (Electronics, 3.0), (Lattice, 2.0)]).elec(1200.0))
             .provides(Cap::FtlBase, 1.0).upkeep(&[(Spares, 4.0)]).labor(L::Industry).tags(&[Tag::Space]).max(1),
+        // the one declared fictional material (design chapter 36, section 5.2): crystal
+        // conditioned in the anomaly's field, only at the three test nodes
+        fac("lattice_works", "Lattice conditioning works", "Jump engineering", "Conditions high-purity crystal in the anomaly's field into interface lattice. Only at a test node, one works each.")
+            .req("T164 | T165").site(Site::TestNode)
+            .cost(&[(Metal, 60.0), (Components, 40.0), (Electronics, 40.0), (Magnets, 10.0), (Instruments, 20.0)]).work(3000.0)
+            .skilled(&[Q::Scientist, Q::FtlEngineer], 6_000).general(4_000)
+            .recipe(rec("lattice", "Lattice conditioning").inp(&[(Substrate, 0.5), (Magnets, 0.5), (Helium, 0.05)]).out(&[(Lattice, 20.0)]).elec(2000.0))
+            .recipe(rec("lattice_hts", "Lattice conditioning, nitrogen-cooled").inp(&[(Substrate, 0.5), (Magnets, 0.5)]).out(&[(Lattice, 20.0)]).elec(2400.0))
+            .upkeep(&[(Spares, 2.0)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Space]).max(1),
     ];
     v.into_iter()
         .map(|f| {
             let mut def = f.0;
             let (crew, power, months) = build_terms(def.key);
+            let (line, stage, era) = line_meta(def.key);
+            def.line = line;
+            def.stage = stage;
+            def.era = era;
             def.crew = crew;
             def.build_power = power;
             def.build_months = months;
             def
         })
         .collect()
+}
+
+// ---------------------------------------------------------------------------
+// Building lines (design chapter 37, sections 8.2 and 8.4)
+// ---------------------------------------------------------------------------
+
+/// Line, stage and era of every facility kind. Inert until the building lifecycle
+/// (slice 7) except that the era gates productivity technologies (slice 6). Eras:
+/// 0 Ancient, 1 Classical, 2 Medieval, 3 Early Modern, 4 Industrial, 5 Modern,
+/// 6 Information, 7 Space, 8 AI, 9 Interstellar.
+pub fn line_meta(key: &str) -> (&'static str, u8, u8) {
+    match key {
+        "fields" => ("fields", 1, 0),
+        "pasture" => ("pastures", 1, 0),
+        "fishery" => ("fishing", 1, 0),
+        "granary" => ("storage", 1, 0),
+        "irrigation" => ("irrigation", 1, 0),
+        "camp" => ("forestry", 1, 0),
+        "quarry" => ("building_materials", 1, 0),
+        "kiln" => ("building_materials", 2, 0),
+        "salt_works" => ("salt_works", 1, 0),
+        "salt_pans" => ("salt_pans", 1, 0),
+        "fibre_farm" => ("fibre_plantations", 1, 0),
+        "spice_farm" => ("spice_plantations", 1, 0),
+        "horse_farm" => ("horse_breeding", 1, 0),
+        "mine_copper" | "mine_coal" | "mine_tin" | "mine_precious" => ("mines", 1, 0),
+        "mine_iron" => ("mines", 1, 1),
+        "nitre_works" | "mine_rare_earths" => ("mines", 1, 3),
+        "mine_cobalt_nickel" => ("mines", 1, 4),
+        "mine_bauxite" | "mine_quartz" | "brine_works" => ("mines", 1, 5),
+        "mine_uranium" => ("mines", 1, 7),
+        "oilwell" | "gas_well" => ("wells", 1, 5),
+        "workshop" => ("toolmaking", 1, 0),
+        "copper_smelter" => ("copper", 1, 0),
+        "bloomery" => ("iron_steel", 1, 1),
+        "steelworks" => ("iron_steel", 2, 4),
+        "machine_shop" => ("machine_shops", 1, 4),
+        "parts_works" => ("parts", 1, 4),
+        "wire_works" => ("wire", 1, 4),
+        "chem_plant" => ("chemicals", 1, 4),
+        "insulation_works" => ("insulation", 1, 2),
+        "refinery" => ("fuel", 1, 5),
+        "synfuel" => ("synthetic_fuel", 1, 6),
+        "food_synthesis" => ("urban_food", 4, 8),
+        "purifier" => ("semiconductor_materials", 1, 5),
+        "fab" => ("electronics", 1, 5),
+        "computer_works" => ("computer_works", 1, 6),
+        "datacenter" => ("computing", 1, 6),
+        "press" => ("records", 1, 1),
+        "instrument_shop" => ("instruments", 1, 3),
+        "pharma" => ("medicine", 1, 5),
+        "weaving" => ("textiles", 1, 0),
+        "textile_mill" => ("textiles", 2, 4),
+        "powder_mill" => ("arms_works", 2, 3),
+        "arsenal" => ("arms_works", 3, 4),
+        "nitrate_works" => ("fertilizer", 1, 5),
+        "ammonia_plant" => ("fertilizer", 2, 5),
+        "aluminium_smelter" => ("aluminium", 1, 5),
+        "magnet_works" => ("magnets", 1, 5),
+        "battery_works" => ("batteries", 1, 5),
+        "fuel_plant" => ("nuclear_fuel", 1, 7),
+        "consumer_works" => ("consumer_goods", 1, 4),
+        "fine_wares" => ("fine_wares", 1, 0),
+        "waterwheel" => ("mills_hydro", 1, 1),
+        "hydro" => ("mills_hydro", 2, 5),
+        "steam" => ("steam_power", 1, 4),
+        "diesel" => ("diesel_power", 1, 5),
+        "generator" => ("conversion", 1, 5),
+        "grid" => ("grid", 1, 5),
+        "fission" => ("nuclear", 1, 7),
+        "fusion" => ("fusion", 1, 8),
+        "orbital_power" => ("orbital_power", 1, 7),
+        "roads" => ("roads", 1, 1),
+        "port" => ("harbour", 1, 1),
+        "rail" => ("railway", 1, 4),
+        "depot" => ("motor_transport", 1, 5),
+        "waterworks" => ("water", 1, 1),
+        "sewers" => ("sanitation", 1, 2),
+        "water_treatment" => ("sanitation", 2, 4),
+        "clinic" => ("health", 1, 0),
+        "hospital" => ("health", 2, 3),
+        "admin" => ("administration", 1, 1),
+        "barracks" => ("military", 1, 1),
+        "holy_site" => ("religion", 1, 0),
+        "lodge" => ("schools", 1, 0),
+        "school" => ("schools", 2, 1),
+        "college" => ("colleges", 1, 2),
+        "tech_institute" => ("technical_education", 1, 4),
+        "makers_circle" => ("research", 1, 0),
+        "archive" => ("research", 2, 1),
+        "laboratory" => ("research", 3, 3),
+        "institute" => ("research", 4, 4),
+        "advanced_lab" => ("research", 5, 5),
+        "auto_lab" => ("research", 6, 8),
+        "high_energy" => ("high_energy", 1, 7),
+        "launch_complex" => ("launch", 2, 6),
+        "orbital_station" => ("orbital", 1, 7),
+        "orbital_yard" => ("orbital", 2, 7),
+        "interferometer" => ("interferometer", 1, 7),
+        "jump_testbed" => ("jump", 1, 9),
+        "jump_yard" => ("jump", 2, 9),
+        "jump_base" => ("jump", 3, 9),
+        "lattice_works" => ("lattice", 1, 9),
+        _ => panic!("no building line for {key}"),
+    }
+}
+
+/// Kind of an edge of the building tree (design chapter 37, section 8.2).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UpgradeKind {
+    Upgrade,
+    Retrofit,
+    Variant,
+    Alternative,
+}
+
+/// An edge of the building tree, between facility indices.
+#[derive(Clone, Debug)]
+pub struct UpgradeEdge {
+    pub from: usize,
+    pub to: usize,
+    pub kind: UpgradeKind,
+}
+
+/// The tree's edges: each stage of a line upgrades to the next where both are a
+/// single kind, plus the declared alternatives.
+fn upgrade_edges(facs: &[FacDef], ix: &HashMap<String, usize>) -> Vec<UpgradeEdge> {
+    let mut out = Vec::new();
+    let mut lines: Vec<&str> = facs.iter().map(|f| f.line).collect();
+    lines.sort();
+    lines.dedup();
+    for line in lines {
+        let mut stages: Vec<u8> = facs.iter().filter(|f| f.line == line).map(|f| f.stage).collect();
+        stages.sort();
+        stages.dedup();
+        for w in stages.windows(2) {
+            let a: Vec<usize> = (0..facs.len()).filter(|i| facs[*i].line == line && facs[*i].stage == w[0]).collect();
+            let b: Vec<usize> = (0..facs.len()).filter(|i| facs[*i].line == line && facs[*i].stage == w[1]).collect();
+            if a.len() == 1 && b.len() == 1 {
+                out.push(UpgradeEdge { from: a[0], to: b[0], kind: UpgradeKind::Upgrade });
+            }
+        }
+    }
+    for (from, to) in [("refinery", "synfuel")] {
+        out.push(UpgradeEdge { from: ix[from], to: ix[to], kind: UpgradeKind::Alternative });
+    }
+    out
+}
+
+/// Era of a technology by its identifier (design chapter 37, section 8.3).
+pub fn tech_era(id: &str) -> u8 {
+    let n: u32 = id[1..].parse().unwrap_or(0);
+    match n {
+        1..=16 => 0,
+        20..=29 => 1,
+        30..=35 => 2,
+        36..=49 => 3,
+        57 | 58 | 86 | 87 | 90..=95 | 100..=105 | 110 | 160 => 5,
+        50..=56 | 60..=71 | 80..=85 => 4,
+        120 | 122 | 125 | 135..=137 | 161 | 173 | 177 | 180 | 181 => 8,
+        96 | 97 | 106..=119 | 121 | 123 | 124 | 130..=134 | 140 | 141 => 6,
+        142..=159 | 170..=182 => 7,
+        162..=167 => 9,
+        _ => 0,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1672,48 +2213,56 @@ fn course_meta(id: &str) -> CourseMeta {
 #[derive(Clone, Debug)]
 pub struct UnitTierDef {
     pub tier: u8,
+    /// Equipment generation of design chapter 37, section 2.1 (G0-G7): the six
+    /// tiers of this ruleset are written as generations 0, 1, 2, 4, 5 and 6, ready for
+    /// the military slice to insert G3 and G7.
+    pub generation: u8,
     pub name: &'static str,
     pub roles: [&'static str; 3],
     pub req_src: &'static str,
     pub req: Req,
     /// Goods to equip a thousand soldiers, base units.
     pub equipment: Vec<(Good, i64)>,
+    /// Equipment issued in place of `equipment` when the stores cannot cover it
+    /// (bronze for iron), per thousand soldiers.
+    pub alternative: Vec<(Good, i64)>,
+    /// What a thousand soldiers of the maneuver role need beside the equipment (mounts).
+    pub maneuver_extra: Vec<(Good, i64)>,
     /// Goods a thousand soldiers use each month, base units. Food is listed for
     /// the catalog and eaten through the common food account, one ration each.
+    /// Munitions are used five times as fast in a month of battle.
     pub upkeep: Vec<(Good, i64)>,
     pub training_months: u16,
 }
 
 fn unit_tiers() -> Vec<UnitTierDef> {
     use Good::*;
+    let q = |v: &[(Good, f64)]| -> Vec<(Good, i64)> { v.iter().map(|(g, a)| (*g, m(*a))).collect() };
+    #[allow(clippy::too_many_arguments)]
     let mk = |tier: u8,
+              generation: u8,
               name: &'static str,
               roles: [&'static str; 3],
               req_src: &'static str,
-              equipment: &[(Good, f64)],
-              upkeep: &[(Good, f64)],
-              training_months: u16| UnitTierDef {
-        tier,
-        name,
-        roles,
-        req_src,
-        req: Req::True,
-        equipment: equipment.iter().map(|(g, a)| (*g, m(*a))).collect(),
-        upkeep: upkeep.iter().map(|(g, a)| (*g, m(*a))).collect(),
-        training_months,
-    };
+              equipment: Vec<(Good, i64)>,
+              alternative: Vec<(Good, i64)>,
+              maneuver_extra: Vec<(Good, i64)>,
+              upkeep: Vec<(Good, i64)>,
+              training_months: u16| UnitTierDef { tier, generation, name, roles, req_src, req: Req::True, equipment, alternative, maneuver_extra, upkeep, training_months };
+    // per soldier in the design's table (design chapter 37, table 2.1), which is
+    // per thousand soldiers in display units here
     vec![
-        mk(0, "Subsistence warbands", ["Melee bands", "Light hunters", "Spear lines"], "", &[(Tools, 0.3)], &[(Food, 1.0)], 2),
-        mk(1, "Urban-craft levies", ["Heavy infantry", "Cavalry", "Pike formations"], "(T022 | T023) & C016",
-           &[(Metal, 0.4), (Tools, 0.3)], &[(Food, 1.0), (Tools, 0.01)], 4),
-        mk(2, "Powder and drill", ["Assault infantry", "Rapid columns", "Field artillery"], "T037 & C016",
-           &[(Metal, 0.8), (Materials, 0.5), (Tools, 0.3)], &[(Food, 1.0), (Tools, 0.02), (Materials, 0.02)], 6),
-        mk(3, "Industrial formations", ["Armoured assault groups", "Motorized raiders", "Anti-armour positions"], "(T094 | T068) & T066 & C037",
-           &[(Components, 0.8), (Metal, 1.0), (Fuel, 0.3)], &[(Food, 1.0), (Fuel, 0.05), (Spares, 0.02)], 9),
-        mk(4, "Networked forces", ["Combined-arms forces", "Mobile strike groups", "Air-defence networks"], "T112 & T107 & T038 & C037",
-           &[(Electronics, 2.0), (Components, 1.5), (Fuel, 0.5)], &[(Food, 1.0), (Fuel, 0.1), (Spares, 0.05), (Electronics, 0.02)], 12),
-        mk(5, "Autonomous systems", ["Unmanned breakthrough groups", "Distributed swarms", "Area-denial systems"], "T114 & T123 & T142 & C037",
-           &[(Hardware, 0.2), (Electronics, 4.0), (Components, 2.0)], &[(Food, 1.0), (Fuel, 0.1), (Spares, 0.08), (Electronics, 0.05)], 12),
+        mk(0, 0, "Subsistence warbands", ["Melee bands", "Light hunters", "Spear lines"], "", q(&[(Tools, 0.3)]), vec![], vec![], q(&[(Food, 1.0)]), 2),
+        mk(1, 1, "Bronze and iron levies", ["Heavy infantry", "Cavalry", "Pike formations"], "(T022 | T023) & C016",
+           q(&[(Metal, 0.4), (Tools, 0.3)]), q(&[(Copper, 0.35), (Tin, 0.05), (Tools, 0.3)]), q(&[(Horses, 0.3)]), q(&[(Food, 1.0), (Tools, 0.01)]), 4),
+        mk(2, 2, "Powder and drill", ["Assault infantry", "Rapid columns", "Field artillery"], "T037 & C016",
+           q(&[(Metal, 0.8), (Materials, 0.5), (Tools, 0.3), (Munitions, 1.0)]), vec![], q(&[(Horses, 0.3)]), q(&[(Food, 1.0), (Tools, 0.02), (Materials, 0.02), (Munitions, 0.02)]), 6),
+        mk(3, 4, "Mechanized formations", ["Armoured assault groups", "Motorized raiders", "Anti-armour positions"], "(T094 | T068) & T066 & C037",
+           q(&[(Components, 0.8), (Metal, 1.0), (Fuel, 0.3), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.05), (Spares, 0.02), (Munitions, 0.04)]), 9),
+        mk(4, 5, "Networked forces", ["Combined-arms forces", "Mobile strike groups", "Air-defence networks"], "T112 & T107 & T038 & C037",
+           q(&[(Electronics, 2.0), (Components, 1.5), (Fuel, 0.5), (Aluminium, 0.1), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.1), (Spares, 0.05), (Electronics, 0.02), (Munitions, 0.04)]), 12),
+        mk(5, 6, "Autonomous systems", ["Unmanned breakthrough groups", "Distributed swarms", "Area-denial systems"], "T114 & T123 & T142 & C037",
+           q(&[(Hardware, 0.2), (Electronics, 4.0), (Components, 2.0), (Batteries, 2.0), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.1), (Spares, 0.08), (Electronics, 0.05), (Batteries, 0.05), (Munitions, 0.04)]), 12),
     ]
 }
 
@@ -1745,6 +2294,11 @@ pub const BELIEFS: &[Belief] = &[
     Belief { key: "shared_days", slot: "Follower practice", name: "Shared Labour Days", desc: "Followers answer calls for common work more readily." },
     Belief { key: "remembrance", slot: "Follower practice", name: "Rites of Remembrance", desc: "Communities of followers are steadier in hard years." },
     Belief { key: "watchfulness", slot: "Follower practice", name: "The Long Watch", desc: "Followers accept defence duty more readily." },
+    // ruleset 3.0 doctrines (design chapter 36, sections 3.2 and 4.2)
+    Belief { key: "fruitful_households", slot: "Follower practice", name: "Fruitful Households", desc: "Followers marry young and prize many children: customary fertility is higher where they live." },
+    Belief { key: "day_of_rest", slot: "Follower practice", name: "Day of Rest", desc: "Followers keep a day free of work each week: households are a little larger and steadier, work a little slower." },
+    Belief { key: "sanctified_labour", slot: "Follower practice", name: "Sanctified Labour", desc: "Work at the furnace and the seam is worship: works and mines need fewer hands where followers live." },
+    Belief { key: "stewardship", slot: "Founding obligation", name: "Stewardship of the Land", desc: "The land is held in trust: fields yield a little more and need fewer hands where followers live." },
     Belief { key: "open_courts", slot: "Worship facility", name: "Open Courts", desc: "Precincts double as meeting grounds; disputes settle sooner." },
     Belief { key: "copy_houses", slot: "Worship facility", name: "Copy Houses", desc: "Precincts copy texts: a small monthly supply of record media." },
     Belief { key: "sky_terraces", slot: "Worship facility", name: "Sky Terraces", desc: "Precincts keep observations; questions of measurement surface sooner." },
@@ -1780,6 +2334,8 @@ pub struct Content {
     pub tech_enables_gate: Vec<Vec<(Vec<usize>, Vec<usize>)>>,
     pub prac_enables_gate: Vec<Vec<(Vec<usize>, Vec<usize>)>>,
     pub graph_hash: u64,
+    /// Edges of the building tree (design chapter 37, section 8.2).
+    pub upgrades: Vec<UpgradeEdge>,
 }
 
 impl Content {
@@ -1807,10 +2363,27 @@ fn load() -> Content {
     let pr = |s: &str| parse_req(s, &tech_ix, &prac_ix, &fac_ix);
 
     let mut graph_src = String::new();
+    // tiers first: a node the tables do not know sits one above its deepest prerequisite
+    let mut tiers: Vec<Option<u8>> = tj.iter().map(|t| tech_tier_known(&t.id)).collect();
+    for _ in 0..tj.len() {
+        for i in 0..tj.len() {
+            if tiers[i].is_none() {
+                let deps: Vec<&str> = tj[i].prereq.split(|ch: char| !(ch.is_ascii_alphanumeric())).filter(|x| x.starts_with('T')).collect();
+                if deps.iter().all(|d| tech_ix.get(*d).map(|k| tiers[*k].is_some()).unwrap_or(true)) {
+                    let top = deps.iter().filter_map(|d| tech_ix.get(*d).and_then(|k| tiers[*k])).max();
+                    tiers[i] = Some(top.map(|t| (t + 1).min(9)).unwrap_or(0));
+                }
+            }
+        }
+    }
+    let pace = pacing();
     let techs: Vec<Tech> = tj
         .iter()
-        .map(|t| {
-            let tier = tech_tier(&t.id);
+        .enumerate()
+        .map(|(ti, t)| {
+            let tier = tiers[ti].unwrap_or(0);
+            let tp = pace.tiers[tier as usize];
+            let era_hint = pace.nodes.get(&t.id).and_then(|n| n.era.as_ref()).and_then(|e| pace.eras.get(e)).map(|e| e.hint);
             graph_src.push_str(&format!("{}:{};", t.id, t.prereq));
             Tech {
                 id: t.id.clone(),
@@ -1824,9 +2397,11 @@ fn load() -> Content {
                 tier,
                 tags: tech_tags(&t.id),
                 class: class_for_tier(tier),
-                work: TIER_WORK[tier as usize] * 1000,
-                min_months: TIER_MIN_MONTHS[tier as usize],
+                work: tp.work_k * 1000,
+                min_months: tp.min_months,
                 needs_facility: tech_needs_facility(&t.id),
+                hint: era_hint.unwrap_or(tp.hint),
+                era: tech_era(&t.id),
             }
         })
         .collect();
@@ -1873,6 +2448,9 @@ fn load() -> Content {
         f.req = pr(f.req_src);
         for r in f.recipes.iter_mut() {
             r.req = pr(r.req_src);
+            let mut ts = Vec::new();
+            r.req.techs(&mut ts);
+            r.era = ts.iter().map(|t| techs[*t].era).max().unwrap_or(0);
         }
         for s in f.scale.iter_mut() {
             s.1 = pr(s.2);
@@ -1957,7 +2535,9 @@ fn load() -> Content {
         }
     }
 
+    let upgrades = upgrade_edges(&facs, &fac_ix);
     Content {
+        upgrades,
         graph_hash: crate::util::fnv(graph_src.as_bytes()),
         techs,
         tech_ix,
@@ -1998,7 +2578,7 @@ mod tests {
             fn tech(&self, i: usize) -> bool { self.0[i] }
             fn prac(&self, i: usize) -> bool { self.0[i] }
             fn fac(&self, _: usize) -> bool { true }
-            fn pop(&self) -> u32 { u32::MAX }
+            fn pop(&self) -> u64 { u64::MAX }
             fn regions(&self) -> u32 { u32::MAX }
             fn qual(&self, _: Qual) -> u32 { u32::MAX }
             fn contact(&self) -> bool { true }

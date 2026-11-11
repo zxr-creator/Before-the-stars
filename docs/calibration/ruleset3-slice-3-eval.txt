@@ -1,0 +1,115 @@
+Ruleset 3.0 after slices 1-3: calendar, population and knowledge pacing calibrated together.
+Standard calendar (525 rounds, 5000 BC to AD 2500), --ai hard,medium,medium,easy, eval-0..15,
+16 matches on all cores (1 min 01 s wall; 26-39 s per match under contention). Release build, Apple M5 Pro.
+   target/release/bts run --matches 16 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+   python3 scripts/curve_summary.py eval.csv --years -5000,-4000,...,2500
+
+match  0  winner None  month 89988 (AD 2500)  26.2s  0:331448137p/48r/138t  1:0p/0r/120t  2:0p/0r/117t  3:0p/0r/92t
+match  1  winner None  month 89988 (AD 2500)  36.3s  0:121104013p/12r/126t  1:59303605p/11r/78t  2:193065269p/25r/138t  3:0p/0r/91t
+match  2  winner None  month 89988 (AD 2500)  37.4s  0:229197800p/45r/138t  1:0p/0r/116t  2:33863517p/3r/118t  3:0p/0r/54t
+match  3  winner None  month 89988 (AD 2500)  36.9s  0:52199896p/10r/117t  1:64524542p/14r/85t  2:118871418p/14r/126t  3:65270047p/10r/105t
+match  4  winner None  month 89988 (AD 2500)  34.0s  0:79234882p/10r/117t  1:103991390p/13r/102t  2:58052611p/13r/51t  3:146691301p/12r/117t
+match  5  winner None  month 89988 (AD 2500)  36.9s  0:133713816p/15r/90t  1:105358723p/12r/126t  2:137610198p/14r/122t  3:23458007p/7r/88t
+match  6  winner None  month 89988 (AD 2500)  36.7s  0:63654220p/14r/121t  1:95846642p/12r/134t  2:37005215p/11r/51t  3:43766649p/11r/84t
+match  7  winner None  month 89988 (AD 2500)  37.7s  0:125955950p/10r/125t  1:118014767p/10r/138t  2:122362271p/16r/138t  3:143236439p/12r/116t
+match  8  winner None  month 89988 (AD 2500)  34.6s  0:48996174p/12r/51t  1:85883773p/10r/117t  2:127173734p/17r/137t  3:192668606p/9r/89t
+match  9  winner None  month 89988 (AD 2500)  37.4s  0:108160527p/15r/126t  1:94351302p/13r/132t  2:106410336p/9r/122t  3:51022042p/11r/51t
+match 10  winner None  month 89988 (AD 2500)  37.3s  0:51396446p/12r/126t  1:103438724p/23r/134t  2:12066560p/3r/51t  3:45832046p/10r/116t
+match 11  winner None  month 89988 (AD 2500)  35.5s  0:148727437p/14r/124t  1:264844013p/15r/128t  2:67487159p/13r/118t  3:3158303p/6r/46t
+match 12  winner None  month 89988 (AD 2500)  37.0s  0:92223597p/17r/117t  1:116970931p/9r/126t  2:146141742p/16r/127t  3:159748430p/6r/128t
+match 13  winner None  month 89988 (AD 2500)  37.3s  0:66281315p/11r/118t  1:120513553p/15r/119t  2:394366376p/12r/121t  3:7120627p/10r/33t
+match 14  winner None  month 89988 (AD 2500)  36.2s  0:149999255p/17r/125t  1:47580815p/8r/126t  2:112861324p/12r/133t  3:158508087p/11r/107t
+match 15  winner None  month 89988 (AD 2500)  38.6s  0:119070933p/44r/138t  1:0p/0r/134t  2:0p/0r/137t  3:14563415p/4r/117t
+
+
+Population (median seat excludes seats without land; largest and world are medians over matches)
+      date  median seat    largest      world  regions (median)
+   5000 BC        242 k      246 k      969 k               1.0
+   4000 BC       1.10 M     1.30 M     4.04 M               4.0
+   3000 BC       2.27 M     4.57 M    11.04 M               4.0
+   2000 BC       5.91 M     7.66 M    23.39 M               4.0
+   1000 BC       4.65 M     5.69 M    19.15 M               8.0
+     AD 10       4.63 M     6.36 M    19.02 M              11.0
+   AD 1000       7.05 M    10.36 M    28.41 M              12.0
+   AD 1500      13.46 M    30.85 M    56.13 M              12.0
+   AD 1700      24.42 M    59.53 M   110.31 M              12.0
+   AD 1800      40.48 M    79.62 M   156.59 M              12.0
+   AD 1900      59.70 M   112.41 M   272.13 M              12.0
+   AD 1950      66.13 M   178.23 M   357.68 M              12.0
+   AD 2000      84.70 M   205.43 M   383.79 M              12.0
+   AD 2100     107.25 M   198.60 M   456.75 M              12.0
+   AD 2200      85.55 M   157.87 M   359.84 M                12
+   AD 2300      88.65 M   177.82 M   340.38 M              12.0
+   AD 2500     104.68 M   152.60 M   380.72 M              12.0
+
+Era milestones: first sampled decade at which a seat had it
+  node  median seat  reached  leader (median)  leader (earliest)
+  T007      4570 BC   64/64           4680 BC            4690 BC
+  T008      4615 BC   64/64           4780 BC            4780 BC
+  T010      4455 BC   64/64           4540 BC            4560 BC
+  T011      4205 BC   64/64           4365 BC            4400 BC
+  T015      4030 BC   64/64           4180 BC            4260 BC
+  T025      2060 BC   64/64           2860 BC            2980 BC
+  T022      1405 BC   64/64           1780 BC            2000 BC
+  T023       465 BC   64/64            585 BC             850 BC
+  T024      2410 BC   64/64           2670 BC            2780 BC
+  T027       900 BC   64/64           1200 BC            1380 BC
+  T028       AD 120   63/64            985 BC            1600 BC
+  T029      1295 BC   64/64           1655 BC            2170 BC
+  T030       AD 425   64/64            225 BC             440 BC
+  T036       AD 930   63/64            AD 600             AD 310
+  T048      AD 1430   63/64           AD 1100             AD 870
+   SCI      AD 1730   63/64           AD 1475             AD 550
+  T080      AD 1840   56/64           AD 1750             AD 700
+  T060      AD 1830   57/64           AD 1615             AD 720
+  T061      AD 1770   57/64           AD 1710             AD 570
+  T100      AD 1860   56/64           AD 1790             AD 740
+  T111      AD 1940   53/64           AD 1870             AD 910
+  T142      AD 2090   45/64           AD 2045            AD 1540
+  T147      AD 2110   31/64           AD 2060            AD 1830
+  T162      AD 2180   13/64           AD 2180            AD 2100
+  T167      AD 2325    6/64           AD 2300            AD 2230
+ALL138      AD 2325    6/64           AD 2300            AD 2230
+
+highest seat-decade growth: 6.47%/yr at ('eval-0', '0', '2130', '2140')
+pre-1700 500-year seat growth: min -0.139%/yr, median 0.048%/yr, max 0.576%/yr (39680 windows)
+
+Against the design's targets (table 3.1; tolerance: each median within a factor 1.5)
+date      median seat (target)   ratio   world (target)
+3000 BC   2.27 M (0.8 M)         2.8x    11.0 M (3 M)
+1000 BC   4.65 M (2.5 M)         1.9x    19.2 M (10 M)
+AD 1      4.63 M (5 M)           0.93    19.0 M (20 M)
+AD 1000   7.05 M (8 M)           0.88    28.4 M (32 M)
+AD 1500   13.5 M (11 M)          1.22    56.1 M (45 M)
+AD 1700   24.4 M (15 M)          1.63    110 M (60 M)
+AD 1800   40.5 M (20 M)          2.0x    157 M (85 M)
+AD 1900   59.7 M (60 M)          1.00    272 M (250 M)
+AD 1950   66.1 M (110 M)         0.60    358 M (450 M)
+AD 2000   84.7 M (230 M)         0.37    384 M (1.0 B)
+AD 2100   107 M (400 M)          0.27    457 M (1.7 B)
+AD 2200   85.6 M (480 M)         0.18    360 M (2.0 B)
+AD 2300   88.7 M (flat)          flat    340 M (2.0 B)
+Highest seat-decade growth and pre-1700 500-year growth: see the summary above (the
+design's limits are 3%/yr and 0.02-0.15%/yr).
+
+Era milestones of the median seat that reached them against table 2.7
+T007/T008/T010  4570-4455 BC   (4800-4000 BC)     in window
+T011, T015      4205, 4030 BC  (4500-3500 BC)     in window
+T025 writing    2060 BC        (3500-2500 BC)     late by about 450 years
+T022 bronze     1405 BC        (3300-2300 BC)     late by about 900 years
+T023 iron       465 BC         (1500-600 BC)      in window (just)
+classical       900 BC-AD 120  (1500 BC-AD 300)   in window
+medieval T030-T036  AD 425-930 (500-1300)         in window
+T048 printing   AD 1430        (1350-1550)        in window
+SCI             AD 1730        (1550-1700)        late by about 30 years
+T080/T060/T061  1840/1830/1770 (1750-1850)        in window
+T100            1860           (1850-1920)        in window
+T111            1940           (1940-2000)        in window
+T142            2090           (2000-2080)        late by about 10 years
+T147            2110           (2060-2140)        in window
+T162            2180           (2150-2220)        in window (13 of 64 seats)
+T167            2325           (2180-2260)        late by about 65 years (6 of 64 seats)
+
+Known variance: small changes of a threshold move a whole chain by centuries (a lower
+tier-1 threshold of 2.5 M put the scientific method in AD 1165 in an otherwise
+identical batch), so these windows hold for this batch, not for every world.

@@ -9,6 +9,13 @@ Ruleset `bts-rules/2.0.0` is the first that follows this chapter. Saves written 
 earlier rulesets counted people and posts differently and are refused on load with a
 versioned error; they cannot be migrated exactly.
 
+Ruleset `bts-rules/3.0.0` (design chapter 36) keeps every unit of this chapter and
+puts the game on a historical calendar (section 11). Its population, knowledge,
+productivity, goods and trade changes are recorded in the sections they touch as
+they land; a 2.x save is refused with "this save was written by ruleset
+bts-rules/2.x.y; this build runs bts-rules/3.0.0 and cannot load it: the calendar,
+the goods and the population rules differ".
+
 ## 1. Why the scale changed
 
 The endgame is an interstellar programme. A society that can run one independently
@@ -103,9 +110,10 @@ that records it, is listed in `docs/conservation-audit.md`.
 | Starting population per seat | 236,000-248,000, on a smooth young pyramid (no age stands out) |
 | Working age | 15-64; 92% of them are available for posts, study or service |
 | Food per person-month | 1 ration (50 kg grain-equivalent; 0.6 t a year) |
-| Births | at most 0.030 a month per reproductive equivalent, lagged nine months, cut by thin stores, crowding and schooling |
-| Sustained growth actually seen in all-AI matches | 1.5-2.5% a year while land and water last |
+| Births | at most 0.030 a month per reproductive equivalent, lagged nine months; intensity `F_custom x F_food x F_crowd x F_dev` (ruleset 3.0, below) |
+| Sustained growth | ruleset 2.0: 1.5-2.5% a year while land and water last; ruleset 3.0 targets about 0.06% a year before 1700, 1-2% in the industrial transition, near zero late (design chapter 36, section 3.1) |
 | Natural water of a home region | at least 2.6 million residents |
+| Arable land (ruleset 3.0, generator `bts-worldgen/2.0.0`) | three times generator 1.2's: plains 90-165 levels, hills 30-66, forest 36-72, rivers +18-36; a home at least 102; fields up to 250 levels |
 
 Settlement class of a region (descriptive only; no rule keys on it):
 
@@ -116,7 +124,80 @@ Settlement class of a region (descriptive only; no rule keys on it):
 | Village | 150,000 to under 1 million |
 | Town | 1 to under 4 million |
 | City | 4 to under 12 million |
-| Metropolis | 12 million or more |
+| Metropolis | 12 to under 40 million |
+| Megalopolis | 40 million or more (ruleset 3.0) |
+
+### Ruleset 3.0: mortality, fertility, epidemics and harvests
+
+Since ruleset 3.0 the classes are no longer only descriptive: the town-conditions
+factor below weighs a region's off-land share by its class. Sums of people over
+regions (a civilization, the world, `OwnCiv.population`, foreign estimates, the
+referee's diagnostics) are `u64`; a region and an age cell stay `u32`.
+
+- **Mortality** per age band and month: `base x M_tech x M_care x M_hazard x M_urban
+  x M_outbreak`, with pre-modern bases 2,600 / 420 / 80 / 105 / 260 / 900 per 100,000
+  (bands 0, 1-4, 5-14, 15-49, 50-64, 65+). `M_tech` multiplies, for children and
+  adults, for each node understood: T032 9,700/9,850, T033 9,200/9,600, T046
+  9,500/9,700, T053 6,000/8,000, T069 6,000/8,500, T070 5,000/8,000, T131
+  8,000/8,500, T136 7,000/7,000, and the practice C002 9,500/10,000 (the medieval
+  nodes are milder than the design's table, which would have started the
+  demographic transition a thousand years early). `M_care` = 10,000 less up to
+  1,000 for healers' lodges and 3,000 for hospitals (each by coverage, doubled with
+  medicine in store; at most 3,500): the design's `10,000 - coverage / 2` would let a
+  healers' lodge halve every death rate. Care also halves the crowding pressure as in
+  ruleset 2.0. `M_hazard` = 10,000 + crowding pressure x 1.5 + nutrition debt x 40.
+  `M_urban` = 10,000 + 5,000 x urban share x (1 - sanitation coverage), the urban
+  share being `1 - min(1, 3.2 x food workers / residents)` weighed by class (camp 0,
+  village 0.2, town 0.6, city and above 1) and sanitation coverage the residents
+  sewers (3 million a level) and treatment works (12 million) serve.
+- **Epidemics** (`sim::outbreaks`): a populated region breaks out with monthly
+  hazard `1/2,400 x density x connectivity x protection` (density
+  `clamp(crowding / 0.8, 0.5, 3)`, connectivity +0.5 within a year of an army's
+  presence, trade routes joining with the market slice; protection 0.5 with T053,
+  x 0.3 with T070, x (1 - care coverage / 2)). An epidemic lasts 6-24 months with
+  `M_outbreak` 13,000-25,000 on every band and spreads each month to each
+  neighbouring populated region with probability 30% x its protection; afterwards
+  the region has a quarter of the hazard and catches no spreading epidemic for 600
+  months. The region's government and the governments of its neighbours are told;
+  seats observing the region see it in `RegionView.outbreak`.
+- **Harvests**: one draw a year per climate zone (terrain group) and third of the map,
+  triangular in [-1,800, +1,000] bp with mean -200, added to field yields; damped by
+  half on irrigated land and to three tenths under fuel-burning methods.
+- **Fertility**: intensity `F_custom x F_food x F_crowd x F_dev x F_land`.
+  `F_custom` 3,850 (+230 with C002, -150 with C039, +600 for followers of Fruitful
+  Households, +230 for Day of Rest; the design's 5,500 assumed lower survival to
+  childbearing than these bands give, since with annual ageing a newborn spends on
+  average half a year in the infant band). `F_food` and `F_crowd` as in ruleset 2.0,
+  except that households judge their stores against at most what the stores can
+  hold. `F_dev = clamp(10,000 - 1,800 x literate share - 600 x urban share - 600 x
+  child survival gain - 600 x prosperity, 6,200, 10,000)`, +500 with C046; prosperity
+  enters with the consumption slice. `F_land` (a calibration addition, not in the
+  design) = `clamp(10,000 + 625 x (0.8 - P/K) / 0.8, 8,000, 10,625)` where `K` is
+  what the region's land can feed with what the government knows (wild food at a
+  third, fields at every level the land and practices allow by the best known
+  method, pastures and fishing grounds at half), at most its water capacity: the
+  Malthusian brake that keeps a pre-modern people near its land's capacity, so that
+  long-run growth follows new land and new methods instead of drifting to an
+  explosion or to extinction. Until soil science (T056) fields are held to 20 levels
+  (the best of the land; after C007 and C017 as before).
+- **Deaths by cause** partition all deaths: age and illness (base, technology,
+  care), hunger and crowding (`M_hazard`), town conditions (`M_urban`), epidemic
+  (`M_outbreak`) and war; `OwnCiv.deaths_by_cause` reports them for the last round.
+- **Field methods v3** (rations and general posts per level-month; since slice 5 the
+  real horses and fertilizer, and since slice 6 as many levels at a method as the
+  stores supply, section 15): hand 30,000 / 10,000; animal traction 46,000 / 8,000 with
+  30 horses; rotation and manuring (T020, T011, C017) 60,000 / 8,000 with 30 horses;
+  fertilized 120,000 / 6,000 with 150 t of fertilizer; mechanized 110,000 / 3,000 with
+  100 t of fuel; intensive 250,000 / 2,000 with 300 t of fertilizer and 150 t of fuel;
+  restorative 380,000 / 1,500 with 200 t of fertilizer, 50 t of chemicals and 150 t of
+  fuel. General posts are divided by the food sector's productivity. A level never yields more than twice its
+  method's base. **Food synthesis works** (T132 and T135): 4 kt of chemicals and
+  400 units of electricity make 200,000 rations a level-month, a declared
+  atmospheric-input recipe (output mass at most three times the input taken from
+  stock).
+- **Deposits** of generator 2.0: copper 300-1,200 Mt, iron 2,000-8,000 Mt, coal
+  3,000-12,000 Mt per deposit, and at least 1,200 Mt of copper ore, 7,000 Mt of iron
+  ore and 10,000 Mt of coal within three links of every home.
 
 Other person-scaled constants: a settling party is 20,000-400,000 people; a formation
 is 1,000-5,000,000 soldiers; home-defence militia is one working adult in forty, at
@@ -612,3 +693,325 @@ deliveries, recurring deliveries only with escrow) apply.
 ## 10. Known gaps in calibration
 
 Listed in `docs/implementation-status.md` under "Known calibration gaps".
+
+## 11. Time: the historical calendar (ruleset 3.0)
+
+The authoritative clock is still the simulated month, `World.month`, counting
+completed months since the start. A **calendar** (`MatchConfig.calendar`,
+`bts_engine::calendar`) fixes the start year and the length of every decision round
+by round number:
+
+| Calendar | Rounds | Start | Horizon | Round lengths |
+| --- | --- | --- | --- | --- |
+| Standard | 525 | 1 January 5000 BC | 1 January AD 2500, month 89,988 | 50 years (rounds 1-60), 40 (61-110), 25 (111-150; round 111 is 24), 20 (151-175), 10 (176-195), 5 (196-225), 4 (226-250), 2 (251-525) |
+| Quick | 230 | the same | the same | 100, 80, 50 (the first 49), 50, 20, 10, 10, 5 years on the same segment dates |
+| Fixture | as given | as given | `rounds x months_per_round` | fixed; tests and calibration only (`MatchConfig::fixture_calendar(rounds)` is twelve-month rounds from 5000 BC, the ruleset 2.0 clock) |
+
+- **Dates.** Inside the engine years are astronomical (1 BC = 0, 5000 BC = -4999). The
+  month about to be simulated after `m` completed months is in astronomical year
+  `start + m / 12`, month `m % 12 + 1`. On the wire and on screen a year is
+  historical, signed, with no year zero: `-5000` is 5000 BC, `1` is AD 1
+  (`util::date`, `util::year_label`, `util::date_label`). The round that starts on
+  1 January AD 1 is one year shorter than its segment's rounds because the year zero
+  does not exist. Ageing stays on 1 January.
+- **Every rate is monthly**, so a round of 600 months is 600 monthly steps; the
+  standard and quick calendars differ only in how often seats decide.
+- **Horizon and reward.** The match ends without a winner at the horizon. The unique
+  winner at month `T` scores `2 - (T - R)/(H - R)`, clamped to [1, 2], with `R` the
+  first month of AD 1900 (82,788): a win in AD 2280 scores 1.37. Under a fixture `R`
+  is 0, which is the ruleset 2.0 reward `2 - T/H`.
+- **Round totals.** `GoodLine` totals and the `*_last_round` counts cover the last
+  resolved round, however long; `CalendarView.last_round_months` states its length.
+  The referee's own uses of round totals (tribute, the industrial-base check of the
+  jump programme) are scaled to a month or a year by that length.
+- **Standing orders** (design section 2.6, `Action::Directive`) are evaluated on
+  1 January of every year and in the first month of every round, in the seat's
+  order, each through exactly the validation and price of the action it stands for:
+  build targets (at most four levels an evaluation), a research agenda (discovered
+  methods are investigated, leads followed up), automatic research, a reform agenda
+  (an addition to the design's list: practices gate early works, and without it
+  culture would advance only once per fifty-year round) and settlement targets.
+  Courses already enrol a new cohort whenever one graduates, so the design's
+  `repeat` flag is the standing behaviour of every programme.
+- **Treaty terms** run at least `max(6, round months)` and at most
+  `max(240, 3 x round months)` (or the clause's own longer maximum); pacts and
+  recurring deliveries may be open-ended (`months: 0`) until a party gives notice,
+  which ends them at the close of the next round. A war between seats begins only
+  in the first month of a round. Standing war policies make an armistice once both
+  sides accept it and no region has changed hands between them for the longer of
+  their terms and 36 months.
+- **Unchanged in months:** project minimum months and work, course lengths, the
+  minimum months of investigations, offer expiry in rounds, the five negotiation
+  windows of every round, the G96/F24/Trials96 windows, practice reform and
+  drift, capture and sovereignty.
+
+## 12. Knowledge pacing (ruleset 3.0)
+
+Design chapter 36, section 2.7, as implemented in `sim::knowledge` and
+`content/pacing.json` (read at load; no technology id is paced in code, and a node
+added to `content/technologies.json` later takes its tier from the table or one
+above its deepest prerequisite, and its tags from the table or "materials and
+handwork").
+
+- **Evidence** per month for every node whose prerequisites are met and that is
+  unknown or a lead: `P x C / 10,000 + T + X`. `P` = the mean activity of the node's
+  tags over two (as ruleset 2.0). `C`, the channel factor: oral 6,000; writing (T025)
+  10,000; archives (C013) 13,000; printing (T048) 16,000; the scientific method
+  22,000; a research commons (C044) 26,000; digital networks (T112) 30,000; times
+  (1 + half the literate share of working age) and times the open and questioning
+  habits of the people (tendencies O and R, at most a tenth either way); the Sky
+  Terraces add a tenth in measurement. `T` = `isqrt(10 x research staff) / 5`. `X` =
+  for every peaceful contact that has prototyped the node, `max(P, 100) x C / 10,000 x
+  (5,000 + 2,500 with customs C012 + 2,500 with translation C024) / 10,000`; the
+  volume of trade joins this factor with the market slice. C030 still adds a
+  quarter.
+- **Thresholds**: a lead at `H`, discovered at `2.5 H` (or by a lead study), scaled
+  by `pace_bp`. By tier: 1.0 M, 4.0 M, 6.0 M, then 0.8, 0.6, 0.64, 0.8, 0.9, 1.1,
+  1.1 M (tiers 3-9 at a fifth of the design's, because practitioner activity in these
+  economies is several times smaller than the design assumed). Nodes the graph's
+  tiers place far earlier than their history take their pacing era's `H` instead:
+  classical (iron, roads, sailing, water mills, hygiene, mechanical projection) 14 M;
+  late antiquity (recording media) 20 M; medieval (glass, mechanical timekeeping)
+  14 M; high medieval (propellants, optics, measurement, controlled trials,
+  astronomical models) 10 M; renaissance (printing) 16 M; early modern (guns,
+  precision transmission, anatomy, vacuum, chemical analysis) 8 M; the scientific
+  method node (T049) 6 M.
+- **Exploratory studies** add five units of evidence per researcher-month of the
+  study to each of the (at most two) cheapest eligible nodes of the domain, instead
+  of making them leads outright: they narrow a domain down, they do not skip an era.
+- **Research effectiveness**: a staffed research post supplies `RE` researcher-months
+  a month: oral 0.20, writing 0.35, archives 0.50, printing 0.65, the scientific
+  method 0.85, a research commons 0.95, digital networks 1.0 (`research used <=
+  posts x RE`, audited monthly).
+- **Work and minimum months** by tier (thousands of researcher-months; months): 50
+  and 120, 300 and 180, 1,000 and 120, 2,000 and 60, then 2,000, 4,000, 6,000,
+  12,000, 20,000 and 30,000 with 36, 30, 30, 30, 36 and 36 months (tiers 4-9 at a
+  tenth to a fifth of the design's, which assumed research capacity the native seats
+  do not yet build).
+
+## 13. The home world: generator 2.0 (ruleset 3.0)
+
+Design chapter 37, section 5.1, as implemented in `worldgen.rs` (shared steps) and
+`worldgen/earthlike.rs` (the map source). `MatchConfig.world` (`WorldKind`) chooses the
+map source: `earth_like` (default) or `classic` (the flat 1,600 x 1,000 map of ruleset
+2.0, kept for fixtures; `bts run --world classic`, `"world": "classic"` in a new-match
+request). A map source returns a `Geo` (regions with geography and links, geology tags,
+moisture, ocean adjacency); rivers, passes, sea links, connectivity, site data,
+deposits, starts, guarantees, test nodes and civilizations are shared, so the real
+Earth (slice 16) only adds a map source.
+
+- **Map.** 2,000 x 1,000 units, equirectangular, wrapping east-west
+  (`WorldFrame.wrap_x`); latitude 90 - y x 0.18 degrees. Cells on a staggered jittered
+  grid, `regions x 10 / 3` of them (land is about 30% of cells; one land cell is one
+  region); cells above 72 degrees are polar ice. Polygons are stored contiguous around
+  their centre (the centre's x in [0, 2,000)), so a region at the date line has
+  vertices past an edge; movement and carriage use links only.
+- **Plates.** 7-9 seeds; 3 continental (35-40%); each cell joins the nearest seed
+  (cosine-weighted, warped by noise). Elevation: continental crust 0.60, oceanic 0.18,
+  convergent boundaries raise continents (mountain belts) and island arcs and sink the
+  oceanic side of a subduction zone, divergent ones lower; fractal noise; high
+  latitudes lowered. Land = the highest non-polar cells.
+- **Climate.** Temperature `-18 + 46 cos(lat) - 10 x height` (integer cosine table);
+  moisture by latitude band (wet equator, dry subtropics, wet westerlies, dry poles),
+  reduced by 13% per land link from the sea (to at least 45%), by 45% in the rain
+  shadow of mountains (east of ranges at 35-62 degrees, west of ranges below 30), plus
+  noise. Height is the rank of relief among the world's land, so mountain and hill
+  shares match the classic map. Terrain from a Whittaker-style table onto the eight
+  terrains; `Region.climate` (`Tropical, Arid, Temperate, Continental, Polar`) drives
+  the shared harvest draws (one per climate zone and ninth of the map per year).
+- **Land attributes** by terrain are the classic generator's (`terrain_attrs`); over
+  1,000 worlds the arable, pasture, forest and water means are within 5% of the classic
+  map (`docs/calibration/ruleset3-slice-4-eval.txt`), which keeps slice 2's population
+  calibration valid.
+- **Starts.** Temperate or tropical, not mountains, desert or tundra, scored by land
+  and room, as many links apart as the world allows (four wanted, three at least in
+  nine worlds of ten), each with room to grow over land (`regions / 12` regions nearer
+  to it than to any other start within three land links). A world whose starts fail
+  is drawn again from the next address of the secret, at most twelve times. A start
+  the river courses missed gets a short river to its lowest land neighbour.
+- **Site data** (`Region.site`, plain world data for later rules on cities, harbours
+  and migration; no rule of slices 4-6 reads it): coast edges, natural harbour
+  quality, navigable river, river mouth, confluence, flat-land share, climate amenity,
+  and mineral wealth within one link.
+- **City and harbour data** (design chapter 38, section 8.1; recorded now, used by the
+  cities slice): `Region.natural_harbour` (about a third of coasts, three in five river
+  mouths), `Region.city_name` and `Region.city_at` (the principal city, seaward of the
+  centre on a coast), `World.ice_links` (sea links between regions beyond 52 degrees,
+  seasonal, or beyond 62 or both polar, for most of the year).
+- **Seats and size.** Starts are placed for two to ten seats (the room a start needs
+  scales with the seat count) and worlds of up to about 160 regions generate in well
+  under a second.
+- **Determinism.** Only +, -, x, /, floor, sqrt and comparisons on `f64` and keyed
+  integer hashes (`worldgen_uses_no_transcendental_functions` scans the source); noise
+  on the wrapped map repeats every 2,000 units.
+
+## 14. Resources and goods (ruleset 3.0)
+
+Design chapter 36, section 5, as changed by chapter 37, section 1.1; `content.rs`,
+`worldgen.rs::place_deposits`, `sim::economy`.
+
+**Goods** (50; base unit, mass): food (ration, 50 kg); horses (head, 500 kg); tools and
+spares (lot, 250 kg); electronics, munitions and batteries (lot, 50 kg); hardware (lot,
+500 kg); media (lot, 150 kg); instruments (lot, 400 kg); medicine (lot, 40 kg); consumer
+goods (lot, 100 kg); textiles, fine wares and interface lattice (lot, 10 kg); precious
+metals, nuclear fuel and helium-3 (lot, 1 kg); everything else a tonne: building
+materials (relabelled; timber split off), copper, tin, iron and copper ore, coal,
+crude, natural gas, salt, saltpetre, bauxite, uranium ore, rare-earth ore, lithium,
+cobalt and nickel, high-purity quartz, helium, timber, fibres, spices, iron and steel,
+copper, aluminium, components, conductors, insulation, fuel, chemicals, fertilizer,
+magnets, semiconductor materials, volatiles, propellant. Rare minerals are retired
+(uranium ore, rare earths, quartz, lithium and cobalt-nickel replace them). Volatiles,
+propellant and helium-3 are in the catalog for the space slice and are not made yet.
+Grown goods (food, fibres, horses, spices, timber) come from extractive land works and
+are outside the mass balance like food; the declared atmospheric recipes (ammonia,
+food synthesis) put out at most three times the mass they take.
+
+**A seat's ledger lists a good** once it holds or has moved some, or a facility,
+method, field method, formation or course within its knowledge names it, or it
+recognizes a deposit of it in a surveyed region (`observe::known_goods`).
+
+**Deposits** (17; `Deposit`; per 48 regions, size per deposit, placement bias):
+
+| Deposit | Regions | Size | Geology and climate | Revealed by |
+| --- | --- | --- | --- | --- |
+| Copper ore | 16-20 | 300-1,200 Mt | orogenic belts, hills, mountains | T014 |
+| Tin | 5-7 (at least 5) | 10-40 Mt | belts in rough land (granite) | T014 |
+| Iron ore | 20-24 | 2,000-8,000 Mt | shields, belts, plains | T023 |
+| Coal | 18-22 | 3,000-12,000 Mt | wet lowland basins | T014 |
+| Saltpetre | 6-9 | 20-80 Mt | deserts, arid lands, hills | T036 |
+| Salt | 18-22 | 500-5,000 Mt | arid lands, coastal basins (and pans on every coast) | from the start |
+| Precious metals | 8-12 | 2,000-10,000 t | belts in rough land | from the start |
+| Crude oil | 8-12 | 1,000-6,000 Mt | sedimentary basins in deserts, steppes, marshes, tundra | T064 or T090 |
+| Natural gas | 8-12 (beside crude) | 1,000-5,000 Mt; helium 0-150 per 10,000 t, 50-150 in 2-4 fields | as crude | T090 (helium content T108) |
+| Bauxite | 4-6 (at least 4) | 500-3,000 Mt | tropical plains and hills | T103 |
+| Uranium ore | 4-6 (at least 3) | 5-30 Mt | shields, deserts, mountains | T146 |
+| Rare-earth ore | 3-5 (at least 3) | 20-100 Mt | shields, mountains, deserts | T043 or T103 |
+| Lithium brine | 3-4 (at least 3) | 5-30 Mt | arid basins and rifts | T105 |
+| Cobalt and nickel | 4-6 (at least 3) | 20-150 Mt | mountains, belts, tundra | T060 |
+| High-purity quartz | 5-8 (at least 3) | 50-300 Mt | rough land | T103 |
+| Volatiles, helium-3 | off the Earth only (space slice) | | | not yet |
+
+For each kind the regions whose geology calls for it most (with noise) receive one; a
+rare kind is placed so that no start's three-link neighbourhood holds more than half of
+its regions where the world allows (95% of rare kinds over 1,000 worlds; a three-link
+neighbourhood is 20 of 48 regions at the median). Within three links of every home: at
+least 1,200 Mt of copper ore, 7,000 Mt of iron ore, 10,000 Mt of coal, and salt (a
+deposit or a coast for pans); every home has a floodplain. **Site bonuses** (at most two):
+fertile floodplain (river lowland, +2,500 field yield), fish banks (+5,000 fishing),
+wild herds (+5,000 horse breeding; seen with T006), old-growth forest (+5,000 timber),
+rich pasture (+3,000 pasture food). **Spice land**: 6-20 levels on tropical plains,
+forest, marsh and hills.
+
+**New facilities** (per level-month): forestry camps (12 t timber, 8,000 posts; the
+old timber-and-quarry camp), quarries and clay pits (16 t materials, 8,000), salt works
+on a deposit (8 t, 6,000) and coastal pans (0.5 t, 1,000), fibre plantations (2 t
+fibres, 8,000, share arable land with fields), spice plantations (0.5 t), horse
+breeding (300 horses, 5,000, shares pasture), mines of tin, precious metals, bauxite,
+uranium, rare earths, cobalt-nickel and quartz (shallow, deep and mechanized workings
+as the copper mine), nitre works (2 t saltpetre), lithium brine works (0.5 t), gas wells
+(30 t gas; with separation, T108, the field's helium share of the gas raised), weaving
+workshops and textile mills (1.1 t fibres to 100 lots of textiles; synthetic method
+1.2 t chemicals), powder works (0.6 t saltpetre and 0.2 t timber to 15 lots of
+munitions), arsenal (0.5 t chemicals and 0.3 t metal to 15 lots), nitrate fertilizer
+works (6 t saltpetre to 5 t), ammonia synthesis (5 t gas to 12 t, or 10 t coal to 12 t,
+atmospheric; ten times the design table's per-level output, see the slice 5
+calibration), aluminium smelter (4 t bauxite and 0.4 t chemicals to 1 t, 150 electric),
+magnet works (3 t rare earths, 1 t metal, 0.5 t chemicals to 1 t magnets), battery works
+(lithium cells, or sodium cells from salt at half the output), nuclear fuel plant
+(4 t uranium ore to 40,000 lots; fusion fuel from lithium), consumer goods works, fine-wares
+workshops, and the lattice conditioning works (one per test node; the only input with
+no substitute). The full table is printed by `print_unit_tables`.
+
+**Changed users**: copper and iron smelting and tool handles burn timber; bronze tools
+(1.4 t copper, 0.2 t tin, 2 t timber to 9,000 lots) before copper tools (6,000); fields
+draw horses (traction and rotation, 30 a level-month) and fertilizer (fertilized 150 t,
+intensive 300 t, restorative 200 t with 50 t chemicals) instead of the stand-ins; roads
+use 20 horses a level-month until motor vehicles (porters stand in without loss of
+condition); stored food spoils three tenths slower while 0.2 t of salt per million
+rations is at hand; harbours take timber; fission burns 3,000 lots of nuclear fuel;
+fusion 5,000 lots and 0.05 t helium; the high-energy laboratory, testbed, assembly line,
+deployment node and lattice works take operating helium (each with a nitrogen-cooled
+method without helium and more electricity); the launch complex takes aluminium,
+cobalt-nickel and batteries (or steel vehicles and more fuel); the orbital yard aluminium
+(or steel); assembly lines lattice and magnets; integrated electronics a trace of
+precious metals; semiconductor materials come from quartz (or twice-refined metallurgical
+silicon); the industrial base of the jump programme counts magnets and lattice.
+
+**Formations** carry an equipment generation (G0, G1, G2, G4, G5, G6): bronze levies may
+be issued copper and tin when iron is short; maneuver formations of G1-G2 need 0.3
+horses per soldier; G2 and later take munitions (one lot per soldier, 0.02-0.04 a month,
+five times as much in a month of battle); G5 aluminium, G6 batteries.
+
+**Building lines** (`FacDef.line`, `stage`, `era`; `content().upgrades`): metadata for
+the building lifecycle of slice 7, and the era that gates productivity technologies.
+
+## 15. Labour productivity (ruleset 3.0)
+
+Design chapter 36, section 4, as changed by chapter 37, section 8.3; `sim::productivity`.
+
+For region `r` and sector `k` (food, extraction, industry, services, knowledge,
+construction; a works' sector follows its labour category, food works are food):
+
+```text
+LP(r, k) = clamp(F_edu x F_cul x F_rel x F_tech x F_city x F_health, 5,000, 40,000)
+
+- `F_edu = 10,000 + 3,000 x literate share + 2,000 x qualified share` (working age; the
+  qualified are holders of any qualification but literacy and lore).
+- `F_cul = clamp(10,000 + (tendency - 5,000) / 5 + practice bonuses, 8,500, 13,000)`, the
+  tendency of the region's majority lineage that drives the sector (agricultural
+  stewardship for food; industrial workmanship for industry and extraction; urban
+  organization for services and construction; revisability for knowledge) and the
+  established practices of the design's table (C018 craft guilds until C033).
+- `F_rel = clamp(10,000 + doctrines, 9,000, 11,500)` of the region's majority faith:
+  Shared Labour Days +500 construction; Sanctified Labour (new follower practice) +500
+  industry and extraction; Stewardship of the Land (new founding obligation) +500 food
+  and +5% field yield; Day of Rest -300 everywhere.
+- `F_tech = 10,000 + ` the productivity technologies of the sector (the design's
+  table), counting for a works only those of an era at most one above the works' era
+  (its building stage's era, or the era of the method it runs when later: fields
+  worked by machine are modern farming).
+- `F_city` (`city_factor`, a function of its inputs): the class term of the region's
+  principal city (`city_class`: the settlement class until the cities slice) for
+  industry, services and knowledge (camp 9,500 ... megalopolis 11,400), times
+  `1 + 0.06 x prosperity` (prosperity 0 until the consumption slice), less
+  `1,000 x (1 - water coverage)` and a quarter of the health pressure; 8,000-12,500.
+- `F_health = 10,000 - (10,000 - food access) / 2 - health pressure / 4`, 6,000-10,000.
+- `F_auto` (qualified posts, never research posts): T114 +1,000 industry, T116 +1,000
+  services and knowledge, T122 +2,500 everywhere; 10,000-15,000.
+
+**Channels.** A works needs `ceil(general x method share x (1 - shared support) x
+10,000 / LP)` general posts and `ceil(qualified / F_auto)` qualified posts; what a level
+makes is unchanged (the hard ceiling `recipe x level x rate`). A field level needs
+`10,000 / LP(food)` of its method's cultivators and yields the same rations, times the
+land factor (floodplain, irrigation, the harvest, agricultural habits, the stewardship
+doctrine), at most twice the method. Pasture and fishing need fewer hands for the same
+food. The construction factor `min(LP(construction), 15,000)` is the worker-months a
+called-up worker supplies. Evidence of discovery and the town share of a region are
+reckoned on the work done (posts at a productivity of one), so productivity frees
+people without slowing discovery or turning farmers into townspeople by bookkeeping.
+
+**Fields with partial inputs** (ruleset 3.0 slice 6): a region's fields are worked at
+the best method on as many levels as the stores supply with a full month of that
+method's horses, fertilizer, chemicals and fuel (motor boats are fuelled first), and the
+rest at the best method the remaining stores cover; every level's inputs are reserved
+before the plan and drawn after it. (Before, a method was used only when a month for
+every field of the civilization was in store, which held whole late nations at hand
+cultivation for want of the last kilotonne of fertilizer.)
+
+**Visibility.** `OwnRegion.productivity` (one `ProductivityView` per sector: total,
+factors named by source and detail, posts saved last month) and per works
+`FacilityView.posts_base`, `posts_after_scale`, `posts_after_productivity`,
+`productivity_bp`, `yield_per_level`, `yield_factors`. Only technologies the seat
+understands and practices it established are named.
+
+**Audit.** Every works' posts equal the formula with the month's factors (stored on
+the facility: `lp_bp`, `lpq_bp`, `staff_level`, `staff_saving_bp`), its factors are in
+bounds, and project work is at most the called-up workers times the month's
+construction factor (`ledger::violations`).
+
+**Map size.** Knowledge pacing scales with the region count (`content/pacing.json`,
+`map_scale`): evidence thresholds by `1 + evidence_bp x (regions - 48) / 48` and
+research and reform work by `1 + work_bp x (regions - 48) / 48`. Calibrated on the
+60-region Standard map (now the default; presets 30, 60, 90, 120, 200): the larger
+generated world develops more slowly than the 48-region one (seats are farther apart),
+so the evidence factor is 0.95 there (`evidence_bp` -2,000) and work is unscaled.

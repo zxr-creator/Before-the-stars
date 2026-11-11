@@ -4,6 +4,7 @@
 // verified ones: they get a dashed rim, a paler face and a query mark.
 import type { Deposit, Role } from '../protocol';
 import { hexRgb, mixRgb, rgbCss, type RGB } from './util';
+import { DEPOSIT_COLOR, drawDepositPicto } from '../map/pictos';
 
 const INK = '#2f2419';
 const CREAM = '#fbf3dc';
@@ -13,7 +14,19 @@ const BADGE: Record<Deposit, { face: string; rim: string }> = {
   iron_ore: { face: '#cdd8e4', rim: '#3d4a5c' },
   coal: { face: '#e6d7b4', rim: '#2a2622' },
   crude: { face: '#f3d568', rim: '#3a2a14' },
-  minerals: { face: '#decff7', rim: '#4d3a8a' },
+  tin: { face: '#f3ecdc', rim: DEPOSIT_COLOR.tin },
+  salt: { face: '#dfe6ea', rim: '#8c8a80' },
+  saltpetre: { face: '#f3ecdc', rim: DEPOSIT_COLOR.saltpetre },
+  precious: { face: '#f3ecdc', rim: DEPOSIT_COLOR.precious },
+  gas: { face: '#f3ecdc', rim: DEPOSIT_COLOR.gas },
+  bauxite: { face: '#f3ecdc', rim: DEPOSIT_COLOR.bauxite },
+  uranium_ore: { face: '#f3ecdc', rim: DEPOSIT_COLOR.uranium_ore },
+  rare_earths: { face: '#f3ecdc', rim: DEPOSIT_COLOR.rare_earths },
+  lithium: { face: '#f3ecdc', rim: DEPOSIT_COLOR.lithium },
+  cobalt_nickel: { face: '#f3ecdc', rim: DEPOSIT_COLOR.cobalt_nickel },
+  quartz: { face: '#f3ecdc', rim: DEPOSIT_COLOR.quartz },
+  volatiles: { face: '#f3ecdc', rim: DEPOSIT_COLOR.volatiles },
+  helium3: { face: '#f3ecdc', rim: DEPOSIT_COLOR.helium3 },
 };
 
 function glyph(ctx: CanvasRenderingContext2D, kind: Deposit): void {
@@ -75,11 +88,8 @@ function glyph(ctx: CanvasRenderingContext2D, kind: Deposit): void {
       break;
     }
     default: {
-      // A cluster of three crystals.
-      poly([-6, 24, -12, -8, -2, -28, 8, -8, 4, 24], '#8d6fd8');
-      poly([-2, -28, 8, -8, 4, 24, -1, 24], '#6c50b8');
-      poly([-24, 24, -27, 4, -19, -8, -11, 4, -10, 24], '#a58ae6');
-      poly([10, 24, 12, 2, 20, -10, 27, 4, 24, 24], '#7a5ecb');
+      // The other deposits wear the same pictogram as on the flat atlas and in the legend.
+      drawDepositPicto(ctx, kind, 0, 0, 25, true, false);
       break;
     }
   }
@@ -91,7 +101,7 @@ export function depositBadge(kind: Deposit, verified: boolean): HTMLCanvasElemen
   c.width = 128; c.height = 156;
   const ctx = c.getContext('2d');
   if (!ctx) return c;
-  const pal = BADGE[kind];
+  const pal = BADGE[kind] ?? { face: '#f3ecdc', rim: '#8a7d6a' };
   const face = verified ? pal.face : rgbCss(mixRgb(hexRgb(pal.face), [0.97, 0.94, 0.86], 0.6));
   const cx = 64, cy = 62, R = 52;
   // Drop shadow, pointer, disc.

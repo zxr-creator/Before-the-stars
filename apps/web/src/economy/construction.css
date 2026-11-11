@@ -117,6 +117,8 @@
 .wt-util small { font-variant-numeric: tabular-nums; color: var(--ink-2); }
 
 .works-detail { min-width: 0; background: var(--paper-4); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px 16px; box-shadow: var(--shadow-sm); position: sticky; top: 0; }
+/* the detail keeps its own scroll, so the lower sections (labour, expand) are reachable without scrolling the whole list */
+.works-split > .works-detail { max-height: calc(100vh - 210px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .wd-head { display: flex; align-items: flex-end; gap: 10px; border-bottom: 2px solid var(--gold); padding-bottom: 8px; margin-bottom: 10px; }
 .wd-head small { font: 600 10px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
 .wd-head h4 { font-size: 19px; line-height: 1.15; }

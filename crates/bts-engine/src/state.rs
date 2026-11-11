@@ -15,8 +15,9 @@ pub const WORK_MAX_AGE: usize = 64;
 pub struct MatchConfig {
     pub seed: String,
     pub regions: u16,
-    pub horizon: Month,
-    pub months_per_round: u32,
+    /// The round schedule (design chapter 36, section 2.2); the horizon and the
+    /// length of every round derive from it.
+    pub calendar: crate::calendar::CalendarId,
     /// Research and construction work multiplier in basis points (10000 = standard).
     pub pace_bp: u32,
     pub controllers: Vec<ControllerKind>,
@@ -24,15 +25,45 @@ pub struct MatchConfig {
     pub disclosed_objective: bool,
     /// When true the world secret is derived only from the seed label (replayable public world).
     pub public_seed: bool,
+    /// The kind of home world (design chapter 37, section 5): the generated
+    /// Earth-like planet by default; the classic flat map for fixtures.
+    #[serde(default)]
+    pub world: WorldKind,
+}
+
+impl MatchConfig {
+    /// Completed months at which the match ends without a winner.
+    pub fn horizon(&self) -> Month {
+        self.calendar.horizon()
+    }
+    /// Months in round `r`.
+    pub fn round_months(&self, r: u32) -> u32 {
+        self.calendar.round_months(r)
+    }
+    /// The pace multiplier of research and reform work: the scenario pace times the
+    /// map-size scale of `content/pacing.json` (larger maps, larger research bases).
+    pub fn research_pace(&self) -> u32 {
+        (self.pace_bp as i64 * crate::content::pacing().map_scale.work(self.regions) / 10_000) as u32
+    }
+    /// The pace multiplier of evidence thresholds (technologies and practices).
+    pub fn evidence_pace(&self) -> u32 {
+        (self.pace_bp as i64 * crate::content::pacing().map_scale.evidence(self.regions) / 10_000) as u32
+    }
+    /// The ruleset 2.0 clock for unit tests: twelve-month rounds from 5000 BC,
+    /// `rounds` of them.
+    pub fn fixture_calendar(rounds: u32) -> crate::calendar::CalendarId {
+        crate::calendar::CalendarId::Fixture { months_per_round: 12, start_astro_year: crate::calendar::START_ASTRO_YEAR, rounds }
+    }
 }
 
 impl Default for MatchConfig {
     fn default() -> Self {
         MatchConfig {
             seed: "riverland".into(),
-            regions: 48,
-            horizon: 2880,
-            months_per_round: 12,
+            // the Standard map (design chapter 40 decision: Small 30, Standard 60,
+            // Large 120, Huge 200 regions)
+            regions: 60,
+            calendar: crate::calendar::CalendarId::Standard,
             pace_bp: 10_000,
             controllers: vec![
                 ControllerKind::Human,
@@ -42,6 +73,7 @@ impl Default for MatchConfig {
             ],
             disclosed_objective: false,
             public_seed: true,
+            world: WorldKind::EarthLike,
         }
     }
 }
@@ -78,11 +110,14 @@ pub struct DepositState {
     /// Tonnes of ore ever delivered at the pithead from here; never more than `drawn`.
     #[serde(default)]
     pub delivered: i64,
+    /// Gas fields: helium recoverable per 10,000 t of gas raised (0-150).
+    #[serde(default)]
+    pub helium_bp: u16,
 }
 
 impl DepositState {
     pub fn new(kind: Deposit, remaining: i64, quality_bp: u16) -> Self {
-        DepositState { kind, remaining, quality_bp, drawn: 0, delivered: 0 }
+        DepositState { kind, remaining, quality_bp, drawn: 0, delivered: 0, helium_bp: 0 }
     }
 }
 
@@ -167,12 +202,25 @@ pub struct Facility {
     /// kept the land on a lower method than the seat allows.
     #[serde(default)]
     pub field_run: Option<RunStat>,
+    /// Labour productivity applied to the works' general posts last month and the
+    /// automation factor applied to its qualified posts, basis points (0 before the
+    /// works first ran; ruleset 3.0 slice 6).
+    #[serde(default)]
+    pub lp_bp: u16,
+    #[serde(default)]
+    pub lpq_bp: u16,
+    /// The levels and shared-support saving the posts were reckoned on last month
+    /// (a level completed later in the month is staffed from the next).
+    #[serde(default)]
+    pub staff_level: u16,
+    #[serde(default)]
+    pub staff_saving_bp: u16,
 }
 
 impl Facility {
     /// A new, enabled installation in full repair that has not yet run.
     pub fn new(kind: usize, level: u16) -> Facility {
-        Facility { kind, level, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0, method: None, field_run: None }
+        Facility { kind, level, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0, method: None, field_run: None, lp_bp: 0, lpq_bp: 0, staff_level: 0, staff_saving_bp: 0 }
     }
 }
 
@@ -279,6 +327,19 @@ pub struct RegionMonth {
     pub food_made: i64,
     pub qual_employed: Vec<u32>,
     pub tag_staff: Vec<u32>,
+    /// Worker-months one called-up worker supplied this month: the construction factor
+    /// of productivity (10,000 = one; at most 15,000; ruleset 3.0 slice 6).
+    #[serde(default)]
+    pub construction_bp: u16,
+    /// Food workers counted at a productivity of one: the people the same food
+    /// would have needed (ruleset 3.0 slice 6). Town life (`urban_share`) is reckoned
+    /// on it, so that productivity frees people for other work without turning the
+    /// countryside into a town by bookkeeping. 0 before the slice: use `labor.food`.
+    #[serde(default)]
+    pub food_equiv: u32,
+    /// General posts each sector's works did without because of productivity.
+    #[serde(default)]
+    pub posts_saved: Vec<u32>,
     /// Worker-months of called-up labour not yet assigned to a project this month.
     /// Site crews are not in this pool: each works only on its own order.
     pub project_labor_free: i64,
@@ -329,9 +390,82 @@ pub struct Region {
     pub students: u32,
     pub teachers: [u32; NQ],
     pub migr_rem: i64,
+    /// An epidemic under way here (design chapter 36, section 3.2).
+    #[serde(default)]
+    pub outbreak: Option<Outbreak>,
+    /// After an epidemic the region has a quarter of the hazard until this month.
+    #[serde(default)]
+    pub immune_until: Month,
+    /// Last month an army stood in the region.
+    #[serde(default)]
+    pub army_seen: Month,
+    /// Climate zone (generator 2.0).
+    #[serde(default = "default_climate")]
+    pub climate: ClimateZone,
+    /// Natural qualities of the site as plain world data (generator 2.0): what later
+    /// rules on city growth, harbours and migration read without regenerating the world.
+    #[serde(default)]
+    pub site: SiteData,
+    /// Levels of warm, wet land fit for spice plantations (ruleset 3.0).
+    #[serde(default)]
+    pub spice_land: u16,
+    /// Site bonuses, at most two: the bonus and what it adds, basis points.
+    #[serde(default)]
+    pub bonuses: Vec<(Bonus, u16)>,
+    /// A sheltered bay, estuary or fjord (design chapter 38, section 2.3).
+    #[serde(default)]
+    pub natural_harbour: bool,
+    /// The region's principal city (design chapter 38, section 2.1): its name and
+    /// position, on the coast or river where there is one.
+    #[serde(default)]
+    pub city_name: String,
+    #[serde(default)]
+    pub city_at: [i32; 2],
+}
+
+fn default_climate() -> ClimateZone {
+    ClimateZone::Temperate
+}
+
+/// Natural qualities of a region's site, fixed at generation. Nothing in ruleset 3.0
+/// slices 4-6 keys a rule on these except as noted; they are recorded so that
+/// city-site quality (coast, rivers, flat land, climate, resources) can be derived later.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SiteData {
+    /// Edges of the region's polygon that face open sea.
+    pub coast_edges: u8,
+    /// Natural harbour quality, basis points (0 inland; sheltered, indented coasts high).
+    pub harbour_bp: u16,
+    /// A river runs through the region and is navigable here (lowland stretch).
+    pub navigable_river: bool,
+    /// A river reaches the sea in this region.
+    pub river_mouth: bool,
+    /// Two or more river links meet here.
+    pub confluence: bool,
+    /// Share of the region's land that is flat enough for fields and towns, basis points.
+    pub flat_bp: u16,
+    /// Climate amenity for settlement, basis points (mild, wet enough, not extreme).
+    pub amenity_bp: u16,
+    /// Known-or-not mineral wealth within one link (deposits weighted by kind),
+    /// basis points of the world's best region; filled after deposits are placed.
+    pub resource_bp: u16,
+}
+
+/// An epidemic in a region.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Outbreak {
+    pub since: Month,
+    /// The month after its last month.
+    pub until: Month,
+    /// Factor on the death rate of every band, basis points (13,000-25,000).
+    pub severity_bp: u16,
 }
 
 impl Region {
+    /// What a site bonus of this kind adds here, basis points (0 without it).
+    pub fn bonus(&self, b: Bonus) -> i64 {
+        self.bonuses.iter().find(|(k, _)| *k == b).map(|(_, v)| *v as i64).unwrap_or(0)
+    }
     pub fn population(&self) -> u32 {
         self.blocks.iter().map(|b| b.total()).sum()
     }
@@ -383,13 +517,14 @@ impl Region {
 
 /// Lower bound, in residents, of each settlement class (units chapter, section 3).
 /// The classes are descriptive: no rule keys on them.
-pub const SETTLEMENT_BOUNDS: [(SettlementKind, u32); 6] = [
+pub const SETTLEMENT_BOUNDS: [(SettlementKind, u32); 7] = [
     (SettlementKind::Wilderness, 0),
     (SettlementKind::Camp, 1),
     (SettlementKind::Village, 150_000),
     (SettlementKind::Town, 1_000_000),
     (SettlementKind::City, 4_000_000),
     (SettlementKind::Metropolis, 12_000_000),
+    (SettlementKind::Megalopolis, 40_000_000),
 ];
 
 /// Residents at which a region counts as urban for cultural drift.
@@ -620,6 +755,10 @@ pub struct Treaty {
     /// status "broken" and nobody here.
     #[serde(default)]
     pub broken_by: Option<SeatId>,
+    /// The party that gave notice on the treaty's open-ended clauses, if one did;
+    /// they end at `ends`.
+    #[serde(default)]
+    pub notice_by: Option<SeatId>,
 }
 
 /// Experts lent under one secondment clause (`Clause::Secondment`).
@@ -734,6 +873,9 @@ pub struct Contact {
     pub trust: i32,
     pub notes: Vec<String>,
     pub last_peace: Month,
+    /// Month in which a region last changed hands between the two (for armistice).
+    #[serde(default)]
+    pub last_control_change: Month,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -787,6 +929,10 @@ pub struct Flows {
     pub births: u32,
     pub deaths: u32,
     pub migration: i32,
+    /// The deaths by cause (`sim::population::DEATH_CAUSES`): age and illness,
+    /// hunger and crowding, town conditions, epidemic, war. They add up to `deaths`.
+    #[serde(default)]
+    pub deaths_cause: [u32; 5],
 }
 
 fn zeros_ng() -> Vec<i64> {
@@ -799,7 +945,7 @@ fn zeros_nq() -> Vec<i64> {
 
 impl Flows {
     pub fn new() -> Self {
-        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], births: 0, deaths: 0, migration: 0 }
+        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], births: 0, deaths: 0, migration: 0, deaths_cause: [0; 5] }
     }
 }
 
@@ -970,7 +1116,7 @@ pub struct Civ {
     pub study_done: Vec<u32>,
     pub eliminated_month: Option<Month>,
     pub army_counter: u32,
-    pub pop_peak: u32,
+    pub pop_peak: u64,
     /// Cumulative ledger of qualified people (see [`QualFlows`]).
     #[serde(default)]
     pub qual_flows: QualFlows,
@@ -978,6 +1124,29 @@ pub struct Civ {
     /// `compute_supply` installed the month before.
     #[serde(default)]
     pub compute_used: i64,
+    /// Standing orders, in evaluation order (design chapter 36, section 2.6).
+    #[serde(default)]
+    pub directives: Vec<DirectiveSt>,
+    /// Standing war policy toward each seat: (months of unchanged control after
+    /// which a white peace is accepted, most regions it would cede).
+    #[serde(default)]
+    pub war_policy: Vec<Option<(u16, u8)>>,
+    /// Counts of frequent events this round, shown as one briefing line each.
+    #[serde(default)]
+    pub tallies: Vec<(String, u32)>,
+    /// People at the start of the round being resolved (for its era summary).
+    #[serde(default)]
+    pub round_start_pop: u64,
+}
+
+/// One standing order and what it did when last evaluated.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DirectiveSt {
+    pub id: u32,
+    pub directive: Directive,
+    pub last_result: String,
+    pub last_status: String,
+    pub last_month: Month,
 }
 
 impl Civ {
@@ -1077,9 +1246,43 @@ pub struct World {
     /// Envelope sent this window, indexed `from * n + to`.
     pub sent_window: Vec<bool>,
     pub versions: Vec<String>,
+    /// Completed months when the round being resolved began.
+    #[serde(default)]
+    pub round_start: Month,
+    /// Months the last resolved round lasted: the span of every civilization's
+    /// `last_flows` (0 before the first round is resolved).
+    #[serde(default)]
+    pub last_round_months: u32,
+    /// Sea links closed by ice (generator 2.0; design chapter 38, section 8.1), as
+    /// sorted pairs. Recorded world data: no rule of ruleset 3.0 slices 4-6 reads it.
+    #[serde(default)]
+    pub ice_links: Vec<IceLink>,
+}
+
+/// A sea link between two subpolar or polar regions that ice closes in winter
+/// (`permanent: false`) or for most of the year (`permanent: true`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IceLink {
+    pub a: RegionId,
+    pub b: RegionId,
+    pub permanent: bool,
 }
 
 impl World {
+    /// Months in the round in progress.
+    pub fn round_months(&self) -> u32 {
+        self.cfg.round_months(self.round)
+    }
+    /// Scale a total over the last resolved round to `months` months.
+    pub fn per_last_round(&self, total: i64, months: i64) -> i64 {
+        // before the first round closes there are no round totals; a year is assumed
+        let span = if self.last_round_months == 0 { 12 } else { self.last_round_months };
+        crate::util::muldiv(total, months, span as i64)
+    }
+    /// Whether the month being simulated is the first month of its round.
+    pub fn first_month_of_round(&self) -> bool {
+        self.month == self.round_start + 1
+    }
     pub fn id(&mut self) -> u32 {
         self.next_id += 1;
         self.next_id
@@ -1097,9 +1300,9 @@ impl World {
     pub fn owned(&self, seat: SeatId) -> Vec<usize> {
         self.regions.iter().enumerate().filter(|(_, r)| r.owner == Some(seat)).map(|(i, _)| i).collect()
     }
-    pub fn civ_population(&self, seat: SeatId) -> u32 {
-        self.regions.iter().filter(|r| r.owner == Some(seat)).map(|r| r.population()).sum::<u32>()
-            + self.armies.iter().filter(|a| a.owner == seat).map(|a| a.count()).sum::<u32>()
+    pub fn civ_population(&self, seat: SeatId) -> u64 {
+        self.regions.iter().filter(|r| r.owner == Some(seat)).map(|r| r.population() as u64).sum::<u64>()
+            + self.armies.iter().filter(|a| a.owner == seat).map(|a| a.count() as u64).sum::<u64>()
     }
     /// The seat whose highest authority a region ultimately answers to.
     pub fn authority(&self, region: usize) -> Option<SeatId> {
@@ -1159,6 +1362,15 @@ impl World {
             }
         }
         self.regions[region].controller = to;
+        if let (Some(f), Some(t)) = (from, to) {
+            let month = self.month;
+            if let Some(c) = self.civs.get_mut(f as usize).and_then(|c| c.contacts.get_mut(t as usize)) {
+                c.last_control_change = month;
+            }
+            if let Some(c) = self.civs.get_mut(t as usize).and_then(|c| c.contacts.get_mut(f as usize)) {
+                c.last_control_change = month;
+            }
+        }
         // a choice of method was the old government's, made with what it knew
         for f in self.regions[region].facilities.iter_mut() {
             f.method = None;
@@ -1251,7 +1463,7 @@ impl ReqCtx for CivCtx<'_> {
         self.world.regions.iter().any(|r| r.owner == Some(self.seat) && r.fac(i).map(|f| f.level > 0).unwrap_or(false))
             || service_of_facility(content().facilities[i].key).map(|s| self.world.programme_access(self.seat, s)).unwrap_or(false)
     }
-    fn pop(&self) -> u32 {
+    fn pop(&self) -> u64 {
         self.world.civ_population(self.seat)
     }
     fn regions(&self) -> u32 {
@@ -1294,7 +1506,7 @@ impl ReqCtx for PracEnactedCtx<'_> {
     fn fac(&self, i: usize) -> bool {
         CivCtx { world: self.world, seat: self.seat }.fac(i)
     }
-    fn pop(&self) -> u32 {
+    fn pop(&self) -> u64 {
         self.world.civ_population(self.seat)
     }
     fn regions(&self) -> u32 {

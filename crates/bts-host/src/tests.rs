@@ -291,9 +291,11 @@ fn new_match_requests_are_validated() {
     assert_eq!(post(&mut h, "/api/advance", json!({})).status, 404);
     assert_eq!(get(&mut h, "/api/session/export").status, 404);
     for (body, needle) in [
-        (json!({ "regions": 30 }), "regions must be"),
+        (json!({ "regions": 31 }), "regions must be"),
         (json!({ "horizon": 100 }), "horizon must be"),
-        (json!({ "controllers": ["human"] }), "exactly four"),
+        (json!({ "controllers": ["human"] }), "take 2 to 5 civilizations"),
+        (json!({ "regions": 200, "controllers": ["human", "easy", "easy"] }), "Huge maps take 6 to 10"),
+        (json!({ "regions": 30, "controllers": ["human", "easy", "easy", "easy"] }), "Small maps take 2 to 3"),
         (json!({ "regions": "many" }), "invalid type"),
     ] {
         let out = post(&mut h, "/api/match", body);
@@ -306,6 +308,13 @@ fn new_match_requests_are_validated() {
     // an empty body is the default match
     let r = h.handle(&Request { method: "POST", target: "/api/match", body: "", entropy: 3 });
     assert_eq!(r.status, 200);
+    // two to ten seats within the preset's range (design chapter 40, section 2.2)
+    let ten = post(&mut h, "/api/match", json!({ "regions": 200, "controllers": ["human", "easy", "easy", "easy", "easy", "medium", "medium", "medium", "hard", "hard"] }));
+    assert_eq!(ten.status, 200, "{}", ten.text);
+    assert_eq!(ten.body["seats"].as_array().unwrap().len(), 10);
+    let two = post(&mut h, "/api/match", json!({ "regions": 30, "controllers": ["human", "hard"] }));
+    assert_eq!(two.status, 200, "{}", two.text);
+    assert_eq!(two.body["seats"].as_array().unwrap().len(), 2);
 }
 
 #[test]

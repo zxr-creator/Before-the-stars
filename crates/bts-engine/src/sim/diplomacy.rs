@@ -59,6 +59,21 @@ pub const SECONDMENT_MONTHS: (u16, u16) = (6, 240);
 /// Term of a joint programme clause in months.
 pub const PROGRAMME_MONTHS: (u16, u16) = (12, 240);
 
+/// Bounds on a clause term in months this round (design chapter 36, section 2.5):
+/// at least the round's length and the clause's own minimum, at most three rounds
+/// or the clause's own maximum, whichever is longer.
+pub fn term_bounds(w: &World, own: (u16, u16)) -> (u32, u32) {
+    let (lo, hi) = crate::calendar::clause_term_bounds(w.round_months());
+    (lo.max(own.0 as u32), hi.max(own.1 as u32))
+}
+
+/// Remaining deliveries recorded for an open-ended goods clause until notice is given.
+pub const OPEN_ENDED: u16 = u16::MAX;
+
+fn term_error(what: &str, (lo, hi): (u32, u32), open: bool) -> String {
+    format!("{what} runs for {lo} to {hi} months this round{}", if open { ", or open-ended (0) until notice" } else { "" })
+}
+
 /// Whether a seat has discovered the installation a joint programme service is
 /// given by (and so may read, propose and sign the clause).
 pub fn service_known(w: &World, seat: SeatId, service: ProgrammeService) -> bool {
@@ -83,10 +98,14 @@ pub fn validate_clauses(w: &World, a: SeatId, b: SeatId, clauses: &[Clause]) -> 
     for c in clauses {
         match c {
             Clause::Goods { from, amount_per_month, months, .. } => {
-                if !party(*from) || *amount_per_month <= 0 || *months == 0 || *months > 240 {
+                if !party(*from) || *amount_per_month <= 0 {
                     return Err("invalid goods clause".into());
                 }
-                if *months > 1 && !(est(a, "C021") || est(b, "C021")) {
+                let bounds = term_bounds(w, (6, 240));
+                if *months > 1 && ((*months as u32) < bounds.0 || *months as u32 > bounds.1) {
+                    return Err(term_error("a recurring delivery", bounds, true));
+                }
+                if *months != 1 && !(est(a, "C021") || est(b, "C021")) {
                     return Err("recurring deliveries need merchant arbitration and escrow to be established by one party".into());
                 }
             }
@@ -115,13 +134,15 @@ pub fn validate_clauses(w: &World, a: SeatId, b: SeatId, clauses: &[Clause]) -> 
                 }
             }
             Clause::NonAggression { months } => {
-                if *months == 0 || *months > 600 {
-                    return Err("invalid duration".into());
+                let bounds = term_bounds(w, (6, 600));
+                if *months != 0 && ((*months as u32) < bounds.0 || *months as u32 > bounds.1) {
+                    return Err(term_error("a non-aggression pact", bounds, true));
                 }
             }
             Clause::DefensivePact { months } => {
-                if *months == 0 || *months > 600 {
-                    return Err("invalid duration".into());
+                let bounds = term_bounds(w, (6, 600));
+                if *months != 0 && ((*months as u32) < bounds.0 || *months as u32 > bounds.1) {
+                    return Err(term_error("a defensive pact", bounds, true));
                 }
                 if !(est(a, "C043") || est(b, "C043")) {
                     return Err("a defensive pact needs standing inter-polity dispute arrangements".into());
@@ -153,8 +174,9 @@ pub fn validate_clauses(w: &World, a: SeatId, b: SeatId, clauses: &[Clause]) -> 
                 }
             }
             Clause::Secondment { from, qual, count, months } => {
-                if !party(*from) || *count < SECONDMENT_PEOPLE.0 || *count > SECONDMENT_PEOPLE.1 || *months < SECONDMENT_MONTHS.0 || *months > SECONDMENT_MONTHS.1 {
-                    return Err(format!("a secondment lends {} to {} people for {} to {} months", SECONDMENT_PEOPLE.0, crate::util::group(SECONDMENT_PEOPLE.1 as i64), SECONDMENT_MONTHS.0, SECONDMENT_MONTHS.1));
+                let (lo, hi) = term_bounds(w, SECONDMENT_MONTHS);
+                if !party(*from) || *count < SECONDMENT_PEOPLE.0 || *count > SECONDMENT_PEOPLE.1 || (*months as u32) < lo || *months as u32 > hi {
+                    return Err(format!("a secondment lends {} to {} people for {} to {} months", SECONDMENT_PEOPLE.0, crate::util::group(SECONDMENT_PEOPLE.1 as i64), lo, hi));
                 }
                 if at_war {
                     return Err("experts are not lent between parties at war".into());
@@ -168,8 +190,9 @@ pub fn validate_clauses(w: &World, a: SeatId, b: SeatId, clauses: &[Clause]) -> 
                 }
             }
             Clause::JointProgramme { host, service, months } => {
-                if !party(*host) || *months < PROGRAMME_MONTHS.0 || *months > PROGRAMME_MONTHS.1 {
-                    return Err(format!("a joint programme runs for {} to {} months", PROGRAMME_MONTHS.0, PROGRAMME_MONTHS.1));
+                let (lo, hi) = term_bounds(w, PROGRAMME_MONTHS);
+                if !party(*host) || (*months as u32) < lo || *months as u32 > hi {
+                    return Err(format!("a joint programme runs for {lo} to {hi} months"));
                 }
                 // never valid when undisclosed or undiscovered; unknown and nonexistent read alike
                 if !service_known(w, a, *service) {
@@ -200,6 +223,7 @@ pub fn validate_clauses(w: &World, a: SeatId, b: SeatId, clauses: &[Clause]) -> 
 pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
     let ct = content();
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let (a, b, clauses) = {
         let o = &w.offers[offer_ix];
         (o.from, o.to, o.clauses.clone())
@@ -262,7 +286,7 @@ pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
     for (ci, c) in clauses.iter().enumerate() {
         let mut rem = 0u16;
         match c {
-            Clause::Goods { months, .. } => rem = *months,
+            Clause::Goods { months, .. } => rem = if *months == 0 { OPEN_ENDED } else { *months },
             Clause::Knowledge { from, tech } => {
                 let to = if *from == a { b } else { a };
                 let ti = ct.tech_ix[tech];
@@ -281,7 +305,7 @@ pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
                     // existing investigation benefits from the records
                     for p in w.civs[to as usize].projects.iter_mut() {
                         if p.kind == (ProjKind::Research { tech: ti }) {
-                            let full = crate::sim::projects::scaled(ct.techs[ti].work, w.cfg.pace_bp);
+                            let full = crate::sim::projects::scaled(ct.techs[ti].work, w.cfg.research_pace());
                             p.work_needed = p.work_needed.min(full * (10_000 - discount as i64) / 10_000).max(p.work_done);
                         }
                     }
@@ -323,15 +347,18 @@ pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
             }
             Clause::NonAggression { months } | Clause::DefensivePact { months } => {
                 standing = true;
-                let e = month + *months as u32;
-                ends = Some(ends.map(|x: Month| x.max(e)).unwrap_or(e));
+                // an open-ended pact has no end until a party gives notice
+                if *months > 0 {
+                    let e = month + *months as u32;
+                    ends = Some(ends.map(|x: Month| x.max(e)).unwrap_or(e));
+                }
             }
             Clause::Peace => {
                 crate::sim::military::make_peace(w, a, b);
                 let cap_a = w.civs[a as usize].capital;
                 let cap_b = w.civs[b as usize].capital;
-                moment(w, a, MomentCategory::Diplomacy, format!("Peace with {bn}"), format!("{an} and {bn} signed an end to their war."), Some(cap_a), "treaty", true, vec![format!("Signed in month {month}")]);
-                moment(w, b, MomentCategory::Diplomacy, format!("Peace with {an}"), format!("{bn} and {an} signed an end to their war."), Some(cap_b), "treaty", true, vec![format!("Signed in month {month}")]);
+                moment(w, a, MomentCategory::Diplomacy, format!("Peace with {bn}"), format!("{an} and {bn} signed an end to their war."), Some(cap_a), "treaty", true, vec![format!("Signed in {when}")]);
+                moment(w, b, MomentCategory::Diplomacy, format!("Peace with {an}"), format!("{bn} and {an} signed an end to their war."), Some(cap_b), "treaty", true, vec![format!("Signed in {when}")]);
             }
             Clause::Subordination { from, .. } => {
                 standing = true;
@@ -343,8 +370,8 @@ pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
                 let (sn, on) = (w.civs[*from as usize].name.clone(), w.civs[over as usize].name.clone());
                 let cap_s = w.civs[*from as usize].capital;
                 let cap_o = w.civs[over as usize].capital;
-                moment(w, over, MomentCategory::Governance, format!("{sn} accepts our authority"), format!("By charter, {sn} keeps its local government and answers to {on} as highest authority. The arrangement holds only while both actually honour it."), Some(cap_o), "treaty", true, vec![format!("Charter signed in month {month}")]);
-                moment(w, *from, MomentCategory::Governance, format!("We accept the authority of {on}"), format!("{sn} keeps its local government but answers to {on}. Leaving the charter remains possible, at a price."), Some(cap_s), "treaty", true, vec![format!("Charter signed in month {month}")]);
+                moment(w, over, MomentCategory::Governance, format!("{sn} accepts our authority"), format!("By charter, {sn} keeps its local government and answers to {on} as highest authority. The arrangement holds only while both actually honour it."), Some(cap_o), "treaty", true, vec![format!("Charter signed in {when}")]);
+                moment(w, *from, MomentCategory::Governance, format!("We accept the authority of {on}"), format!("{sn} keeps its local government but answers to {on}. Leaving the charter remains possible, at a price."), Some(cap_s), "treaty", true, vec![format!("Charter signed in {when}")]);
             }
             Clause::Secondment { from, qual, count, months } => {
                 standing = true;
@@ -360,8 +387,9 @@ pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
                 let (ln, bn2) = (w.civs[*from as usize].name.clone(), w.civs[to as usize].name.clone());
                 let (people, what) = (crate::util::group(sent as i64), qual.label().to_lowercase());
                 let dest_name = w.regions[dest].name.clone();
-                moment(w, *from, MomentCategory::Diplomacy, format!("Experts seconded to {bn2}"), format!("{people} {what} left our regions for {dest_name} under a treaty with {bn2}. They live and work there until month {due}; the survivors then come home."), Some(home), "treaty", false, vec![format!("Departed in month {month}")]);
-                moment(w, to, MomentCategory::Diplomacy, format!("Experts arrive from {ln}"), format!("{people} {what} lent by {ln} arrived at {dest_name}. They live, eat and work among us until month {due}, when they go home."), Some(dest as RegionId), "treaty", false, vec![format!("Arrived in month {month}")]);
+                let due_label = crate::util::date_label(&w.cfg, due);
+                moment(w, *from, MomentCategory::Diplomacy, format!("Experts seconded to {bn2}"), format!("{people} {what} left our regions for {dest_name} under a treaty with {bn2}. They live and work there until {due_label}; the survivors then come home."), Some(home), "treaty", false, vec![format!("Departed in {when}")]);
+                moment(w, to, MomentCategory::Diplomacy, format!("Experts arrive from {ln}"), format!("{people} {what} lent by {ln} arrived at {dest_name}. They live, eat and work among us until {due_label}, when they go home."), Some(dest as RegionId), "treaty", false, vec![format!("Arrived in {when}")]);
             }
             Clause::JointProgramme { host, service, months } => {
                 standing = true;
@@ -391,7 +419,7 @@ pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
     }
     let has_goods = remaining.iter().any(|r| *r > 0);
     let status = if has_goods || standing { "active" } else { "completed" };
-    w.treaties.push(Treaty { id, parties: [a, b], clauses, signed: month, remaining, ends, status: status.into(), performance: vec![format!("Month {month}: signed by both parties")], shortfalls: 0, secondments, programmes, broken_by: None });
+    w.treaties.push(Treaty { id, parties: [a, b], clauses, signed: month, remaining, ends, status: status.into(), performance: vec![format!("{when}: signed by both parties")], shortfalls: 0, secondments, programmes, broken_by: None, notice_by: None });
     w.offers[offer_ix].status = "signed".into();
     for (x, y) in [(a, b), (b, a)] {
         let other = w.civs[y as usize].name.clone();
@@ -430,6 +458,7 @@ pub enum Ending {
 /// released (`sim::population::second_home`). Each secondment is settled once.
 pub fn end_cooperation(w: &mut World, ti: usize, how: Ending) {
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let lapse = how != Ending::Term;
     for pi in 0..w.treaties[ti].programmes.len() {
         let p = w.treaties[ti].programmes[pi].clone();
@@ -440,7 +469,7 @@ pub fn end_cooperation(w: &mut World, ti: usize, how: Ending) {
             let hn = w.civs[p.host as usize].name.clone();
             let t = &mut w.treaties[ti];
             if t.performance.len() < 40 {
-                t.performance.push(format!("Month {month}: the joint programme lapsed with the breach; {hn} no longer serves the other party"));
+                t.performance.push(format!("{when}: the joint programme lapsed with the breach; {hn} no longer serves the other party"));
             }
             brief(w, p.client, "warning", format!("Joint programme with {hn} lapsed"), "The treaty was broken, and with it our access to the partner's installation.".into(), None, "diplomacy");
         }
@@ -475,21 +504,53 @@ pub fn end_cooperation(w: &mut World, ti: usize, how: Ending) {
         {
             let t = &mut w.treaties[ti];
             if t.performance.len() < 40 {
-                t.performance.push(if stayed > 0 { format!("Month {month}: {cg} seconded {what} went home to {ln}; {sg} stayed behind in {bn} without their qualification") } else { format!("Month {month}: {cg} seconded {what} went home to {ln}") });
+                t.performance.push(if stayed > 0 { format!("{when}: {cg} seconded {what} went home to {ln}; {sg} stayed behind in {bn} without their qualification") } else { format!("{when}: {cg} seconded {what} went home to {ln}") });
             }
         }
         let home = if w.regions[s.home as usize].controller == Some(s.lender) { s.home } else { w.civs[s.lender as usize].capital };
         if stayed > 0 {
-            moment(w, s.lender, MomentCategory::Diplomacy, format!("Experts recalled from {bn}"), format!("The treaty with {bn} ended in breach. {cg} of our seconded {what} came home; {sg} could not leave and stay there as ordinary residents, their qualification lapsed."), Some(home), "treaty", false, vec![format!("Settled in month {month}")]);
+            moment(w, s.lender, MomentCategory::Diplomacy, format!("Experts recalled from {bn}"), format!("The treaty with {bn} ended in breach. {cg} of our seconded {what} came home; {sg} could not leave and stay there as ordinary residents, their qualification lapsed."), Some(home), "treaty", false, vec![format!("Settled in {when}")]);
         } else {
-            moment(w, s.lender, MomentCategory::Diplomacy, format!("Experts home from {bn}"), format!("{cg} {what} seconded to {bn} came home and return to work here."), Some(home), "treaty", false, vec![format!("Returned in month {month}")]);
+            moment(w, s.lender, MomentCategory::Diplomacy, format!("Experts home from {bn}"), format!("{cg} {what} seconded to {bn} came home and return to work here."), Some(home), "treaty", false, vec![format!("Returned in {when}")]);
         }
         brief(w, s.borrower, "warning", format!("Seconded {what} leave for {ln}"), format!("{} experts lent by {ln} left our posts{}.", crate::util::group((came + stayed) as i64), if stayed > 0 { format!("; {sg} of them stay on as residents without their qualification") } else { String::new() }), None, "diplomacy");
     }
 }
 
+/// Give notice on a treaty's open-ended clauses: they end at the close of the next
+/// round (one full round of notice) and nothing is breached. Returns the month
+/// they end.
+pub fn give_notice(w: &mut World, seat: SeatId, treaty_ix: usize) -> Result<Month, String> {
+    let open = w.treaties[treaty_ix].clauses.iter().any(|c| matches!(c, Clause::NonAggression { months: 0 } | Clause::DefensivePact { months: 0 } | Clause::Goods { months: 0, .. }));
+    if !open {
+        return Err("the treaty has no open-ended clause to give notice on".into());
+    }
+    if w.treaties[treaty_ix].notice_by.is_some() {
+        return Err("notice has already been given".into());
+    }
+    // the end of the round after this one
+    let next = w.round + 1;
+    let ends = w.cfg.calendar.round_start_month(next + 1).unwrap_or(w.cfg.horizon()).max(w.month + 1);
+    let label = crate::util::date_label(&w.cfg, ends);
+    let name = w.civs[seat as usize].name.clone();
+    let month = w.month;
+    let t = &mut w.treaties[treaty_ix];
+    t.notice_by = Some(seat);
+    t.ends = Some(t.ends.map(|e| e.max(ends)).unwrap_or(ends));
+    for (ci, c) in t.clauses.iter().enumerate() {
+        if let Clause::Goods { months: 0, .. } = c {
+            t.remaining[ci] = (ends.saturating_sub(month)).min(OPEN_ENDED as u32 - 1) as u16;
+        }
+    }
+    t.performance.push(format!("{}: notice given by {name}; the open-ended clauses end in {label}", crate::util::date_label(&w.cfg, month)));
+    let other = if t.parties[0] == seat { t.parties[1] } else { t.parties[0] };
+    brief(w, other, "info", format!("{name} gave notice on a treaty"), format!("Its open-ended clauses end in {label}. Nothing was breached."), None, "diplomacy");
+    Ok(ends)
+}
+
 pub fn break_treaty(w: &mut World, seat: SeatId, treaty_ix: usize) {
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let other = {
         let t = &w.treaties[treaty_ix];
         if t.parties[0] == seat { t.parties[1] } else { t.parties[0] }
@@ -500,7 +561,7 @@ pub fn break_treaty(w: &mut World, seat: SeatId, treaty_ix: usize) {
         let t = &mut w.treaties[treaty_ix];
         t.status = "broken".into();
         t.broken_by = Some(seat);
-        t.performance.push(format!("Month {month}: repudiated by {name}"));
+        t.performance.push(format!("{when}: repudiated by {name}"));
     }
     if let Some(s) = sub {
         w.civs[s as usize].overlord = None;
@@ -511,7 +572,7 @@ pub fn break_treaty(w: &mut World, seat: SeatId, treaty_ix: usize) {
     {
         let ct = &mut w.civs[other as usize].contacts[seat as usize];
         ct.trust = (ct.trust - 25).max(0);
-        ct.notes.push(format!("Month {month}: repudiated a signed treaty"));
+        ct.notes.push(format!("{when}: repudiated a signed treaty"));
     }
     for o in 0..w.civs.len() {
         if o != seat as usize && o != other as usize && w.civs[o].contacts[seat as usize].met {
@@ -529,6 +590,7 @@ pub fn break_treaty(w: &mut World, seat: SeatId, treaty_ix: usize) {
 /// below that is a recorded shortfall. Returns whether any of them still runs.
 fn cooperation_month(w: &mut World, ti: usize) -> bool {
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let mut standing = false;
     for si in 0..w.treaties[ti].secondments.len() {
         let s = w.treaties[ti].secondments[si].clone();
@@ -574,7 +636,7 @@ fn cooperation_month(w: &mut World, ti: usize) -> bool {
             let t = &mut w.treaties[ti];
             t.shortfalls += 1;
             if p.served && t.performance.len() < 40 {
-                t.performance.push(format!("Month {month}: {hn}'s installation ran below half rate; the joint programme is not served this month"));
+                t.performance.push(format!("{when}: {hn}'s installation ran below half rate; the joint programme is not served this month"));
             }
             if p.served {
                 brief(w, p.client, "warning", format!("{hn} is not serving the joint programme"), "The partner's installation ran below half rate last month, so it serves nobody this month.".into(), None, "diplomacy");
@@ -594,23 +656,25 @@ fn end_secondment(w: &mut World, ti: usize, si: usize) {
         x.returned += came;
     }
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let (ln, bn) = (w.civs[s.lender as usize].name.clone(), w.civs[s.borrower as usize].name.clone());
     let what = s.qual.label().to_lowercase();
     let cg = crate::util::group(came as i64);
     {
         let t = &mut w.treaties[ti];
         if t.performance.len() < 40 {
-            t.performance.push(format!("Month {month}: the secondment ended; {cg} {what} went home to {ln}"));
+            t.performance.push(format!("{when}: the secondment ended; {cg} {what} went home to {ln}"));
         }
     }
     let home = if w.regions[s.home as usize].controller == Some(s.lender) { s.home } else { w.civs[s.lender as usize].capital };
-    moment(w, s.lender, MomentCategory::Diplomacy, format!("Experts home from {bn}"), format!("Their term over, {cg} {what} seconded to {bn} came home and return to work here."), Some(home), "treaty", false, vec![format!("Returned in month {month}")]);
+    moment(w, s.lender, MomentCategory::Diplomacy, format!("Experts home from {bn}"), format!("Their term over, {cg} {what} seconded to {bn} came home and return to work here."), Some(home), "treaty", false, vec![format!("Returned in {when}")]);
     brief(w, s.borrower, "info", format!("Seconded {what} go home to {ln}"), format!("Their term over, {cg} experts lent by {ln} left our posts."), None, "diplomacy");
 }
 
 /// Monthly settlement of delivery clauses, tribute and expiry.
 pub fn step(w: &mut World) {
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     for ti in 0..w.treaties.len() {
         if w.treaties[ti].status != "active" {
             continue;
@@ -633,13 +697,15 @@ pub fn step(w: &mut World) {
                     let to = if *from == a { b } else { a };
                     // what leaves one stock is exactly what enters the other
                     let give = w.transfer(*from, to, *good, *amount_per_month);
-                    w.treaties[ti].remaining[ci] -= 1;
+                    if w.treaties[ti].remaining[ci] != OPEN_ENDED {
+                        w.treaties[ti].remaining[ci] -= 1;
+                    }
                     if give < *amount_per_month {
                         let t = &mut w.treaties[ti];
                         t.shortfalls += 1;
                         let nm = w.civs[*from as usize].name.clone();
                         if t.performance.len() < 40 {
-                            t.performance.push(format!("Month {month}: {nm} delivered {:.0} of {:.0} {}", give as f64 / 1000.0, *amount_per_month as f64 / 1000.0, good.label().to_lowercase()));
+                            t.performance.push(format!("{when}: {nm} delivered {:.0} of {:.0} {}", give as f64 / 1000.0, *amount_per_month as f64 / 1000.0, good.label().to_lowercase()));
                         }
                         let ct = &mut w.civs[to as usize].contacts[*from as usize];
                         ct.trust = (ct.trust - 3).max(0);
@@ -654,7 +720,7 @@ pub fn step(w: &mut World) {
                     let over = if *from == a { b } else { a };
                     if *tribute_bp > 0 {
                         for g in [Good::Food, Good::Materials, Good::Metal, Good::Components, Good::Electronics] {
-                            let monthly = w.civs[*from as usize].last_flows.produced[g.index()] / 12;
+                            let monthly = w.per_last_round(w.civs[*from as usize].last_flows.produced[g.index()], 1);
                             let due = monthly * *tribute_bp as i64 / 10_000;
                             let give = due.min(w.civs[*from as usize].stock_of(g).max(0) / 4);
                             if give > 0 {
@@ -665,7 +731,9 @@ pub fn step(w: &mut World) {
                     }
                 }
                 Clause::NonAggression { months } | Clause::DefensivePact { months } => {
-                    if month < w.treaties[ti].signed + *months as u32 {
+                    let t = &w.treaties[ti];
+                    let open_ended = *months == 0 && t.ends.map(|e| month < e).unwrap_or(true);
+                    if open_ended || month < t.signed + *months as u32 {
                         standing = true;
                     }
                 }
@@ -676,7 +744,7 @@ pub fn step(w: &mut World) {
             let t = &mut w.treaties[ti];
             let clean = t.shortfalls == 0;
             t.status = if t.ends.map(|e| month >= e).unwrap_or(false) { "expired".into() } else { "completed".into() };
-            t.performance.push(format!("Month {month}: all obligations settled"));
+            t.performance.push(format!("{when}: all obligations settled"));
             if clean {
                 for (x, y) in [(a, b), (b, a)] {
                     let ct = &mut w.civs[x as usize].contacts[y as usize];

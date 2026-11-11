@@ -1,0 +1,193 @@
+Ruleset 3.0 slice 6 (merged plan, design chapter 37 section 11): labour productivity.
+Ruleset bts-rules/3.0.0-s6, content bts-content/3.0.0-s6, generator bts-worldgen/2.0.0-s5,
+protocol bts-protocol/2.0. The eight productivity factors, fields with partial inputs,
+evidence and town share counted at a productivity of one, the 60-region Standard map
+(default) with map-size pacing in content/pacing.json (evidence_bp -2000, work_bp 0).
+Standard calendar, 60 regions, --ai hard,medium,medium,easy, eval-0..15, 16 matches on all cores
+(1 min 35 s wall; 70-90 s per match under contention). Release build, Apple M5 Pro.
+   target/release/bts run --matches 16 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+   python3 scripts/curve_summary.py eval.csv --years -5000,-4000,...,2500
+
+Timing (single match, no contention): perf_round_budget (riverland, 60 regions, three native
+seats and a fourth): 525 rounds in 34.6 s; per round p50 56 ms, p95 132 ms, max 208 ms
+(budget: p95 <= 150 ms, match <= 60 s). WebAssembly (Node, apps/web/scripts/wasm-calendar-bench.mjs
+eval-0, 60 regions): 72.8 s; per round p50 105 ms, p95 311 ms, max 402 ms (budget p95 <= 400 ms).
+Native and WebAssembly draw the same world (seed cross-1, 60 regions: same match id and the same
+hash of every region's geography and survey).
+
+match  0  winner None  month 89988 (AD 2500)  35.3s  0:117319584p/23r/127t  1:63179587p/14r/122t  2:96881646p/15r/113t  3:29213001p/8r/51t
+match  1  winner None  month 89988 (AD 2500)  61.6s  0:75719929p/18r/116t  1:229417898p/17r/120t  2:67296217p/16r/114t  3:31566959p/8r/95t
+match  2  winner None  month 89988 (AD 2500)  63.1s  0:99601712p/17r/116t  1:154373272p/17r/117t  2:110218523p/14r/119t  3:201706495p/12r/116t
+match  3  winner None  month 89988 (AD 2500)  59.5s  0:97683419p/20r/118t  1:49010231p/16r/116t  2:184896139p/12r/125t  3:250648839p/11r/117t
+match  4  winner None  month 89988 (AD 2500)  60.2s  0:63909712p/17r/122t  1:84009422p/17r/125t  2:61275398p/16r/119t  3:55990648p/9r/117t
+match  5  winner None  month 89988 (AD 2500)  59.7s  0:68283126p/15r/119t  1:106342147p/10r/109t  2:226039507p/16r/119t  3:102577586p/15r/117t
+match  6  winner None  month 89988 (AD 2500)  60.9s  0:63389835p/17r/85t  1:79099163p/16r/116t  2:61500618p/13r/126t  3:73232569p/14r/127t
+match  7  winner None  month 89988 (AD 2500)  64.6s  0:167424596p/11r/118t  1:136899084p/17r/122t  2:76606217p/20r/116t  3:56446482p/10r/117t
+match  8  winner None  month 89988 (AD 2500)  64.1s  0:60117263p/14r/125t  1:58994154p/14r/116t  2:51634660p/14r/85t  3:103731138p/16r/117t
+match  9  winner None  month 89988 (AD 2500)  63.0s  0:155772115p/18r/120t  1:86214932p/15r/116t  2:103336094p/16r/124t  3:47877021p/11r/117t
+match 10  winner None  month 89988 (AD 2500)  60.9s  0:69202988p/18r/116t  1:54721092p/16r/116t  2:61313104p/16r/113t  3:229203649p/7r/117t
+match 11  winner None  month 89988 (AD 2500)  62.4s  0:93498118p/23r/118t  1:51502776p/15r/116t  2:48787152p/13r/116t  3:25600838p/6r/85t
+match 12  winner None  month 89988 (AD 2500)  61.0s  0:51568296p/17r/118t  1:44892481p/16r/57t  2:74926143p/15r/116t  3:56883955p/9r/125t
+match 13  winner None  month 89988 (AD 2500)  61.3s  0:46758005p/9r/116t  1:85200969p/17r/126t  2:301577331p/16r/116t  3:57724238p/13r/85t
+match 14  winner None  month 89988 (AD 2500)  62.1s  0:47387969p/15r/117t  1:96643115p/19r/121t  2:45545513p/13r/125t  3:120072217p/13r/94t
+match 15  winner None  month 89988 (AD 2500)  62.4s  0:57704781p/15r/116t  1:536792839p/36r/138t  2:40712824p/9r/118t  3:0p/0r/117t
+
+
+Population (median seat excludes seats without land; largest and world are medians over matches)
+      date  median seat    largest      world  regions (median)
+   5000 BC        242 k      247 k      968 k               1.0
+   4000 BC       1.02 M     1.30 M     3.86 M               4.0
+   3000 BC       2.04 M     3.00 M     8.68 M               4.0
+   2000 BC       3.65 M     5.51 M    15.36 M               4.0
+   1000 BC       4.29 M     5.12 M    17.48 M               8.0
+     AD 10       5.45 M     7.95 M    23.29 M              13.0
+   AD 1000      10.07 M    17.07 M    41.85 M              14.0
+   AD 1500      23.48 M    53.42 M   101.89 M              15.0
+   AD 1700      39.17 M    59.74 M   144.20 M              15.0
+   AD 1800      49.08 M    81.27 M   186.06 M              15.0
+   AD 1900      57.80 M   153.98 M   291.06 M              15.0
+   AD 1950      67.50 M   173.64 M   331.90 M              15.0
+   AD 2000      83.65 M   177.97 M   429.18 M              15.0
+   AD 2100      71.50 M   136.63 M   363.15 M              15.0
+   AD 2200      71.14 M   148.24 M   377.83 M              15.0
+   AD 2300      74.78 M   150.24 M   350.80 M              15.0
+   AD 2500      73.23 M   161.60 M   398.60 M                15
+
+Era milestones: first sampled decade at which a seat had it
+  node  median seat  reached  leader (median)  leader (earliest)
+  T007      4605 BC   64/64           4680 BC            4680 BC
+  T008      4600 BC   64/64           4780 BC            4790 BC
+  T010      4475 BC   64/64           4560 BC            4580 BC
+  T011      4175 BC   64/64           4435 BC            4480 BC
+  T015      4080 BC   64/64           4255 BC            4330 BC
+  T025      2055 BC   64/64           2680 BC            2980 BC
+  T022      1760 BC   64/64           1970 BC            2510 BC
+  T023       710 BC   64/64            975 BC            1490 BC
+  T024      2715 BC   64/64           3060 BC            3280 BC
+  T027      1175 BC   64/64           1310 BC            1650 BC
+  T028       175 BC   64/64           1025 BC            1500 BC
+  T029      1565 BC   64/64           1935 BC            2380 BC
+  T030       AD 450   64/64              AD 5             390 BC
+  T036       AD 690   64/64            AD 435              90 BC
+  T048      AD 1380   64/64           AD 1095             AD 850
+   SCI      AD 1640   64/64           AD 1110             AD 810
+  T080      AD 1740   62/64           AD 1440             AD 970
+  T060      AD 1750   63/64           AD 1255             AD 970
+  T061      AD 1680   63/64           AD 1350             AD 860
+  T100      AD 1780   62/64           AD 1545            AD 1000
+  T111      AD 1905   58/64           AD 1790            AD 1190
+  T142      AD 2090   55/64           AD 2025            AD 1450
+  T147      AD 2100   23/64           AD 2060            AD 1880
+  T162      AD 2140    1/64           AD 2140            AD 2140
+  T167      AD 2440    1/64           AD 2440            AD 2440
+ALL138      AD 2440    1/64           AD 2440            AD 2440
+
+highest seat-decade growth: 4.49%/yr at ('eval-15', '3', '2270', '2280')
+pre-1700 500-year seat growth: min -0.083%/yr, median 0.053%/yr, max 0.536%/yr (39680 windows)
+
+Goods chains: first sampled decade at which a seat had made the good
+          good  median seat  reached  leader (median)
+        timber      4990 BC   64/64           4990 BC
+           tin      1710 BC   55/64           4190 BC
+        horses      4640 BC   64/64           4790 BC
+          salt      4525 BC   64/64           4640 BC
+     saltpetre       AD 760   55/64            AD 480
+     munitions       AD 760   63/64            AD 480
+    fertilizer      AD 1770   59/64           AD 1595
+           gas      AD 1820   53/64           AD 1665
+        helium      AD 1910   49/64           AD 1780
+     aluminium      AD 1855   58/64           AD 1730
+       magnets      AD 1880   53/64           AD 1740
+     batteries      AD 1870   58/64           AD 1755
+  nuclear_fuel      AD 2180   17/64           AD 2070
+       lattice      AD 2410    1/64           AD 2410
+
+Food sector (median seat with land): share of working age in food, rations per food worker-month
+   5000 BC    0.0%      0.0
+   4000 BC   42.1%      3.0
+   3000 BC   25.9%      6.0
+   2000 BC   25.7%      6.0
+   1000 BC   20.8%      7.0
+     AD 10   20.2%      8.0
+   AD 1000   23.8%      7.0
+   AD 1500   28.3%      6.0
+   AD 1700   28.5%      5.5
+   AD 1800   26.6%      6.0
+   AD 1900   19.7%      8.0
+   AD 1950   18.5%      8.0
+   AD 2000   11.4%     13.5
+   AD 2100   20.4%      6.0
+   AD 2200   22.9%      7.0
+   AD 2300   27.3%      6.5
+   AD 2500   27.5%      6.0
+
+Population against design table 3.1 (median seat; world target scaled by regions / 48 to 60 regions)
+date      median seat (target)   ratio   world (target x1.25)
+3000 BC   2.04 M (0.8 M)          2.6x    8.7 M (3.8 M)
+1000 BC   4.29 M (2.5 M)          1.7x    17.5 M (12.5 M)
+AD 1      5.45 M (5 M)            1.09    23.3 M (25 M)
+AD 1000   10.1 M (8 M)            1.26    41.9 M (40 M)
+AD 1500   23.5 M (11 M)           2.1x    102 M (56 M)
+AD 1700   39.2 M (15 M)           2.6x    144 M (75 M)
+AD 1800   49.1 M (20 M)           2.5x    186 M (106 M)
+AD 1900   57.8 M (60 M)           0.96    291 M (313 M)
+AD 1950   67.5 M (110 M)          0.61    332 M (563 M)
+AD 2000   83.7 M (230 M)          0.36    429 M (1.25 B)
+AD 2100   71.5 M (400 M)          0.18    363 M (2.1 B)
+AD 2200   71.1 M (480 M)          0.15    378 M (2.5 B)
+World peak about 0.43 B (target 1.9-3.8 B on 60 regions).
+
+Era milestones of the median seat against table 2.7
+T007/T008/T010  4605-4475 BC  (4800-4000 BC)     in window
+T011, T015      4175, 4080 BC (4500-3500 BC)     in window
+T025 writing    2055 BC       (3500-2500 BC)     late by about 450 years
+T022 bronze     1760 BC       (3300-2300 BC)     late by about 550 years (slice 3: 900)
+T023 iron       710 BC        (1500-600 BC)      in window
+classical       1175 BC-AD 175 (1500 BC-AD 300)  in window
+medieval T030-T036 AD 450-690 (500-1300)         in window (T030 just early)
+T048 printing   AD 1380       (1350-1550)        in window
+SCI             AD 1640       (1550-1700)        in window
+T080/T060/T061  1740/1750/1680 (1750-1850)       in window (T061 early by 70 years)
+T100            1780          (1850-1920)        early by about 70 years
+T111            1905          (1940-2000)        early by about 35 years
+T142            2090          (2000-2080)        late by about 10 years
+T147            2100          (2060-2140)        in window (23 of 64 seats)
+T162, T167      one seat      (2150-2260)        the jump tier is still rarely reached (slice 17)
+
+Productivity by itself, measured (same build, 48 regions, the factors forced to one for a
+comparison batch): with the factors at one the batch matched slice 5; with them, before the
+corrections below, discovery fell centuries behind (printing AD 1650-1760, the scientific
+method 1860-1890) and population fell by half from AD 1000 to 1950. Two bookkeeping couplings
+caused it, both corrected: (1) evidence counted heads in posts, so freed workers stopped
+"practising" their craft - evidence now counts filled posts at the posts the work would take
+at a productivity of one; (2) the town share of a region was 1 - 3.2 x food workers / residents,
+so fewer farmers made a town of a village and town mortality rose - it now counts food workers
+at a productivity of one. Fields with partial inputs (as many levels at the best method as the
+stores supply) replace the all-or-nothing rule that held whole late nations at hand
+cultivation for want of a month of fertilizer for every field.
+
+Map size: on the 60-region Earth-like world the same rules develop more slowly than on 48
+regions (with no map scaling: printing AD 1585, the scientific method 1800, steam 1875 in a
+16-match batch), because seats are farther apart (less contact evidence) and expand later; the
+expected +25% research capacity did not appear in measurement (median seat 14-15 regions
+against 12-13). Knowledge is very sensitive to the evidence factor: 0.80 put the scientific
+method in AD 740 and printing in AD 630; 0.95 (evidence_bp -2000) is the value recorded.
+The 48-region map with these rules (same build): printing AD 1415, the scientific method 1630,
+steam 1755, electricity 1785; median seat 78 M in 1900, 85 M in 2000, 87 M in 2100.
+
+What remains of the late-population gap, and why (measured, not fixed in these slices):
+- Fertility is held down by the food-reserve factor of slice 3 (households judge their stores
+  against the government's reserve target, quadratically): in eval-3 at AD 2050 the food factor
+  of fertility was 0.80 for the hard seat and 0.46 for a medium seat, with full food access,
+  literacy 10-40% and every other factor near one. The native AI's food reserve policy (4-8
+  months) thus sets fertility; a late civilization in a calm year reads as insecure.
+- Late food supply: the share of working age in food rises again after 2000 (11% in 2000, 20%
+  in 2100) and rations per food worker fall from 13.5 to 6: the native AI does not keep
+  fertilizer, fuel and horses flowing to its fields at the rate its land could use (one level
+  of a works a round per wanted good), so fields fall back to hand cultivation.
+- Seats differ widely: in a batch at 48 regions a seat grew from 64 M (1880) to 208 M (2010) at
+  1.1%/yr while the median seat stayed near 80 M; wars between seats are rare on the 60-region
+  map (one in 25 eval worlds moved a border in the conservation harness).
+- Prosperity (slice 11) and the cities slice (9a) are still 0 / stubs in F_city and F_dev.
+These belong to the population rules (slices 2-3), the consumption slice and the native AI's
+late economy (slice 17); this slice did not change the population rules.

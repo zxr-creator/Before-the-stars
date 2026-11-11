@@ -22,8 +22,11 @@ export const METRIC_KEYS: MetricKey[] = [
 /** Months of food in store are capped for the charts: one hoard must not flatten the rest. */
 export const FOOD_CAP_MONTHS = 60;
 
-/** Goods that are grown, gathered or dug rather than made. */
-const RAW: Good[] = ['food', 'materials', 'copper_ore', 'iron_ore', 'coal', 'crude', 'minerals'];
+/** Goods that are grown, gathered, bred or dug rather than made (ruleset 3.0's fifty goods). */
+const RAW: Good[] = [
+  'food', 'materials', 'timber', 'fibres', 'horses', 'salt', 'spices', 'copper_ore', 'iron_ore', 'coal', 'crude', 'gas', 'tin',
+  'saltpetre', 'precious', 'bauxite', 'uranium_ore', 'rare_earths', 'lithium', 'cobalt_nickel', 'quartz', 'helium', 'volatiles', 'helium3',
+];
 
 export interface Sample {
   round: number;
@@ -42,11 +45,11 @@ export interface History {
   samples: Sample[];
 }
 
-/** One sample per round fits a standard 240-round match; anything longer is thinned. */
-export const MAX_SAMPLES = 320;
+/** One sample per round fits a standard 525-round match; anything longer is thinned. */
+export const MAX_SAMPLES = 560;
 const STORE_KEY = 'bts.observer.history';
 /** Stored with the samples: what the numbers mean. Goods in tonnes and research in researcher-months since ruleset 2.0. */
-const METRICS_SIG = METRIC_KEYS.join(',') + ';units-2';
+const METRICS_SIG = METRIC_KEYS.join(',') + ';units-3';
 
 let history: History = { matchId: '', seats: [], samples: [] };
 let version = 0;

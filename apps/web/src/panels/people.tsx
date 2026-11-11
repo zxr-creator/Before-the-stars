@@ -1,7 +1,8 @@
 // People & education: who can work, learn, teach or needs support.
 import { useEffect, useState } from 'preact/hooks';
 import type { CourseType, Observation, ProgramView, RegionId } from '../protocol';
-import { QUAL_LABEL, fmtMonths, int, pct, peopleNum, tcChecks, tn, tx } from '../format';
+import { QUAL_LABEL, fmtMonths, fmtYear, int, pct, peopleNum, tcChecks, tn, tx } from '../format';
+import type { DeathCount, RegionView } from '../protocol';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import {
@@ -32,6 +33,10 @@ export function PeoplePanel() {
   if (opening) return <OpenProgramme obs={obs} presetRegion={presetRegion} onDone={() => setOpening(false)} />;
 
   const natural = civ.births_last_round - civ.deaths_last_round;
+  // ruleset 3.0 rounds last up to fifty years: say how long "last round" was
+  const lastMonths = obs.calendar?.last_round_months ?? 0;
+  const lastRound = lastMonths > 12 ? t('last round ({length})', { length: fmtMonths(lastMonths) }) : t('last round');
+  const outbreaks = obs.regions.filter((r) => r.own && r.outbreak);
   const quals = civ.quals.filter((q) => q.count > 0);
   const unqualified = Math.max(0, civ.working_age - civ.quals.reduce((a, q) => a + q.count, 0));
 
@@ -42,8 +47,8 @@ export function PeoplePanel() {
       <Section title={t('Population')} aside={<b title={int(civ.population)}>{peopleNum(civ.population)} <small class="muted">{t('people')}</small></b>}>
         <AgeBar children={civ.children} working={civ.working_age} elders={civ.elders} />
         <div class="stat-row">
-          <Stat label={t('Births')} value={'+' + peopleNum(civ.births_last_round)} sub={t('last round')} />
-          <Stat label={t('Deaths')} value={'−' + peopleNum(civ.deaths_last_round)} sub={t('last round')} />
+          <Stat label={t('Births')} value={'+' + peopleNum(civ.births_last_round)} sub={lastRound} />
+          <Stat label={t('Deaths')} value={'−' + peopleNum(civ.deaths_last_round)} sub={lastRound} />
           <Stat label={t('Migration')} value={(civ.migration_last_round > 0 ? '+' : civ.migration_last_round < 0 ? '−' : '') + peopleNum(Math.abs(civ.migration_last_round))} sub={t('net, last round')} />
           <Stat label={t('Natural change')} value={(natural >= 0 ? '+' : '−') + peopleNum(Math.abs(natural))} tone={natural < 0 ? 'bad' : undefined} sub={t('births − deaths')} />
         </div>
@@ -52,7 +57,10 @@ export function PeoplePanel() {
           <div class="mini-meter"><span class="mini-label">{t('Water access')}</span><Meter value={civ.water_fulfillment_bp} max={10000} tone={toneOfBp(civ.water_fulfillment_bp)} height={6} label={`${t('Water access')} ${pct(civ.water_fulfillment_bp)}`} /><span class="mini-val">{pct(civ.water_fulfillment_bp)}</span></div>
         </div>
         <p class="muted small">{t('Access is the person-weighted share of need met over the last twelve months.')}</p>
+        {civ.deaths_by_cause?.length ? <DeathsByCause causes={civ.deaths_by_cause} total={civ.deaths_last_round} span={lastRound} /> : null}
       </Section>
+
+      {outbreaks.length ? <Epidemics regions={outbreaks} /> : null}
 
       <Section title={t('How working-age people spent last month')}>
         <LaborBar labor={civ.labor} />
@@ -84,6 +92,64 @@ export function PeoplePanel() {
         <ActionNote tag="program" />
       </Section>
     </div>
+  );
+}
+
+// i18n-table
+const CAUSE_LABEL: Record<string, string> = {
+  age_and_illness: 'Age and illness', hunger_and_crowding: 'Hunger and crowding', town_conditions: 'Town conditions', epidemic: 'Epidemics', war: 'War',
+};
+const CAUSE_HINT: Record<string, string> = {
+  age_and_illness: 'The ordinary deaths of every age, lowered by care, medicine and better food.',
+  hunger_and_crowding: 'Short food and water, and more people than the land and its works can support.',
+  town_conditions: 'Crowded towns without drains, sewers and clean water; sanitation lowers it.',
+  epidemic: 'Outbreaks that spread between neighbouring regions until people gain immunity.',
+  war: 'Soldiers and civilians killed in battle and occupation.',
+};
+// i18n-end
+const CAUSE_COLOR: Record<string, string> = {
+  age_and_illness: '#8a7d6a', hunger_and_crowding: '#b3761e', town_conditions: '#6f6a3a', epidemic: '#8a3f6a', war: '#a23b2c',
+};
+
+/** The last round's deaths split by cause (ruleset 3.0); the parts add up to the total. */
+function DeathsByCause({ causes, total, span }: { causes: DeathCount[]; total: number; span: string }) {
+  const sum = Math.max(1, causes.reduce((a, c) => a + c.deaths, 0));
+  const shown = causes.filter((c) => c.deaths > 0);
+  return (
+    <div class="deaths" data-testid="deaths-by-cause">
+      <div class="deaths-head"><b>{t('Deaths by cause')}</b> <small class="muted">{span} · {peopleNum(total)}</small></div>
+      <div class="deaths-bar" role="img" aria-label={shown.map((c) => `${t(CAUSE_LABEL[c.cause] ?? c.cause)} ${pct((c.deaths / sum) * 10000)}`).join(', ')}>
+        {shown.map((c) => <i style={{ width: `${(c.deaths / sum) * 100}%`, background: CAUSE_COLOR[c.cause] ?? '#999' }} title={`${t(CAUSE_LABEL[c.cause] ?? c.cause)}: ${int(c.deaths)}`} />)}
+      </div>
+      <ul class="deaths-list">
+        {causes.map((c) => (
+          <li class={c.deaths ? undefined : 'is-zero'} title={t(CAUSE_HINT[c.cause] ?? '')}>
+            <span class="deaths-key" style={{ background: CAUSE_COLOR[c.cause] ?? '#999' }} />
+            <span class="deaths-name">{t(CAUSE_LABEL[c.cause] ?? c.cause)}</span>
+            <b>{peopleNum(c.deaths)}</b>
+            <small class="muted">{c.deaths ? pct((c.deaths / sum) * 10000) : '—'}</small>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// i18n-table
+const SEVERITY_LABEL: Record<number, string> = { 1: 'Mild', 2: 'Serious', 3: 'Severe' };
+// i18n-end
+
+/** Regions of ours with an epidemic now (ruleset 3.0 outbreaks). */
+function Epidemics({ regions }: { regions: RegionView[] }) {
+  return (
+    <Section title={t('Epidemics')} aside={<small class="muted">{tn(regions.length, '{n} region', '{n} regions')}</small>}>
+      <p class="muted small">{t('An outbreak raises deaths in every age band and spreads to neighbouring regions; survivors gain immunity for a time. Care, physicians, medicine and sanitation shorten and soften it.')}</p>
+      <ul class="plain-list epidemics" data-testid="epidemics">
+        {regions.map((r) => (
+          <li><RegionLink id={r.id}>{r.name}</RegionLink> · <Badge tone={r.outbreak!.severity_band >= 3 ? 'bad' : r.outbreak!.severity_band === 2 ? 'warn' : 'muted'} icon="heart">{t(SEVERITY_LABEL[r.outbreak!.severity_band] ?? 'Mild')}</Badge> <small class="muted">{t('since {date}', { date: fmtYear(r.outbreak!.since) })}</small></li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 

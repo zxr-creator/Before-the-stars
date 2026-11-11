@@ -11,7 +11,16 @@ use serde::{Deserialize, Serialize};
 /// 1.2: head counts are real people (`JobSpec.count`, programme places and
 /// `start_program`/`manage_program` seats widen to `u32`), quantities are base units,
 /// and `Observation.units` states the unit system.
-pub const PROTOCOL_VERSION: &str = "bts-protocol/1.2";
+/// 1.3 (ruleset 3.0, additions only): the historical calendar (`date`, `calendar`),
+/// standing orders (`directives`, `Action::Directive`), war policies, notice on
+/// open-ended treaties and the round recap flag of chronicle entries.
+/// 1.4 (additions only): the Earth-like world (`WorldFrame.wrap_x`, `WorldFrame.kind`,
+/// `RegionView.climate`).
+/// 2.0 (breaking): fifty goods and seventeen deposits (`Good::Minerals` and
+/// `Deposit::Minerals` retired), site bonuses and spice land in surveys, helium on gas
+/// fields, unit generations, building lines on facility types, goods shown only once
+/// known (ruleset 3.0 slice 5), productivity breakdowns (slice 6).
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.0";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -38,33 +47,64 @@ macro_rules! public_enum {
 }
 
 public_enum!(
-    /// Storable goods. Quantities on the wire are integer base units: one ration for
-    /// food (one person's food for one month, 50 kg grain-equivalent), one tonne for
-    /// bulk goods and one standard lot for manufactures. 1,000 base units make one
-    /// display unit (see [`UnitsView`] for the unit and mass of each good).
+    /// Storable goods (ruleset 3.0: fifty, design chapter 36 section 5.2 and
+    /// chapter 37 section 1.1). Quantities on the wire are integer base units: one
+    /// ration for food (one person's food for one month, 50 kg grain-equivalent),
+    /// one head for horses, one tonne for bulk goods and one standard lot for
+    /// manufactures. 1,000 base units make one display unit (see [`UnitsView`] for
+    /// the unit and mass of each good). The enum is public schema; a seat is shown
+    /// a good only once it knows a source or a use of it.
     Good {
     Food => "Food",
-    Materials => "Timber, stone and clay",
+    Materials => "Building materials",
     Tools => "Tools",
     CopperOre => "Copper ore",
     IronOre => "Iron ore",
     Coal => "Coal",
     Crude => "Crude oil",
-    Minerals => "Rare minerals",
     Copper => "Copper",
-    Metal => "Structural metal",
+    Metal => "Iron and steel",
     Components => "Mechanical components",
     Conductors => "Conductors",
-    Insulation => "Insulation and seals",
+    Insulation => "Rubber, plastics and insulation",
     Fuel => "Refined fuel",
     Chemicals => "Chemicals",
-    Substrate => "High-purity substrate",
+    Substrate => "Semiconductor materials",
     Electronics => "Electronic devices",
     Hardware => "Computing hardware",
     Spares => "Spare parts",
     Media => "Record media",
     Instruments => "Instruments",
     Medicine => "Medicine and bioproducts",
+    Timber => "Timber",
+    Fibres => "Fibres",
+    Horses => "Horses",
+    Salt => "Salt",
+    Spices => "Spices and stimulants",
+    Precious => "Precious metals",
+    Tin => "Tin",
+    Saltpetre => "Saltpetre",
+    Gas => "Natural gas",
+    Bauxite => "Bauxite",
+    UraniumOre => "Uranium ore",
+    RareEarths => "Rare-earth ore",
+    Lithium => "Lithium",
+    CobaltNickel => "Cobalt and nickel",
+    Quartz => "High-purity quartz",
+    Helium => "Helium",
+    Aluminium => "Aluminium",
+    Fertilizer => "Fertilizer",
+    Munitions => "Munitions",
+    Magnets => "Magnets and superconductors",
+    Batteries => "Batteries",
+    NuclearFuel => "Nuclear fuel",
+    Textiles => "Textiles",
+    ConsumerGoods => "Consumer goods",
+    FineWares => "Fine wares",
+    Lattice => "Interface lattice",
+    Volatiles => "Volatiles (water and ices)",
+    Propellant => "Propellant",
+    Helium3 => "Helium-3",
 });
 
 public_enum!(
@@ -104,12 +144,62 @@ public_enum!(Terrain {
     Tundra => "Tundra",
 });
 
-public_enum!(Deposit {
+public_enum!(
+    /// Climate zone of a region (ruleset 3.0, generator 2.0): drives the shared
+    /// harvest draws and the map's colours. Terrain stays the eight kinds above.
+    ClimateZone {
+    Tropical => "Tropical",
+    Arid => "Arid",
+    Temperate => "Temperate",
+    Continental => "Continental",
+    Polar => "Polar",
+});
+
+public_enum!(
+    /// Kind of home world a match is generated on (design chapter 37, section 5).
+    /// `Classic` is the flat generator of ruleset 2.0, kept for fixtures.
+    WorldKind {
+    EarthLike => "Earth-like world",
+    Classic => "Classic map",
+});
+
+impl Default for WorldKind {
+    fn default() -> Self {
+        WorldKind::EarthLike
+    }
+}
+
+public_enum!(
+    /// Finite deposits in the ground (ruleset 3.0: seventeen). A seat sees a deposit
+    /// only once it understands what reveals it.
+    Deposit {
     CopperOre => "Copper ore",
     IronOre => "Iron ore",
     Coal => "Coal",
     Crude => "Crude oil",
-    Minerals => "Rare minerals",
+    Tin => "Tin",
+    Salt => "Salt",
+    Saltpetre => "Saltpetre",
+    Precious => "Precious metals",
+    Gas => "Natural gas",
+    Bauxite => "Bauxite",
+    UraniumOre => "Uranium ore",
+    RareEarths => "Rare-earth ore",
+    Lithium => "Lithium brine",
+    CobaltNickel => "Cobalt and nickel",
+    Quartz => "High-purity quartz",
+    Volatiles => "Volatiles (water and ices)",
+    Helium3 => "Helium-3",
+});
+
+public_enum!(
+    /// Site bonuses of a region (design chapter 36, section 5.3), at most two.
+    Bonus {
+    Floodplain => "Fertile floodplain",
+    FishBanks => "Fish banks",
+    WildHerds => "Wild herds",
+    OldGrowth => "Old-growth forest",
+    RichPasture => "Rich pasture",
 });
 
 public_enum!(
@@ -162,6 +252,17 @@ public_enum!(PracticeState {
 });
 
 public_enum!(
+    /// Economic sectors of productivity (design chapter 36, section 4.2).
+    Sector {
+    Food => "Food",
+    Extraction => "Extraction",
+    Industry => "Industry",
+    Services => "Services",
+    Knowledge => "Knowledge",
+    Construction => "Construction",
+});
+
+public_enum!(
     /// Labour categories whose relative priority a government can set.
     LaborCategory {
     Extraction => "Extraction",
@@ -205,6 +306,7 @@ public_enum!(SettlementKind {
     Town => "Town",
     City => "City",
     Metropolis => "Metropolis",
+    Megalopolis => "Megalopolis",
 });
 
 public_enum!(Intent {
@@ -280,6 +382,123 @@ pub struct Observation {
     /// client need not hard-code scale. Absent in observations older than protocol 1.2.
     #[serde(default)]
     pub units: UnitsView,
+    /// The date of the month about to be simulated (ruleset 3.0).
+    #[serde(default)]
+    pub date: Option<DateView>,
+    /// The round schedule and where this round sits in it (ruleset 3.0).
+    #[serde(default)]
+    pub calendar: Option<CalendarView>,
+    /// This seat's standing orders, in the order they are evaluated.
+    #[serde(default)]
+    pub directives: Vec<DirectiveView>,
+}
+
+/// A date of the historical calendar.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DateView {
+    /// Historical year, signed, with no year zero: -5000 is 5000 BC, 1 is AD 1.
+    pub year: i32,
+    /// Month of the year, 1 (January) to 12.
+    pub month: u8,
+    /// "5000 BC", "AD 1066".
+    pub label: String,
+}
+
+/// One segment of the round schedule: rounds `first_round..=last_round` last
+/// `years_per_round` years each (the round that starts in AD 1 one year less).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct CalendarSegment {
+    pub first_round: u32,
+    pub last_round: u32,
+    pub years_per_round: u32,
+    /// Historical years at the segment's start and end.
+    pub from: i32,
+    pub to: i32,
+}
+
+/// The calendar of the match (design chapter 36, section 2.2).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct CalendarView {
+    /// "standard", "quick" or "fixture".
+    pub id: String,
+    pub start: DateView,
+    /// The date at which the match ends without a winner, and that month.
+    pub horizon: DateView,
+    pub horizon_month: Month,
+    /// Wins are scored from this date: reward `2 - (T - R) / (H - R)`, clamped to [1, 2].
+    pub reward_reference: DateView,
+    pub reward_reference_month: Month,
+    /// The last round of the schedule.
+    pub rounds: u32,
+    /// Months this round resolves, and the dates it runs from and to.
+    pub round_months: u32,
+    pub round_start: DateView,
+    pub round_end: DateView,
+    pub next_round_months: u32,
+    /// Months the last resolved round lasted (the span of `GoodLine` round totals and
+    /// of the `*_last_round` counts); 0 before the first round is resolved.
+    pub last_round_months: u32,
+    pub segments: Vec<CalendarSegment>,
+}
+
+/// A standing order (design chapter 36, section 2.6). Evaluated by the referee on
+/// 1 January of every year inside a round and in the first month of every round,
+/// in the seat's order, each through exactly the validation of the action it
+/// stands for. One that fails is skipped that year and reports why.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Directive {
+    /// Keep `levels` levels (built plus under construction) of a facility in a
+    /// region: when fewer and no order for it is open there, order the shortfall
+    /// (at most four levels) at the quoted price.
+    BuildTarget {
+        region: RegionId,
+        facility: String,
+        levels: u16,
+        #[serde(default)]
+        priority: Option<u8>,
+    },
+    /// When research capacity is idle, start the first item of the list that can be
+    /// started (technology handles as in `KnowledgeView`): a discovered method is
+    /// investigated, a lead is followed up by a small study.
+    ResearchAgenda { techs: Vec<String> },
+    /// When research capacity is still idle after the agenda, start the discovered
+    /// method with the lowest tier and most evidence, then follow up leads alike.
+    AutoResearch { on: bool },
+    /// While fewer than two reforms are under way, propose the first practice of the
+    /// list whose reform can begin (practice handles as in `CultureView`).
+    ReformAgenda { practices: Vec<String> },
+    /// Order the settlement of `to` from `from` with `people` settlers once the
+    /// sending region's residents exceed `when_crowd_bp` of its water capacity and
+    /// our records show the land unclaimed.
+    SettleTarget { from: RegionId, to: RegionId, people: u32, when_crowd_bp: u16 },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DirectiveOp {
+    /// Add a standing order. One that stands for the same thing (the same region
+    /// and facility, the same settlement target, the agenda, automatic research)
+    /// is replaced in place.
+    Add,
+    Remove,
+    /// Move the order `id` to the 0-based `position`.
+    Move,
+}
+
+/// A standing order and what it did when last evaluated.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DirectiveView {
+    pub id: u32,
+    pub directive: Directive,
+    /// What happened the last time it was evaluated (empty before then).
+    pub last_result: String,
+    /// "acted", "idle" (nothing to do), "skipped" (an order was refused) or "" (not yet evaluated).
+    #[serde(default)]
+    pub last_status: String,
+    /// Completed months when it was last evaluated.
+    #[serde(default)]
+    pub last_month: Month,
 }
 
 /// Unit and mass of one base unit of a good.
@@ -336,6 +555,13 @@ pub struct WorldFrame {
     pub height: i32,
     /// Total number of regions is public scenario information.
     pub region_count: u16,
+    /// The map wraps east-west (generator 2.0 Earth-like worlds): a region polygon
+    /// may extend past either edge and is drawn again one width over.
+    #[serde(default)]
+    pub wrap_x: bool,
+    /// The kind of home world (absent from older referees: the classic map).
+    #[serde(default)]
+    pub kind: Option<WorldKind>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -406,6 +632,16 @@ pub struct Policies {
     pub labor_weights: Vec<(LaborCategory, u8)>,
     /// Share of project labour capacity the government actually calls up, basis points.
     pub mobilization_bp: u16,
+    /// Standing war policies, one per seat they name.
+    #[serde(default)]
+    pub war_policies: Vec<WarPolicyView>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WarPolicyView {
+    pub seat: SeatId,
+    pub accept_white_peace_after_months: Option<u16>,
+    pub accept_cession_max: u8,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -426,12 +662,16 @@ pub struct OwnCiv {
     pub adjective: String,
     pub color: String,
     pub capital: RegionId,
-    pub population: u32,
-    pub children: u32,
-    pub working_age: u32,
-    pub elders: u32,
+    /// Sums over regions are `u64` since ruleset 3.0 (a world of billions).
+    pub population: u64,
+    pub children: u64,
+    pub working_age: u64,
+    pub elders: u64,
     pub births_last_round: u32,
     pub deaths_last_round: u32,
+    /// The deaths of the last round by cause; they add up to `deaths_last_round`.
+    #[serde(default)]
+    pub deaths_by_cause: Vec<DeathCount>,
     pub migration_last_round: i32,
     pub goods: Vec<GoodLine>,
     pub quals: Vec<QualCount>,
@@ -469,6 +709,18 @@ pub struct DepositView {
     pub remaining: i64,
     pub quality_bp: u16,
     pub epistemic: Epistemic,
+    /// Helium recoverable per 10,000 t of natural gas (gas fields only, and only to a
+    /// seat that understands cryogenics).
+    #[serde(default)]
+    pub helium_bp: Option<u16>,
+}
+
+/// A site bonus of a region (design chapter 36, section 5.3).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BonusView {
+    pub kind: Bonus,
+    /// What it adds to the yield it modifies, basis points.
+    pub bp: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -483,6 +735,12 @@ pub struct SurveyView {
     pub water: u32,
     pub hydro: u16,
     pub deposits: Vec<DepositView>,
+    /// Levels of warm, wet land fit for spice plantations (ruleset 3.0).
+    #[serde(default)]
+    pub spice_land: u16,
+    /// Site bonuses (ruleset 3.0).
+    #[serde(default)]
+    pub bonuses: Vec<BonusView>,
     pub surveyed_month: Month,
     /// False while only surface observations exist; deposits may be missing.
     pub detailed: bool,
@@ -528,6 +786,49 @@ pub struct FacilityView {
     /// one chosen when the chosen one's chemicals or fuel were not in store.
     #[serde(default)]
     pub active_method: Option<String>,
+    /// General and qualified posts the works' levels need under the method it ran:
+    /// at the method's base, after shared support, and after productivity
+    /// (ruleset 3.0 slice 5; design chapter 36, section 4.3).
+    #[serde(default)]
+    pub posts_base: u32,
+    #[serde(default)]
+    pub posts_after_scale: u32,
+    #[serde(default)]
+    pub posts_after_productivity: u32,
+    /// Labour productivity applied to the works last month, basis points.
+    #[serde(default)]
+    pub productivity_bp: u32,
+    /// Land works: what one level grows in a month, base units, and the factors of
+    /// that yield.
+    #[serde(default)]
+    pub yield_per_level: i64,
+    #[serde(default)]
+    pub yield_factors: Vec<FactorView>,
+}
+
+/// One factor of productivity (design chapter 36, section 4.3), named by its source.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FactorView {
+    /// "education", "culture", "religion", "technology", "city", "health",
+    /// "resources", "buildings" or "land".
+    pub source: String,
+    /// Multiplier in basis points (10,000 = no effect).
+    pub bp: u32,
+    /// What it rests on, in words: "Literate share 42%", "Practice: Craft guilds".
+    pub detail: String,
+}
+
+/// Labour productivity of one economic sector in a region.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ProductivityView {
+    pub sector: Sector,
+    /// The product of the factors, bounded to 5,000-40,000 basis points: a works
+    /// needs `10,000 / total` of its method's general posts. Works of an older era
+    /// receive less of the technology factor (shown per works in `FacilityView`).
+    pub total_bp: u32,
+    pub factors: Vec<FactorView>,
+    /// General posts the region's works of the sector did without last month.
+    pub posts_saved: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -679,6 +980,9 @@ pub struct OwnRegion {
     /// that stand together here.
     #[serde(default)]
     pub infrastructure: InfraView,
+    /// Labour productivity by sector with its factors (ruleset 3.0 slice 6).
+    #[serde(default)]
+    pub productivity: Vec<ProductivityView>,
 }
 
 /// A region's shared infrastructure and the economies of scale it carries
@@ -744,6 +1048,43 @@ pub struct RegionView {
     pub foreign: Option<ForeignRegion>,
     /// One of the three revealed deployment test nodes (only after the victory contract is revealed).
     pub test_node: bool,
+    /// An epidemic in the region, seen by its government and by seats observing it (ruleset 3.0).
+    #[serde(default)]
+    pub outbreak: Option<OutbreakView>,
+    /// Climate zone (generator 2.0; public geography like terrain).
+    #[serde(default)]
+    pub climate: Option<ClimateZone>,
+    /// The region's principal city site and harbour (design chapter 38, section 2;
+    /// public geography like terrain). Absent where the generator named none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub city: Option<CitySiteView>,
+}
+
+/// Where a region's principal city stands (design chapter 38, section 2.1).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CitySiteView {
+    pub name: String,
+    /// Map position, in the same frame as `RegionView.center`.
+    pub at: [i32; 2],
+    /// A sheltered bay, estuary or fjord (section 2.3).
+    pub natural_harbour: bool,
+}
+
+/// An epidemic in a region (design chapter 36, section 3.2).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OutbreakView {
+    /// Completed months when it broke out.
+    pub since: Month,
+    /// 1 (mild) to 3 (severe): how much it raises deaths in every age band.
+    pub severity_band: u8,
+}
+
+/// Deaths of one cause over the last resolved round.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DeathCount {
+    /// "age_and_illness", "hunger_and_crowding", "town_conditions", "epidemic" or "war".
+    pub cause: String,
+    pub deaths: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -759,8 +1100,8 @@ pub struct ForeignCiv {
     pub at_war: bool,
     pub overlord: Option<SeatId>,
     /// Rough estimates derived from this seat's own reports.
-    pub population_low: u32,
-    pub population_high: u32,
+    pub population_low: u64,
+    pub population_high: u64,
     pub regions_known: u16,
     pub military_estimate: String,
     pub observed_tier: Option<u8>,
@@ -859,7 +1200,7 @@ pub struct TraitView {
 pub struct LineageView {
     pub key: String,
     pub name: String,
-    pub population: u32,
+    pub population: u64,
     pub traits: Vec<TraitView>,
     pub origin: String,
 }
@@ -880,7 +1221,7 @@ pub struct ReligionView {
     pub founded_month: Month,
     pub holy_region: Option<RegionId>,
     pub beliefs: Vec<BeliefOption>,
-    pub followers_known: u32,
+    pub followers_known: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1000,6 +1341,14 @@ pub struct FacilityType {
     /// Minimum months of construction before any first-of-kind surcharge.
     #[serde(default)]
     pub build_months: u16,
+    /// Building line, stage in it and era of the stage (design chapter 37, section
+    /// 8.2; ruleset 3.0 slice 5). Static content, the same for every seat.
+    #[serde(default)]
+    pub line: String,
+    #[serde(default)]
+    pub stage: u8,
+    #[serde(default)]
+    pub era: u8,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1033,6 +1382,17 @@ pub struct UnitTier {
     pub training_months: u16,
     pub requirements: Vec<KnownRequirement>,
     pub available: bool,
+    /// Equipment generation of design chapter 37, section 2.1 (G0-G7; the six tiers
+    /// are G0, G1, G2, G4, G5 and G6).
+    #[serde(default)]
+    pub generation: u8,
+    /// What a maneuver formation needs beside the equipment, per thousand soldiers.
+    #[serde(default)]
+    pub maneuver_extra: Vec<GoodQty>,
+    /// Equipment issued instead when the stores cannot cover `equipment` (bronze for
+    /// iron), per thousand soldiers.
+    #[serde(default)]
+    pub alternative: Vec<GoodQty>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1328,6 +1688,10 @@ pub struct ChronicleEntry {
     /// Vignette template key and palette seed for the illustrated card.
     pub art: String,
     pub major: bool,
+    /// Whether the round recap shows it: at most twelve moments of a round per seat,
+    /// by significance; the rest stay in the archive. Era summaries always show.
+    #[serde(default)]
+    pub recap: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -1350,7 +1714,7 @@ pub struct SpectatorCiv {
     pub controller: ControllerKind,
     pub status: SeatStatus,
     pub capital: RegionId,
-    pub population: u32,
+    pub population: u64,
     pub regions: u16,
     pub understood: u16,
     pub discovered: u16,
@@ -1417,6 +1781,10 @@ pub struct SpectatorView {
     pub armies: Vec<SpectatorArmy>,
     pub events: Vec<SpectatorEvent>,
     pub test_nodes: Vec<RegionId>,
+    #[serde(default)]
+    pub date: Option<DateView>,
+    #[serde(default)]
+    pub calendar: Option<CalendarView>,
 }
 
 // ---------------------------------------------------------------------------
@@ -1498,6 +1866,17 @@ pub enum PolicySetting {
         #[serde(default)]
         method: Option<String>,
     },
+    /// Standing war policy toward one seat (design chapter 36, section 2.6). When
+    /// both sides of a war have `accept_white_peace_after_months` set, an armistice
+    /// (white peace) comes into force once neither side has gained or lost a region
+    /// to the other for the longer of the two and of 36 months. `None` withdraws it.
+    WarPolicy {
+        seat: SeatId,
+        #[serde(default)]
+        accept_white_peace_after_months: Option<u16>,
+        #[serde(default)]
+        accept_cession_max: u8,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1509,7 +1888,14 @@ pub enum Action {
     WithdrawOffer { offer: u32 },
     SignTreaty { offer: u32 },
     DeclineOffer { offer: u32 },
-    BreakTreaty { treaty: u32 },
+    /// Repudiate a treaty. With `notice` on a treaty whose standing clauses are
+    /// open-ended (`months: 0`), give notice instead: those clauses end at the close
+    /// of the next round and nothing is breached.
+    BreakTreaty {
+        treaty: u32,
+        #[serde(default)]
+        notice: bool,
+    },
     SetPolicy { setting: PolicySetting },
     /// `priority` is 0..=9 and lower numbers are served first (default 5).
     StartProject { spec: ProjectSpec, priority: Option<u8> },
@@ -1536,6 +1922,16 @@ pub enum Action {
     MilitaryOrder { army: u32, order: ArmyOrder },
     /// Formally withdraw from the match. Irreversible; the seat scores -1.
     Forfeit,
+    /// Add, remove or reorder a standing order (see [`Directive`]).
+    Directive {
+        op: DirectiveOp,
+        #[serde(default)]
+        id: Option<u32>,
+        #[serde(default)]
+        directive: Option<Directive>,
+        #[serde(default)]
+        position: Option<u16>,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

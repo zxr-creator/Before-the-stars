@@ -115,3 +115,39 @@ pub fn fnv(bytes: &[u8]) -> u64 {
     }
     h
 }
+
+/// The date of the month about to be simulated after `month` completed months:
+/// (historical year, signed with no year zero; month of the year 1-12).
+pub fn date(cfg: &crate::state::MatchConfig, month: u32) -> (i32, u8) {
+    cfg.calendar.date(month)
+}
+
+/// "5000 BC", "AD 1066": the year of the month about to be simulated.
+pub fn year_label(cfg: &crate::state::MatchConfig, month: u32) -> String {
+    crate::calendar::year_label(date(cfg, month).0)
+}
+
+/// "March 1066", "January 5000 BC": the month about to be simulated.
+pub fn date_label(cfg: &crate::state::MatchConfig, month: u32) -> String {
+    let (y, m) = date(cfg, month);
+    let name = crate::calendar::MONTH_NAMES[(m as usize - 1).min(11)];
+    if y < 0 {
+        format!("{name} {} BC", -y)
+    } else {
+        format!("{name} {y}")
+    }
+}
+
+/// The month a record of month `m` is dated by: events of the month just
+/// simulated carry `World.month` after its increment, so their date is that of
+/// month `m - 1` in the "about to be simulated" convention.
+pub fn event_label(cfg: &crate::state::MatchConfig, m: u32) -> String {
+    date_label(cfg, m.saturating_sub(1))
+}
+
+/// Whether the month about to be simulated opens a decade (January of a historical
+/// year divisible by ten; the start of the match counts).
+pub fn decade_start(cfg: &crate::state::MatchConfig, month: u32) -> bool {
+    let (y, m) = date(cfg, month);
+    month == 0 || (m == 1 && y % 10 == 0)
+}

@@ -4,10 +4,13 @@
 pub mod chronicle;
 pub mod culture;
 pub mod diplomacy;
+pub mod directives;
 pub mod economy;
 pub mod knowledge;
 pub mod military;
+pub mod outbreaks;
 pub mod population;
+pub mod productivity;
 pub mod projects;
 pub mod victory;
 
@@ -22,6 +25,8 @@ pub fn step_month(w: &mut World) {
     let n = w.civs.len();
     let before: Vec<Vec<i64>> = w.civs.iter().map(|c| c.flows.consumed.clone()).collect();
 
+    // 0. standing orders, on 1 January and in the first month of a round
+    directives::step(w);
     // 1. contractual deliveries settle from month-start stock
     diplomacy::step(w);
     // 2. labour, power and production
@@ -32,7 +37,8 @@ pub fn step_month(w: &mut World) {
     for s in 0..n {
         projects::step(w, s as SeatId);
     }
-    // 4. food, water, births, deaths, ageing, migration
+    // 4. epidemics, then food, water, births, deaths, ageing, migration
+    outbreaks::step(w);
     for s in 0..n {
         population::step(w, s as SeatId);
     }
@@ -65,6 +71,8 @@ pub fn step_month(w: &mut World) {
 
 /// Close the accounts of a decision round.
 pub fn close_round(w: &mut World) {
+    w.last_round_months = w.month - w.round_start;
+    chronicle::close_round(w);
     for civ in w.civs.iter_mut() {
         civ.last_flows = std::mem::replace(&mut civ.flows, Flows::new());
     }

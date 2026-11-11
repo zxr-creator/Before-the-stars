@@ -7,8 +7,8 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 
 | Design area | Status | Notes |
 | --- | --- | --- |
-| Clock and rounds (30 §3) | Implemented | One simulation month; 12 months per round; H = 2880 standard, 960 development fixture with scaled work. Contact → five negotiation windows → plan → resolve |
-| World generation (08) | Implemented, simplified | Seeded Voronoi regions (24/48/72), elevation and moisture noise, downhill rivers, coasts and sea links, correlated deposits, viable starts with guaranteed reachable copper, iron, coal and rare minerals, three fixed test nodes. Derivation uses a keyed integer hash rather than HMAC-SHA256; `public_seed: false` mixes in server entropy |
+| Clock and rounds (30 §3, 36 §2) | Implemented | One simulation month. Since ruleset 3.0 a historical calendar: the standard game runs 525 rounds from 5000 BC to AD 2500 (rounds of 50 years down to 2), the quick game 230 rounds on the same dates, and fixture clocks serve tests (`docs/units-and-scale.md` section 11). Contact → five negotiation windows → plan → resolve; standing orders act inside long rounds |
+| World generation (08, 37 §5) | Implemented, simplified | Since ruleset 3.0 slice 4 a generated Earth-like planet by default (wrapped 2,000 x 1,000 map, plates, climate bands and rain shadows, terrain and climate zones, geology tags for deposits; `docs/units-and-scale.md` section 13); the flat classic map remains for fixtures. Seeded Voronoi regions (24/48/72), downhill rivers, coasts and sea links, correlated deposits, viable starts with guaranteed reachable copper, iron, coal and rare minerals, three fixed test nodes. The real Earth (slice 16) is not built; the client draws a region that crosses the date line only once, clipped at the map edge. Derivation uses a keyed integer hash rather than HMAC-SHA256; `public_seed: false` mixes in server entropy |
 | Economy and production (02, 21) | Abstracted | About sixty facility types carry the 34 recipes and 10 capital modules with inputs, shaft/electric/compute services, upkeep, condition and storage throttles. Goods are pooled per civilization with a per-region carriage efficiency set by transport grade and distance, not per-shipment logistics. No prices, money or private balance sheets: the limit on what a government can direct is the callable-labour share raised by institutions |
 | Industrial traditions (22) | Implemented as content | Water/wind, steam, diesel and electric power are separate facilities with real fuel and site limits; generators, grids and motors bridge them; fission, fusion and orbital power follow. No route skips electricity, electronics, computing or orbit |
 | Population (32) | Implemented, simplified | Sparse blocks keyed by region × lineage × religion with 81 annual age cells, nine-month lagged birth intensity, one combined mortality calculation, annual ageing, migration that moves real counts. One access class per region; qualifications are counted per region rather than per block |
@@ -32,6 +32,115 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Multicore (technical/03) | Partly | Independent matches run in parallel across cores; a single match is fast enough to settle a full 240-round game in about two seconds single-threaded, so in-match staged parallelism is not implemented |
 | Persistence | Implemented | Full checkpoint saves including controller memory; state hashes; `bts verify` checks repeatability and checkpoint recovery |
 | Conservation (`docs/conservation-audit.md`) | Implemented | Goods, people, qualified people, service, work and deposits each have a ledger and an identity; every source is listed with what backs it. The referee can record its books every month (`Match::record_ledgers`), and scripted and all-AI matches are audited month by month over whole campaigns. Capacities (water, care, storage, venue places, transport grade, generator and grid capacity) still depend on works existing rather than on their staffing |
+
+## Ruleset 3.0 (design chapter 36) progress
+
+Branch `ruleset3`. Slices are recorded here as they land; calibration outputs are in
+`docs/calibration/ruleset3-slice-*.txt`.
+
+- **Slice 0, tooling (done).** `bts run --curve FILE.csv` writes one row per seat at
+  the start of every decade (population, regions, technologies understood by tier,
+  research capacity and use, traded tonnes, births and deaths over the decade, food,
+  soldiers, and the era milestones of design table 2.7) from a referee-side recorder
+  (`bts_engine::curve`, never saved, never served to a seat); `--matches M` runs
+  matches on a worker pool (`--threads`, `--first`) into one CSV. `--checkpoints DIR
+  --at m1,m2,...` saves the match at the first round boundary at or after each month.
+  `cargo run --release -p bts-host --example bench -- SAVE [--rounds N] [--policy]`
+  measures p50/p95 per round and the mean per month from a save.
+  `scripts/curve_summary.py` summarizes a curve (population by date, regions, era
+  milestones, growth checks). The ruleset 2.0 baseline is
+  `docs/calibration/ruleset3-slice-0-baseline.txt`.
+- **Slice 1, calendar and standing orders (done).** `bts_engine::calendar` (standard
+  525 rounds, quick 230, fixtures), signed historical years with no year zero,
+  `date`/`calendar` on `Observation`, `SpectatorView` and the host's `MatchSummary`
+  (and the portable save header), the reward counted from AD 1900, standing orders
+  (`Action::Directive`: build targets, research agenda, automatic research, reform
+  agenda, settlement targets), treaty terms scaled to the round with open-ended
+  clauses and notice, war only in a round's first month, war policies and armistice,
+  round recap flags and one era summary per round in the chronicle (at most 2,000
+  entries per seat), briefings counted by kind, dates instead of month numbers in
+  every engine text, ruleset `bts-rules/3.0.0` with the named refusal of 2.x saves.
+  The native AI writes standing orders in rounds longer than a year, reads round
+  totals per year, keeps clause terms within the round's bounds and may place up to
+  four times its candidate actions in long rounds. `bts run --calendar quick`,
+  `--checkpoints DIR` (era saves at 1000 BC, AD 1000, 1700, 1900, 2100 by default)
+  and `examples/decide` (one seat's plan and the referee's answers). Calibration:
+  `docs/calibration/ruleset3-slice-1-*.txt`.
+- **Slice 2, population (done; calibrated together with slice 3).** Ruleset
+  3.0 mortality bands and technology factors, care, crowding, town conditions with
+  sanitation coverage, epidemics (`sim::outbreaks`, addressed draws per region and
+  month, spread to neighbours, immunity), harvest variance, `F_custom x F_food x
+  F_crowd x F_dev` fertility with the Fruitful Households and Day of Rest doctrines,
+  deaths by cause, arable land x3 and fields to 250 levels, field methods v3, food
+  synthesis works, deposits x5-10 with the larger guarantees, the Megalopolis class,
+  `u64` population sums (`docs/units-and-scale.md` section 3). Population depends on
+  when the medical and agricultural nodes arrive, so its constants are calibrated
+  after slice 3 sets the knowledge pace; `docs/calibration/ruleset3-slice-2-eval.txt`
+  records the state with ruleset 2.0 knowledge pacing.
+- **Slice 3, knowledge pacing (done).** Channel factor, research effectiveness, tier
+  thresholds, work and minimum months and pacing eras read from
+  `content/pacing.json`; contact evidence (the trade factor is a stub until the market
+  slice: only customs and translation raise it); exploratory studies add evidence
+  rather than leads. Population and knowledge were calibrated together (a land factor
+  of fertility, the storage-capped reserve, field caps before soil science, the town
+  weight by class); the results against the design's targets are in
+  `docs/calibration/ruleset3-slice-3-*.txt`. Knowledge milestones of the median seat
+  fall in or near the design's windows from iron to fission; population medians are
+  within the tolerance from AD 1 to 1500 and in 1900, too high in the third and second
+  millennia BC and around 1700-1800, and two to five times too low after 1950 (the
+  world peaks near 0.4-0.5 billion against the design's 2 billion): the late scale
+  depends on the productivity, goods and AI slices. Native: a full standard all-AI
+  match about 23 s, p95 per round about 100 ms; WebAssembly (Node): about 43 s,
+  p95 about 200 ms; the annual-step contingency was not needed.
+
+- **Slice 4, the Earth-like world (done).** `WorldKind`, `worldgen::earthlike`, the
+  shared `Geo` pipeline, `Region.climate` and `Region.site`, harvest draws by climate
+  zone, `bts run --world`, ruleset `bts-rules/3.0.0-s4` and generator
+  `bts-worldgen/2.0.0-s4` (earlier ruleset-3 saves are refused by name), protocol
+  `bts-protocol/1.4` (`WorldFrame.wrap_x`, `WorldFrame.kind`, `RegionView.climate`).
+  Calibration: `docs/calibration/ruleset3-slice-4-eval.txt`.
+
+- **Slice 5, resources and goods (done).** Fifty goods and seventeen deposits
+  (`docs/units-and-scale.md` section 14): timber split from building materials, rare
+  minerals retired, deposits placed by geology and climate with the design's
+  guarantees, revelation by knowledge (unrecognized deposits, their works and their
+  goods are absent from a seat's views), site bonuses and spice land, about thirty new
+  facility kinds (mines from one template, salt, fibres, spices, horses, textiles,
+  munitions, fertilizer, gas and helium, aluminium, magnets, batteries, nuclear fuel,
+  consumer goods, fine wares, the lattice works), real fertilizer and horses in the
+  fields, a substitute method for every late input except the lattice, unit equipment
+  per generation, building-line metadata and technology eras. The generator also records
+  the city and harbour data of design chapter 38 and places starts for two to ten seats.
+  Ruleset `bts-rules/3.0.0-s5`, content `bts-content/3.0.0-s5`, generator
+  `bts-worldgen/2.0.0-s5`, protocol `bts-protocol/2.0` (breaking: the `Good` and
+  `Deposit` enums). The native AI builds the new chains through its existing
+  wanted-goods rules (it values deposits by their goods, wants timber once it burns
+  some, holds back the household-goods and luxury works until consumption exists).
+  Not built: the consumption basket (slice 11: textiles, consumer goods, spices, fine
+  wares and precious metals are made but not consumed), wool from pasture, the alloy
+  steel method (cobalt-nickel is taken directly by its users), superconducting coils as
+  a separate grade, the permanent-magnet method of generator halls (hydro works have
+  it), road capacity loss without horses (porters stand in at no loss). Calibration:
+  `docs/calibration/ruleset3-slice-5-eval.txt`.
+
+- **Slice 6, productivity (done).** The eight factors as bounded multipliers
+  (`sim::productivity`; `docs/units-and-scale.md` section 15): education, culture
+  (tendencies and established practices), religion (doctrines of the majority faith,
+  with the new Sanctified Labour and Stewardship of the Land), resources and land
+  (deposit quality and site bonuses on yields), technology (gated by the works' era),
+  city (`city_class`, a function of its inputs for the cities slice), health, and
+  buildings and methods (base posts, shared support), applied to general posts,
+  qualified posts (automation), field and land yields (capped at twice the method)
+  and construction work (at most 1.5 worker-months a worker); never to what a level
+  makes. A breakdown per region and sector and per works in the observation; the
+  posts formula and the construction bound in the monthly audit. Fields now work as
+  many levels at the best method as the stores supply and the rest lower, instead of
+  all or nothing. Evidence and the town share count work at a productivity of one.
+  The Standard map is now 60 regions (presets 30, 60, 90, 120, 200; the referee still
+  accepts 24, 48 and 72), with map-size scaling of knowledge pacing in
+  `content/pacing.json`. Ruleset `bts-rules/3.0.0-s6`, content `bts-content/3.0.0-s6`.
+  Prosperity in `F_city` and `F_dev` is still 0 (consumption slice). Calibration and the
+  remaining late-population gap: `docs/calibration/ruleset3-slice-6-eval.txt`.
 
 ## Known calibration gaps
 

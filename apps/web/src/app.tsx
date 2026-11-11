@@ -30,6 +30,7 @@ import { ObjectivesPanel } from './panels/objectives';
 import { ChronicleSheet, ChronicleTab } from './panels/chronicle';
 import { GameMenu } from './menu';
 import { fmtYear, yearOf } from './format';
+import { StandingOrders } from './panels/orders';
 import { t, tc, useLocale } from './i18n';
 import { MomentBanner, NotifyColumn, RoundDock } from './theme/hud';
 import { BrandMark } from './theme/brand';
@@ -91,6 +92,7 @@ const OVERLAYS: { key: OverlayKey; icon: string; label: string; title: string; h
   { key: 'civics', icon: 'civics', label: 'Civics', title: 'Civics tree', hotkey: 'C' },
   { key: 'ledger', icon: 'layers', label: 'Ledger', title: 'Economy ledger', hotkey: 'L' },
   { key: 'works', icon: 'hammer', label: 'Works', title: 'Regional works', hotkey: 'B' },
+  { key: 'orders', icon: 'scroll', label: 'Orders', title: 'Standing orders', hotkey: 'O' },
   { key: 'almanac', icon: 'almanac', label: 'Almanac', title: 'Almanac', hotkey: '?' },
 ];
 // i18n-end
@@ -168,8 +170,8 @@ export function App() {
         const idx = e.key === '0' ? 9 : Number(e.key) - 1;
         togglePanel(PANEL_ORDER[idx]);
         e.preventDefault();
-      } else if (k === 't' || k === 'c' || k === 'l' || k === 'b') {
-        toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : k === 'b' ? 'works' : 'ledger');
+      } else if (k === 't' || k === 'c' || k === 'l' || k === 'b' || k === 'o') {
+        toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : k === 'b' ? 'works' : k === 'o' ? 'orders' : 'ledger');
         e.preventDefault();
       } else if (k === 'h') {
         togglePanel('chronicle');
@@ -320,6 +322,7 @@ function Overlay({ state }: { state: AppState }) {
   if (state.overlay === 'tech') return <TechTree />;
   if (state.overlay === 'civics') return <CivicsTree />;
   if (state.overlay === 'almanac') return <Almanac />;
+  if (state.overlay === 'orders' && state.obs) return <StandingOrders obs={state.obs} arg={state.overlayArg} />;
   if (state.overlay === 'works' && state.obs) {
     const arg = state.overlayArg !== null ? Number(state.overlayArg) : null;
     return <RegionalWorks obs={state.obs} region={arg !== null && Number.isFinite(arg) ? arg : null} onClose={closeOverlay} />;

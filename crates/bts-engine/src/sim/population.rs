@@ -27,8 +27,142 @@ use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
 
-/// Monthly baseline deaths per 100,000 by age band.
-const BANDS: [(usize, usize, i64); 6] = [(0, 0, 900), (1, 4, 180), (5, 14, 50), (15, 49, 55), (50, 64, 160), (65, 80, 620)];
+/// Monthly baseline deaths per 100,000 by age band: pre-modern rates, about 27% of
+/// infants a year and a life expectancy at birth of 25-28 (design chapter 36,
+/// section 3.2).
+pub const BANDS: [(usize, usize, i64); 6] = [(0, 0, 2600), (1, 4, 420), (5, 14, 80), (15, 49, 105), (50, 64, 260), (65, 80, 900)];
+
+/// Technologies and practices that lower mortality, with their factor on the death
+/// rates of children (bands 0-14) and of everyone older, in basis points; every one
+/// understood (or established) multiplies. Calibrated (ruleset 3.0, slice 2): the
+/// medieval nodes act mildly, the great fall comes with germ theory, sanitation and
+/// vaccination.
+pub const MORTALITY_TECH: [(&str, i64, i64); 9] = [
+    ("T032", 9_700, 9_850),
+    ("T033", 9_200, 9_600),
+    ("T046", 9_500, 9_700),
+    ("T053", 6_000, 8_000),
+    ("T069", 6_000, 8_500),
+    ("T070", 5_000, 8_000),
+    ("T131", 8_000, 8_500),
+    ("T136", 7_000, 7_000),
+    ("C002", 9_500, 10_000),
+];
+
+/// Customary fertility (`F_custom`) in basis points before doctrines and practices.
+/// The design's 5,500 assumed a lower survival to childbearing than these age bands
+/// give (with annual ageing a newborn spends half a year on average in the infant
+/// band); 3,820 (4,050 with kin mutual aid) holds a pre-modern people with full
+/// stores near +0.05% a year, and the doctrine and practice terms are scaled by
+/// about 4,150/5,500.
+pub const CUSTOMARY_FERTILITY: i64 = 3_850;
+
+/// Causes of death, in the order of `Flows::deaths_cause`.
+pub const DEATH_CAUSES: [&str; 5] = ["age_and_illness", "hunger_and_crowding", "town_conditions", "epidemic", "war"];
+pub const CAUSE_WAR: usize = 4;
+
+/// Child and adult mortality factors of a civilization (basis points).
+pub fn mortality_tech(civ: &Civ) -> (i64, i64) {
+    let c = content();
+    let mut child: i64 = 10_000;
+    let mut adult: i64 = 10_000;
+    for (id, ch, ad) in MORTALITY_TECH {
+        let on = if id.starts_with('C') { civ.established(c.p(id)) } else { civ.knows(c.t(id)) };
+        if on {
+            child = child * ch / 10_000;
+            adult = adult * ad / 10_000;
+        }
+    }
+    (child, adult)
+}
+
+/// Residents a region's sewers and treatment works serve.
+pub fn sanitation_capacity(r: &Region) -> i64 {
+    let c = content();
+    let served = |key: &str, each: i64| r.fac(c.f(key)).filter(|f| f.enabled).map(|f| f.level as i64 * each * (f.condition_bp as i64).max(3000) / 10_000).unwrap_or(0);
+    served("sewers", 3_000_000) + served("water_treatment", 12_000_000)
+}
+
+/// Share of a region's residents who live in towns (basis points): those away from
+/// the land, `1 - min(1, 3.2 x food workers / residents)`, counted in full in a
+/// city and in part in a town or a village (a craft-working village of a hundred
+/// thousand is not a town; the design's proxy alone would call it one).
+pub fn urban_share(r: &Region) -> i64 {
+    let pop = r.population() as i64;
+    if pop == 0 {
+        return 0;
+    }
+    // food workers at a productivity of one (labour productivity frees farmers for
+    // other work; it does not move them into towns)
+    let food = if r.last.food_equiv > 0 { r.last.food_equiv } else { r.last.labor.food } as i64;
+    let off_land = (10_000 - (food * 32_000 / pop).min(10_000)).max(0);
+    let weight = match settlement_class(pop.min(u32::MAX as i64) as u32) {
+        SettlementKind::Wilderness | SettlementKind::Camp => 0,
+        SettlementKind::Village => 2_000,
+        SettlementKind::Town => 6_000,
+        _ => 10_000,
+    };
+    off_land * weight / 10_000
+}
+
+/// Literate-or-higher holders among a region's working-age residents (basis points),
+/// the stand-in for the schooling of young adults.
+pub fn literate_share(r: &Region) -> i64 {
+    let educated: u64 = [Qual::Literate, Qual::Scribe, Qual::Teacher, Qual::Scholar, Qual::Researcher, Qual::Scientist, Qual::Mechanic, Qual::Technician, Qual::Electrician, Qual::Programmer, Qual::Physician, Qual::AiEngineer, Qual::Orbital, Qual::FtlEngineer]
+        .iter()
+        .map(|q| r.quals[q.index()] as u64)
+        .sum::<u64>()
+        + r.students as u64;
+    let working = r.working().max(1) as u64;
+    (educated * 10_000 / working).min(10_000) as i64
+}
+
+/// People the land of a region can feed with what its government knows, at most
+/// the residents its water supports: wild food, and fields, pastures and fishing
+/// grounds at every level the land and the government's practices allow, worked by
+/// the best methods it knows (their inputs assumed supplied).
+pub fn carrying_capacity(w: &World, seat: SeatId, ri: usize) -> i64 {
+    use crate::sim::economy::{field_method_known, food_tech, level_cap, FIELD_METHODS};
+    let c = content();
+    let civ = &w.civs[seat as usize];
+    let r = &w.regions[ri];
+    let cap = |key: &str| level_cap(w, seat, ri, &c.facilities[c.f(key)]) as i64;
+    let ft = food_tech(civ, true);
+    let field = FIELD_METHODS.iter().enumerate().filter(|(i, _)| field_method_known(civ, *i)).map(|(_, m)| m.rations).max().unwrap_or(0);
+    let known = |key: &str| crate::actions::facility_visible(w, seat, c.f(key)) && c.facilities[c.f(key)].req.eval(&CivCtx { world: w, seat });
+    // foraging is extensive: the wild feeds settled people at a third of what a
+    // month's gathering can bring in
+    let mut rations = r.wild / 3;
+    if known("fields") {
+        rations += cap("fields") * field;
+    }
+    // herds and fishing grounds count at half: they feed a people only alongside its fields
+    if known("pasture") {
+        rations += cap("pasture") * c.facilities[c.f("pasture")].general as i64 * ft.pasture / 2000;
+    }
+    if known("fishery") {
+        rations += cap("fishery") * c.facilities[c.f("fishery")].general as i64 * ft.fish / 2000;
+    }
+    (rations / FOOD_PER_PERSON_MONTH).min(water_capacity(r) as i64).max(1)
+}
+
+/// The land factor of fertility (`F_land`, basis points; ruleset 3.0 calibration):
+/// households on open land with room to spare have more children, households on
+/// full land fewer. It is the Malthusian brake that keeps a pre-modern people near
+/// what its land and knowledge can feed, so that long-run growth follows new land
+/// and new methods rather than drifting to an explosion or to extinction.
+pub fn land_factor(pop: i64, capacity: i64) -> i64 {
+    let ratio = pop * 10_000 / capacity.max(1);
+    (10_000 + 625 * (8_000 - ratio) / 8_000).clamp(8_000, 10_625)
+}
+
+/// The development factor of fertility (`F_dev`, basis points): schooling of young
+/// adults, life away from the land and children who survive make families smaller.
+/// Prosperity (design section 5.5) joins it with the consumption slice.
+pub fn development_factor(lit_bp: i64, urban_bp: i64, child_gain_bp: i64, prosperity_bp: i64, lifelong: bool) -> i64 {
+    let f = (10_000 - lit_bp * 1_800 / 10_000 - urban_bp * 600 / 10_000 - child_gain_bp * 600 / 10_000 - prosperity_bp * 600 / 10_000).clamp(6_200, 10_000);
+    (f + if lifelong { 500 } else { 0 }).min(10_000)
+}
 
 /// People who always stay behind when a region sends people elsewhere.
 const MOVE_FLOOR: u32 = 10_000;
@@ -511,7 +645,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     let month = w.month;
     let slot = (month % 12) as usize;
     let soldiers: u32 = w.armies.iter().filter(|a| a.owner == seat).map(|a| a.count()).sum();
-    let pop: u32 = regs.iter().map(|i| w.regions[*i].population()).sum();
+    let pop: u64 = regs.iter().map(|i| w.regions[*i].population() as u64).sum();
 
     // ---- food ---------------------------------------------------------------
     let need = (pop as i64 + soldiers as i64) * FOOD_PER_PERSON_MONTH;
@@ -528,6 +662,13 @@ pub fn step(w: &mut World, seat: SeatId) {
     if w.civs[si].est_id("C010") {
         rate_bp = rate_bp * 2 / 3;
     }
+    // salting (design chapter 36, 5.4): stored food spoils three tenths slower while
+    // 0.2 t of salt per million rations in store is at hand; the salt is used up
+    let salt_need = left.min(storage).max(0) / 5_000;
+    if w.civs[si].knows_id("T007") && salt_need > 0 && w.civs[si].stock_of(Good::Salt) >= salt_need {
+        w.civs[si].take(Good::Salt, salt_need);
+        rate_bp = rate_bp * 7 / 10;
+    }
     let mut spoil = left.min(storage) * rate_bp / 10_000;
     if left > storage {
         spoil += (left - storage) * 12 / 100;
@@ -539,29 +680,41 @@ pub fn step(w: &mut World, seat: SeatId) {
         a.supply_bp = ((a.supply_bp as i64 * 2 + food_bp) / 3) as u16;
     }
 
-    let k = |id: &str| w.civs[si].knows_id(id);
-    let mut child_mult: i64 = 10_000;
-    let mut adult_mult: i64 = 10_000;
-    for (id, c, a) in [("T032", 9300, 9600), ("T033", 9000, 9500), ("T046", 9200, 9500), ("T053", 8500, 9300), ("T069", 8800, 9300), ("T070", 8000, 9000), ("T136", 9000, 8500)] {
-        if k(id) {
-            child_mult = child_mult * c / 10_000;
-            adult_mult = adult_mult * a / 10_000;
-        }
-    }
-    if w.civs[si].est_id("C002") {
-        child_mult = child_mult * 95 / 100;
-    }
+    let (child_mult, adult_mult) = mortality_tech(&w.civs[si]);
+    let child_gain = 10_000 - child_mult;
+    let lifelong = w.civs[si].est_id("C046");
+    // customary fertility: practices of the civilization; doctrines per block below
+    let custom_civ = CUSTOMARY_FERTILITY + if w.civs[si].est_id("C002") { 230 } else { 0 } - if w.civs[si].est_id("C039") { 150 } else { 0 };
+    let doctrine: Vec<i64> = w
+        .religions
+        .iter()
+        .map(|rel| rel.beliefs.iter().map(|b| match b.as_str() {
+            "fruitful_households" => 600,
+            "day_of_rest" => 230,
+            _ => 0,
+        }).sum())
+        .collect();
     let medicine = w.civs[si].stock_of(Good::Medicine) > 0;
-    let reserve_target_milli = (w.civs[si].food_reserve_months as i64).clamp(2, 12) * 1000;
+    // households judge their stores against the reserve the government aims for, but
+    // never against more than the stores can hold: a people without granaries is not
+    // cautious about a reserve it has nowhere to keep (ruleset 3.0: a first round of
+    // fifty years can pass before storage is known)
+    let mut reserve_target_milli = (w.civs[si].food_reserve_months as i64).clamp(2, 12) * 1000;
+    if need > 0 {
+        reserve_target_milli = reserve_target_milli.min((storage * 9 / 10 * 1000 / need).max(1000));
+    }
     let reserve_months_milli = if need > 0 { w.civs[si].stock_of(Good::Food).max(0) * 1000 / need } else { 12_000 };
     let lineage_default = w.civs[si].lineage;
 
     let mut births_total = 0u32;
     let mut deaths_total = 0u32;
+    let mut causes = [0u32; 4];
     let mut food_weighted: i64 = 0;
     let mut water_weighted: i64 = 0;
 
-    for &ri in &regs {
+    let capacities: Vec<i64> = regs.iter().map(|ri| carrying_capacity(w, seat, *ri)).collect();
+    for (k, &ri) in regs.iter().enumerate() {
+        let land = land_factor(w.regions[ri].population() as i64, capacities[k]);
         let secret = w.secret;
         let mut died = [0u32; NQ];
         let working_deaths;
@@ -593,37 +746,45 @@ pub fn step(w: &mut World, seat: SeatId) {
             food_weighted += food_seen * rpop as i64;
             water_weighted += water_bp * rpop as i64;
 
-            // health pressure
+            // health pressure from crowding, eased by care
             let crowd = rpop as i64 * 10_000 / wcap as i64;
             let mut pressure = ((crowd - 8000) * 12 / 10).clamp(0, 8000);
             let debt_pc = r.nutrition_debt / rpop as i64; // thousandths of a month of missed food per person
-            let hcap = r.cap(Cap::Health) + if crate::sim::culture::region_belief(&w.religions, r, "healers_order") { HEALERS_ORDER_CARE } else { 0 };
-            let coverage = ratio_bp(hcap * if medicine { 2 } else { 1 }, rpop as i64);
+            let healers = if crate::sim::culture::region_belief(&w.religions, r, "healers_order") { HEALERS_ORDER_CARE } else { 0 };
+            let med = if medicine { 2 } else { 1 };
+            let c = content();
+            let care_of = |key: &str, each: i64| r.fac(c.f(key)).filter(|f| f.enabled).map(|f| f.level as i64 * each * (f.condition_bp as i64).max(3000) / 10_000).unwrap_or(0);
+            let (clinic_cap, hospital_cap) = (care_of("clinic", 800_000) + healers, care_of("hospital", 4_000_000));
+            let coverage = ratio_bp((r.cap(Cap::Health) + healers) * med, rpop as i64);
             pressure = pressure * (10_000 - coverage / 2) / 10_000;
             r.health_bp = pressure as u16;
+            // M_hazard: crowding and hunger
             let hazard = 10_000 + pressure * 15 / 10 + debt_pc * 40;
+            // M_care: healers' lodges ease every death a little, hospitals more
+            let care = 10_000 - (ratio_bp(clinic_cap * med, rpop as i64) * 1_000 / 10_000 + ratio_bp(hospital_cap * med, rpop as i64) * 3_000 / 10_000).min(3_500);
+            // M_urban: a town of non-farmers without sewers is a population sink
+            let urban = urban_share(r);
+            let sanitation = ratio_bp(sanitation_capacity(r), rpop as i64);
+            let m_urban = 10_000 + 5_000 * urban * (10_000 - sanitation) / 100_000_000;
+            // M_outbreak: an epidemic raises deaths in every band
+            let m_outbreak = r.outbreak.as_ref().map(|o| o.severity_bp as i64).unwrap_or(10_000);
 
             // ---- births --------------------------------------------------------
             working = r.working().max(1);
-            let educated: u32 = [Qual::Literate, Qual::Scribe, Qual::Teacher, Qual::Scholar, Qual::Researcher, Qual::Scientist, Qual::Mechanic, Qual::Technician, Qual::Electrician, Qual::Programmer, Qual::Physician, Qual::AiEngineer, Qual::Orbital, Qual::FtlEngineer]
-                .iter()
-                .map(|q| r.quals[q.index()])
-                .sum::<u32>()
-                + r.students;
-            let edu_bp = (educated as i64 * 10_000 / working as i64).min(10_000);
             // thin stores make households cautious well before anyone goes hungry
             // quadratic in the reserve ratio, so households hold back well before stores run thin
             let ratio = (reserve_months_milli * 10_000 / reserve_target_milli).clamp(0, 10_000);
             let secure = (ratio * ratio / 10_000).clamp(300, 10_000);
             let food_factor = if food_bp >= 10_000 { secure } else { ((food_bp - 6000).max(0) * 10_000 / 4000 * 6 / 10 + 2000).min(secure) };
             let crowd_factor = if crowd <= 8500 { 10_000 } else { (10_000 - (crowd - 8500) * 2).max(2500) };
-            let dev_factor = (10_000 - edu_bp * 7 / 10).max(2800);
-            let intensity = (food_factor * crowd_factor / 10_000 * dev_factor / 10_000).clamp(400, 10_000) as u16;
+            let dev_factor = development_factor(literate_share(r), urban, child_gain, 0, lifelong);
             let health_factor = (10_000 - pressure / 4).max(6000);
             let mut region_births = 0u32;
             let mut region_deaths = 0u32;
             let mut wdeaths = 0u32;
             for b in r.blocks.iter_mut() {
+                let custom = (custom_civ + b.religion.and_then(|x| doctrine.get(x as usize)).copied().unwrap_or(0)).clamp(400, 10_000);
+                let intensity = (custom * food_factor / 10_000 * crowd_factor / 10_000 * dev_factor / 10_000 * land / 10_000).clamp(400, 10_000) as u16;
                 let lagged = b.birth_hist[0] as i64;
                 for i in 0..8 {
                     b.birth_hist[i] = b.birth_hist[i + 1];
@@ -641,10 +802,24 @@ pub fn step(w: &mut World, seat: SeatId) {
                         continue;
                     }
                     let mult = if *hi <= 14 { child_mult } else { adult_mult };
-                    let rate = base * mult / 10_000 * hazard / 10_000; // per 100k
-                    let expected = count as i64 * rate / 100; // thousandths of deaths
+                    // per 100,000 a month, in thousandths so that low modern rates keep precision:
+                    // base x M_tech x M_care, then x M_hazard, x M_urban, x M_outbreak
+                    let r2 = base * 1000 * mult / 10_000 * care / 10_000;
+                    let r3 = r2 * hazard / 10_000;
+                    let r4 = r3 * m_urban / 10_000;
+                    let rate = r4 * m_outbreak / 10_000;
+                    let expected = count as i64 * rate / 100_000; // thousandths of deaths
                     let mut deaths = carry_round(expected, &mut b.death_rem[bi]).min(count);
                     region_deaths += deaths;
+                    // the deaths by cause: what each factor added, shared out exactly
+                    let parts = [r2, r3 - r2, r4 - r3, rate - r4];
+                    let total_w: i64 = parts.iter().sum::<i64>().max(1);
+                    let mut given = 0u32;
+                    for (ci, part) in parts.iter().enumerate() {
+                        let share = if ci == 3 { deaths - given } else { (deaths as i64 * part / total_w) as u32 };
+                        causes[ci] += share;
+                        given += share;
+                    }
                     // take proportionally from the band's cells, oldest first for the remainder
                     let mut rem: u64 = 0;
                     let total = count as u64;
@@ -758,7 +933,8 @@ pub fn step(w: &mut World, seat: SeatId) {
         let crew = |key: &str| w.regions[ri].fac_level(key) as i64 * content().facilities[content().f(key)].general as i64;
         let fields = crew("fields") + crew("pasture") + crew("fishery");
         let livelihoods = (foragers_cap + fields).max(1);
-        let food_pressure = w.regions[ri].last.labor.food as i64 * 10_000 / livelihoods;
+        let food_workers = if w.regions[ri].last.food_equiv > 0 { w.regions[ri].last.food_equiv } else { w.regions[ri].last.labor.food };
+        let food_pressure = food_workers as i64 * 10_000 / livelihoods;
         let push = crowd.max(if food_pressure > 9500 { 9000 } else { 0 });
         if push < 8000 {
             continue;
@@ -787,12 +963,15 @@ pub fn step(w: &mut World, seat: SeatId) {
     let civ = &mut w.civs[si];
     civ.flows.births += births_total;
     civ.flows.deaths += deaths_total;
+    for (ci, n) in causes.iter().enumerate() {
+        civ.flows.deaths_cause[ci] += *n;
+    }
     civ.flows.migration += migrated;
     if pop > 0 {
         civ.food_ful_bp = (food_weighted / pop as i64) as u16;
         civ.water_ful_bp = (water_weighted / pop as i64) as u16;
     }
-    civ.pop_peak = civ.pop_peak.max(pop);
+    civ.pop_peak = civ.pop_peak.max(pop as u64);
     if food_bp >= 10_000 && civ.stock_of(Good::Food) >= need * 6 {
         civ.surplus_streak += 1;
     } else {

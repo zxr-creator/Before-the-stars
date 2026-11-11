@@ -185,10 +185,17 @@ struct NewMatch {
     seed: Option<String>,
     #[serde(default)]
     regions: Option<u16>,
+    /// A development clock of twelve-month rounds from 5000 BC ending at this month.
     #[serde(default)]
     horizon: Option<u32>,
+    /// "standard" (525 rounds, 5000 BC to AD 2500) or "quick" (230 rounds, same dates).
+    #[serde(default)]
+    calendar: Option<String>,
     #[serde(default)]
     pace_bp: Option<u32>,
+    /// "earth_like" (the default generated planet) or "classic" (the flat map of ruleset 2.0).
+    #[serde(default)]
+    world: Option<String>,
     #[serde(default)]
     controllers: Option<Vec<String>>,
     #[serde(default)]
@@ -216,9 +223,10 @@ struct AgentOptions {
 
 /// Agent seats named in a new-match request, by seat.
 fn agents_from<A: AgentSlot>(n: &NewMatch) -> Vec<Option<AgentConfig>> {
-    let mut out = vec![None; 4];
+    let seats = n.controllers.as_ref().map_or(4, |c| c.len().clamp(2, 10));
+    let mut out = vec![None; seats];
     if let Some(c) = &n.controllers {
-        for (i, name) in c.iter().enumerate().take(4) {
+        for (i, name) in c.iter().enumerate().take(seats) {
             if let Some(p) = A::provider(name.trim()) {
                 let o = n.agent_options.get(&i.to_string()).cloned().unwrap_or_default();
                 out[i] = Some(AgentConfig {
@@ -243,8 +251,10 @@ fn config_from<A: AgentSlot>(n: NewMatch) -> Result<MatchConfig, String> {
         }
     }
     if let Some(r) = n.regions {
-        if ![24, 48, 72].contains(&r) {
-            return Err("regions must be 24, 48 or 72".into());
+        // the map presets (Small 30, Standard 60, Large 120, Huge 200; 90 for tests)
+        // and the earlier 24, 48 and 72
+        if ![30, 60, 90, 120, 200, 24, 48, 72].contains(&r) {
+            return Err("regions must be 30, 60, 90, 120 or 200".into());
         }
         cfg.regions = r;
     }
@@ -252,14 +262,36 @@ fn config_from<A: AgentSlot>(n: NewMatch) -> Result<MatchConfig, String> {
         if !(120..=6000).contains(&h) || h % 12 != 0 {
             return Err("horizon must be a multiple of 12 between 120 and 6000 months".into());
         }
-        cfg.horizon = h;
+        cfg.calendar = MatchConfig::fixture_calendar(h / 12);
+    }
+    if let Some(c) = n.calendar {
+        cfg.calendar = match c.trim() {
+            "standard" => bts_engine::calendar::CalendarId::Standard,
+            "quick" => bts_engine::calendar::CalendarId::Quick,
+            _ => return Err("calendar must be \"standard\" or \"quick\"".into()),
+        };
     }
     if let Some(p) = n.pace_bp {
         cfg.pace_bp = p.clamp(1000, 30_000);
     }
+    if let Some(k) = n.world {
+        cfg.world = match k.trim() {
+            "earth_like" => bts_protocol::WorldKind::EarthLike,
+            "classic" => bts_protocol::WorldKind::Classic,
+            _ => return Err("world must be \"earth_like\" or \"classic\"".into()),
+        };
+    }
     if let Some(c) = n.controllers {
-        if c.len() != 4 {
-            return Err("exactly four seats are required".into());
+        // design chapter 40, section 2.2: each map preset takes a range of seats
+        let (lo, hi, name) = match cfg.regions {
+            30 => (2, 3, "Small"),
+            60 => (2, 5, "Standard"),
+            120 => (4, 8, "Large"),
+            200 => (6, 10, "Huge"),
+            _ => (2, 10, ""),
+        };
+        if c.len() < lo || c.len() > hi {
+            return Err(if name.is_empty() { "a match takes 2 to 10 civilizations".to_string() } else { format!("{name} maps take {lo} to {hi} civilizations") });
         }
         let mut kinds = Vec::new();
         for s in &c {
@@ -310,6 +342,10 @@ pub struct MatchSummary {
     pub month: Month,
     pub months_per_round: u32,
     pub horizon: Month,
+    /// The historical date of the month about to be simulated (ruleset 3.0).
+    pub date: Option<DateView>,
+    /// The round schedule and where this round sits in it.
+    pub calendar: Option<CalendarView>,
     pub phase: Phase,
     pub window: u8,
     pub finished: bool,
@@ -531,8 +567,10 @@ impl<A: AgentSlot> Host<A> {
             regions: cfg.regions,
             round: s.m.round(),
             month: s.m.month(),
-            months_per_round: cfg.months_per_round,
-            horizon: cfg.horizon,
+            months_per_round: cfg.round_months(s.m.round()),
+            horizon: cfg.horizon(),
+            date: Some(bts_engine::observe::date_view(cfg, s.m.month())),
+            calendar: Some(s.m.calendar_view()),
             phase: s.m.phase(),
             window: s.m.window(),
             finished: s.m.finished(),

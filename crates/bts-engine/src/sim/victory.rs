@@ -24,8 +24,8 @@ pub const HARDWARE_MARGIN: (i64, i64) = (6, 5);
 pub const STORE_MONTHS: i64 = 12;
 pub const SITE_TRANSPORT: u8 = 2;
 pub const SITE_POWER_BP: i64 = 9000;
-/// The goods of the industrial base (check 10).
-pub const HARDWARE_GOODS: [Good; 5] = [Good::Components, Good::Electronics, Good::Hardware, Good::Conductors, Good::Metal];
+/// The goods of the industrial base (check 10; ruleset 3.0 adds magnets and lattice).
+pub const HARDWARE_GOODS: [Good; 7] = [Good::Components, Good::Electronics, Good::Hardware, Good::Conductors, Good::Metal, Good::Magnets, Good::Lattice];
 
 fn check(label: &str, ok: bool, detail: String) -> Check {
     Check { label: label.to_string(), detail, ok, category: String::new() }
@@ -176,8 +176,8 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
         w.authority(**n as usize) == Some(seat) && running(base, r)
     }).count();
     out.push(base_check("logistical", "Three deployment nodes operating", nodes >= 3, format!("{nodes} of 3 nodes operating")));
-    out.push(base_check("service", "Three-node deployment exercise completed", civ.ftl.deployment_done.is_some(), civ.ftl.deployment_done.map(|m| format!("Completed in month {m}")).unwrap_or_else(|| "Not yet held".into())));
-    out.push(base_check("service", "Assembly replacement and crew relief verified", civ.ftl.replacement_done.is_some(), civ.ftl.replacement_done.map(|m| format!("Verified in month {m}")).unwrap_or_else(|| "Not yet verified".into())));
+    out.push(base_check("service", "Three-node deployment exercise completed", civ.ftl.deployment_done.is_some(), civ.ftl.deployment_done.map(|m| format!("Completed in {}", crate::util::event_label(&w.cfg, m))).unwrap_or_else(|| "Not yet held".into())));
+    out.push(base_check("service", "Assembly replacement and crew relief verified", civ.ftl.replacement_done.is_some(), civ.ftl.replacement_done.map(|m| format!("Verified in {}", crate::util::event_label(&w.cfg, m))).unwrap_or_else(|| "Not yet verified".into())));
 
     let levels = programme_levels(w, seat);
     // ---- 7. educational base, headcount: every post filled with reliefs --------------
@@ -240,7 +240,7 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
     let mut lines = Vec::new();
     for good in HARDWARE_GOODS {
         let need = programme_use(&levels, &hardware_keys, good) * 12 * HARDWARE_MARGIN.0 / HARDWARE_MARGIN.1;
-        let made = civ.last_flows.produced[good.index()] + civ.last_flows.withheld.get(good.index()).copied().unwrap_or(0);
+        let made = w.per_last_round(civ.last_flows.produced[good.index()] + civ.last_flows.withheld.get(good.index()).copied().unwrap_or(0), 12);
         let bought = contracted_imports(w, seat, good);
         if made + bought < need {
             short.push(format!("{}: {} made and {} contracted of {} needed", good.label().to_lowercase(), k(made), k(bought), k(need)));
@@ -311,6 +311,7 @@ pub fn complete_trial(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let capital = w.civs[si].capital;
     let last = w.civs[si].ftl.trials.last().map(|t| t.1);
     let oyard = c.f("orbital_yard");
@@ -330,20 +331,20 @@ pub fn complete_trial(w: &mut World, seat: SeatId) {
     }
     let n = w.civs[si].ftl.trials.len();
     let name = w.civs[si].name.clone();
-    moment(w, seat, MomentCategory::Endgame, format!("Loaded jump round trip, month {month}"),
+    moment(w, seat, MomentCategory::Endgame, format!("Loaded jump round trip, {when}"),
         if governing {
             format!("An assembly of {name} carried a standard load out and back under fleet control. It is qualifying trial {n} of the current window.")
         } else {
             format!("An assembly of {name} carried a standard load out and back. It is a technical success; because it did not occur under effective global governance it does not count toward acceptance.")
         },
-        Some(capital), "jump", true, vec![format!("Assembly #{assembly} returned in month {month}")]);
+        Some(capital), "jump", true, vec![format!("Assembly #{assembly} returned in {when}")]);
     if !w.civs[si].milestones.flags.iter().any(|f| f == "first_trial") {
         w.civs[si].milestones.flags.push("first_trial".into());
     }
     // everybody in contact hears that something left and came back
     for o in 0..w.civs.len() {
         if o != si && w.civs[o].contacts[si].met && w.civs[o].status != SeatStatus::Eliminated {
-            reported(w, o as SeatId, MomentCategory::Endgame, format!("{name} reports a jump flight"), format!("{name} announced a loaded faster-than-light round trip. The claim has not been independently verified."), None, "jump", vec![format!("Announced in month {month}")]);
+            reported(w, o as SeatId, MomentCategory::Endgame, format!("{name} reports a jump flight"), format!("{name} announced a loaded faster-than-light round trip. The claim has not been independently verified."), None, "jump", vec![format!("Announced in {when}")]);
         }
     }
 }
@@ -352,6 +353,7 @@ pub fn complete_deployment(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let base = c.f("jump_base");
     let nodes = w.test_nodes.iter().filter(|n| {
         let r = &w.regions[**n as usize];
@@ -361,7 +363,7 @@ pub fn complete_deployment(w: &mut World, seat: SeatId) {
     if nodes >= 3 && live >= 1 {
         w.civs[si].ftl.deployment_done = Some(month);
         let capital = w.civs[si].capital;
-        moment(w, seat, MomentCategory::Endgame, "Three-node deployment exercise".into(), "Transport, maintenance and recovery were demonstrated at all three test nodes within the exercise window.".into(), Some(capital), "jump", true, vec![format!("Exercise closed in month {month}")]);
+        moment(w, seat, MomentCategory::Endgame, "Three-node deployment exercise".into(), "Transport, maintenance and recovery were demonstrated at all three test nodes within the exercise window.".into(), Some(capital), "jump", true, vec![format!("Exercise closed in {when}")]);
     } else {
         brief(w, seat, "warning", "Deployment exercise failed".into(), format!("{nodes} of 3 nodes were operating and {live} assemblies were available."), None, "objectives");
     }
@@ -370,13 +372,14 @@ pub fn complete_deployment(w: &mut World, seat: SeatId) {
 pub fn complete_replacement(w: &mut World, seat: SeatId) {
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let live: Vec<usize> = (0..w.civs[si].ftl.assemblies.len()).filter(|i| !w.civs[si].ftl.assemblies[*i].retired).collect();
     if live.len() >= 3 {
         let oldest = *live.iter().min_by_key(|i| w.civs[si].ftl.assemblies[**i].built).unwrap();
         w.civs[si].ftl.assemblies[oldest].retired = true;
         w.civs[si].ftl.replacement_done = Some(month);
         let capital = w.civs[si].capital;
-        moment(w, seat, MomentCategory::Endgame, "Replacement and crew relief".into(), "A worn assembly was withdrawn, a new one took its place, and a relief crew took over operations without interruption.".into(), Some(capital), "jump", false, vec![format!("Hand-over verified in month {month}")]);
+        moment(w, seat, MomentCategory::Endgame, "Replacement and crew relief".into(), "A worn assembly was withdrawn, a new one took its place, and a relief crew took over operations without interruption.".into(), Some(capital), "jump", false, vec![format!("Hand-over verified in {when}")]);
     } else {
         brief(w, seat, "warning", "Replacement could not be verified".into(), "A third assembly is needed so one can be withdrawn while two remain operational.".into(), None, "objectives");
     }
@@ -387,6 +390,7 @@ pub fn step(w: &mut World) {
         return;
     }
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let mut winner: Option<SeatId> = None;
     for s in 0..w.civs.len() {
         let seat = s as SeatId;
@@ -415,7 +419,7 @@ pub fn step(w: &mut World) {
         let capital = w.civs[s].capital;
         if g_ok && was_g == 0 {
             let name = w.civs[s].name.clone();
-            moment(w, seat, MomentCategory::Governance, "Global integration begins".into(), format!("Every inhabited region now answers to {name}, and food, water and order hold everywhere. The count of continuous governance months starts now."), Some(capital), "globe", true, vec![format!("All governance conditions first met in month {month}")]);
+            moment(w, seat, MomentCategory::Governance, "Global integration begins".into(), format!("Every inhabited region now answers to {name}, and food, water and order hold everywhere. The count of continuous governance months starts now."), Some(capital), "globe", true, vec![format!("All governance conditions first met in {when}")]);
         }
         if !g_ok && was_g >= 6 {
             brief(w, seat, "danger", "Global governance was interrupted".into(), format!("After {was_g} months the continuous count has returned to zero. See the objectives panel for the failed condition."), None, "objectives");
@@ -433,7 +437,7 @@ pub fn step(w: &mut World) {
         w.outcome = Some(Outcome { month, winner: Some(seat), reason: format!("{name} completed 96 months of global governance, 24 months of fleet-wide jump capability and two qualifying trials") });
         w.phase = Phase::Finished;
         let capital = w.civs[seat as usize].capital;
-        moment(w, seat, MomentCategory::Endgame, "Before the stars".into(), format!("In month {month}, {name} met every condition: one government for the inhabited world, and a jump-capable service it can build, crew, supply and replace."), Some(capital), "victory", true, vec![format!("Complete victory settled in month {month}")]);
+        moment(w, seat, MomentCategory::Endgame, "Before the stars".into(), format!("In {when}, {name} met every condition: one government for the inhabited world, and a jump-capable service it can build, crew, supply and replace."), Some(capital), "victory", true, vec![format!("Complete victory settled in {when}")]);
         return;
     }
     if !w.civs.iter().any(|c| c.status == SeatStatus::Active) {
@@ -441,7 +445,7 @@ pub fn step(w: &mut World) {
         w.phase = Phase::Finished;
         return;
     }
-    if month >= w.cfg.horizon {
+    if month >= w.cfg.horizon() {
         w.outcome = Some(Outcome { month, winner: None, reason: "The horizon was reached without a complete victory".into() });
         w.phase = Phase::Finished;
     }
@@ -449,7 +453,7 @@ pub fn step(w: &mut World) {
 
 pub fn reward(w: &World, seat: SeatId) -> f64 {
     match &w.outcome {
-        Some(o) if o.winner == Some(seat) => 2.0 - o.month as f64 / w.cfg.horizon as f64,
+        Some(o) if o.winner == Some(seat) => crate::calendar::winner_reward(&w.cfg.calendar, o.month),
         _ => -1.0,
     }
 }

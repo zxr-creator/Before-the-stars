@@ -5,10 +5,10 @@ import type { Good, Observation } from '../protocol';
 import { GOOD_LABEL, GOOD_SHORT, int, pct, people, rations } from '../format';
 import { t, tc } from '../i18n';
 import { Icon } from '../icons';
-import { GoodIcon } from '../theme/goods';
+import { GOOD_GROUPS, GoodIcon, goodOrder } from '../theme/goods';
 import { Select, cx } from '../ui';
 import { civName } from '../store';
-import { GROUPS, STATUS_RANK, type FlowLine, type GoodRow, type Ledger, type Status } from './model';
+import { STATUS_RANK, type FlowLine, type GoodRow, type Ledger, type Status } from './model';
 import { BalanceBar, E, Glyph, STATUS_LABEL, StatusChip, V, amt, amtSigned, coverText, perMo, tip } from './parts';
 import type { Nav } from './Ledger';
 
@@ -252,7 +252,7 @@ export function MarketTab({ obs, ledger, nav, focusGood, focusNonce }: { obs: Ob
   };
   if (sort !== 'group') shown = [...shown].sort(cmp[sort]);
   const groups = sort === 'group'
-    ? GROUPS.map((g) => ({ ...g, rows: shown.filter((r) => r.group === g.key) })).filter((g) => g.rows.length)
+    ? GOOD_GROUPS.map((g) => ({ key: g.key as string, label: g.label, hint: g.hint, rows: shown.filter((r) => r.group === g.key).sort((a, b) => goodOrder(a.good) - goodOrder(b.good)) })).filter((g) => g.rows.length)
     : [{ key: 'all', label: '', hint: '', rows: shown }];
   const toggle = (g: Good) => setOpen((s) => { const n = new Set(s); if (n.has(g)) n.delete(g); else n.add(g); return n; });
 
