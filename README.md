@@ -208,6 +208,12 @@ apps/web              TypeScript + Preact client: 3D and flat maps, trees, ledge
                       tutorial, observer console, translations; the Web Worker that runs
                       the WebAssembly referee
 content/              Technology, practice and course graphs extracted from the design atlases
+content/lore/         Encyclopedia passages for every technology and practice, keyed by content
+                      id: { id, en, zh-Hans, zh-Hant } each with an intro and an optional
+                      quote. Client-only (the engine never reads it); zh-Hant is generated
+                      from zh-Hans by apps/web/scripts/make-zh-hant.mjs, and
+                      apps/web/scripts/lore-check.mjs checks coverage, lengths and that no
+                      passage names a node that is not among its ancestors
 scripts/              bootstrap, build, run, package, browser build, content extraction
 packaging/            app icon, macOS bundle metadata, Windows installer script
 docs/                 v1.0 design documentation, agent API, implementation status
