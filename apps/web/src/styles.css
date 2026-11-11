@@ -696,3 +696,23 @@ textarea.text { width: 100%; resize: vertical; line-height: 1.4; }
 .deaths-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .deaths-list small { text-align: right; }
 .epidemics li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* Space operations panel (panels/space.tsx) */
+.space-ops .sx-form { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: flex-end; margin: 6px 0; }
+.space-ops .sx-bill { list-style: none; margin: 4px 0 6px; padding: 0; display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 12px; }
+.space-ops .sx-bill .is-short { color: var(--bad); }
+.space-ops .sx-stages, .space-ops .sx-stores, .space-ops .sx-windows, .space-ops .sx-flights, .space-ops .sx-route { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; font-size: 12.5px; }
+.space-ops .sx-stages li, .space-ops .sx-windows li { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.space-ops .sx-stores li, .space-ops .sx-flights li { display: grid; gap: 1px; padding: 4px 8px; background: var(--paper-2); border-radius: var(--radius); }
+.space-ops .sx-route .is-short { color: var(--bad); }
+.space-ops .sx-orbit { border: 1px solid var(--rule, #c9bea4); border-radius: var(--radius); margin: 6px 0; background: var(--paper-2); }
+.space-ops .sx-orbit.has-station { border-color: var(--accent); }
+.space-ops .sx-orbit-head { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 7px 10px; background: none; border: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.space-ops .sx-orbit-head span { color: var(--ink-2); font-size: 12px; }
+.space-ops .sx-orbit-body { padding: 0 10px 10px; }
+.space-ops .sx-sites { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.space-ops .sx-site { display: grid; width: 100%; text-align: left; padding: 5px 8px; background: var(--paper-2); border: 1px solid var(--rule, #c9bea4); border-radius: var(--radius); cursor: pointer; font: inherit; color: inherit; }
+.space-ops .sx-site small { color: var(--ink-2); }
+.space-ops .sx-site.is-own { border-color: var(--accent); }
+.space-ops .sx-site.is-active { outline: 2px solid var(--accent); }
+.space-ops .sx-h { margin: 10px 0 2px; font: 600 12px var(--sans); }

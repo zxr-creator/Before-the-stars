@@ -14,6 +14,7 @@ const PATHS: Record<string, JSX.Element> = {
   diplomacy: <><path d="M3 5.500h14v9H3z" /><path d="m3 6 7 5.500L17 6" /><circle cx="14.500" cy="13.500" r="2.200" fill="currentColor" stroke="none" /></>,
   military: <><path d="M10 2.500 16 5v4.500c0 4-2.600 6.800-6 8-3.400-1.200-6-4-6-8V5z" /><path d="M10 6v7.500M7 9.500h6" /></>,
   objectives: <><circle cx="10" cy="10" r="7.200" /><path d="m12.800 7.200-1.600 4-4 1.600 1.600-4z" /></>,
+  space: <><path d="M10 2.500c2.600 2 3.600 4.800 3.600 8.200v3.100H6.400v-3.100c0-3.400 1-6.200 3.600-8.200z" /><circle cx="10" cy="8.400" r="1.400" /><path d="M6.400 11.500 4 14.600v2h2.400M13.600 11.500l2.400 3.100v2h-2.400M8.600 16.500 10 18.500l1.400-2" /></>,
   chronicle: <><path d="M5 3h10M5 17h10" /><path d="M6 3c0 4 4 4.500 4 7s-4 3-4 7M14 3c0 4-4 4.500-4 7s4 3 4 7" /></>,
   check: <path d="m4 10.500 4 4 8-9" />,
   cross: <path d="M5 5l10 10M15 5 5 15" />,

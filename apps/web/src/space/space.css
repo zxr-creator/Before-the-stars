@@ -199,3 +199,4 @@
 .yield-boost .yield-icon { color: var(--brass-hi, #f1da98); }
 .yield-boost.is-cap .yield-val { color: var(--warn-night, #f2c264); }
 .yield-boost.is-idle .yield-val { color: var(--cream-3, #9aa1b6); }
+.sp-ops { margin-top: 10px; }

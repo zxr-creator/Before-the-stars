@@ -22,6 +22,8 @@ const FILES = [
   // ruleset 3.0 jobs 2 and 3: cities, migration, networks, raiders, the market
   'crates/bts-engine/src/sim/cities.rs', 'crates/bts-engine/src/sim/migration.rs', 'crates/bts-engine/src/sim/network.rs',
   'crates/bts-engine/src/sim/raiders.rs', 'crates/bts-engine/src/sim/market.rs',
+  // ruleset 3.0 job 4a: the space core
+  'crates/bts-engine/src/sim/space.rs',
 ];
 // The referee binary: only its HTTP error replies and new-match validation are player-facing.
 const SERVER = 'crates/bts-server/src/main.rs';

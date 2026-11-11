@@ -23,6 +23,7 @@ import { ProjectsPanel } from './panels/projects';
 import { PeoplePanel } from './panels/people';
 import { KnowledgePanel } from './panels/knowledge';
 import { CulturePanel } from './panels/culture';
+import { SpacePanel } from './panels/space';
 import { PoliticsPanel } from './panels/politics';
 import { DiplomacyPanel } from './panels/diplomacy';
 import { MilitaryPanel } from './panels/military';
@@ -80,6 +81,7 @@ const PANELS: Record<Exclude<PanelKey, 'chronicle'>, () => JSX.Element> = {
   diplomacy: DiplomacyPanel,
   military: MilitaryPanel,
   objectives: ObjectivesPanel,
+  space: SpacePanel,
 };
 
 /** Short labels under the rail icons (the full title is the tooltip). */
@@ -87,7 +89,7 @@ const PANELS: Record<Exclude<PanelKey, 'chronicle'>, () => JSX.Element> = {
 const RAIL_LABEL: Record<PanelKey, string> = {
   briefing: 'Briefing', economy: 'Economy', projects: 'Projects', people: 'People', knowledge: 'Knowledge',
   culture: 'Culture', politics: 'Politics', diplomacy: 'Diplomacy', military: 'Military', objectives: 'Objectives',
-  chronicle: 'Chronicle',
+  space: 'Space', chronicle: 'Chronicle',
 };
 // i18n-end
 // i18n-fields
@@ -178,6 +180,9 @@ export function App() {
         e.preventDefault();
       } else if (k === 't' || k === 'c' || k === 'l' || k === 'b' || k === 'o' || k === 'u' || k === 'm') {
         toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : k === 'b' ? 'works' : k === 'o' ? 'orders' : k === 'u' ? 'buildings' : k === 'm' ? 'market' : 'ledger');
+        e.preventDefault();
+      } else if (k === 'k') {
+        togglePanel('space');
         e.preventDefault();
       } else if (k === 'h') {
         togglePanel('chronicle');
@@ -359,7 +364,7 @@ function Rail({ state }: { state: AppState }) {
   return (
     <nav class="rail" aria-label={t('Panels')} data-tut="rail">
       {PANEL_ORDER.map((p, i) => {
-        const key = i < 9 ? String(i + 1) : i === 9 ? '0' : 'H';
+        const key = p === 'chronicle' ? 'H' : p === 'space' ? 'K' : i < 9 ? String(i + 1) : '0';
         const n = counts[p] ?? 0;
         return (
           <button type="button" class={cx('rail-btn', state.panel === p && !state.overlay && 'is-active')} aria-pressed={state.panel === p}

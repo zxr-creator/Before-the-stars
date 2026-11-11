@@ -19,6 +19,8 @@ import { SpaceGlyph } from './icons';
 import type { Band } from './layout';
 import { Orrery2D } from './orrery2d';
 import './space.css';
+import { openSpaceOps } from '../panels/space';
+import { isReadOnly } from '../store';
 
 export type { SwitchBand } from './controller';
 export interface SpaceEntry {
@@ -144,6 +146,7 @@ function SiteCard({ st, c, obs, live, windows, onClose, onBody }: { st: SiteStat
       {occupied ? <div class="sp-row sp-warn"><span>{t('Occupied by')}</span><b><Owner c={c} seat={st.controller} obs={obs} /></b></div> : null}
       {v?.population != null ? <div class="sp-row"><span>{t('Residents')}</span><b>{peopleNum(v.population)}{v.housing ? <small> / {peopleNum(v.housing)}</small> : null}</b></div>
         : v?.population_low != null && v.population_high != null ? <div class="sp-row"><span>{t('Residents')}</span><b class="sp-est">{range(v.population_low, v.population_high)}</b></div> : null}
+      {v?.served_bp != null ? <div class="sp-row"><span>{t('Served')}</span><b>{Math.round(v.served_bp / 100)}%{v.births_last != null ? <small> · {t('{b} births, {d} deaths last month', { b: v.births_last, d: v.deaths_last ?? 0 })}</small> : null}</b></div> : null}
       {v?.works?.length ? <div class="sp-row sp-block"><span>{t('Works')}</span><b>{v.works.map((w) => `${tc(w.kind)} ${w.level}`).join(', ')}</b></div> : null}
       {!live ? <p class="sp-note">{t('No off-world reports yet: nobody has reached this site.')}</p> : null}
       <h4>{t('What it offers')}</h4>
@@ -164,6 +167,7 @@ function SiteCard({ st, c, obs, live, windows, onClose, onBody }: { st: SiteStat
       <p class="sp-muted">{t(s.environment)}</p>
       <h4>{t('Reaching it')}</h4>
       <ReachList s={s} windows={windows} />
+      {live && !isReadOnly() ? <div class="sp-ops"><button type="button" class="sp-mode" data-testid="space-card-ops" onClick={() => openSpaceOps({ site: s.key })}>{t('Space operations')}</button></div> : null}
     </div>
   );
 }
@@ -196,11 +200,13 @@ function OrbitCard({ o, c, obs, onClose, onBody }: { o: OrbitDef; c: SpaceContro
               <Owner c={c} seat={s.owner} obs={obs} />
               {s.core ? <em> · {t('core {k}', { k: s.core })}</em> : null}
               {s.aboard != null ? <em> · {t('{n} aboard', { n: peopleNum(s.aboard) })}</em> : null}
+              {s.staffed_bp != null ? <div class="sp-muted">{t('Staffed {a}% · power {b}% · supplied {c}%', { a: Math.round((s.staffed_bp ?? 0) / 100), b: Math.round((s.power_bp ?? 0) / 100), c: Math.round((s.supplied_bp ?? 0) / 100) })}</div> : null}
               {s.modules?.length ? <div class="sp-muted">{s.modules.map((m) => tc(m.kind) + (m.level ? ` ${m.level}` : '')).join(', ')}</div> : null}
             </li>
           ))}
         </ul>
       ) : <p class="sp-muted">{t('No stations reported here.')}</p>}
+      {c.state?.live && !isReadOnly() ? <div class="sp-ops"><button type="button" class="sp-mode" data-testid="space-card-ops" onClick={() => openSpaceOps({ orbit: o.key })}>{t('Space operations')}</button></div> : null}
     </div>
   );
 }

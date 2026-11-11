@@ -1,0 +1,74 @@
+[
+ {
+  "en": "The stores hold {n} of {good}",
+  "zh": "庫存中的{good}只有{n}"
+ },
+ {
+  "en": "The Earth-orbit store holds {n} of {good}",
+  "zh": "近地軌道倉庫中的{good}只有{n}"
+ },
+ {
+  "en": "Lift of {t} t ordered: it reaches the Earth-orbit store as boost is paid",
+  "zh": "已下達{t}噸的上送訂單：隨運載力付清，貨物抵達近地軌道倉庫"
+ },
+ {
+  "en": "{name} is already claimed",
+  "zh": "{name}已被佔據"
+ },
+ {
+  "en": "Nobody can live at {name}",
+  "zh": "無人能在{name}居住"
+ },
+ {
+  "en": "{name} cannot be built yet",
+  "zh": "尚不能建造{name}"
+ },
+ {
+  "en": "The {zone} store lacks {what}",
+  "zh": "{zone}倉庫缺少{what}"
+ },
+ {
+  "en": "No berth for {prop} departures in the {zone} zone (a docking module on an operating station, or an outpost off the Earth)",
+  "zh": "{zone}區沒有{prop}的發射泊位（需要運轉中太空站的對接模組，或地球以外的前哨）"
+ },
+ {
+  "en": "The berths of the {zone} zone send {n} t a month",
+  "zh": "{zone}區的泊位每月可傳送{n}噸"
+ },
+ {
+  "en": "Shipment to {target} by {prop} ordered: {t} t, {m} months in flight, {b} t of boost to pay",
+  "zh": "已下達發往{target}的運輸訂單，推進方式{prop}：{t}噸，航程{m}個月，需支付{b}噸運載力"
+ },
+ {
+  "en": "{name} ordered for {orbit}: {t} t of boost to pay",
+  "zh": "已下達訂單，將{name}送往{orbit}：需支付{t}噸運載力"
+ },
+ {
+  "en": "First station in orbit, {when}",
+  "zh": "首個軌道太空站，{when}"
+ },
+ {
+  "en": "The first station core of {name} is in low Earth orbit.",
+  "zh": "{name}的首個太空站核心艙進入近地軌道。"
+ },
+ {
+  "en": "Outpost at {site}, {when}",
+  "zh": "{site}前哨，{when}"
+ },
+ {
+  "en": "A founding party of {name} completed a pressurized outpost at {site} and claimed the site.",
+  "zh": "{name}的開拓隊在{site}建成加壓前哨，並佔據了該據點。"
+ },
+ {
+  "en": "{site} was claimed first",
+  "zh": "{site}已被他人先佔"
+ },
+ {
+  "en": "All {n} inhabited sites answer to this government",
+  "zh": "全部{n}個有人居住的據點都服從本政府"
+ },
+ {
+  "en": "{out} of {n} inhabited sites answer to another authority",
+  "zh": "{n}個有人居住的據點中，有{out}個服從其他權威"
+ }
+]

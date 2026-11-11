@@ -16,17 +16,17 @@ import { t, tc } from './i18n';
 
 export type PanelKey =
   | 'briefing' | 'economy' | 'projects' | 'people' | 'knowledge' | 'culture' | 'politics'
-  | 'diplomacy' | 'military' | 'objectives' | 'chronicle';
+  | 'diplomacy' | 'military' | 'objectives' | 'space' | 'chronicle';
 
 export const PANEL_ORDER: PanelKey[] = [
   'briefing', 'economy', 'projects', 'people', 'knowledge', 'culture', 'politics', 'diplomacy', 'military',
-  'objectives', 'chronicle',
+  'objectives', 'space', 'chronicle',
 ];
 // i18n-table
 export const PANEL_TITLE: Record<PanelKey, string> = {
   briefing: 'Briefing', economy: 'Economy', projects: 'Projects', people: 'People & education',
   knowledge: 'Knowledge', culture: 'Culture', politics: 'Politics', diplomacy: 'Diplomacy', military: 'Military',
-  objectives: 'Objectives', chronicle: 'Chronicle',
+  objectives: 'Objectives', space: 'Space operations', chronicle: 'Chronicle',
 };
 // i18n-end
 
