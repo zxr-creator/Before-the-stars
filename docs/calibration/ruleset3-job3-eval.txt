@@ -1,0 +1,58 @@
+Ruleset 3.0 job 3: military generations, raiders, sight and scouts, the market (lean scope, doc 41).
+Ruleset bts-rules/3.0.0-j3, content bts-content/3.0.0-j3, generator bts-worldgen/2.1.0-j3,
+protocol bts-protocol/2.4, policy bts-native/1.5.0. 8 matches, standard calendar, 60 regions,
+hard,medium,medium,easy, eval-0..7. Release build. (The generator bump re-derives every world:
+figures are not comparable match for match with job 2.)
+   bts run --matches 8 --seed eval --ai hard,medium,medium,easy --threads 6 --curve final8.csv
+   python3 scripts/calib_report.py final8.csv --regions 60 --techs 300 --practices 174
+New curve columns: best_gen, army_gen, mean_gen10, wars, camps, raider_gen, credit_earned.
+
+Timing:
+- native perf test: 525 rounds in 25.6 s; per round p50 42.4 ms, p95 97.2 ms, max 114.5 ms.
+- WebAssembly (wasm-calendar-bench eval-0): 74.1 s; p50 111.6 ms, p95 314.7 ms, max 334.9 ms.
+- bts verify (eval-0, eval-3): repeated inputs and checkpoint recovery reproduce the same state.
+
+Steps: raids at design 5.4's 800 bp a month with no rest took about a fifth of a frontier
+seat's tools a year and halved mid-game population: a band now rests 24 months after a raid and
+a raid adds 300 bp of unrest. A clearing rule that reached camps three links away emptied the
+world by 3000 BC; one that waited for blocked expansion left all eight camps to 2000 (admin
+capacity, not land, stops expansion mid-game). Kept: clear camps next to the land or blocking
+the next settlement when expansion is blocked, every adjacent camp from the powder age, and after
+AD 1700 an idle band drifts 10% a year into the nearest governed region. Pairwise market clearing
+replaced a multilateral solvency loop: with no credit at the start every seat must buy exactly
+what it sells, and the multilateral fixed point collapsed to nothing.
+
+Raiders, generations and wars (8 matches; seats 32)
+ date | camps med/max | raider gen | seats at war | best gen med | fielded mean gen med | gap
+-3000 |   8 / 8 | 0 | 0 | 1 | 0.0 | 1.0
+ 1000 |   8 / 8 | 0 | 0 | 1 | 0.0 | 1.0
+ 1500 |   4 / 8 | 0 | 0 | 1 | 0.0 | 1.0
+ 1700 |   4 / 8 | 0 | 0 | 1 | 0.0 | 1.0
+ 1800 | 0.5 / 2 | 0 | 0 | 2 | 0.0 | 1.3
+ 1900 | 0.5 / 2 | 0 | 0 | 2 | 0.0 | 1.3
+ 2100 |   0 / 2 | 0 | 0 | 4 | 1.0 | 1.6
+ 2200 |   0 / 2 | 0 | 0 | 4 | 2.3 | 1.4
+Last decade with a camp per match: 1420, 2030, 1320, 1260, 1300, 2090, 1950, 2220 (target: <=10% of
+initial camps by 1800 in the median match - met, 0.5 of 8; none by 1900 in 80% - 5 of 8).
+No seat-decade at war was sampled in these 8 matches (wars occur in the conservation campaigns).
+
+Market: 21 of 32 seats traded; credit earned over the match per seat (thousand credits) median
+about 300, max 17,700. Volumes are thin by construction: a seat can only buy what its sales pay
+for in the same month, and route capacity is the job-2 network's.
+
+Population of the median seat (IQR) and world, median over matches
+    date    median             IQR      target |   world   target
+ AD 1000     2.6 M     1.6 M-3.9 M      8.0 M |  11.8 M   40.0 M
+ AD 1500     4.0 M     2.1 M-5.3 M     11.0 M |  18.6 M   56.2 M
+ AD 1800     4.8 M     3.0 M-40.7 M    20.0 M |  75.5 M  106.2 M
+ AD 1900     4.8 M     3.1 M-46.9 M    60.0 M |  91.0 M  312.5 M
+ AD 2000     5.2 M     3.2 M-64.6 M   230.0 M |  95.3 M    1.25 B
+ world peak 459.6 M (target 1.88-3.75 B)
+Seats split in two: a leading half near the targets in the 1800s and a half that stays at 1-3 M
+on 6-7 regions in Medieval technology. The same seeds without camps (4-seat probes): seeds 0-3
+median 58.7 M at 1900 (42.5 M with camps), seeds 4-7 9.1 M (4.8 M with camps), so camps cost
+the laggards most, and seeds 4-7 are weak worlds of their own.
+
+Era entry (median seat): Classical 1190 BC (in window), Medieval AD 280 (early 120), Early Modern
+AD 1800 (late 200), Industrial AD 2210 (late 360), Modern AD 2300 (late 370); Information and
+Space: median seat never.

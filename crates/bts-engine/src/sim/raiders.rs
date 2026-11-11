@@ -19,8 +19,11 @@ pub const WARRIOR_SHARE_BP: i64 = 3_000;
 pub const IRREGULAR_BP: i64 = 8_000;
 /// A camp above this many people buds.
 pub const BUD_PEOPLE: u32 = 40_000;
-/// Monthly chance of a raid by a camp with enough warriors, basis points.
+/// Monthly chance of a raid by a camp with enough warriors, basis points, and the
+/// months a band rests at its camp after a raid (calibrated: design 5.4's 800 bp a
+/// month with no rest took a fifth of a frontier seat's tools a year).
 pub const RAID_BASE_BP: i64 = 800;
+pub const RAID_REST_MONTHS: u32 = 24;
 const RAID_MIN_WARRIORS: u32 = 1_000;
 /// Plunder per raid: at most this share of each good, and this mass in all (kg).
 const RAID_SHARE_BP: i64 = 200;
@@ -474,7 +477,7 @@ fn raid(w: &mut World, ci: usize) {
         let f = &mut w.regions[target].facilities[k];
         f.condition_bp = f.condition_bp.saturating_sub(3_000).max(1_000);
     }
-    w.regions[target].unrest_bp = (w.regions[target].unrest_bp + 1_000).min(10_000);
+    w.regions[target].unrest_bp = (w.regions[target].unrest_bp + 300).min(10_000);
     brief(w, seat, "danger", format!("Raiders struck {tname}"), format!("Raiders from {rname} carried off stores and killed {}. Garrison the region or clear their camp.", group(killed as i64)), Some(target as RegionId), "military");
 }
 
@@ -552,7 +555,8 @@ pub fn step(w: &mut World) {
         }
     }
     for ci in 0..w.camps.len() {
-        if warriors(w, ci) >= RAID_MIN_WARRIORS && !w.armies.iter().any(|a| a.region == w.camps[ci].region) {
+        let rested = w.camps[ci].last_raid == 0 || month >= w.camps[ci].last_raid + RAID_REST_MONTHS;
+        if rested && warriors(w, ci) >= RAID_MIN_WARRIORS && !w.armies.iter().any(|a| a.region == w.camps[ci].region) {
             raid(w, ci);
         }
     }
@@ -578,5 +582,5 @@ pub fn pay_tribute(w: &mut World, seat: SeatId, ci: usize, goods: &[(Good, i64)]
 /// Base units of a good a camp would expect to take from a seat in a year (the
 /// tribute that stops its raids): a raid's share at the base monthly chance.
 pub fn expected_yearly_of(w: &World, seat: SeatId, g: Good) -> i64 {
-    w.civs[seat as usize].stock_of(g) * RAID_SHARE_BP / 10_000 * RAID_BASE_BP * 12 / 10_000
+    w.civs[seat as usize].stock_of(g) * RAID_SHARE_BP / 10_000 * 12 / RAID_REST_MONTHS as i64
 }
