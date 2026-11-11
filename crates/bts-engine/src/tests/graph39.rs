@@ -97,11 +97,15 @@ fn deeper_graphs_are_well_formed() {
     for id in ["T167", "T140", "T141", "T142", "T144", "T145", "T146"] {
         assert!(c.techs[c.t(id)].critical, "{id}");
     }
-    // critical nodes keep their tier work and thresholds
+    // critical nodes keep their tier work and thresholds, or are relieved of part of
+    // them (design chapter 39, section 8.5: thresholds and work of critical tier 7-9
+    // nodes are the first things loosened; job 4b) - never made dearer
     let pace = crate::content::pacing();
     for t in c.techs.iter().filter(|t| t.critical) {
         let n = pace.nodes.get(&t.id);
-        assert!(n.and_then(|n| n.work_bp).unwrap_or(10_000) == 10_000 && n.and_then(|n| n.hint_bp).unwrap_or(10_000) == 10_000, "{} has its costs changed", t.id);
+        let (work, hint) = (n.and_then(|n| n.work_bp).unwrap_or(10_000), n.and_then(|n| n.hint_bp).unwrap_or(10_000));
+        assert!(work <= 10_000 && hint <= 10_000, "{} is dearer than its tier", t.id);
+        assert!((work == 10_000 && hint == 10_000) || t.tier >= 7, "{} below tier 7 has its costs changed", t.id);
     }
     // families: at least two members; critical members are capped by the lock rule
     for f in &c.families {

@@ -29,7 +29,7 @@ const RAID_MIN_WARRIORS: u32 = 1_000;
 const RAID_SHARE_BP: i64 = 200;
 const RAID_MASS_KG: i64 = 50_000_000;
 /// No camp buds after this year (astronomical).
-pub const LAST_BUDDING_YEAR: i32 = 1700;
+pub const LAST_BUDDING_YEAR: i32 = 1300;
 /// Goods raiders take.
 pub const PLUNDER: [Good; 6] = [Good::Food, Good::Tools, Good::Metal, Good::Munitions, Good::FineWares, Good::Spices];
 

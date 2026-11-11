@@ -21,6 +21,9 @@ pub const MILESTONES: [&str; 25] = [
 /// when the chains of design chapter 36, section 5.4 come into use).
 pub const TRACKED_GOODS: [Good; 14] = [Good::Timber, Good::Tin, Good::Horses, Good::Salt, Good::Saltpetre, Good::Munitions, Good::Fertilizer, Good::Gas, Good::Helium, Good::Aluminium, Good::Magnets, Good::Batteries, Good::NuclearFuel, Good::Lattice];
 
+/// The governance checks by the start of their labels, for `gov_fail`'s bits.
+pub const GOV_CHECKS: [&str; 7] = ["Highest authority over every inhabited region", "No region", "Highest authority over every inhabited off-world", "Food", "Safe water", "A governing form", "Public order"];
+
 /// One seat at the start of one decade.
 #[derive(Clone, Debug)]
 pub struct CurveRow {
@@ -105,6 +108,13 @@ pub struct CurveRow {
     pub modules: u16,
     pub sites: u8,
     pub offworld_pop: u64,
+    /// Job 4b: the victory checks that failed last month, one bit per check in the
+    /// order of the objectives panel (governance, then jump capability), and the
+    /// continuous governance and capability months.
+    pub gov_fail: u32,
+    pub ftl_fail: u32,
+    pub gov_streak: u32,
+    pub ftl_streak: u32,
 }
 
 impl CurveRow {
@@ -125,6 +135,7 @@ impl CurveRow {
         h += ",urban_bp,largest_city,metropolises,moved_internal,emigrated,immigrated,jobless_bp";
         h += ",best_gen,army_gen,mean_gen10,wars,camps,raider_gen,credit_earned";
         h += ",boost_cap,boost_made,stations,modules,sites,offworld_pop";
+        h += ",gov_fail,ftl_fail,gov_streak,ftl_streak";
         h
     }
     pub fn csv(&self) -> String {
@@ -147,6 +158,7 @@ impl CurveRow {
         s += &format!(",{},{},{},{},{},{},{}", self.urban_bp, self.largest_city, self.metropolises, self.moved_internal, self.emigrated, self.immigrated, self.jobless_bp);
         s += &format!(",{},{},{},{},{},{},{}", self.best_gen, self.army_gen, self.mean_gen10, self.wars, self.camps, self.raider_gen, self.credit_earned);
         s += &format!(",{},{},{},{},{},{}", self.boost_cap, self.boost_made, self.stations, self.modules, self.sites, self.offworld_pop);
+        s += &format!(",{},{},{},{}", self.gov_fail, self.ftl_fail, self.gov_streak, self.ftl_streak);
         s
     }
 }
@@ -340,6 +352,10 @@ impl CurveRecorder {
                 modules: w.space.stations.iter().filter(|s| s.owner == civ.seat).map(|s| s.modules.iter().sum::<u16>()).sum(),
                 sites: w.space.sites.iter().filter(|s| s.owner == Some(civ.seat)).count() as u8,
                 offworld_pop: w.space.sites.iter().filter(|s| s.owner == Some(civ.seat)).map(|s| s.block.total() as u64).sum(),
+                gov_fail: civ.ftl.gov_checks.iter().filter(|c| !c.ok).map(|c| 1u32 << GOV_CHECKS.iter().position(|p| c.label.starts_with(p)).unwrap_or(7)).fold(0, |a, b| a | b),
+                ftl_fail: civ.ftl.ftl_checks.iter().enumerate().filter(|(_, c)| !c.ok).map(|(i, _)| 1u32 << i.min(31)).sum(),
+                gov_streak: civ.ftl.gov_streak,
+                ftl_streak: civ.ftl.ftl_streak,
             });
         }
     }
