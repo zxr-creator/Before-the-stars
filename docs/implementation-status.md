@@ -66,7 +66,7 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   `--checkpoints DIR` (era saves at 1000 BC, AD 1000, 1700, 1900, 2100 by default)
   and `examples/decide` (one seat's plan and the referee's answers). Calibration:
   `docs/calibration/ruleset3-slice-1-*.txt`.
-- **Slice 2, population (mechanics done; calibrated together with slice 3).** Ruleset
+- **Slice 2, population (done; calibrated together with slice 3).** Ruleset
   3.0 mortality bands and technology factors, care, crowding, town conditions with
   sanitation coverage, epidemics (`sim::outbreaks`, addressed draws per region and
   month, spread to neighbours, immunity), harvest variance, `F_custom x F_food x
@@ -77,6 +77,21 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   when the medical and agricultural nodes arrive, so its constants are calibrated
   after slice 3 sets the knowledge pace; `docs/calibration/ruleset3-slice-2-eval.txt`
   records the state with ruleset 2.0 knowledge pacing.
+- **Slice 3, knowledge pacing (done).** Channel factor, research effectiveness, tier
+  thresholds, work and minimum months and pacing eras read from
+  `content/pacing.json`; contact evidence (the trade factor is a stub until the market
+  slice: only customs and translation raise it); exploratory studies add evidence
+  rather than leads. Population and knowledge were calibrated together (a land factor
+  of fertility, the storage-capped reserve, field caps before soil science, the town
+  weight by class); the results against the design's targets are in
+  `docs/calibration/ruleset3-slice-3-*.txt`. Knowledge milestones of the median seat
+  fall in or near the design's windows from iron to fission; population medians are
+  within the tolerance from AD 1 to 1500 and in 1900, too high in the third and second
+  millennia BC and around 1700-1800, and two to five times too low after 1950 (the
+  world peaks near 0.4-0.5 billion against the design's 2 billion): the late scale
+  depends on the productivity, goods and AI slices. Native: a full standard all-AI
+  match about 23 s, p95 per round about 100 ms; WebAssembly (Node): about 43 s,
+  p95 about 200 ms; the annual-step contingency was not needed.
 
 ## Known calibration gaps
 

@@ -343,6 +343,9 @@ pub struct Tech {
     pub min_months: u32,
     /// Investigation needs this kind of installation to be operating.
     pub needs_facility: Option<&'static str>,
+    /// Evidence at which the node becomes a lead, before scenario pace scaling: its
+    /// tier's `H[t]`, or its pacing era's (`content/pacing.json`).
+    pub hint: i64,
 }
 
 fn tech_needs_facility(id: &str) -> Option<&'static str> {
@@ -355,9 +358,61 @@ fn tech_needs_facility(id: &str) -> Option<&'static str> {
     }
 }
 
-/// Thousands of researcher-months by tier.
-const TIER_WORK: [i64; 10] = [18, 50, 120, 230, 400, 620, 950, 1450, 2200, 3400];
-const TIER_MIN_MONTHS: [u32; 10] = [4, 6, 9, 12, 15, 18, 20, 24, 30, 36];
+/// Knowledge pacing read from `content/pacing.json` (design chapter 36, section
+/// 2.7): per tier the lead threshold `H[t]`, research work and minimum months;
+/// pacing eras for nodes whose tier misplaces them in history; and, for nodes the
+/// code does not know, their tier and evidence tags. Nothing is paced by id in code.
+#[derive(Deserialize)]
+pub struct PacingJson {
+    pub tiers: Vec<TierPacing>,
+    #[serde(default)]
+    pub eras: HashMap<String, EraPacing>,
+    #[serde(default)]
+    pub nodes: HashMap<String, NodePacing>,
+}
+
+#[derive(Deserialize, Clone, Copy)]
+pub struct TierPacing {
+    pub tier: u8,
+    pub hint: i64,
+    pub work_k: i64,
+    pub min_months: u32,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct EraPacing {
+    pub hint: i64,
+    /// Median-seat target window the threshold was calibrated for (historical years).
+    #[serde(default)]
+    pub target: Vec<i32>,
+}
+
+#[derive(Deserialize, Clone, Default)]
+pub struct NodePacing {
+    #[serde(default)]
+    pub era: Option<String>,
+    #[serde(default)]
+    pub tier: Option<u8>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+pub fn pacing() -> &'static PacingJson {
+    static P: OnceLock<PacingJson> = OnceLock::new();
+    P.get_or_init(|| {
+        let p: PacingJson = serde_json::from_str(include_str!("../../../content/pacing.json")).expect("pacing.json");
+        assert_eq!(p.tiers.len(), 10, "pacing.json has one entry per tier");
+        for (i, t) in p.tiers.iter().enumerate() {
+            assert_eq!(t.tier as usize, i, "pacing.json tiers are in order");
+        }
+        for (id, n) in &p.nodes {
+            if let Some(e) = &n.era {
+                assert!(p.eras.contains_key(e), "pacing.json: {id} names an unknown era {e}");
+            }
+        }
+        p
+    })
+}
 
 pub fn class_for_tier(tier: u8) -> ResearchClass {
     match tier {
@@ -370,9 +425,15 @@ pub fn class_for_tier(tier: u8) -> ResearchClass {
     }
 }
 
-fn tech_tier(id: &str) -> u8 {
-    let n: u32 = id[1..].parse().unwrap();
-    match n {
+/// The graph tier of a node: from `content/pacing.json` if it states one, then the
+/// tier table of the atlas, then (a node added later) one above its deepest
+/// prerequisite that has a tier.
+fn tech_tier_known(id: &str) -> Option<u8> {
+    if let Some(t) = pacing().nodes.get(id).and_then(|n| n.tier) {
+        return Some(t);
+    }
+    let n: u32 = id[1..].parse().ok()?;
+    Some(match n {
         1..=16 => 0,
         36 | 37 => 2,
         38 => 5,
@@ -400,13 +461,19 @@ fn tech_tier(id: &str) -> u8 {
         160 => 6,
         161 => 8,
         162..=167 => 9,
-        _ => panic!("no tier for {id}"),
-    }
+        _ => return None,
+    })
 }
 
+/// The evidence tags of a node: from `content/pacing.json` if it lists them, then
+/// the atlas table, then materials and handwork.
 fn tech_tags(id: &str) -> Vec<Tag> {
     use Tag::*;
-    let n: u32 = id[1..].parse().unwrap();
+    let listed: Vec<Tag> = pacing().nodes.get(id).map(|n| n.tags.iter().filter_map(|k| Tag::from_key(k)).collect()).unwrap_or_default();
+    if !listed.is_empty() {
+        return listed;
+    }
+    let n: u32 = id[1..].parse().unwrap_or(0);
     let t: &[Tag] = match n {
         1 => &[Craft],
         2 => &[Craft],
@@ -546,7 +613,7 @@ fn tech_tags(id: &str) -> Vec<Tag> {
         165 => &[HighEnergy, Space],
         166 => &[Space, HighEnergy],
         167 => &[Space, Machine, Teach],
-        _ => panic!("no tags for {id}"),
+        _ => &[Craft],
     };
     t.to_vec()
 }
@@ -1210,7 +1277,7 @@ fn facilities() -> Vec<FacDef> {
         // ---- food -------------------------------------------------------
         fac("fields", "Fields", "Food", "Cleared and tended plots. Ten thousand cultivators work each level; yield depends on seed, traction, water and inputs actually supplied, and falls by three tenths when no tools are in store.")
             .req("T005").site(Site::Arable).cost(&[(Materials, 2.0), (Tools, 1.0)]).work(24.0).general(10_000)
-            .tags(&[Tag::Farm]).max(250).scale(4, "C007").scale(14, "C017").food(),
+            .tags(&[Tag::Farm]).max(250).scale(4, "C007").scale(14, "C017").scale(20, "T056").food(),
         fac("pasture", "Pastures", "Food", "Managed herds on rough grazing. Animals also provide traction once the methods are known.")
             .req("T006").site(Site::Pasture).cost(&[(Materials, 2.0)]).work(16.0).general(5_000)
             .tags(&[Tag::Farm, Tag::Forage]).scale(4, "C007").food(),
@@ -1820,10 +1887,27 @@ fn load() -> Content {
     let pr = |s: &str| parse_req(s, &tech_ix, &prac_ix, &fac_ix);
 
     let mut graph_src = String::new();
+    // tiers first: a node the tables do not know sits one above its deepest prerequisite
+    let mut tiers: Vec<Option<u8>> = tj.iter().map(|t| tech_tier_known(&t.id)).collect();
+    for _ in 0..tj.len() {
+        for i in 0..tj.len() {
+            if tiers[i].is_none() {
+                let deps: Vec<&str> = tj[i].prereq.split(|ch: char| !(ch.is_ascii_alphanumeric())).filter(|x| x.starts_with('T')).collect();
+                if deps.iter().all(|d| tech_ix.get(*d).map(|k| tiers[*k].is_some()).unwrap_or(true)) {
+                    let top = deps.iter().filter_map(|d| tech_ix.get(*d).and_then(|k| tiers[*k])).max();
+                    tiers[i] = Some(top.map(|t| (t + 1).min(9)).unwrap_or(0));
+                }
+            }
+        }
+    }
+    let pace = pacing();
     let techs: Vec<Tech> = tj
         .iter()
-        .map(|t| {
-            let tier = tech_tier(&t.id);
+        .enumerate()
+        .map(|(ti, t)| {
+            let tier = tiers[ti].unwrap_or(0);
+            let tp = pace.tiers[tier as usize];
+            let era_hint = pace.nodes.get(&t.id).and_then(|n| n.era.as_ref()).and_then(|e| pace.eras.get(e)).map(|e| e.hint);
             graph_src.push_str(&format!("{}:{};", t.id, t.prereq));
             Tech {
                 id: t.id.clone(),
@@ -1837,9 +1921,10 @@ fn load() -> Content {
                 tier,
                 tags: tech_tags(&t.id),
                 class: class_for_tier(tier),
-                work: TIER_WORK[tier as usize] * 1000,
-                min_months: TIER_MIN_MONTHS[tier as usize],
+                work: tp.work_k * 1000,
+                min_months: tp.min_months,
                 needs_facility: tech_needs_facility(&t.id),
+                hint: era_hint.unwrap_or(tp.hint),
             }
         })
         .collect();

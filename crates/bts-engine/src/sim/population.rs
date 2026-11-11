@@ -52,9 +52,10 @@ pub const MORTALITY_TECH: [(&str, i64, i64); 9] = [
 /// Customary fertility (`F_custom`) in basis points before doctrines and practices.
 /// The design's 5,500 assumed a lower survival to childbearing than these age bands
 /// give (with annual ageing a newborn spends half a year on average in the infant
-/// band); 4,150 holds a pre-modern people with full stores near +0.1% a year, and
-/// the doctrine and practice terms are scaled by the same 4,150/5,500.
-pub const CUSTOMARY_FERTILITY: i64 = 4_150;
+/// band); 3,820 (4,050 with kin mutual aid) holds a pre-modern people with full
+/// stores near +0.05% a year, and the doctrine and practice terms are scaled by
+/// about 4,150/5,500.
+pub const CUSTOMARY_FERTILITY: i64 = 3_850;
 
 /// Causes of death, in the order of `Flows::deaths_cause`.
 pub const DEATH_CAUSES: [&str; 5] = ["age_and_illness", "hunger_and_crowding", "town_conditions", "epidemic", "war"];
@@ -113,11 +114,50 @@ pub fn literate_share(r: &Region) -> i64 {
     (educated * 10_000 / working).min(10_000) as i64
 }
 
+/// People the land of a region can feed with what its government knows, at most
+/// the residents its water supports: wild food, and fields, pastures and fishing
+/// grounds at every level the land and the government's practices allow, worked by
+/// the best methods it knows (their inputs assumed supplied).
+pub fn carrying_capacity(w: &World, seat: SeatId, ri: usize) -> i64 {
+    use crate::sim::economy::{field_method_known, food_tech, level_cap, FIELD_METHODS};
+    let c = content();
+    let civ = &w.civs[seat as usize];
+    let r = &w.regions[ri];
+    let cap = |key: &str| level_cap(w, seat, ri, &c.facilities[c.f(key)]) as i64;
+    let ft = food_tech(civ, true);
+    let field = FIELD_METHODS.iter().enumerate().filter(|(i, _)| field_method_known(civ, *i)).map(|(_, m)| m.rations).max().unwrap_or(0);
+    let known = |key: &str| crate::actions::facility_visible(w, seat, c.f(key)) && c.facilities[c.f(key)].req.eval(&CivCtx { world: w, seat });
+    // foraging is extensive: the wild feeds settled people at a third of what a
+    // month's gathering can bring in
+    let mut rations = r.wild / 3;
+    if known("fields") {
+        rations += cap("fields") * field;
+    }
+    // herds and fishing grounds count at half: they feed a people only alongside its fields
+    if known("pasture") {
+        rations += cap("pasture") * c.facilities[c.f("pasture")].general as i64 * ft.pasture / 2000;
+    }
+    if known("fishery") {
+        rations += cap("fishery") * c.facilities[c.f("fishery")].general as i64 * ft.fish / 2000;
+    }
+    (rations / FOOD_PER_PERSON_MONTH).min(water_capacity(r) as i64).max(1)
+}
+
+/// The land factor of fertility (`F_land`, basis points; ruleset 3.0 calibration):
+/// households on open land with room to spare have more children, households on
+/// full land fewer. It is the Malthusian brake that keeps a pre-modern people near
+/// what its land and knowledge can feed, so that long-run growth follows new land
+/// and new methods rather than drifting to an explosion or to extinction.
+pub fn land_factor(pop: i64, capacity: i64) -> i64 {
+    let ratio = pop * 10_000 / capacity.max(1);
+    (10_000 + 625 * (8_000 - ratio) / 8_000).clamp(8_000, 10_625)
+}
+
 /// The development factor of fertility (`F_dev`, basis points): schooling of young
 /// adults, life away from the land and children who survive make families smaller.
 /// Prosperity (design section 5.5) joins it with the consumption slice.
 pub fn development_factor(lit_bp: i64, urban_bp: i64, child_gain_bp: i64, prosperity_bp: i64, lifelong: bool) -> i64 {
-    let f = (10_000 - lit_bp * 2_500 / 10_000 - urban_bp * 800 / 10_000 - child_gain_bp * 800 / 10_000 - prosperity_bp * 600 / 10_000).clamp(5_600, 10_000);
+    let f = (10_000 - lit_bp * 1_800 / 10_000 - urban_bp * 600 / 10_000 - child_gain_bp * 600 / 10_000 - prosperity_bp * 600 / 10_000).clamp(6_200, 10_000);
     (f + if lifelong { 500 } else { 0 }).min(10_000)
 }
 
@@ -634,7 +674,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     let child_gain = 10_000 - child_mult;
     let lifelong = w.civs[si].est_id("C046");
     // customary fertility: practices of the civilization; doctrines per block below
-    let custom_civ = CUSTOMARY_FERTILITY + if w.civs[si].est_id("C002") { 230 } else { 0 } - if w.civs[si].est_id("C039") { 380 } else { 0 };
+    let custom_civ = CUSTOMARY_FERTILITY + if w.civs[si].est_id("C002") { 230 } else { 0 } - if w.civs[si].est_id("C039") { 150 } else { 0 };
     let doctrine: Vec<i64> = w
         .religions
         .iter()
@@ -645,7 +685,14 @@ pub fn step(w: &mut World, seat: SeatId) {
         }).sum())
         .collect();
     let medicine = w.civs[si].stock_of(Good::Medicine) > 0;
-    let reserve_target_milli = (w.civs[si].food_reserve_months as i64).clamp(2, 12) * 1000;
+    // households judge their stores against the reserve the government aims for, but
+    // never against more than the stores can hold: a people without granaries is not
+    // cautious about a reserve it has nowhere to keep (ruleset 3.0: a first round of
+    // fifty years can pass before storage is known)
+    let mut reserve_target_milli = (w.civs[si].food_reserve_months as i64).clamp(2, 12) * 1000;
+    if need > 0 {
+        reserve_target_milli = reserve_target_milli.min((storage * 9 / 10 * 1000 / need).max(1000));
+    }
     let reserve_months_milli = if need > 0 { w.civs[si].stock_of(Good::Food).max(0) * 1000 / need } else { 12_000 };
     let lineage_default = w.civs[si].lineage;
 
@@ -655,7 +702,9 @@ pub fn step(w: &mut World, seat: SeatId) {
     let mut food_weighted: i64 = 0;
     let mut water_weighted: i64 = 0;
 
-    for &ri in &regs {
+    let capacities: Vec<i64> = regs.iter().map(|ri| carrying_capacity(w, seat, *ri)).collect();
+    for (k, &ri) in regs.iter().enumerate() {
+        let land = land_factor(w.regions[ri].population() as i64, capacities[k]);
         let secret = w.secret;
         let mut died = [0u32; NQ];
         let working_deaths;
@@ -725,7 +774,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             let mut wdeaths = 0u32;
             for b in r.blocks.iter_mut() {
                 let custom = (custom_civ + b.religion.and_then(|x| doctrine.get(x as usize)).copied().unwrap_or(0)).clamp(400, 10_000);
-                let intensity = (custom * food_factor / 10_000 * crowd_factor / 10_000 * dev_factor / 10_000).clamp(400, 10_000) as u16;
+                let intensity = (custom * food_factor / 10_000 * crowd_factor / 10_000 * dev_factor / 10_000 * land / 10_000).clamp(400, 10_000) as u16;
                 let lagged = b.birth_hist[0] as i64;
                 for i in 0..8 {
                     b.birth_hist[i] = b.birth_hist[i + 1];

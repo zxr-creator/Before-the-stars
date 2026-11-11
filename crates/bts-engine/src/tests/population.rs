@@ -188,6 +188,8 @@ fn mortality_falls_with_medicine_and_fertility_with_development() {
     assert!(c1 < 1_000 && a1 < 3_000, "child {c1}, adult {a1}");
     // pre-modern: no development drag; modern: the floor
     assert_eq!(population::development_factor(0, 0, 0, 0, false), 10_000);
-    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 10_000, false), 5_600);
-    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 10_000, true), 6_100);
+    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 10_000, false), 6_400);
+    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 10_000, true), 6_900);
+    // the floor
+    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 30_000, false), 6_200);
 }

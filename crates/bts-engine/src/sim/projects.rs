@@ -539,7 +539,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
             }
         }
         ProjKind::Study { tag } => {
-            let found = crate::sim::knowledge::study_result(w, seat, tag);
+            let found = crate::sim::knowledge::study_result(w, seat, tag, p.work_needed);
             w.civs[si].study_done[tag] += 1;
             let dname = Tag::ALL[tag].name();
             if found > 0 {

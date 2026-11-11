@@ -10,6 +10,7 @@ use bts_protocol::*;
 mod calendar;
 mod construction;
 mod cooperation;
+mod knowledge;
 mod methods;
 mod population;
 
@@ -560,11 +561,12 @@ fn a_level_employs_thousands_and_yields_per_thousand_workers() {
     assert!(labor.food > 50_000 && labor.food < 200_000, "{} foragers", labor.food);
     let per_worker_milli = made * 1000 / labor.food as i64;
     assert!((2590..=2600).contains(&per_worker_milli), "{per_worker_milli} thousandths of a ration per forager");
-    // the makers' circle is staffed by thousands and supplies one researcher-month each
+    // the makers' circle is staffed by thousands; under oral tradition a post supplies
+    // two tenths of a researcher-month (research effectiveness, ruleset 3.0)
     let circle = m.world.regions[home].fac(c.f("makers_circle")).unwrap();
     assert_eq!(circle.staff_needed, 6_000);
     assert_eq!(circle.staffed, 6_000);
-    assert_eq!(m.world.civs[0].research_cap[ResearchClass::Craft.index()], 6_000);
+    assert_eq!(m.world.civs[0].research_cap[ResearchClass::Craft.index()], 1_200);
     // called-up labour supplies one worker-month a head
     assert_eq!(labor.projects, 0, "nothing is being built yet");
 }
@@ -1413,10 +1415,11 @@ fn project_work_comes_only_from_called_up_workers_and_research_only_from_staffed
         prev = cur;
     }
     assert!(done_total > 0 && done_total <= work_needed);
-    // research: one researcher-month for each person in a research post
+    // research: each person in a research post supplies at most one researcher-month,
+    // times the research effectiveness of the seat's institutions
     let civ = &m.world.civs[0];
     let circle = m.world.regions[home].fac(c.f("makers_circle")).unwrap();
-    assert_eq!(civ.research_cap.iter().sum::<i64>(), circle.staffed as i64);
+    assert_eq!(civ.research_cap.iter().sum::<i64>(), circle.staffed as i64 * crate::sim::knowledge::research_effectiveness(civ) / 10_000);
     // an unstaffed circle supplies nothing, whatever the installation could support
     for q in 0..NQ {
         let n = m.world.regions[home].quals[q];

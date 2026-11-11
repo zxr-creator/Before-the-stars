@@ -163,12 +163,23 @@ referee's diagnostics) are `u64`; a region and an age cell stay `u32`.
 - **Harvests**: one draw a year per climate zone (terrain group) and third of the map,
   triangular in [-1,800, +1,000] bp with mean -200, added to field yields; damped by
   half on irrigated land and to three tenths under fuel-burning methods.
-- **Fertility**: `F_custom` 4,150 (+230 with C002, -380 with C039, +600 for
-  followers of Fruitful Households, +230 for Day of Rest; the design's 5,500 assumed
-  lower survival to childbearing than these bands give), `F_food` and `F_crowd` as in
-  ruleset 2.0, and `F_dev = clamp(10,000 - 2,500 x literate share - 800 x urban share
-  - 800 x child survival gain - 600 x prosperity, 5,600, 10,000)`, +500 with C046.
-  Prosperity enters with the consumption slice.
+- **Fertility**: intensity `F_custom x F_food x F_crowd x F_dev x F_land`.
+  `F_custom` 3,850 (+230 with C002, -150 with C039, +600 for followers of Fruitful
+  Households, +230 for Day of Rest; the design's 5,500 assumed lower survival to
+  childbearing than these bands give, since with annual ageing a newborn spends on
+  average half a year in the infant band). `F_food` and `F_crowd` as in ruleset 2.0,
+  except that households judge their stores against at most what the stores can
+  hold. `F_dev = clamp(10,000 - 1,800 x literate share - 600 x urban share - 600 x
+  child survival gain - 600 x prosperity, 6,200, 10,000)`, +500 with C046; prosperity
+  enters with the consumption slice. `F_land` (a calibration addition, not in the
+  design) = `clamp(10,000 + 625 x (0.8 - P/K) / 0.8, 8,000, 10,625)` where `K` is
+  what the region's land can feed with what the government knows (wild food at a
+  third, fields at every level the land and practices allow by the best known
+  method, pastures and fishing grounds at half), at most its water capacity: the
+  Malthusian brake that keeps a pre-modern people near its land's capacity, so that
+  long-run growth follows new land and new methods instead of drifting to an
+  explosion or to extinction. Until soil science (T056) fields are held to 20 levels
+  (the best of the land; after C007 and C017 as before).
 - **Deaths by cause** partition all deaths: age and illness (base, technology,
   care), hunger and crowding (`M_hazard`), town conditions (`M_urban`), epidemic
   (`M_outbreak`) and war; `OwnCiv.deaths_by_cause` reports them for the last round.
@@ -732,3 +743,47 @@ by round number:
   minimum months of investigations, offer expiry in rounds, the five negotiation
   windows of every round, the G96/F24/Trials96 windows, practice reform and
   drift, capture and sovereignty.
+
+## 12. Knowledge pacing (ruleset 3.0)
+
+Design chapter 36, section 2.7, as implemented in `sim::knowledge` and
+`content/pacing.json` (read at load; no technology id is paced in code, and a node
+added to `content/technologies.json` later takes its tier from the table or one
+above its deepest prerequisite, and its tags from the table or "materials and
+handwork").
+
+- **Evidence** per month for every node whose prerequisites are met and that is
+  unknown or a lead: `P x C / 10,000 + T + X`. `P` = the mean activity of the node's
+  tags over two (as ruleset 2.0). `C`, the channel factor: oral 6,000; writing (T025)
+  10,000; archives (C013) 13,000; printing (T048) 16,000; the scientific method
+  22,000; a research commons (C044) 26,000; digital networks (T112) 30,000; times
+  (1 + half the literate share of working age) and times the open and questioning
+  habits of the people (tendencies O and R, at most a tenth either way); the Sky
+  Terraces add a tenth in measurement. `T` = `isqrt(10 x research staff) / 5`. `X` =
+  for every peaceful contact that has prototyped the node, `max(P, 100) x C / 10,000 x
+  (5,000 + 2,500 with customs C012 + 2,500 with translation C024) / 10,000`; the
+  volume of trade joins this factor with the market slice. C030 still adds a
+  quarter.
+- **Thresholds**: a lead at `H`, discovered at `2.5 H` (or by a lead study), scaled
+  by `pace_bp`. By tier: 1.0 M, 4.0 M, 6.0 M, then 0.8, 0.6, 0.64, 0.8, 0.9, 1.1,
+  1.1 M (tiers 3-9 at a fifth of the design's, because practitioner activity in these
+  economies is several times smaller than the design assumed). Nodes the graph's
+  tiers place far earlier than their history take their pacing era's `H` instead:
+  classical (iron, roads, sailing, water mills, hygiene, mechanical projection) 14 M;
+  late antiquity (recording media) 20 M; medieval (glass, mechanical timekeeping)
+  14 M; high medieval (propellants, optics, measurement, controlled trials,
+  astronomical models) 10 M; renaissance (printing) 16 M; early modern (guns,
+  precision transmission, anatomy, vacuum, chemical analysis) 8 M; the scientific
+  method node (T049) 6 M.
+- **Exploratory studies** add five units of evidence per researcher-month of the
+  study to each of the (at most two) cheapest eligible nodes of the domain, instead
+  of making them leads outright: they narrow a domain down, they do not skip an era.
+- **Research effectiveness**: a staffed research post supplies `RE` researcher-months
+  a month: oral 0.20, writing 0.35, archives 0.50, printing 0.65, the scientific
+  method 0.85, a research commons 0.95, digital networks 1.0 (`research used <=
+  posts x RE`, audited monthly).
+- **Work and minimum months** by tier (thousands of researcher-months; months): 50
+  and 120, 300 and 180, 1,000 and 120, 2,000 and 60, then 2,000, 4,000, 6,000,
+  12,000, 20,000 and 30,000 with 36, 30, 30, 30, 36 and 36 months (tiers 4-9 at a
+  tenth to a fifth of the design's, which assumed research capacity the native seats
+  do not yet build).

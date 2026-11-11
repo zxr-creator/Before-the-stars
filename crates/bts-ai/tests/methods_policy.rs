@@ -43,8 +43,10 @@ fn mid_game() -> (Observation, NativeAi) {
 /// Plenty of everything, and no open orders: nothing but the report under test
 /// decides what the policy does.
 fn rich_and_idle(obs: &mut Observation) {
+    // (two years of food for however many people the seat has by then)
+    let food = (obs.civ.population as i64 * 24).max(20_000_000);
     for g in obs.civ.goods.iter_mut() {
-        g.stock = 20_000_000;
+        g.stock = if g.good == Good::Food { food } else { 20_000_000 };
     }
     obs.projects.clear();
 }

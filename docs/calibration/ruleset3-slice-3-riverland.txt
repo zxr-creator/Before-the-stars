@@ -1,0 +1,29 @@
+Ruleset 3.0 after slices 1-3, riverland, standard calendar, single thread.
+
+round 525  month 89988  AD 2500  phase Finished
+  seat 0 Farcape     Active     pop 198770639 reg 18 tech 123 (tier 8) prac 63 army 6546579 stab 95 food 100% sci AD 1631 gov  0 ftl  0
+  seat 1 Highmere    Eliminated pop       0 reg  0 tech 126 (tier 8) prac 63 army     0 stab 67 food 100% sci AD 1383 gov  0 ftl  0
+  seat 2 Stonewold   Active     pop 501281895 reg 30 tech 138 (tier 9) prac 64 army 19463313 stab 95 food 100% sci AD 1715 gov  0 ftl  0
+  seat 3 Amberfen    Eliminated pop       0 reg  0 tech  93 (tier 7) prac 53 army     0 stab 95 food 100% sci AD 2040 gov  0 ftl  0
+finished: true  winner: None  AD 2500  elapsed 22.5s  state hash 004709e068a84abe
+
+== era checkpoints (bts run --checkpoints, default years) and examples/bench, 10 rounds each
+riverland-1000ad.json: 10 rounds, 2400 months, no seat actions: total 550.2 ms, per round p50 52.66 ms p95 75.02 ms max 75.02 ms, per month 0.229 ms
+riverland-1000ad.json: 10 rounds, 2400 months, with native policy: total 659.2 ms, per round p50 64.25 ms p95 77.85 ms max 77.85 ms, per month 0.275 ms
+riverland-1000bc.json: 10 rounds, 4800 months, no seat actions: total 912.1 ms, per round p50 90.92 ms p95 95.45 ms max 95.45 ms, per month 0.190 ms
+riverland-1000bc.json: 10 rounds, 4800 months, with native policy: total 1007.7 ms, per round p50 100.65 ms p95 105.26 ms max 105.26 ms, per month 0.210 ms
+riverland-1700ad.json: 10 rounds, 600 months, no seat actions: total 160.4 ms, per round p50 15.87 ms p95 17.44 ms max 17.44 ms, per month 0.267 ms
+riverland-1700ad.json: 10 rounds, 600 months, with native policy: total 285.3 ms, per round p50 28.16 ms p95 31.32 ms max 31.32 ms, per month 0.476 ms
+riverland-1902ad.json: 10 rounds, 480 months, no seat actions: total 155.2 ms, per round p50 15.43 ms p95 16.98 ms max 16.98 ms, per month 0.323 ms
+riverland-1902ad.json: 10 rounds, 480 months, with native policy: total 345.2 ms, per round p50 34.12 ms p95 38.33 ms max 38.33 ms, per month 0.719 ms
+riverland-2100ad.json: 10 rounds, 240 months, no seat actions: total 86.2 ms, per round p50 8.61 ms p95 9.56 ms max 9.56 ms, per month 0.359 ms
+riverland-2100ad.json: 10 rounds, 240 months, with native policy: total 278.4 ms, per round p50 27.35 ms p95 31.14 ms max 31.14 ms, per month 1.160 ms
+
+== performance budgets (design section 2.4)
+native, cargo test --release -p bts-ai --test perf -- --ignored --nocapture (riverland, four native seats deciding):
+  525 rounds, 89988 months, 23.2 s; per round p50 32.3 ms, p95 104.0 ms, max 118.5 ms; rounds of 40-50 years mean 70.4 ms; 2-year rounds mean 29.4 ms
+WebAssembly, scripts/build-wasm.sh then node apps/web/scripts/wasm-calendar-bench.mjs (Node V8, the browser's engine):
+  standard: 525 rounds to AD 2500 in 43.1 s; per round p50 58.3 ms, p95 198.3 ms, max 234.6 ms
+  quick:    230 rounds to AD 2500 in 23.2 s; per round p50 54.0 ms, p95 230.1 ms, max 297.0 ms
+native quick calendar: 14.3 s for 230 rounds
+Budgets: p95 <= 150 ms native, <= 400 ms wasm, a full standard match <= 60 s native: all met; the annual-step contingency was not implemented.

@@ -683,6 +683,8 @@ pub fn step(w: &mut World, seat: SeatId) {
         .collect();
     let load_of = |ri: usize, kind: usize| -> i64 { hosting.iter().find(|h| h.0 == ri && h.1 == kind).map(|h| h.2).unwrap_or(10_000) };
     let mob_cap = mobilization_cap(w, seat) as i64;
+    // researcher-months one staffed research post supplies (design chapter 36, 2.7)
+    let research_eff = crate::sim::knowledge::research_effectiveness(&w.civs[si]);
     let mob = mob_cap * w.civs[si].mobilization_bp as i64 / 10_000;
     let tools_ok = w.civs[si].stock_of(Good::Tools) > 0;
 
@@ -1513,7 +1515,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                     .into_iter()
                     .min()
                     .unwrap();
-                research_cap[class.index()] += staff_pts * support / 10_000 * inputs_bp / 10_000;
+                research_cap[class.index()] += staff_pts * support / 10_000 * inputs_bp / 10_000 * research_eff / 10_000;
             }
             compute_made += rec.out_compute * level * rate / 10_000;
             let f = &mut w.regions[ri].facilities[fi];

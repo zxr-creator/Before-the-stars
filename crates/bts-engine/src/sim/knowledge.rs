@@ -107,8 +107,59 @@ pub fn survey_region(w: &mut World, seat: SeatId, ri: usize) {
     }
 }
 
-fn hint_threshold(w: &World, tier: u8) -> i64 {
-    muldiv(900 * (tier as i64 + 1), w.cfg.pace_bp as i64, 10_000)
+fn hint_threshold(w: &World, tech: usize) -> i64 {
+    muldiv(content().techs[tech].hint, w.cfg.pace_bp as i64, 10_000)
+}
+
+/// How a civilization keeps and passes on knowledge (design chapter 36, section
+/// 2.7): the channel factor of evidence, in basis points, and research
+/// effectiveness, the researcher-months one staffed research post supplies.
+/// Each step is the best institution the civilization has: oral tradition, writing
+/// understood (T025), archives (C013), printing (T048), the scientific method, a
+/// research commons (C044), digital networks (T112).
+pub fn channel(civ: &Civ) -> (i64, i64) {
+    let mut c = (6_000, 2_000);
+    if civ.knows_id("T025") {
+        c = (10_000, 3_500);
+    }
+    if civ.est_id("C013") {
+        c = (13_000, 5_000);
+    }
+    if civ.knows_id("T048") {
+        c = (16_000, 6_500);
+    }
+    if civ.milestones.sci_method.is_some() {
+        c = (22_000, 8_500);
+    }
+    if civ.est_id("C044") {
+        c = (26_000, 9_500);
+    }
+    if civ.knows_id("T112") {
+        c = (30_000, 10_000);
+    }
+    c
+}
+
+/// Research effectiveness of a civilization, basis points (at most 10,000).
+pub fn research_effectiveness(civ: &Civ) -> i64 {
+    channel(civ).1
+}
+
+/// The channel factor a civilization's evidence gathers with, basis points: its
+/// institutions, raised by literacy (half the literate share of working age) and by
+/// open, questioning habits (tendencies O and R, at most a tenth either way).
+pub fn channel_factor(w: &World, seat: SeatId) -> i64 {
+    let civ = &w.civs[seat as usize];
+    let (base, _) = channel(civ);
+    let (mut lit, mut working) = (0u64, 0u64);
+    for r in w.regions.iter().filter(|r| r.controller == Some(seat)) {
+        working += r.working() as u64;
+        lit += crate::sim::population::literate_share(r) as u64 * r.working() as u64 / 10_000;
+    }
+    let lit_bp = if working > 0 { (lit * 10_000 / working) as i64 } else { 0 };
+    let l = &w.lineages[civ.lineage as usize];
+    let habits = (((l.axes[0] + l.axes[1]) as i64 / 2 - 5_000) * 1_000 / 4_500).clamp(-1_000, 1_000);
+    base * (10_000 + lit_bp / 2) / 10_000 * (10_000 + habits) / 10_000
 }
 
 /// Mark understood prerequisites as reproduced once later work builds on them.
@@ -124,29 +175,35 @@ pub fn mark_used(w: &mut World, seat: SeatId, req: &Req) {
 }
 
 /// Result of a bounded exploratory study: evidence for at most two eligible unknown nodes.
-pub fn study_result(w: &mut World, seat: SeatId, tag: usize) -> u32 {
+/// Evidence one researcher-month of an exploratory study adds to each of the (at
+/// most two) nodes it looks into.
+pub const STUDY_EVIDENCE_PER_MONTH: i64 = 5;
+
+pub fn study_result(w: &mut World, seat: SeatId, tag: usize, work: i64) -> u32 {
     let c = content();
     let month = w.month;
     let t = Tag::ALL[tag];
     let mut eligible: Vec<usize> = (0..c.techs.len())
         .filter(|i| w.civs[seat as usize].tech[*i].state == ST_UNKNOWN && c.techs[*i].tags.contains(&t) && c.techs[*i].prereq.eval(&CivCtx { world: w, seat }))
         .collect();
-    eligible.sort_by_key(|i| (c.techs[*i].tier, *i));
+    eligible.sort_by_key(|i| (c.techs[*i].hint, *i));
+    // a study adds evidence in proportion to the work spent on it: it narrows a
+    // domain down, it does not skip an era
     let mut found = 0;
     for i in eligible.into_iter().take(2) {
+        let hint = muldiv(c.techs[i].hint, w.cfg.pace_bp as i64, 10_000);
         let st = &mut w.civs[seat as usize].tech[i];
-        st.state = ST_HINTED;
-        st.evidence = hint_threshold_static(c.techs[i].tier);
-        st.source = format!("Exploratory study of {}", t.name().to_lowercase());
-        st.disc_month = month;
-        found += 1;
+        st.evidence += work * STUDY_EVIDENCE_PER_MONTH;
+        if st.evidence >= hint {
+            st.state = ST_HINTED;
+            st.source = format!("Exploratory study of {}", t.name().to_lowercase());
+            st.disc_month = month;
+            found += 1;
+        }
     }
     found
 }
 
-fn hint_threshold_static(tier: u8) -> i64 {
-    900 * (tier as i64 + 1)
-}
 
 pub fn step(w: &mut World, seat: SeatId) {
     let c = content();
@@ -164,16 +221,18 @@ pub fn step(w: &mut World, seat: SeatId) {
         let civ = &mut w.civs[si];
         civ.tag_activity[Tag::Trade as usize] += isqrt((peaceful.len() as i64 * 4 + treaties * 6) * 10_000);
     }
-    if crate::sim::culture::belief_share(w, seat, "sky_terraces") > 2000 {
-        w.civs[si].tag_activity[Tag::Measure as usize] += 200;
-    }
+    // the Sky Terraces keep observations: a tenth more evidence in measurement
+    let terraces = crate::sim::culture::belief_share(w, seat, "sky_terraces") > 2000;
     // one researcher-month of capacity is one person in a research post
     let research_staff: i64 = w.civs[si].research_cap.iter().sum::<i64>();
     let trickle = crate::sim::economy::activity_index(research_staff) / 5;
     let cross = w.civs[si].est_id("C030");
     let customs = w.civs[si].est_id("C012");
     let translation = w.civs[si].est_id("C024");
-
+    let chan = channel_factor(w, seat);
+    // contact: a peaceful partner that has prototyped a node passes on what it shows,
+    // more with customs and translation; the volume of trade joins with the market
+    let contact_bp = 5_000 + if customs { 2_500 } else { 0 } + if translation { 2_500 } else { 0 };
     let mut new_leads: Vec<usize> = Vec::new();
     let mut discovered: Vec<usize> = Vec::new();
     for i in 0..c.techs.len() {
@@ -196,20 +255,25 @@ pub fn step(w: &mut World, seat: SeatId) {
                 best_tag = *t;
             }
         }
-        gain = gain / tech.tags.len() as i64 / 2 + trickle;
+        // P: practice in the node's domains
+        let practice = gain / tech.tags.len() as i64 / 2;
+        let mut channelled = practice * chan / 10_000;
+        if terraces && tech.tags.contains(&Tag::Measure) {
+            channelled = channelled * 11 / 10;
+        }
+        gain = channelled + trickle;
         if cross {
             gain = gain * 5 / 4;
         }
-        // methods in use among peoples we are in touch with are noticed sooner
+        // X: methods in use among peoples we are in touch with are noticed sooner
         let mut foreign: Option<usize> = None;
         for &o in &peaceful {
             if w.civs[o].tech[i].state >= ST_PROTOTYPED {
-                gain += 110 + if customs { 110 } else { 0 } + if translation { 110 } else { 0 };
-                foreign = Some(o);
-                break;
+                gain += practice.max(100) * chan / 10_000 * contact_bp / 10_000;
+                foreign.get_or_insert(o);
             }
         }
-        let threshold = hint_threshold(w, tech.tier);
+        let threshold = hint_threshold(w, i);
         let source = match foreign {
             Some(o) if best_act < 150 => format!("Reports from {}", w.civs[o].name),
             _ => format!("Practice: {}", best_tag.name().to_lowercase()),
