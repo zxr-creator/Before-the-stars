@@ -38,6 +38,8 @@ export interface SaveHeader {
   round: number;
   month: number;
   year: number;
+  /** The historical date the save reached, from a referee with a calendar (ruleset 3.0). */
+  date?: { year: number; month?: number; label?: string } | null;
   horizon: number;
   finished: boolean;
   winner: SeatId | null;

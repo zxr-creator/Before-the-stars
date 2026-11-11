@@ -1030,7 +1030,7 @@ export type PolicySetting =
 export type Action =
   | { kind: 'select_contacts'; seats: SeatId[] }
   | { kind: 'message'; to: SeatId; text: string; intent: Intent | null }
-  | { kind: 'propose_treaty'; to: SeatId; clauses: Clause[]; text: string | null }
+  | { kind: 'propose_treaty'; to: SeatId; clauses: AnyClause[]; text: string | null }
   | { kind: 'withdraw_offer'; offer: number }
   | { kind: 'sign_treaty'; offer: number }
   | { kind: 'decline_offer'; offer: number }
@@ -1153,7 +1153,13 @@ export interface AgentOptions {
 
 export interface NewMatchRequest {
   seed?: string;
-  regions?: 24 | 48 | 72;
+  /** Map preset (design chapter 40): Small 30, Standard 60, Large 120, Huge 200; 90 is a test size; 24/48/72 earlier sizes. */
+  regions?: 30 | 60 | 90 | 120 | 200 | 24 | 48 | 72;
+  /** "earth_like" (the default generated planet) or "classic" (the flat map of ruleset 2.0). */
+  world?: WorldKind;
+  /** "standard" (525 rounds, 5000 BC to AD 2500) or "quick" (230 rounds on the same dates). */
+  calendar?: 'standard' | 'quick';
+  /** A fixture clock of twelve-month rounds ending at this month (tests); overrides `calendar`. */
   horizon?: number;
   pace_bp?: number;
   controllers?: SetupController[];

@@ -285,6 +285,8 @@ kbd { font: 600 11px ui-monospace, Menlo, monospace; background: var(--paper-4);
 .phase { display: flex; flex-direction: column; gap: 5px; border: 0; background: none; height: auto; overflow: visible; border-radius: 0; }
 .phase-name { font: 600 13px/1.2 var(--serif); letter-spacing: 0.03em; color: var(--cream); white-space: nowrap; }
 .phase-pips { display: flex; align-items: center; gap: 3px; }
+.dock-when { font: 500 11.5px/1.25 var(--sans); color: var(--cream-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dock-when b { color: var(--cream); font-weight: 650; }
 .phase-pip { width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font: 700 9.5px/1 var(--sans); font-style: normal; color: var(--cream-3); background: rgba(255, 255, 255, 0.05); box-shadow: 0 0 0 1px var(--night-line) inset; transition: background 0.2s, box-shadow 0.2s; }
 .phase-pip.is-contact, .phase-pip.is-plan { border-radius: 4px; width: 15px; height: 15px; transform: rotate(45deg); margin: 0 3px; }
 .phase-pip.is-done { background: var(--brass-lo); color: var(--night-0); box-shadow: none; }
@@ -486,6 +488,25 @@ button.orb:hover:not(:disabled) .orb-face { fill: #b24a34; }
 .seat-id { width: 92px; flex: none; display: inline-flex; align-items: center; gap: 8px; font: 600 14px var(--serif); white-space: nowrap; }
 .seat-row .segmented { flex: 1; }
 .seat-row .seg { flex: 1; justify-content: center; padding: 6px 6px; white-space: nowrap; }
+/* two to ten seats (design chapter 40): a stepper, a remove control per card, compact cards when many */
+.setup-seats-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.setup-seats-head small { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 11.5px; }
+.seat-stepper { display: inline-flex; align-items: center; gap: 0; border: 1px solid #a8946a; border-radius: 7px; background: var(--paper-4); overflow: hidden; }
+.seat-stepper b { min-width: 26px; text-align: center; font: 700 13px var(--sans); color: var(--ink); letter-spacing: 0; }
+.step-btn { display: grid; place-items: center; width: 26px; height: 24px; border: 0; background: none; cursor: pointer; color: var(--ink-2); }
+.step-btn:hover:not(:disabled) { background: rgba(43, 38, 32, 0.08); }
+.step-btn:disabled { opacity: 0.35; cursor: default; }
+.seat-x { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid transparent; border-radius: 50%; background: none; color: var(--ink-3); cursor: pointer; }
+.seat-x:hover:not(:disabled) { border-color: var(--line); color: var(--bad, #9c3d2a); background: rgba(156, 61, 42, 0.06); }
+.seat-x:disabled { opacity: 0.25; cursor: default; }
+.seat-rows.is-many { gap: 4px; }
+.seat-rows.is-many .seat-card { padding: 3px 8px; }
+.seat-rows.is-many .seat-row .seg { padding: 4px 6px; }
+.setup-sizes { display: flex; width: 100%; }
+.setup-sizes .seg { flex: 1; flex-direction: column; gap: 1px; padding: 6px 6px; }
+.setup-sizes .seg small { font-weight: 500; font-size: 10.5px; opacity: 0.8; white-space: nowrap; }
+.setup-sizes .seg-main { font-size: 12.5px; }
+.linklike.is-active { font-weight: 700; }
 .agent-box { margin: 8px 0 2px; padding: 9px 10px 8px; border-radius: 6px; background: rgba(43, 38, 32, 0.045); border: 1px dashed var(--line); display: grid; gap: 7px; }
 .agent-blurb { margin: 0; color: var(--ink-2); font-size: 12px; }
 .agent-fields { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-end; }

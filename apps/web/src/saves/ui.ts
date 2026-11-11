@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { ApiError, SaveNotStored } from '../api';
 import { getLocale, t, tc } from '../i18n';
+import { histYear } from '../format';
 import type { SaveDescription, SaveHeader, SaveVersions } from './types';
 import { subscribeVault, vaultState } from './vault';
 import type { VaultState } from './vault';
@@ -90,6 +91,10 @@ export function saveLabel(header: SaveHeader | null): string {
   if (!header) return t('unreadable save');
   const human = header.seats.find((s) => s.controller === 'human');
   const who = human ? tc(human.name) : t('Observer match');
+  if (header.date && Number.isFinite(header.date.year)) {
+    const when = histYear(header.date.year);
+    return header.finished ? t('{who} · {date} · finished', { who, date: when }) : t('{who} · {date}', { who, date: when });
+  }
   return header.finished ? t('{who} · Year {n} · finished', { who, n: header.year }) : t('{who} · Year {n}', { who, n: header.year });
 }
 

@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { NEGOTIATION_WINDOWS } from '../protocol';
 import type { BriefingItem, Observation } from '../protocol';
-import { CATEGORY_LABEL, PHASE_LABEL, RESEARCH_LABEL, fmtNow, fmtYear, yearOf } from '../format';
+import { CATEGORY_LABEL, PHASE_LABEL, RESEARCH_LABEL, fmtNow, fmtYear, roundLength, roundOf, roundSpan, yearOf } from '../format';
 import { Icon } from '../icons';
 import { Btn, cx } from '../ui';
 import {
@@ -76,7 +76,7 @@ function nextLabel(obs: Observation): { label: string; hint: string } {
       ? { label: t('Next window'), hint: t('Close window {a} and open window {b}', { a: obs.window, b: obs.window + 1 }) }
       : { label: t('To planning'), hint: t('Close the last negotiation window and move to planning') };
   }
-  return { label: t('Finish planning'), hint: t('Finish planning; the referee then resolves twelve months') };
+  return { label: t('Finish planning'), hint: t('Finish planning; the referee then resolves the round') };
 }
 
 const STEPS = 2 + NEGOTIATION_WINDOWS;
@@ -99,7 +99,7 @@ function stepIndex(obs: Observation): number {
 
 function stepTitle(i: number): string {
   if (i === 0) return t('Contact selection: choose up to three counterparts for this round');
-  if (i === STEPS - 1) return t('Planning: orders are settled, then twelve months are resolved');
+  if (i === STEPS - 1) return t('Planning: orders are settled, then the round is resolved');
   return t('Negotiation window {n} of {m}: one envelope per counterpart', { n: i, m: NEGOTIATION_WINDOWS });
 }
 
@@ -116,6 +116,10 @@ export function RoundDock({ state, compact }: { state: AppState; compact: boolea
   const urgent = attention.filter((a) => a.tone !== 'info').length;
   const pb = s.playback;
   const thinking = pb.waitingOn.map(seatName).join(', ');
+  // the round in hand: its years and its place in the match (ruleset 3.0 rounds run from fifty years down to two)
+  const span = roundSpan(obs.calendar) ?? fmtNow(obs);
+  const months = obs.calendar?.round_months ?? obs.months_per_round;
+  const resolves = months === 12 ? t('resolve twelve months') : t('resolve {span} ({length})', { span, length: roundLength(months) });
   const phaseText = obs.phase === 'negotiate'
     ? t('Negotiation · window {n} of {m}', { n: obs.window, m: NEGOTIATION_WINDOWS })
     : t(PHASE_LABEL[obs.phase]);
@@ -155,7 +159,7 @@ export function RoundDock({ state, compact }: { state: AppState; compact: boolea
   } else {
     orb = (
       <button type="button" class={cx('orb', s.advancing && 'is-busy', urgent > 0 && 'has-attention')} disabled={s.advancing || s.busy} data-testid="end-round"
-        aria-label={t('End round')} title={attention.length ? undefined : t('Pass every remaining phase and resolve twelve months')} onClick={() => void ready(true)}>
+        aria-label={t('End round')} title={attention.length ? undefined : t('Pass every remaining phase and {resolves}', { resolves })} onClick={() => void ready(true)}>
         {ring}{face(s.advancing ? t('Resolving…') : t('End round'), 'hourglass')}
       </button>
     );
@@ -167,6 +171,9 @@ export function RoundDock({ state, compact }: { state: AppState; compact: boolea
         <div class="phase" role="group" data-testid="phase" data-phase={obs.phase} data-window={obs.window}
           aria-label={t('Phase: {phase}', { phase: phaseText })}>
           <span class="phase-name">{phaseText}</span>
+          <span class="dock-when" data-testid="dock-span" title={months > 12 ? t('{length}: standing orders act year by year inside a long round.', { length: roundLength(months) }) : roundLength(months)}>
+            <b>{span}</b> · {roundOf(obs.round, obs)}
+          </span>
           <span class="phase-pips" aria-hidden="true">
             {Array.from({ length: STEPS }, (_, i) => (
               <i class={cx('phase-pip', i === 0 && 'is-contact', i === STEPS - 1 && 'is-plan', i < now && 'is-done', i === now && 'is-now')} title={stepTitle(i)}>
@@ -201,7 +208,7 @@ export function RoundDock({ state, compact }: { state: AppState; compact: boolea
                   </button></li>
                 ))}
               </ul>
-              <p class="pop-foot">{t('None of these stop you. Ending the round resolves twelve months.')}</p>
+              <p class="pop-foot">{months === 12 ? t('None of these stop you. Ending the round resolves twelve months.') : t('None of these stop you. Ending the round resolves {span}; standing orders act year by year inside it.', { span })}</p>
             </div>
           </>
         ) : null}
