@@ -489,6 +489,7 @@ fn inspect(args: &Args) {
     let u = |v: i64| v as f64 / 1000.0;
     println!("== {} seat {} year {} pop {} stability {} admin {}/{} mob cap {}bp", o.civ.name, seat, o.month / 12, o.civ.population, o.civ.stability, o.civ.admin_load, o.civ.admin_capacity, o.civ.mobilization_cap_bp);
     println!("labor: {:?}", o.civ.labor);
+    println!("last round ({} months): births {} deaths {} by cause {:?}", o.calendar.as_ref().map(|c| c.last_round_months).unwrap_or(0), o.civ.births_last_round, o.civ.deaths_last_round, o.civ.deaths_by_cause.iter().map(|d| (d.cause.as_str(), d.deaths)).collect::<Vec<_>>());
     print!("goods:");
     for g in &o.civ.goods {
         if g.stock != 0 || g.produced != 0 || g.consumed != 0 {
@@ -530,7 +531,7 @@ fn inspect(args: &Args) {
     println!("-- regions:");
     for r in o.regions.iter().filter(|r| r.own.is_some()) {
         let w = r.own.as_ref().unwrap();
-        println!(" {} [{}] {:?} pop {} labor f{} fac{} proj{} idle{} stu{} water {} food {}% link {} unrest {}", r.name, r.id, r.terrain, w.population, w.labor.food, w.labor.facilities, w.labor.projects, w.labor.household, w.labor.students, w.water_capacity, w.food_fulfillment_bp / 100, w.link_efficiency_bp, w.unrest_bp);
+        println!(" {} [{}] {:?} pop {} labor f{} fac{} proj{} idle{} stu{} water {} food {}% link {} unrest {} health {}{}", r.name, r.id, r.terrain, w.population, w.labor.food, w.labor.facilities, w.labor.projects, w.labor.household, w.labor.students, w.water_capacity, w.food_fulfillment_bp / 100, w.link_efficiency_bp, w.unrest_bp, w.health_pressure_bp, r.outbreak.as_ref().map(|x| format!(" OUTBREAK band {}", x.severity_band)).unwrap_or_default());
         for f in &w.facilities {
             let b: Vec<String> = f.runs.iter().flat_map(|x| x.blockers.clone()).collect();
             println!("    {} L{}/{} staff {}/{} util {}% {:?}", f.name, f.level, f.max_level, f.staffed, f.staff_needed, f.utilization_bp / 100, b);

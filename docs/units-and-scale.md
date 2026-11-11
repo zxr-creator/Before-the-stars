@@ -110,9 +110,10 @@ that records it, is listed in `docs/conservation-audit.md`.
 | Starting population per seat | 236,000-248,000, on a smooth young pyramid (no age stands out) |
 | Working age | 15-64; 92% of them are available for posts, study or service |
 | Food per person-month | 1 ration (50 kg grain-equivalent; 0.6 t a year) |
-| Births | at most 0.030 a month per reproductive equivalent, lagged nine months, cut by thin stores, crowding and schooling |
-| Sustained growth actually seen in all-AI matches | 1.5-2.5% a year while land and water last |
+| Births | at most 0.030 a month per reproductive equivalent, lagged nine months; intensity `F_custom x F_food x F_crowd x F_dev` (ruleset 3.0, below) |
+| Sustained growth | ruleset 2.0: 1.5-2.5% a year while land and water last; ruleset 3.0 targets about 0.06% a year before 1700, 1-2% in the industrial transition, near zero late (design chapter 36, section 3.1) |
 | Natural water of a home region | at least 2.6 million residents |
+| Arable land (ruleset 3.0, generator `bts-worldgen/2.0.0`) | three times generator 1.2's: plains 90-165 levels, hills 30-66, forest 36-72, rivers +18-36; a home at least 102; fields up to 250 levels |
 
 Settlement class of a region (descriptive only; no rule keys on it):
 
@@ -123,7 +124,68 @@ Settlement class of a region (descriptive only; no rule keys on it):
 | Village | 150,000 to under 1 million |
 | Town | 1 to under 4 million |
 | City | 4 to under 12 million |
-| Metropolis | 12 million or more |
+| Metropolis | 12 to under 40 million |
+| Megalopolis | 40 million or more (ruleset 3.0) |
+
+### Ruleset 3.0: mortality, fertility, epidemics and harvests
+
+Since ruleset 3.0 the classes are no longer only descriptive: the town-conditions
+factor below weighs a region's off-land share by its class. Sums of people over
+regions (a civilization, the world, `OwnCiv.population`, foreign estimates, the
+referee's diagnostics) are `u64`; a region and an age cell stay `u32`.
+
+- **Mortality** per age band and month: `base x M_tech x M_care x M_hazard x M_urban
+  x M_outbreak`, with pre-modern bases 2,600 / 420 / 80 / 105 / 260 / 900 per 100,000
+  (bands 0, 1-4, 5-14, 15-49, 50-64, 65+). `M_tech` multiplies, for children and
+  adults, for each node understood: T032 9,700/9,850, T033 9,200/9,600, T046
+  9,500/9,700, T053 6,000/8,000, T069 6,000/8,500, T070 5,000/8,000, T131
+  8,000/8,500, T136 7,000/7,000, and the practice C002 9,500/10,000 (the medieval
+  nodes are milder than the design's table, which would have started the
+  demographic transition a thousand years early). `M_care` = 10,000 less up to
+  1,000 for healers' lodges and 3,000 for hospitals (each by coverage, doubled with
+  medicine in store; at most 3,500): the design's `10,000 - coverage / 2` would let a
+  healers' lodge halve every death rate. Care also halves the crowding pressure as in
+  ruleset 2.0. `M_hazard` = 10,000 + crowding pressure x 1.5 + nutrition debt x 40.
+  `M_urban` = 10,000 + 5,000 x urban share x (1 - sanitation coverage), the urban
+  share being `1 - min(1, 3.2 x food workers / residents)` weighed by class (camp 0,
+  village 0.2, town 0.6, city and above 1) and sanitation coverage the residents
+  sewers (3 million a level) and treatment works (12 million) serve.
+- **Epidemics** (`sim::outbreaks`): a populated region breaks out with monthly
+  hazard `1/2,400 x density x connectivity x protection` (density
+  `clamp(crowding / 0.8, 0.5, 3)`, connectivity +0.5 within a year of an army's
+  presence, trade routes joining with the market slice; protection 0.5 with T053,
+  x 0.3 with T070, x (1 - care coverage / 2)). An epidemic lasts 6-24 months with
+  `M_outbreak` 13,000-25,000 on every band and spreads each month to each
+  neighbouring populated region with probability 30% x its protection; afterwards
+  the region has a quarter of the hazard and catches no spreading epidemic for 600
+  months. The region's government and the governments of its neighbours are told;
+  seats observing the region see it in `RegionView.outbreak`.
+- **Harvests**: one draw a year per climate zone (terrain group) and third of the map,
+  triangular in [-1,800, +1,000] bp with mean -200, added to field yields; damped by
+  half on irrigated land and to three tenths under fuel-burning methods.
+- **Fertility**: `F_custom` 4,150 (+230 with C002, -380 with C039, +600 for
+  followers of Fruitful Households, +230 for Day of Rest; the design's 5,500 assumed
+  lower survival to childbearing than these bands give), `F_food` and `F_crowd` as in
+  ruleset 2.0, and `F_dev = clamp(10,000 - 2,500 x literate share - 800 x urban share
+  - 800 x child survival gain - 600 x prosperity, 5,600, 10,000)`, +500 with C046.
+  Prosperity enters with the consumption slice.
+- **Deaths by cause** partition all deaths: age and illness (base, technology,
+  care), hunger and crowding (`M_hazard`), town conditions (`M_urban`), epidemic
+  (`M_outbreak`) and war; `OwnCiv.deaths_by_cause` reports them for the last round.
+- **Field methods v3** (rations and general posts per level-month; fertilizer is
+  drawn as chemicals until the resources slice, horses are stood in for by herds on
+  pasture): hand 30,000 / 10,000; animal traction 46,000 / 8,000; rotation and
+  manuring (T020, T011, C017) 60,000 / 8,000; fertilized 120,000 / 6,000 with 150 t
+  of chemicals; mechanized 110,000 / 3,000 with 100 t of fuel; intensive 250,000 /
+  2,000 with 300 t of chemicals and 150 t of fuel; restorative 380,000 / 1,500 with
+  250 t of chemicals and 150 t of fuel. A level never yields more than twice its
+  method's base. **Food synthesis works** (T132 and T135): 4 kt of chemicals and
+  400 units of electricity make 200,000 rations a level-month, a declared
+  atmospheric-input recipe (output mass at most three times the input taken from
+  stock).
+- **Deposits** of generator 2.0: copper 300-1,200 Mt, iron 2,000-8,000 Mt, coal
+  3,000-12,000 Mt per deposit, and at least 1,200 Mt of copper ore, 7,000 Mt of iron
+  ore and 10,000 Mt of coal within three links of every home.
 
 Other person-scaled constants: a settling party is 20,000-400,000 people; a formation
 is 1,000-5,000,000 soldiers; home-defence militia is one working adult in forty, at

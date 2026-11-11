@@ -32,7 +32,7 @@ export type Phase = 'contact' | 'negotiate' | 'plan' | 'finished';
 export type SeatStatus = 'active' | 'eliminated' | 'forfeited';
 export type ControllerKind = 'human' | 'external' | 'native_easy' | 'native_medium' | 'native_hard';
 export type Visibility = 'own' | 'visible' | 'remembered';
-export type SettlementKind = 'wilderness' | 'camp' | 'village' | 'town' | 'city' | 'metropolis';
+export type SettlementKind = 'wilderness' | 'camp' | 'village' | 'town' | 'city' | 'metropolis' | 'megalopolis';
 export type Intent = 'inquiry' | 'quotation' | 'counteroffer' | 'claim' | 'need' | 'warning' | 'alliance_proposal';
 export type Epistemic = 'verified' | 'reported' | 'estimated' | 'forecast' | 'unknown';
 export type MomentCategory =
@@ -140,6 +140,20 @@ export interface DirectiveView {
   last_month?: Month;
 }
 
+/** An epidemic in a region (bts-protocol/1.3). */
+export interface OutbreakView {
+  since: Month;
+  /** 1 (mild) to 3 (severe). */
+  severity_band: number;
+}
+
+/** Deaths of one cause over the last round (bts-protocol/1.3). */
+export interface DeathCount {
+  /** "age_and_illness", "hunger_and_crowding", "town_conditions", "epidemic" or "war". */
+  cause: string;
+  deaths: number;
+}
+
 /** A standing war policy toward one seat (bts-protocol/1.3). */
 export interface WarPolicyView {
   seat: SeatId;
@@ -235,6 +249,8 @@ export interface OwnCiv {
   elders: number;
   births_last_round: number;
   deaths_last_round: number;
+  /** bts-protocol/1.3: the last round's deaths by cause; they add up to `deaths_last_round`. */
+  deaths_by_cause?: DeathCount[];
   migration_last_round: number;
   goods: GoodLine[];
   quals: QualCount[];
@@ -390,6 +406,8 @@ export interface RegionView {
   own: OwnRegion | null;
   foreign: ForeignRegion | null;
   test_node: boolean;
+  /** bts-protocol/1.3: an epidemic, seen by the region's government and by seats observing it. */
+  outbreak?: OutbreakView | null;
 }
 
 export interface ForeignCiv {

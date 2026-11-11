@@ -519,8 +519,9 @@ fn site_engines_never_burn_the_fuel_the_fields_need_in_store() {
     let (mut m, capital, home) = site_world("engines-fields");
     endow(&mut m.world, home, Qual::Builder, 20_000);
     endow(&mut m.world, home, Qual::Mechanic, 20_000);
-    // ten levels of mechanized fields: a hundred thousand cultivators draw a
-    // thousand tonnes of fuel a month, and must find that much in store to start
+    // ten levels of mechanized fields (fertilizer is not yet understood here): 100 t
+    // of fuel a level, a thousand tonnes a month, which must be in store to start
+    m.world.civs[0].tech[content().t("T095")].state = ST_DISCOVERED;
     put_works(&mut m.world.regions[home], "fields", 10);
     assert_eq!(crate::sim::economy::fields_fuel_month(&m.world, 0), 1_000);
     let id = order(&mut m, capital, "machine_shop", 2);
@@ -710,8 +711,8 @@ impl crate::content::ReqCtx for Reach {
     fn fac(&self, i: usize) -> bool {
         self.fac[i]
     }
-    fn pop(&self) -> u32 {
-        u32::MAX
+    fn pop(&self) -> u64 {
+        u64::MAX
     }
     fn regions(&self) -> u32 {
         u32::MAX

@@ -66,7 +66,7 @@ export const CONTROLLER_LABEL: Record<ControllerKind, string> = {
 };
 export const VIS_LABEL: Record<Visibility, string> = { own: 'Governed', visible: 'Observed', remembered: 'Remembered' };
 export const SETTLEMENT_LABEL: Record<SettlementKind, string> = {
-  wilderness: 'Wilderness', camp: 'Camp', village: 'Village', town: 'Town', city: 'City', metropolis: 'Metropolis',
+  wilderness: 'Wilderness', camp: 'Camp', village: 'Village', town: 'Town', city: 'City', metropolis: 'Metropolis', megalopolis: 'Megalopolis',
 };
 export const INTENT_LABEL: Record<Intent, string> = {
   inquiry: 'Inquiry', quotation: 'Quotation', counteroffer: 'Counteroffer', claim: 'Claim', need: 'Need',

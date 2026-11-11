@@ -11,6 +11,7 @@ mod calendar;
 mod construction;
 mod cooperation;
 mod methods;
+mod population;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
@@ -65,7 +66,7 @@ fn the_graph_is_the_same_in_every_world() {
 #[test]
 fn population_changes_only_through_recorded_flows() {
     let mut m = Match::new(cfg("conservation"), 1);
-    let before: Vec<u32> = (0..4).map(|s| m.world.civ_population(s)).collect();
+    let before: Vec<u64> = (0..4).map(|s| m.world.civ_population(s)).collect();
     let mut births = [0u32; 4];
     let mut deaths = [0u32; 4];
     for _ in 0..6 {
@@ -501,7 +502,7 @@ fn a_seat_starts_with_real_people_in_real_units() {
     use crate::worldgen::{HOME_WATER_MIN, START_ARTISANS, START_LOREKEEPERS, START_POP_MIN, START_POP_SPREAD};
     let m = Match::new(cfg("scale"), 1);
     for s in 0..4u8 {
-        let pop = m.world.civ_population(s);
+        let pop = m.world.civ_population(s) as u32;
         assert!((START_POP_MIN..=START_POP_MIN + START_POP_SPREAD).contains(&pop), "seat {s} starts with {pop}");
         let home = &m.world.regions[m.world.civs[s as usize].capital as usize];
         assert_eq!(home.quals[Qual::Lorekeeper.index()], START_LOREKEEPERS);
@@ -509,7 +510,7 @@ fn a_seat_starts_with_real_people_in_real_units() {
         assert!(home.water >= HOME_WATER_MIN);
         // the observation states people as people: nothing is multiplied on the way out
         let obs = m.observe(s);
-        assert_eq!(obs.civ.population, pop);
+        assert_eq!(obs.civ.population, pop as u64);
         assert_eq!(obs.regions.iter().find(|r| r.id == home.id).unwrap().own.as_ref().unwrap().population, home.population());
     }
 }
@@ -590,7 +591,9 @@ fn settlement_classes_follow_the_units_chapter() {
         (4_000_000, SettlementKind::City),
         (11_999_999, SettlementKind::City),
         (12_000_000, SettlementKind::Metropolis),
-        (u32::MAX, SettlementKind::Metropolis),
+        (39_999_999, SettlementKind::Metropolis),
+        (40_000_000, SettlementKind::Megalopolis),
+        (u32::MAX, SettlementKind::Megalopolis),
     ] {
         assert_eq!(settlement_class(pop), kind, "{pop} residents");
     }
@@ -815,7 +818,7 @@ fn print_unit_tables() {
             }
         }
         if f.food {
-            use crate::sim::economy::{field_yield, food_tech, FIELD_CHEM_PER_K, FIELD_FUEL_PER_K, FIELD_METHODS};
+            use crate::sim::economy::{field_yield, food_tech, FIELD_METHODS};
             // a people that knows nothing yet, and one that knows everything
             let first = Match::new(cfg("unit-tables"), 1);
             let mut last = Match::new(cfg("unit-tables"), 1);
@@ -829,8 +832,7 @@ fn print_unit_tables() {
                         if hi != lo {
                             line("        with selection and soil science", hi);
                         }
-                        let draw = |on: bool, per_k: i64| if on { disp(f.general as i64 * per_k / 1000) } else { "0".to_string() };
-                        println!("        draws {} chemicals and {} fuel per level-month", draw(m.chem, FIELD_CHEM_PER_K), draw(m.fuel, FIELD_FUEL_PER_K));
+                        println!("        {} posts a level; draws {} chemicals and {} fuel per level-month", group(m.posts as i64), disp(m.chem_t), disp(m.fuel_t));
                     }
                 }
                 "pasture" => {
@@ -1009,6 +1011,12 @@ fn no_recipe_puts_out_more_mass_than_it_takes_in() {
                 continue;
             }
             let (m_in, m_out) = (mass_kg(&r.inputs), mass_kg(&r.outputs));
+            if ATMOSPHERIC.contains(&r.key) {
+                // a declared atmospheric-input recipe takes carbon or nitrogen from the
+                // air: its ceiling is three times the mass it takes from stock
+                assert!(m_out <= 3 * m_in, "{name}: {m_out} kg out of {m_in} kg in");
+                continue;
+            }
             assert!(m_out <= m_in, "{name}: {m_out} kg out of {m_in} kg in");
         }
         // food is grown on the site by its cultivators: those works carry no recipe at all
@@ -1159,6 +1167,10 @@ fn household_craft_is_bounded_by_idle_adults() {
     assert_eq!(m.world.civs[0].flows.produced[mat], made);
 }
 
+/// Recipes declared to take part of their mass from the air (design chapter 36,
+/// section 5.4): ammonia fertilizer (resources slice) and food synthesis.
+const ATMOSPHERIC: &[&str] = &["food_synthesis"];
+
 #[test]
 fn field_methods_are_used_only_when_their_inputs_are_delivered() {
     let c = content();
@@ -1173,23 +1185,24 @@ fn field_methods_are_used_only_when_their_inputs_are_delivered() {
     put_works(&mut m.world.regions[home], "fields", 30);
     let chem = Good::Chemicals.index();
     let food = Good::Food.index();
-    // a full month for thirty levels is 300,000 cultivators x 10 t per thousand = 3,000 t
-    m.world.civs[0].stock[chem] = 2_999;
+    // a full month for thirty levels of fertilized fields is 30 x 150 t = 4,500 t
+    m.world.civs[0].stock[chem] = 4_499;
     m.world.civs[0].stock[food] = 0;
     crate::sim::economy::step(&mut m.world, 0);
     let plain = m.world.civs[0].stock[food];
     let workers_plain = m.world.civs[0].labor.food;
-    assert_eq!(m.world.civs[0].stock[chem], 2_999, "a store that cannot cover the month is not drawn on");
+    assert_eq!(m.world.civs[0].stock[chem], 4_499, "a store that cannot cover the month is not drawn on");
     assert_eq!(m.world.civs[0].flows.consumed[chem], 0);
     // with the month's draw in store the method is used, and the chemicals are really taken
-    m.world.civs[0].stock[chem] = 3_000;
+    m.world.civs[0].stock[chem] = 4_500;
     m.world.civs[0].stock[food] = 0;
     crate::sim::economy::step(&mut m.world, 0);
     let workers = m.world.civs[0].labor.food as i64;
     let used = m.world.civs[0].flows.consumed[chem];
-    assert_eq!(used, workers * 10 / 1000, "ten tonnes for every thousand cultivators at work");
-    assert!(used > 0 && used <= 3_000);
-    assert_eq!(m.world.civs[0].stock[chem], 3_000 - used);
+    // 150 t a level of 6,000 cultivators: 25 t for every thousand at work
+    assert_eq!(used, workers * 25 / 1000, "twenty-five tonnes for every thousand cultivators at work");
+    assert!(used > 0 && used <= 4_500);
+    assert_eq!(m.world.civs[0].stock[chem], 4_500 - used);
     // the better yield feeds the same people with fewer hands
     assert!(m.world.civs[0].stock[food] * workers_plain as i64 > plain * workers, "{} rations from {workers} hands against {plain} from {workers_plain}", m.world.civs[0].stock[food]);
 }

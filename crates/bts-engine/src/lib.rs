@@ -320,7 +320,7 @@ pub struct SeatDiagnostics {
     pub seat: SeatId,
     pub name: String,
     pub status: SeatStatus,
-    pub population: u32,
+    pub population: u64,
     pub regions: usize,
     pub understood: usize,
     pub highest_tier: u8,

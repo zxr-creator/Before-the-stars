@@ -260,14 +260,16 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         };
         let a = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("attr"), rid as u64, k], lo, hi);
         let (arable, pasture, wild, forest, water, hydro) = match terrain {
-            Terrain::Plains => (a(0, 30, 55), a(1, 15, 30), a(2, 380, 520), a(3, 4, 10), a(4, 1500, 3000), a(5, 0, 2)),
-            Terrain::Hills => (a(0, 10, 22), a(1, 20, 35), a(2, 300, 420), a(3, 8, 16), a(4, 1000, 2000), a(5, 4, 8)),
-            Terrain::Mountains => (a(0, 2, 6), a(1, 6, 14), a(2, 150, 240), a(3, 4, 10), a(4, 800, 1500), a(5, 8, 16)),
-            Terrain::Forest => (a(0, 12, 24), a(1, 6, 12), a(2, 450, 600), a(3, 20, 36), a(4, 1500, 2500), a(5, 1, 3)),
-            Terrain::Marsh => (a(0, 10, 22), a(1, 4, 8), a(2, 420, 560), a(3, 6, 12), a(4, 2500, 4000), a(5, 0, 2)),
-            Terrain::Steppe => (a(0, 8, 16), a(1, 35, 55), a(2, 260, 360), a(3, 2, 5), a(4, 600, 1200), a(5, 1, 4)),
-            Terrain::Desert => (a(0, 0, 4), a(1, 4, 10), a(2, 90, 160), a(3, 0, 2), a(4, 200, 500), a(5, 0, 3)),
-            Terrain::Tundra => (a(0, 0, 3), a(1, 6, 12), a(2, 160, 260), a(3, 2, 8), a(4, 800, 1500), a(5, 1, 4)),
+            // arable land is three times generator 1.2's (design chapter 36, section 3.3):
+            // a field level keeps its meaning, and a country-sized region has that much cropland
+            Terrain::Plains => (3 * a(0, 30, 55), a(1, 15, 30), a(2, 380, 520), a(3, 4, 10), a(4, 1500, 3000), a(5, 0, 2)),
+            Terrain::Hills => (3 * a(0, 10, 22), a(1, 20, 35), a(2, 300, 420), a(3, 8, 16), a(4, 1000, 2000), a(5, 4, 8)),
+            Terrain::Mountains => (3 * a(0, 2, 6), a(1, 6, 14), a(2, 150, 240), a(3, 4, 10), a(4, 800, 1500), a(5, 8, 16)),
+            Terrain::Forest => (3 * a(0, 12, 24), a(1, 6, 12), a(2, 450, 600), a(3, 20, 36), a(4, 1500, 2500), a(5, 1, 3)),
+            Terrain::Marsh => (3 * a(0, 10, 22), a(1, 4, 8), a(2, 420, 560), a(3, 6, 12), a(4, 2500, 4000), a(5, 0, 2)),
+            Terrain::Steppe => (3 * a(0, 8, 16), a(1, 35, 55), a(2, 260, 360), a(3, 2, 5), a(4, 600, 1200), a(5, 1, 4)),
+            Terrain::Desert => (3 * a(0, 0, 4), a(1, 4, 10), a(2, 90, 160), a(3, 0, 2), a(4, 200, 500), a(5, 0, 3)),
+            Terrain::Tundra => (3 * a(0, 0, 3), a(1, 6, 12), a(2, 160, 260), a(3, 2, 8), a(4, 800, 1500), a(5, 1, 4)),
         };
         let poly: Vec<[i32; 2]> = c.poly.iter().map(|p| [p.0.round() as i32, p.1.round() as i32]).collect();
         let mut neighbors: Vec<(RegionId, LinkKind)> = Vec::new();
@@ -314,6 +316,9 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             students: 0,
             teachers: [0; NQ],
             migr_rem: 0,
+            outbreak: None,
+            immune_until: 0,
+            army_seen: 0,
         });
     }
     let nr = regions.len();
@@ -370,7 +375,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
     for i in 0..nr {
         if regions[i].river {
             let b = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("riverattr"), i as u64, k], lo, hi);
-            regions[i].arable += b(0, 6, 12) as u16;
+            regions[i].arable += 3 * b(0, 6, 12) as u16;
             regions[i].water += b(1, 1200, 2200) as u32 * WATER_STEP;
             regions[i].hydro += b(2, 4, 8) as u16;
             regions[i].fishery += b(3, 3, 6) as u16;
@@ -460,12 +465,13 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
 
     // --- 6. correlated deposits -------------------------------------------
     // Kilotonnes in the ground. Extraction draws from a deposit at least what it
-    // delivers, and shallow workings disturb twice what they deliver, so these are
-    // twice the figures of generator 1.1.0, which counted only delivered ore.
+    // delivers, and shallow workings disturb twice what they deliver. Generator 2.0
+    // holds three centuries of industrial demand at the scale of ruleset 3.0 (design
+    // chapter 36, section 5.3): copper 300-1,200 Mt, iron 2,000-8,000, coal 3,000-12,000.
     let belts: [(Deposit, u64, f64, i64, i64); 5] = [
-        (Deposit::CopperOre, 40, 0.56, 160_000, 520_000),
-        (Deposit::IronOre, 50, 0.52, 500_000, 1_600_000),
-        (Deposit::Coal, 60, 0.54, 700_000, 2_400_000),
+        (Deposit::CopperOre, 40, 0.56, 300_000, 1_200_000),
+        (Deposit::IronOre, 50, 0.52, 2_000_000, 8_000_000),
+        (Deposit::Coal, 60, 0.54, 3_000_000, 12_000_000),
         (Deposit::Crude, 70, 0.57, 600_000, 2_000_000),
         (Deposit::Minerals, 80, 0.58, 80_000, 260_000),
     ];
@@ -533,7 +539,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
     for (s, &home) in starts.iter().enumerate() {
         {
             let r = &mut regions[home];
-            r.arable = r.arable.max(34);
+            r.arable = r.arable.max(102);
             r.wild = r.wild.max(560_000);
             r.water = r.water.max(HOME_WATER_MIN);
             r.forest = r.forest.max(12);
@@ -555,14 +561,17 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
                 }
             }
         }
+        // at least this much within three links of home, in kilotonnes
         let needed: [(Deposit, i64); 4] = [
-            (Deposit::CopperOre, 240_000),
-            (Deposit::IronOre, 700_000),
-            (Deposit::Coal, 1_000_000),
+            (Deposit::CopperOre, 1_200_000),
+            (Deposit::IronOre, 7_000_000),
+            (Deposit::Coal, 10_000_000),
             (Deposit::Minerals, 120_000),
         ];
         for (k, (kind, amount)) in needed.iter().enumerate() {
-            if near.iter().any(|(x, _)| regions[*x].deposit(*kind).is_some()) {
+            let have: i64 = near.iter().filter_map(|(x, _)| regions[*x].deposit(*kind)).map(|d| d.remaining).sum();
+            let short = amount * 1000 - have;
+            if short <= 0 {
                 continue;
             }
             // Prefer rough terrain close to home that no other start will sit on.
@@ -576,7 +585,11 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
                 .collect::<Vec<_>>();
             pick.sort();
             let target = pick.first().map(|p| p.1).unwrap_or(home);
-            regions[target].deposits.push(DepositState::new(*kind, amount * 1000, 7000));
+            // a deposit already there is enlarged; otherwise a new one is placed
+            match regions[target].deposits.iter_mut().find(|d| d.kind == *kind) {
+                Some(d) => d.remaining += short,
+                None => regions[target].deposits.push(DepositState::new(*kind, short, 7000)),
+            }
         }
     }
 

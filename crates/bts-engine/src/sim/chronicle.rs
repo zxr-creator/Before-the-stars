@@ -255,7 +255,7 @@ pub fn monthly(w: &mut World) {
                 Some(capital), "famine", true, vec![format!("Food access below 80% since {}", crate::util::event_label(&w.cfg, month - 4))]);
             brief(w, seat, "danger", "Hunger is spreading".into(), "Food access has been below 80% for four months. Free labour for food, open new land or reduce other commitments.".into(), Some(capital), "economy");
         }
-        for (threshold, label) in [(1_000_000u32, "a million"), (5_000_000, "five million"), (20_000_000, "twenty million"), (100_000_000, "a hundred million")] {
+        for (threshold, label) in [(1_000_000u64, "a million"), (5_000_000, "five million"), (20_000_000, "twenty million"), (100_000_000, "a hundred million"), (500_000_000, "five hundred million"), (1_000_000_000, "a billion")] {
             let flag = format!("pop{threshold}");
             if pop >= threshold && !w.civs[s].milestones.flags.contains(&flag) {
                 w.civs[s].milestones.flags.push(flag);

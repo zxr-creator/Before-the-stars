@@ -234,7 +234,7 @@ const GLYPH_SPACING: Record<Terrain, number> = {
   forest: 23, mountains: 35, hills: 29, marsh: 25, desert: 30, steppe: 22, tundra: 21, plains: 40,
 };
 const SETTLEMENT_RANK: Record<SettlementKind, number> = {
-  wilderness: 0, camp: 1, village: 2, town: 3, city: 4, metropolis: 5,
+  wilderness: 0, camp: 1, village: 2, town: 3, city: 4, metropolis: 5, megalopolis: 6,
 };
 
 // --- the renderer -------------------------------------------------------------

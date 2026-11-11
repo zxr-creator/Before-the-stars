@@ -66,6 +66,17 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   `--checkpoints DIR` (era saves at 1000 BC, AD 1000, 1700, 1900, 2100 by default)
   and `examples/decide` (one seat's plan and the referee's answers). Calibration:
   `docs/calibration/ruleset3-slice-1-*.txt`.
+- **Slice 2, population (mechanics done; calibrated together with slice 3).** Ruleset
+  3.0 mortality bands and technology factors, care, crowding, town conditions with
+  sanitation coverage, epidemics (`sim::outbreaks`, addressed draws per region and
+  month, spread to neighbours, immunity), harvest variance, `F_custom x F_food x
+  F_crowd x F_dev` fertility with the Fruitful Households and Day of Rest doctrines,
+  deaths by cause, arable land x3 and fields to 250 levels, field methods v3, food
+  synthesis works, deposits x5-10 with the larger guarantees, the Megalopolis class,
+  `u64` population sums (`docs/units-and-scale.md` section 3). Population depends on
+  when the medical and agricultural nodes arrive, so its constants are calibrated
+  after slice 3 sets the knowledge pace; `docs/calibration/ruleset3-slice-2-eval.txt`
+  records the state with ruleset 2.0 knowledge pacing.
 
 ## Known calibration gaps
 

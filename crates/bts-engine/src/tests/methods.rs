@@ -322,7 +322,9 @@ fn field_methods_are_held_by_region_and_a_region_on_traction_burns_no_fuel() {
     month(&mut m);
     assert_eq!((method(&m, home), method(&m, far)), (("intensive", vec![]), ("intensive", vec![])));
     let (c1, f1) = used(&m);
-    assert!(c1 > 0 && c1 == f1, "ten tonnes of each for every thousand cultivators: {c1} {f1}");
+    // intensive fields: 300 t of chemicals and 150 t of fuel a level of 2,000 cultivators
+    // (each irrigated and unirrigated stretch rounds down on its own)
+    assert!(c1 > 0 && (c1 - 2 * f1).abs() <= 4, "150 t of chemicals and 75 t of fuel for every thousand cultivators: {c1} {f1}");
 
     // the capital's fields held at animal traction: only the other region draws
     assert_eq!(set_method(&mut m, capital, "fields", Some("traction")).status, "accepted");
@@ -331,7 +333,8 @@ fn field_methods_are_held_by_region_and_a_region_on_traction_burns_no_fuel() {
     let (c2, f2) = used(&m);
     let far_hands = m.world.regions[far].last.labor.food as i64;
     assert!(far_hands > 0);
-    assert_eq!((c2 - c1, f2 - f1), (far_hands * 10 / 1000, far_hands * 10 / 1000), "only the cultivators of the other region drew anything");
+    let (dc, df) = (c2 - c1, f2 - f1);
+    assert!((dc - far_hands * 150 / 1000).abs() <= 2 && (df - far_hands * 75 / 1000).abs() <= 2, "only the cultivators of the other region drew anything: {dc} {df} for {far_hands}");
 
     // both held: nothing is drawn although the stores are full
     assert_eq!(set_method(&mut m, far_id, "fields", Some("traction")).status, "accepted");
@@ -371,11 +374,13 @@ fn field_methods_are_held_by_region_and_a_region_on_traction_burns_no_fuel() {
         let input = |g: Good| r.inputs.iter().find(|i| i.good == g).map(|i| i.amount).unwrap_or(0);
         (r.outputs[0].good, r.outputs[0].amount, input(Good::Chemicals), input(Good::Fuel), r.general_posts, r.available)
     };
+    // design chapter 36, table 3.3: one level's rations, inputs (fertilizer drawn as
+    // chemicals until the resources slice) and posts
     assert_eq!(line("hand"), (Good::Food, 30_000, 0, 0, 10_000, true));
-    assert_eq!(line("traction"), (Good::Food, 46_000, 0, 0, 10_000, true));
-    assert_eq!(line("inputs"), (Good::Food, 72_000, 100, 0, 10_000, true));
-    assert_eq!(line("mechanized"), (Good::Food, 90_000, 0, 100, 10_000, true));
-    assert_eq!(line("intensive"), (Good::Food, 140_000, 100, 100, 10_000, true));
+    assert_eq!(line("traction"), (Good::Food, 46_000, 0, 0, 8_000, true));
+    assert_eq!(line("inputs"), (Good::Food, 120_000, 150, 0, 6_000, true));
+    assert_eq!(line("mechanized"), (Good::Food, 110_000, 0, 100, 3_000, true));
+    assert_eq!(line("intensive"), (Good::Food, 250_000, 300, 150, 2_000, true));
     assert!(ft.recipes.iter().all(|r| r.key != "restorative"), "a method resting on undiscovered knowledge is not named");
 }
 

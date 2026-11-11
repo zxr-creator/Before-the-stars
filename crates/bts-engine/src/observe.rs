@@ -126,7 +126,7 @@ fn deposit_known(civ: &Civ, d: Deposit) -> bool {
     }
 }
 
-fn fuzz(w: &World, seat: SeatId, key: u64, value: u32, spread_pct: u64) -> (u32, u32) {
+fn fuzz(w: &World, seat: SeatId, key: u64, value: u64, spread_pct: u64) -> (u64, u64) {
     if value == 0 {
         return (0, 0);
     }
@@ -138,9 +138,9 @@ fn fuzz(w: &World, seat: SeatId, key: u64, value: u32, spread_pct: u64) -> (u32,
     let hi = mid * (100 + spread_pct as i64 / 2) / 100;
     // estimates of people are reported in round numbers: to the nearest 5,000 for a
     // camp or a formation, 500,000 for a nation
-    let round = |v: i64| -> u32 {
+    let round = |v: i64| -> u64 {
         let step = if v >= 10_000_000 { 500_000 } else if v >= 1_000_000 { 100_000 } else if v >= 100_000 { 10_000 } else { 5_000 };
-        ((v / step) * step).clamp(0, u32::MAX as i64) as u32
+        ((v / step) * step).max(0) as u64
     };
     (round(lo), round(hi).max(round(lo) + 1))
 }
@@ -486,7 +486,7 @@ fn recipe_discovered(civ: &Civ, rec: &crate::content::Recipe) -> bool {
 
 fn field_method_discovered(civ: &Civ, i: usize) -> bool {
     let c = content();
-    economy::FIELD_METHODS[i].techs.iter().all(|id| civ.tech[c.t(id)].state >= ST_DISCOVERED)
+    economy::FIELD_METHODS[i].techs.iter().all(|id| civ.tech[c.t(id)].state >= ST_DISCOVERED) && economy::FIELD_METHODS[i].practices.iter().all(|id| civ.practice[c.p(id)].state >= 1)
 }
 
 /// The entries of an "enables" list that name nothing beyond the seat's knowledge:
@@ -512,23 +512,22 @@ fn method_posts(def: &crate::content::FacDef, rec: &crate::content::Recipe) -> (
 /// views: one level's yield in rations a month as the seat's knowledge now gives
 /// it (before husbandry, tools, irrigation, condition and unrest) and the
 /// chemicals and fuel one level draws.
-fn field_recipes(w: &World, seat: SeatId, def: &crate::content::FacDef) -> Vec<RecipeView> {
+fn field_recipes(w: &World, seat: SeatId, _def: &crate::content::FacDef) -> Vec<RecipeView> {
     let civ = &w.civs[seat as usize];
     let has_pasture = economy::has_pasture(w, seat);
-    let crew = def.general as i64;
     (0..economy::FIELD_METHODS.len())
         .filter(|i| field_method_discovered(civ, *i))
         .map(|i| {
             let m = &economy::FIELD_METHODS[i];
             let mut inputs = Vec::new();
-            if m.chem {
-                inputs.push(GoodQty { good: Good::Chemicals, amount: crew * economy::FIELD_CHEM_PER_K / 1000 });
+            if m.chem() {
+                inputs.push(GoodQty { good: Good::Chemicals, amount: m.chem_t });
             }
-            if m.fuel {
-                inputs.push(GoodQty { good: Good::Fuel, amount: crew * economy::FIELD_FUEL_PER_K / 1000 });
+            if m.fuel() {
+                inputs.push(GoodQty { good: Good::Fuel, amount: m.fuel_t });
             }
-            let mut note = "Yield of one level's cultivators before irrigation (a quarter more), husbandry, tools, condition and unrest.".to_string();
-            if m.chem || m.fuel {
+            let mut note = "Yield of one level's cultivators before irrigation (a quarter more), the year's harvest, husbandry, tools, condition and unrest.".to_string();
+            if m.chem() || m.fuel() {
                 note.push_str(" Used only while a full month of its inputs is in store for every field that may draw them; otherwise the land is worked by the next method down.");
             }
             if m.needs_pasture {
@@ -538,7 +537,7 @@ fn field_recipes(w: &World, seat: SeatId, def: &crate::content::FacDef) -> Vec<R
                 key: m.key.to_string(),
                 name: m.name.to_string(),
                 inputs,
-                outputs: vec![GoodQty { good: Good::Food, amount: crew * economy::field_yield(civ, i) / 1000 }],
+                outputs: vec![GoodQty { good: Good::Food, amount: m.rations }],
                 shaft: 0,
                 elec: 0,
                 compute: 0,
@@ -548,7 +547,7 @@ fn field_recipes(w: &World, seat: SeatId, def: &crate::content::FacDef) -> Vec<R
                 research: None,
                 note,
                 available: economy::field_method_known(civ, i) && (!m.needs_pasture || has_pasture),
-                general_posts: def.general,
+                general_posts: m.posts,
                 skilled_posts: Vec::new(),
             }
         })
@@ -602,8 +601,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         };
         let foreign = match owner {
             Some(o) if o != seat && !mine => {
-                let (lo, hi) = fuzz(w, seat, 1000 + ri as u64, mem.pop_estimate, 50);
-                Some(ForeignRegion { population_low: lo, population_high: hi, notable: mem.notable.clone() })
+                let (lo, hi) = fuzz(w, seat, 1000 + ri as u64, mem.pop_estimate as u64, 50);
+                Some(ForeignRegion { population_low: lo.min(u32::MAX as u64) as u32, population_high: hi.min(u32::MAX as u64) as u32, notable: mem.notable.clone() })
             }
             _ => None,
         };
@@ -627,12 +626,14 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             own: if r.controller == Some(seat) { Some(own_region(w, seat, ri, link[ri])) } else { None },
             foreign,
             test_node: revealed && w.test_nodes.contains(&r.id),
+            // an epidemic is seen by the region's government and by anyone observing it now
+            outbreak: if mine || current { r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }) } else { None },
         });
     }
 
     // ---- own civilization -----------------------------------------------------
     let ctrl: Vec<&Region> = w.regions.iter().filter(|r| r.controller == Some(seat)).collect();
-    let population: u32 = ctrl.iter().map(|r| r.population()).sum();
+    let population: u64 = ctrl.iter().map(|r| r.population() as u64).sum();
     let storage: i64 = ctrl.iter().map(|r| r.cap(Cap::Storage) + 400_000).sum();
     let goods = Good::ALL
         .iter()
@@ -720,12 +721,13 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         adjective: civ.adjective.clone(),
         color: civ.color.clone(),
         capital: civ.capital,
-        population: population + civ.labor.soldiers,
-        children: ctrl.iter().map(|r| r.children()).sum(),
-        working_age: ctrl.iter().map(|r| r.working()).sum(),
-        elders: ctrl.iter().map(|r| r.elders()).sum(),
+        population: population + civ.labor.soldiers as u64,
+        children: ctrl.iter().map(|r| r.children() as u64).sum(),
+        working_age: ctrl.iter().map(|r| r.working() as u64).sum(),
+        elders: ctrl.iter().map(|r| r.elders() as u64).sum(),
         births_last_round: civ.last_flows.births,
         deaths_last_round: civ.last_flows.deaths,
+        deaths_by_cause: crate::sim::population::DEATH_CAUSES.iter().enumerate().map(|(i, c)| DeathCount { cause: c.to_string(), deaths: civ.last_flows.deaths_cause[i] as u64 }).collect(),
         migration_last_round: civ.last_flows.migration,
         goods,
         quals,
@@ -759,7 +761,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         }
         let ct = &civ.contacts[o.seat as usize];
         let known: Vec<usize> = (0..w.regions.len()).filter(|i| civ.memory[*i].seen && civ.memory[*i].owner == Some(o.seat)).collect();
-        let est: u32 = known.iter().map(|i| civ.memory[*i].pop_estimate).sum();
+        let est: u64 = known.iter().map(|i| civ.memory[*i].pop_estimate as u64).sum();
         let (lo, hi) = fuzz(w, seat, 2000 + o.seat as u64, est, 50);
         let seen_armies: Vec<&Army> = w.armies.iter().filter(|a| a.owner == o.seat && civ.memory[a.region as usize].last_seen == month).collect();
         let their_power: i64 = seen_armies.iter().map(|a| a.count() as i64 * crate::content::TIER_POWER[a.tier as usize] / 1000).sum();
@@ -905,7 +907,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     }
     let mut lineages = Vec::new();
     for (li, l) in w.lineages.iter().enumerate() {
-        let pop: u32 = ctrl.iter().flat_map(|r| r.blocks.iter()).filter(|b| b.lineage as usize == li).map(|b| b.total()).sum();
+        let pop: u64 = ctrl.iter().flat_map(|r| r.blocks.iter()).filter(|b| b.lineage as usize == li).map(|b| b.total() as u64).sum();
         if pop == 0 {
             continue;
         }
@@ -917,7 +919,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     let belief_view = |key: &str| BELIEFS.iter().find(|b| b.key == key).map(|b| BeliefOption { key: b.key.to_string(), slot: b.slot.to_string(), name: b.name.to_string(), description: b.desc.to_string() });
     let mut religions = Vec::new();
     for (ri, rel) in w.religions.iter().enumerate() {
-        let followers: u32 = ctrl.iter().flat_map(|r| r.blocks.iter()).filter(|b| b.religion == Some(ri as u16)).map(|b| b.total()).sum();
+        let followers: u64 = ctrl.iter().flat_map(|r| r.blocks.iter()).filter(|b| b.religion == Some(ri as u16)).map(|b| b.total() as u64).sum();
         let known = rel.founder == seat || followers > 0 || civ.contacts[rel.founder as usize].met;
         if !known {
             continue;
@@ -1176,7 +1178,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         .iter()
         .filter(|a| a.owner != seat && civ.memory[a.region as usize].last_seen == month && civ.memory[a.region as usize].seen)
         .map(|a| {
-            let (lo, hi) = fuzz(w, seat, 5000 + a.id as u64, a.count(), 60);
+            let (lo, hi) = fuzz(w, seat, 5000 + a.id as u64, a.count() as u64, 60);
+            let (lo, hi) = (lo.min(u32::MAX as u64) as u32, hi.min(u32::MAX as u64) as u32);
             ForeignArmyView { owner: a.owner, region: a.region, strength_low: lo, strength_high: hi, tier_estimate: if a.in_battle || w.at_war(seat, a.owner) { Some(a.tier) } else { None }, observed_month: month }
         })
         .collect();
@@ -1414,6 +1417,7 @@ pub fn spectate(w: &World) -> SpectatorView {
             own,
             foreign: None,
             test_node: w.test_nodes.contains(&r.id),
+            outbreak: r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }),
         });
     }
     let civs = w

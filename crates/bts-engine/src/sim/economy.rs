@@ -57,33 +57,55 @@ pub struct FoodTech {
 
 /// Tonnes of chemicals a thousand field workers apply in a month, and tonnes of
 /// fuel a thousand mechanized field workers or motor-boat fishers burn.
-pub const FIELD_CHEM_PER_K: i64 = 10;
+/// Tonnes of fuel a thousand motor-boat fishers burn in a month.
 pub const FIELD_FUEL_PER_K: i64 = 10;
 
-/// One way of working fields. The methods are listed from the lowest yield to the
-/// highest; a seat may hold a region's fields at any one it knows
-/// (`Facility::method`), and the land is then worked by the best method that is
-/// not above the chosen one, draws no input the chosen one does not draw, is
-/// known, and has its month of chemicals and fuel in store.
+/// One way of working fields (design chapter 36, section 3.3, "field methods v3").
+/// The methods are listed from the least to the most productive; a seat may hold
+/// a region's fields at any one it knows (`Facility::method`), and the land is then
+/// worked by the best method that is not above the chosen one, draws no input the
+/// chosen one does not draw, is known, and has its month of inputs in store.
+///
+/// Fertilizer is a good of the resources slice (design section 5); until it exists
+/// the fertilizer of the table is drawn as chemicals.
 pub struct FieldMethod {
     pub key: &'static str,
     pub name: &'static str,
     /// Technologies that must all be understood.
     pub techs: &'static [&'static str],
-    /// Draught animals: needs herds somewhere under the seat.
+    /// Practices that must all be established.
+    pub practices: &'static [&'static str],
+    /// Draught animals: needs herds somewhere under the seat (horses, a good of the
+    /// resources slice, stand in this way until then).
     pub needs_pasture: bool,
-    /// Applies `FIELD_CHEM_PER_K` of chemicals, burns `FIELD_FUEL_PER_K` of fuel.
-    pub chem: bool,
-    pub fuel: bool,
+    /// Rations one level yields in a month, before irrigation, harvest, husbandry,
+    /// tools, condition and unrest.
+    pub rations: i64,
+    /// General posts one level needs.
+    pub posts: u32,
+    /// Tonnes of chemicals (fertilizer and other inputs) and of refined fuel one
+    /// level draws in a month.
+    pub chem_t: i64,
+    pub fuel_t: i64,
 }
 
-pub const FIELD_METHODS: [FieldMethod; 6] = [
-    FieldMethod { key: "hand", name: "Hand cultivation", techs: &[], needs_pasture: false, chem: false, fuel: false },
-    FieldMethod { key: "traction", name: "Animal traction", techs: &["T020"], needs_pasture: true, chem: false, fuel: false },
-    FieldMethod { key: "inputs", name: "Manufactured inputs", techs: &["T095"], needs_pasture: false, chem: true, fuel: false },
-    FieldMethod { key: "mechanized", name: "Mechanized farming", techs: &["T094"], needs_pasture: false, chem: false, fuel: true },
-    FieldMethod { key: "intensive", name: "Mechanized farming with manufactured inputs", techs: &["T094", "T095"], needs_pasture: false, chem: true, fuel: true },
-    FieldMethod { key: "restorative", name: "Restorative mechanized farming", techs: &["T133", "T094", "T095"], needs_pasture: false, chem: true, fuel: true },
+impl FieldMethod {
+    pub fn chem(&self) -> bool {
+        self.chem_t > 0
+    }
+    pub fn fuel(&self) -> bool {
+        self.fuel_t > 0
+    }
+}
+
+pub const FIELD_METHODS: [FieldMethod; 7] = [
+    FieldMethod { key: "hand", name: "Hand cultivation", techs: &[], practices: &[], needs_pasture: false, rations: 30_000, posts: 10_000, chem_t: 0, fuel_t: 0 },
+    FieldMethod { key: "traction", name: "Animal traction", techs: &["T020"], practices: &[], needs_pasture: true, rations: 46_000, posts: 8_000, chem_t: 0, fuel_t: 0 },
+    FieldMethod { key: "rotation", name: "Rotation and manuring", techs: &["T020", "T011"], practices: &["C017"], needs_pasture: true, rations: 60_000, posts: 8_000, chem_t: 0, fuel_t: 0 },
+    FieldMethod { key: "inputs", name: "Fertilized fields", techs: &["T095"], practices: &[], needs_pasture: false, rations: 120_000, posts: 6_000, chem_t: 150, fuel_t: 0 },
+    FieldMethod { key: "mechanized", name: "Mechanized farming", techs: &["T094"], practices: &[], needs_pasture: false, rations: 110_000, posts: 3_000, chem_t: 0, fuel_t: 100 },
+    FieldMethod { key: "intensive", name: "Mechanized farming with fertilizer", techs: &["T094", "T095"], practices: &[], needs_pasture: false, rations: 250_000, posts: 2_000, chem_t: 300, fuel_t: 150 },
+    FieldMethod { key: "restorative", name: "Restorative mechanized farming", techs: &["T133", "T094", "T095"], practices: &[], needs_pasture: false, rations: 380_000, posts: 1_500, chem_t: 250, fuel_t: 150 },
 ];
 
 pub fn field_method_index(key: &str) -> Option<usize> {
@@ -92,22 +114,14 @@ pub fn field_method_index(key: &str) -> Option<usize> {
 
 /// Whether the seat understands everything a field method rests on.
 pub fn field_method_known(civ: &Civ, i: usize) -> bool {
-    FIELD_METHODS[i].techs.iter().all(|t| civ.knows_id(t))
+    FIELD_METHODS[i].techs.iter().all(|t| civ.knows_id(t)) && FIELD_METHODS[i].practices.iter().all(|p| civ.est_id(p))
 }
 
 /// Rations a thousand cultivators raise in a month by a field method, before
-/// husbandry, tools, irrigation, condition and unrest.
-pub fn field_yield(civ: &Civ, i: usize) -> i64 {
-    let k = |id: &str| civ.knows_id(id);
-    let soils = |y: i64| if k("T056") { y * 11 / 10 } else { y };
-    match i {
-        0 => soils(if k("T010") { 3300 } else { 3000 }),
-        1 => soils(4600),
-        2 => 7200,
-        3 => 9000,
-        4 => 14_000,
-        _ => 20_000,
-    }
+/// harvest, husbandry, tools, irrigation, condition and unrest.
+pub fn field_yield(_civ: &Civ, i: usize) -> i64 {
+    let m = &FIELD_METHODS[i];
+    m.rations * 1000 / m.posts as i64
 }
 
 /// Whether fields held at `ceiling` (none: left to the cultivators) may be worked
@@ -115,7 +129,7 @@ pub fn field_yield(civ: &Civ, i: usize) -> i64 {
 pub fn field_method_allowed(i: usize, ceiling: Option<usize>) -> bool {
     match ceiling {
         None => true,
-        Some(c) => i <= c && (!FIELD_METHODS[i].chem || FIELD_METHODS[c].chem) && (!FIELD_METHODS[i].fuel || FIELD_METHODS[c].fuel),
+        Some(c) => i <= c && (!FIELD_METHODS[i].chem() || FIELD_METHODS[c].chem()) && (!FIELD_METHODS[i].fuel() || FIELD_METHODS[c].fuel()),
     }
 }
 
@@ -138,20 +152,47 @@ pub fn field_method_for(civ: &Civ, has_pasture: bool, ceiling: Option<usize>, ch
             continue;
         }
         best = i;
-        if (!m.chem || chem_ok) && (!m.fuel || fuel_ok) {
+        if (!m.chem() || chem_ok) && (!m.fuel() || fuel_ok) {
             used = i;
         }
     }
     let mut missing = Vec::new();
     if best > used {
-        if FIELD_METHODS[best].chem && !chem_ok {
+        if FIELD_METHODS[best].chem() && !chem_ok {
             missing.push(Good::Chemicals);
         }
-        if FIELD_METHODS[best].fuel && !fuel_ok {
+        if FIELD_METHODS[best].fuel() && !fuel_ok {
             missing.push(Good::Fuel);
         }
     }
     (used, missing)
+}
+
+/// The harvest of a year in a region, basis points added to field yields
+/// (design chapter 36, section 3.2): one draw a year from the secret stream
+/// `("harvest", climate zone, year)`, shared by the regions of one climate zone
+/// (terrain group) in one part of the map, triangular in [-1,800, +1,000] with mode
+/// +200 (mean -200).
+pub fn harvest_bp(w: &World, ri: usize) -> i64 {
+    let r = &w.regions[ri];
+    let zone = match r.terrain {
+        Terrain::Plains | Terrain::Steppe => 0u64,
+        Terrain::Hills | Terrain::Mountains => 1,
+        Terrain::Forest | Terrain::Marsh => 2,
+        Terrain::Desert => 3,
+        Terrain::Tundra => 4,
+    };
+    let cell = ((r.center[0].max(0) as i64 * 3 / w.width.max(1) as i64).min(2) * 3 + (r.center[1].max(0) as i64 * 3 / w.height.max(1) as i64).min(2)) as u64;
+    let year = (w.month.saturating_sub(1) / 12) as u64;
+    let u = draw_range(w.secret, &[stream("harvest"), zone, cell, year], 1_000_000) as i64;
+    // triangular(a = -1,800, b = +1,000, c = +200) by inverse transform, in integers
+    let (a, b, c) = (-1_800i64, 1_000i64, 200i64);
+    let split = (c - a) * 1_000_000 / (b - a);
+    if u < split {
+        a + isqrt(u * (b - a) * (c - a) / 1_000_000)
+    } else {
+        b - isqrt((1_000_000 - u) * (b - a) * (b - c) / 1_000_000)
+    }
 }
 
 /// Yields of forage, pasture and fishing. `fuel_ok` says whether the stores hold
@@ -266,9 +307,11 @@ struct FoodOpt {
     capacity: u32,
     used: u32,
     tag: Tag,
-    /// Tonnes of chemicals and of fuel a thousand of its workers draw in a month.
+    /// Tonnes of chemicals and of fuel `per` of its workers draw in a month (a level
+    /// of fields: its posts; motor boats: a thousand fishers).
     chem_k: i64,
     fuel_k: i64,
+    per: i64,
     /// Fields, as against pasture, fishing grounds and the wild.
     field: bool,
 }
@@ -494,23 +537,22 @@ pub fn stock_target(civ: &Civ, g: Good) -> i64 {
 /// seat governs: the people whose methods can draw chemicals and fuel. Fields
 /// that the seat holds at a method without chemicals, or without fuel, are not
 /// counted for it, and neither are fields of a seat that knows no method drawing it.
+/// Tonnes of chemicals and of fuel that the seat's fields may draw in a month (at
+/// the hungriest method each region may use), and the posts of motor-boat fishers.
 pub fn field_input_posts(w: &World, seat: SeatId) -> (i64, i64, i64) {
     let c = content();
     let civ = &w.civs[seat as usize];
     let (fields_k, fishery_k) = (c.f("fields"), c.f("fishery"));
-    let (field_crew, fishery_crew) = (c.facilities[fields_k].general as i64, c.facilities[fishery_k].general as i64);
-    let (mut chem_posts, mut fuel_posts, mut boat_posts) = (0i64, 0i64, 0i64);
+    let fishery_crew = c.facilities[fishery_k].general as i64;
+    let (mut chem_t, mut fuel_t, mut boat_posts) = (0i64, 0i64, 0i64);
     for r in w.regions.iter().filter(|r| r.controller == Some(seat)) {
         if let Some(f) = r.fac(fields_k) {
             if f.enabled {
                 let ceiling = field_ceiling(civ, f);
-                let may = |draws: fn(&FieldMethod) -> bool| FIELD_METHODS.iter().enumerate().any(|(i, m)| draws(m) && field_method_known(civ, i) && field_method_allowed(i, ceiling));
-                if may(|m| m.chem) {
-                    chem_posts += f.level as i64 * field_crew;
-                }
-                if may(|m| m.fuel) {
-                    fuel_posts += f.level as i64 * field_crew;
-                }
+                let allowed = FIELD_METHODS.iter().enumerate().filter(|(i, _)| field_method_known(civ, *i) && field_method_allowed(*i, ceiling));
+                let (mc, mf) = allowed.fold((0, 0), |(a, b), (_, m)| (a.max(m.chem_t), b.max(m.fuel_t)));
+                chem_t += f.level as i64 * mc;
+                fuel_t += f.level as i64 * mf;
             }
         }
         if let Some(f) = r.fac(fishery_k) {
@@ -519,7 +561,7 @@ pub fn field_input_posts(w: &World, seat: SeatId) -> (i64, i64, i64) {
             }
         }
     }
-    (chem_posts, fuel_posts, boat_posts)
+    (chem_t, fuel_t, boat_posts)
 }
 
 /// Tonnes of fuel that must be in store at the start of a month for the seat's
@@ -529,8 +571,8 @@ pub fn fields_fuel_month(w: &World, seat: SeatId) -> i64 {
     if !w.civs[seat as usize].knows_id("T094") {
         return 0;
     }
-    let (_, fuel_posts, boat_posts) = field_input_posts(w, seat);
-    (fuel_posts + boat_posts) * FIELD_FUEL_PER_K / 1000
+    let (_, fuel_t, boat_posts) = field_input_posts(w, seat);
+    fuel_t + boat_posts * FIELD_FUEL_PER_K / 1000
 }
 
 /// The method a works runs this month: the one the seat chose for it, if the seat
@@ -595,15 +637,15 @@ pub fn step(w: &mut World, seat: SeatId) {
     let fields_k = c.f("fields");
     let fishery_k = c.f("fishery");
     // cultivators, herders and fishers one level occupies
-    let (field_crew, pasture_crew, fishery_crew) = (c.facilities[fields_k].general, c.facilities[pasture_k].general, c.facilities[fishery_k].general);
+    let (pasture_crew, fishery_crew) = (c.facilities[pasture_k].general, c.facilities[fishery_k].general);
     let has_pasture = regs.iter().any(|i| w.regions[*i].fac(pasture_k).map(|f| f.level > 0).unwrap_or(false));
     // a method that needs chemicals or fuel is used only when a full month's draw
     // for every field and motor boat that may draw it is in store; the draw is
     // taken before anything else this month, so the yield is never credited
     // without its inputs
-    let (chem_posts, fuel_posts, boat_posts) = field_input_posts(w, seat);
-    let chem_ok = w.civs[si].stock_of(Good::Chemicals) > 0 && w.civs[si].stock_of(Good::Chemicals) >= chem_posts * FIELD_CHEM_PER_K / 1000;
-    let fuel_ok = w.civs[si].stock_of(Good::Fuel) > 0 && w.civs[si].stock_of(Good::Fuel) >= (fuel_posts + boat_posts) * FIELD_FUEL_PER_K / 1000;
+    let (chem_t, fuel_t, boat_posts) = field_input_posts(w, seat);
+    let chem_ok = w.civs[si].stock_of(Good::Chemicals) > 0 && w.civs[si].stock_of(Good::Chemicals) >= chem_t;
+    let fuel_ok = w.civs[si].stock_of(Good::Fuel) > 0 && w.civs[si].stock_of(Good::Fuel) >= fuel_t + boat_posts * FIELD_FUEL_PER_K / 1000;
     let ft = food_tech(&w.civs[si], fuel_ok);
     let link = link_efficiencies(w, seat);
     // the region's shared infrastructure, from the works as they stand and the
@@ -664,25 +706,37 @@ pub fn step(w: &mut World, seat: SeatId) {
                 // the method this region's fields are worked by: the best the seat
                 // knows and allows here whose month of inputs is in store
                 let (method, missing) = field_method_for(&w.civs[si], has_pasture, field_ceiling(&w.civs[si], f), chem_ok, fuel_ok);
-                let (chem_k, fuel_k) = (if FIELD_METHODS[method].chem { FIELD_CHEM_PER_K } else { 0 }, if FIELD_METHODS[method].fuel { FIELD_FUEL_PER_K } else { 0 });
+                let m = &FIELD_METHODS[method];
+                let field_crew = m.posts;
+                // inputs per thousand cultivators of this method
+                let (chem_k, fuel_k, per) = (m.chem_t, m.fuel_t, m.posts as i64);
                 field_run = Some(RunStat { recipe: method, rate_bp: 0, blockers: if missing.is_empty() { 0 } else { 4 }, missing });
                 // full husbandry needs five hundred agronomists for each level of fields
                 let agr = r.quals[Qual::Agronomist.index()] as i64;
                 let skill = 8500 + 1500 * (agr * 2).min(f.level as i64 * 1000) / (f.level as i64 * 1000).max(1);
                 let tool = if tools_ok { 10_000 } else { 7000 };
-                let y = field_yield(&w.civs[si], method) * skill / 10_000 * tool / 10_000 * f.condition_bp.max(5000) as i64 / 10_000;
                 let irrigated = ((r.cap(Cap::Irrigation) / 1000) as u16).min(f.level);
+                // the year's harvest, damped by irrigation and by machines
+                let mut harvest = harvest_bp(w, ri);
+                harvest = harvest * (10_000 - 5_000 * irrigated as i64 / f.level.max(1) as i64) / 10_000;
+                if m.fuel() {
+                    harvest = harvest * 3 / 10;
+                }
+                let base = field_yield(&w.civs[si], method);
+                let y = base * (10_000 + harvest) / 10_000 * skill / 10_000 * tool / 10_000 * f.condition_bp.max(5000) as i64 / 10_000;
+                // a level never yields more than twice its method's base
+                let cap = base * 2;
                 if irrigated > 0 {
-                    opts.push(FoodOpt { yield_k: adj(y * 125 / 100), capacity: irrigated as u32 * field_crew, used: 0, tag: Tag::Farm, chem_k, fuel_k, field: true });
+                    opts.push(FoodOpt { yield_k: adj((y * 125 / 100).min(cap)), capacity: irrigated as u32 * field_crew, used: 0, tag: Tag::Farm, chem_k, fuel_k, per, field: true });
                 }
                 if f.level > irrigated {
-                    opts.push(FoodOpt { yield_k: adj(y), capacity: (f.level - irrigated) as u32 * field_crew, used: 0, tag: Tag::Farm, chem_k, fuel_k, field: true });
+                    opts.push(FoodOpt { yield_k: adj(y.min(cap)), capacity: (f.level - irrigated) as u32 * field_crew, used: 0, tag: Tag::Farm, chem_k, fuel_k, per, field: true });
                 }
             }
         }
         if let Some(f) = r.fac(pasture_k) {
             if f.enabled && f.level > 0 {
-                opts.push(FoodOpt { yield_k: adj(ft.pasture), capacity: f.level as u32 * pasture_crew, used: 0, tag: Tag::Farm, chem_k: 0, fuel_k: 0, field: false });
+                opts.push(FoodOpt { yield_k: adj(ft.pasture), capacity: f.level as u32 * pasture_crew, used: 0, tag: Tag::Farm, chem_k: 0, fuel_k: 0, per: 1000, field: false });
             }
         }
         if let Some(f) = r.fac(fishery_k) {
@@ -690,11 +744,11 @@ pub fn step(w: &mut World, seat: SeatId) {
                 let port = r.cap(Cap::Port) > 0;
                 let y = if port { ft.fish_port } else { ft.fish };
                 // motor boats working from a harbour burn fuel like field machinery
-                opts.push(FoodOpt { yield_k: adj(y), capacity: f.level as u32 * fishery_crew, used: 0, tag: Tag::Sea, chem_k: 0, fuel_k: if port { ft.boat_fuel_per_worker } else { 0 }, field: false });
+                opts.push(FoodOpt { yield_k: adj(y), capacity: f.level as u32 * fishery_crew, used: 0, tag: Tag::Sea, chem_k: 0, fuel_k: if port { ft.boat_fuel_per_worker } else { 0 }, per: 1000, field: false });
             }
         }
         // the land feeds foragers only up to what grows wild
-        opts.push(FoodOpt { yield_k: adj(ft.forage), capacity: (r.wild * 1000 / ft.forage).min(u32::MAX as i64) as u32, used: 0, tag: Tag::Forage, chem_k: 0, fuel_k: 0, field: false });
+        opts.push(FoodOpt { yield_k: adj(ft.forage), capacity: (r.wild * 1000 / ft.forage).min(u32::MAX as i64) as u32, used: 0, tag: Tag::Forage, chem_k: 0, fuel_k: 0, per: 1000, field: false });
         opts.sort_by(|a, b| b.yield_k.cmp(&a.yield_k));
         plans.push(RegionPlan { idx: ri, workers, opts, food_workers: 0, food_made: 0, max_food_workers: (workers as u64 * 94 / 100) as u32, field_run });
     }
@@ -745,12 +799,12 @@ pub fn step(w: &mut World, seat: SeatId) {
         let (mut chem, mut fuel) = (0i64, 0i64);
         for p in &plans {
             for o in &p.opts {
-                chem += o.used as i64 * o.chem_k;
-                fuel += o.used as i64 * o.fuel_k;
+                chem += o.used as i64 * o.chem_k / o.per;
+                fuel += o.used as i64 * o.fuel_k / o.per;
             }
         }
-        w.civs[si].take(Good::Chemicals, chem / 1000);
-        w.civs[si].take(Good::Fuel, fuel / 1000);
+        w.civs[si].take(Good::Chemicals, chem);
+        w.civs[si].take(Good::Fuel, fuel);
     }
     // how each region's fields were worked, for the seat to read
     for p in plans.iter_mut() {

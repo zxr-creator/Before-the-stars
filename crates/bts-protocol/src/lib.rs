@@ -208,6 +208,7 @@ public_enum!(SettlementKind {
     Town => "Town",
     City => "City",
     Metropolis => "Metropolis",
+    Megalopolis => "Megalopolis",
 });
 
 public_enum!(Intent {
@@ -556,12 +557,16 @@ pub struct OwnCiv {
     pub adjective: String,
     pub color: String,
     pub capital: RegionId,
-    pub population: u32,
-    pub children: u32,
-    pub working_age: u32,
-    pub elders: u32,
+    /// Sums over regions are `u64` since ruleset 3.0 (a world of billions).
+    pub population: u64,
+    pub children: u64,
+    pub working_age: u64,
+    pub elders: u64,
     pub births_last_round: u32,
     pub deaths_last_round: u32,
+    /// The deaths of the last round by cause; they add up to `deaths_last_round`.
+    #[serde(default)]
+    pub deaths_by_cause: Vec<DeathCount>,
     pub migration_last_round: i32,
     pub goods: Vec<GoodLine>,
     pub quals: Vec<QualCount>,
@@ -874,6 +879,26 @@ pub struct RegionView {
     pub foreign: Option<ForeignRegion>,
     /// One of the three revealed deployment test nodes (only after the victory contract is revealed).
     pub test_node: bool,
+    /// An epidemic in the region, seen by its government and by seats observing it (ruleset 3.0).
+    #[serde(default)]
+    pub outbreak: Option<OutbreakView>,
+}
+
+/// An epidemic in a region (design chapter 36, section 3.2).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OutbreakView {
+    /// Completed months when it broke out.
+    pub since: Month,
+    /// 1 (mild) to 3 (severe): how much it raises deaths in every age band.
+    pub severity_band: u8,
+}
+
+/// Deaths of one cause over the last resolved round.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DeathCount {
+    /// "age_and_illness", "hunger_and_crowding", "town_conditions", "epidemic" or "war".
+    pub cause: String,
+    pub deaths: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -889,8 +914,8 @@ pub struct ForeignCiv {
     pub at_war: bool,
     pub overlord: Option<SeatId>,
     /// Rough estimates derived from this seat's own reports.
-    pub population_low: u32,
-    pub population_high: u32,
+    pub population_low: u64,
+    pub population_high: u64,
     pub regions_known: u16,
     pub military_estimate: String,
     pub observed_tier: Option<u8>,
@@ -989,7 +1014,7 @@ pub struct TraitView {
 pub struct LineageView {
     pub key: String,
     pub name: String,
-    pub population: u32,
+    pub population: u64,
     pub traits: Vec<TraitView>,
     pub origin: String,
 }
@@ -1010,7 +1035,7 @@ pub struct ReligionView {
     pub founded_month: Month,
     pub holy_region: Option<RegionId>,
     pub beliefs: Vec<BeliefOption>,
-    pub followers_known: u32,
+    pub followers_known: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1484,7 +1509,7 @@ pub struct SpectatorCiv {
     pub controller: ControllerKind,
     pub status: SeatStatus,
     pub capital: RegionId,
-    pub population: u32,
+    pub population: u64,
     pub regions: u16,
     pub understood: u16,
     pub discovered: u16,

@@ -24,7 +24,7 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0";
 /// historical calendar from 5000 BC with historical population and knowledge
 /// pacing; saves written by earlier rulesets are refused.
 pub const RULESET_VERSION: &str = "bts-rules/3.0.0";
-pub const GENERATOR_VERSION: &str = "bts-worldgen/1.2.0";
+pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0";
 
 /// Base units in one display unit of goods, work, research or service.
 pub const DISPLAY_DIVISOR: i64 = 1000;
@@ -80,7 +80,7 @@ pub enum Req {
     Tech(usize),
     Prac(usize),
     Fac(usize),
-    Pop(u32),
+    Pop(u64),
     Regions(u32),
     QualAtLeast(Qual, u32),
     Contact,
@@ -95,7 +95,7 @@ pub trait ReqCtx {
     fn tech(&self, i: usize) -> bool;
     fn prac(&self, i: usize) -> bool;
     fn fac(&self, i: usize) -> bool;
-    fn pop(&self) -> u32;
+    fn pop(&self) -> u64;
     fn regions(&self) -> u32;
     fn qual(&self, q: Qual) -> u32;
     fn contact(&self) -> bool;
@@ -959,6 +959,7 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
         "datacenter" => (&[(B, 1_000), (MT, 500), (EL, 1_000)], 20.0, 9),
         "computer_works" => (&[(B, 1_000), (MT, 500), (EL, 1_000)], 20.0, 10),
         "synfuel" => (&[(B, 2_000), (MT, 1_000), (EL, 500)], 30.0, 12),
+        "food_synthesis" => (&[(B, 2_000), (MT, 1_000), (EL, 500)], 30.0, 12),
         "purifier" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 20.0, 12),
         "fab" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 30.0, 12),
         "advanced_lab" => (&[(B, 2_000), (MT, 1_000), (EL, 1_000)], 20.0, 12),
@@ -1209,7 +1210,7 @@ fn facilities() -> Vec<FacDef> {
         // ---- food -------------------------------------------------------
         fac("fields", "Fields", "Food", "Cleared and tended plots. Ten thousand cultivators work each level; yield depends on seed, traction, water and inputs actually supplied, and falls by three tenths when no tools are in store.")
             .req("T005").site(Site::Arable).cost(&[(Materials, 2.0), (Tools, 1.0)]).work(24.0).general(10_000)
-            .tags(&[Tag::Farm]).scale(4, "C007").scale(14, "C017").food(),
+            .tags(&[Tag::Farm]).max(250).scale(4, "C007").scale(14, "C017").food(),
         fac("pasture", "Pastures", "Food", "Managed herds on rough grazing. Animals also provide traction once the methods are known.")
             .req("T006").site(Site::Pasture).cost(&[(Materials, 2.0)]).work(16.0).general(5_000)
             .tags(&[Tag::Farm, Tag::Forage]).scale(4, "C007").food(),
@@ -1331,6 +1332,13 @@ fn facilities() -> Vec<FacDef> {
             .skilled(&[Q::Technician], 4_000).general(6_000)
             .recipe(rec("synfuel", "Synthetic hydrocarbons").inp(&[(Coal, 10.0), (Chemicals, 2.0)]).out(&[(Fuel, 12.0)]).elec(60.0))
             .upkeep(&[(Spares, 0.8)]).labor(L::Industry).tags(&[Tag::Fuel, Tag::Chem]),
+        // ruleset 3.0 (design chapter 36, section 3.3): food from electricity, chemicals
+        // and the carbon of the air (a declared atmospheric-input recipe), not limited by land
+        fac("food_synthesis", "Food synthesis works", "Industry", "Food made from electricity, chemicals and the carbon of the air: not limited by land, only by power and inputs. Two hundred thousand rations a month per level.")
+            .req("T132 & T135").cost(&[(Metal, 30.0), (Components, 15.0), (Conductors, 6.0), (Instruments, 4.0)]).work(400.0)
+            .skilled(&[Q::Technician], 2_000).general(2_000)
+            .recipe(rec("food_synthesis", "Atmospheric food synthesis").inp(&[(Chemicals, 4.0)]).out(&[(Food, 200.0)]).elec(400.0))
+            .upkeep(&[(Spares, 0.5)]).labor(L::Industry).tags(&[Tag::Chem, Tag::Bio]),
         fac("purifier", "High-purity materials works", "Industry", "Electrochemical purification into substrates that ordinary glass or metal cannot replace.")
             .req("T103").cost(&[(Metal, 20.0), (Components, 10.0), (Conductors, 6.0), (Instruments, 4.0)]).work(300.0)
             .skilled(&[Q::Technician], 3_000).general(3_000)
@@ -1747,6 +1755,9 @@ pub const BELIEFS: &[Belief] = &[
     Belief { key: "shared_days", slot: "Follower practice", name: "Shared Labour Days", desc: "Followers answer calls for common work more readily." },
     Belief { key: "remembrance", slot: "Follower practice", name: "Rites of Remembrance", desc: "Communities of followers are steadier in hard years." },
     Belief { key: "watchfulness", slot: "Follower practice", name: "The Long Watch", desc: "Followers accept defence duty more readily." },
+    // ruleset 3.0 doctrines (design chapter 36, sections 3.2 and 4.2)
+    Belief { key: "fruitful_households", slot: "Follower practice", name: "Fruitful Households", desc: "Followers marry young and prize many children: customary fertility is higher where they live." },
+    Belief { key: "day_of_rest", slot: "Follower practice", name: "Day of Rest", desc: "Followers keep a day free of work each week: households are a little larger and steadier." },
     Belief { key: "open_courts", slot: "Worship facility", name: "Open Courts", desc: "Precincts double as meeting grounds; disputes settle sooner." },
     Belief { key: "copy_houses", slot: "Worship facility", name: "Copy Houses", desc: "Precincts copy texts: a small monthly supply of record media." },
     Belief { key: "sky_terraces", slot: "Worship facility", name: "Sky Terraces", desc: "Precincts keep observations; questions of measurement surface sooner." },
@@ -2000,7 +2011,7 @@ mod tests {
             fn tech(&self, i: usize) -> bool { self.0[i] }
             fn prac(&self, i: usize) -> bool { self.0[i] }
             fn fac(&self, _: usize) -> bool { true }
-            fn pop(&self) -> u32 { u32::MAX }
+            fn pop(&self) -> u64 { u64::MAX }
             fn regions(&self) -> u32 { u32::MAX }
             fn qual(&self, _: Qual) -> u32 { u32::MAX }
             fn contact(&self) -> bool { true }

@@ -8,6 +8,7 @@ pub mod directives;
 pub mod economy;
 pub mod knowledge;
 pub mod military;
+pub mod outbreaks;
 pub mod population;
 pub mod projects;
 pub mod victory;
@@ -35,7 +36,8 @@ pub fn step_month(w: &mut World) {
     for s in 0..n {
         projects::step(w, s as SeatId);
     }
-    // 4. food, water, births, deaths, ageing, migration
+    // 4. epidemics, then food, water, births, deaths, ageing, migration
+    outbreaks::step(w);
     for s in 0..n {
         population::step(w, s as SeatId);
     }

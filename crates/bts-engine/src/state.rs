@@ -345,6 +345,25 @@ pub struct Region {
     pub students: u32,
     pub teachers: [u32; NQ],
     pub migr_rem: i64,
+    /// An epidemic under way here (design chapter 36, section 3.2).
+    #[serde(default)]
+    pub outbreak: Option<Outbreak>,
+    /// After an epidemic the region has a quarter of the hazard until this month.
+    #[serde(default)]
+    pub immune_until: Month,
+    /// Last month an army stood in the region.
+    #[serde(default)]
+    pub army_seen: Month,
+}
+
+/// An epidemic in a region.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Outbreak {
+    pub since: Month,
+    /// The month after its last month.
+    pub until: Month,
+    /// Factor on the death rate of every band, basis points (13,000-25,000).
+    pub severity_bp: u16,
 }
 
 impl Region {
@@ -399,13 +418,14 @@ impl Region {
 
 /// Lower bound, in residents, of each settlement class (units chapter, section 3).
 /// The classes are descriptive: no rule keys on them.
-pub const SETTLEMENT_BOUNDS: [(SettlementKind, u32); 6] = [
+pub const SETTLEMENT_BOUNDS: [(SettlementKind, u32); 7] = [
     (SettlementKind::Wilderness, 0),
     (SettlementKind::Camp, 1),
     (SettlementKind::Village, 150_000),
     (SettlementKind::Town, 1_000_000),
     (SettlementKind::City, 4_000_000),
     (SettlementKind::Metropolis, 12_000_000),
+    (SettlementKind::Megalopolis, 40_000_000),
 ];
 
 /// Residents at which a region counts as urban for cultural drift.
@@ -810,6 +830,10 @@ pub struct Flows {
     pub births: u32,
     pub deaths: u32,
     pub migration: i32,
+    /// The deaths by cause (`sim::population::DEATH_CAUSES`): age and illness,
+    /// hunger and crowding, town conditions, epidemic, war. They add up to `deaths`.
+    #[serde(default)]
+    pub deaths_cause: [u32; 5],
 }
 
 fn zeros_ng() -> Vec<i64> {
@@ -822,7 +846,7 @@ fn zeros_nq() -> Vec<i64> {
 
 impl Flows {
     pub fn new() -> Self {
-        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], births: 0, deaths: 0, migration: 0 }
+        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], births: 0, deaths: 0, migration: 0, deaths_cause: [0; 5] }
     }
 }
 
@@ -993,7 +1017,7 @@ pub struct Civ {
     pub study_done: Vec<u32>,
     pub eliminated_month: Option<Month>,
     pub army_counter: u32,
-    pub pop_peak: u32,
+    pub pop_peak: u64,
     /// Cumulative ledger of qualified people (see [`QualFlows`]).
     #[serde(default)]
     pub qual_flows: QualFlows,
@@ -1164,9 +1188,9 @@ impl World {
     pub fn owned(&self, seat: SeatId) -> Vec<usize> {
         self.regions.iter().enumerate().filter(|(_, r)| r.owner == Some(seat)).map(|(i, _)| i).collect()
     }
-    pub fn civ_population(&self, seat: SeatId) -> u32 {
-        self.regions.iter().filter(|r| r.owner == Some(seat)).map(|r| r.population()).sum::<u32>()
-            + self.armies.iter().filter(|a| a.owner == seat).map(|a| a.count()).sum::<u32>()
+    pub fn civ_population(&self, seat: SeatId) -> u64 {
+        self.regions.iter().filter(|r| r.owner == Some(seat)).map(|r| r.population() as u64).sum::<u64>()
+            + self.armies.iter().filter(|a| a.owner == seat).map(|a| a.count() as u64).sum::<u64>()
     }
     /// The seat whose highest authority a region ultimately answers to.
     pub fn authority(&self, region: usize) -> Option<SeatId> {
@@ -1327,7 +1351,7 @@ impl ReqCtx for CivCtx<'_> {
         self.world.regions.iter().any(|r| r.owner == Some(self.seat) && r.fac(i).map(|f| f.level > 0).unwrap_or(false))
             || service_of_facility(content().facilities[i].key).map(|s| self.world.programme_access(self.seat, s)).unwrap_or(false)
     }
-    fn pop(&self) -> u32 {
+    fn pop(&self) -> u64 {
         self.world.civ_population(self.seat)
     }
     fn regions(&self) -> u32 {
@@ -1370,7 +1394,7 @@ impl ReqCtx for PracEnactedCtx<'_> {
     fn fac(&self, i: usize) -> bool {
         CivCtx { world: self.world, seat: self.seat }.fac(i)
     }
-    fn pop(&self) -> u32 {
+    fn pop(&self) -> u64 {
         self.world.civ_population(self.seat)
     }
     fn regions(&self) -> u32 {

@@ -445,9 +445,11 @@ pub fn step(w: &mut World) {
             }
             let lc = &mut w.civs[lead as usize];
             lc.flows.deaths += la;
+            lc.flows.deaths_cause[crate::sim::population::CAUSE_WAR] += la;
             lc.war_weariness = (lc.war_weariness + ((la as i64 * 40 / att_people.max(1) as i64) as i32).max(1)).min(60);
             let dc = &mut w.civs[ctrl as usize];
             dc.flows.deaths += ld + militia_lost;
+            dc.flows.deaths_cause[crate::sim::population::CAUSE_WAR] += ld + militia_lost;
             dc.war_weariness = (dc.war_weariness + 1).min(60);
             let rname = w.regions[ri].name.clone();
             let (la_txt, ld_txt) = (crate::util::group(la as i64), crate::util::group(ld as i64 + militia_lost as i64));
@@ -474,6 +476,7 @@ pub fn step(w: &mut World) {
                             let gone = w.armies[ai].count();
                             w.armies[ai].soldiers = [0; 3];
                             w.civs[owner as usize].flows.deaths += gone;
+                            w.civs[owner as usize].flows.deaths_cause[crate::sim::population::CAUSE_WAR] += gone;
                         }
                     }
                 }

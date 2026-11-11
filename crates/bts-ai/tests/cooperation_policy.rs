@@ -100,6 +100,8 @@ fn a_programme_short_of_crews_asks_a_partner_with_terms_the_referee_accepts() {
         g.stock = g.stock.max(5_000_000);
     }
     ai.memory.last_offer_round = vec![0; m.seats()];
+    // asks are spaced by rounds; with fifty-year rounds the first talks come early
+    obs.round = obs.round.max(10);
     let actions = ai.decide(&obs);
     let asks: Vec<Action> = actions.into_iter().filter(|a| matches!(a, Action::ProposeTreaty { clauses, .. } if clauses.iter().any(|c| matches!(c, Clause::Secondment { .. })))).collect();
     assert!(!asks.is_empty(), "the controller asked nobody for crews");
