@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s10b";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-j3";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,9 +26,9 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s10b";
 /// released each slice that changes saved state carries a pre-release tag
 /// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
 /// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s10b";
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-j3";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
-pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s5";
+pub const GENERATOR_VERSION: &str = "bts-worldgen/2.1.0-j3";
 
 /// Base units in one display unit of goods, work, research or service.
 pub const DISPLAY_DIVISOR: i64 = 1000;
@@ -54,6 +54,57 @@ pub fn good_mass_kg(g: Good) -> i64 {
         Good::Textiles | Good::FineWares | Good::Lattice => 10,
         Good::Precious | Good::NuclearFuel | Good::Helium3 => 1,
         _ => 1000,
+    }
+}
+
+/// Base price of a good in trade credit per display unit (design chapter 36, 6.4:
+/// roughly the worker-months of its reference method and inputs; one credit is
+/// about one standard worker-month of the 3.0 scale divided by eighty).
+pub fn base_price(g: Good) -> i64 {
+    base_value(g) * 80
+}
+
+fn base_value(g: Good) -> i64 {
+    match g {
+        Good::Food => 4,
+        Good::Materials => 5,
+        Good::Tools => 12,
+        Good::CopperOre | Good::IronOre | Good::Coal | Good::Crude | Good::Gas | Good::Bauxite => 7,
+        Good::Timber | Good::Salt => 5,
+        Good::Fibres => 15,
+        Good::Horses => 20,
+        Good::Spices => 60,
+        Good::Precious => 300,
+        Good::Tin => 40,
+        Good::Saltpetre => 25,
+        Good::UraniumOre | Good::RareEarths | Good::Lithium | Good::CobaltNickel | Good::Quartz => 20,
+        Good::Helium => 600,
+        Good::Aluminium => 80,
+        Good::Fertilizer => 30,
+        Good::Munitions => 10,
+        Good::Magnets => 150,
+        Good::Batteries => 20,
+        Good::NuclearFuel => 50,
+        Good::Textiles => 3,
+        Good::ConsumerGoods => 10,
+        Good::FineWares => 8,
+        Good::Lattice => 600,
+        Good::Volatiles | Good::Propellant => 10,
+        Good::Helium3 => 1000,
+        Good::Copper => 25,
+        Good::Metal => 30,
+        Good::Components => 60,
+        Good::Conductors => 60,
+        Good::Insulation => 40,
+        Good::Fuel => 30,
+        Good::Chemicals => 30,
+        Good::Substrate => 200,
+        Good::Electronics => 30,
+        Good::Hardware => 400,
+        Good::Spares => 20,
+        Good::Media => 15,
+        Good::Instruments => 80,
+        Good::Medicine => 30,
     }
 }
 
@@ -2613,10 +2664,10 @@ fn course_meta(id: &str) -> CourseMeta {
 
 #[derive(Clone, Debug)]
 pub struct UnitTierDef {
+    /// The equipment generation of design chapter 37, section 2.1 (G0-G7); the index
+    /// of the definition in `Content::unit_tiers` (ruleset 3.0 job 3: generations
+    /// replace the six tiers, so `tier == generation`).
     pub tier: u8,
-    /// Equipment generation of design chapter 37, section 2.1 (G0-G7): the six
-    /// tiers of this ruleset are written as generations 0, 1, 2, 4, 5 and 6, ready for
-    /// the military slice to insert G3 and G7.
     pub generation: u8,
     pub name: &'static str,
     pub roles: [&'static str; 3],
@@ -2634,14 +2685,22 @@ pub struct UnitTierDef {
     /// Munitions are used five times as fast in a month of battle.
     pub upkeep: Vec<(Good, i64)>,
     pub training_months: u16,
+    /// Fit-out work per soldier (design 2.3): worker-months of a refit or recruitment
+    /// per thousand soldiers are `fit * FIT_WORK_PER_K`.
+    pub fit: i64,
+    /// Upkeep goods whose shortage degrades the formation (design 2.5).
+    pub critical: &'static [Good],
 }
+
+/// Worker-months of fitting out a thousand soldiers per fit-out point (design 2.3,
+/// arms works simplified to the barracks region's labour).
+pub const FIT_WORK_PER_K: i64 = 400;
 
 fn unit_tiers() -> Vec<UnitTierDef> {
     use Good::*;
     let q = |v: &[(Good, f64)]| -> Vec<(Good, i64)> { v.iter().map(|(g, a)| (*g, m(*a))).collect() };
     #[allow(clippy::too_many_arguments)]
-    let mk = |tier: u8,
-              generation: u8,
+    let mk = |generation: u8,
               name: &'static str,
               roles: [&'static str; 3],
               req_src: &'static str,
@@ -2649,21 +2708,28 @@ fn unit_tiers() -> Vec<UnitTierDef> {
               alternative: Vec<(Good, i64)>,
               maneuver_extra: Vec<(Good, i64)>,
               upkeep: Vec<(Good, i64)>,
-              training_months: u16| UnitTierDef { tier, generation, name, roles, req_src, req: Req::True, equipment, alternative, maneuver_extra, upkeep, training_months };
+              training_months: u16,
+              fit: i64,
+              critical: &'static [Good]| UnitTierDef { tier: generation, generation, name, roles, req_src, req: Req::True, equipment, alternative, maneuver_extra, upkeep, training_months, fit, critical };
     // per soldier in the design's table (design chapter 37, table 2.1), which is
     // per thousand soldiers in display units here
     vec![
-        mk(0, 0, "Subsistence warbands", ["Melee bands", "Light hunters", "Spear lines"], "", q(&[(Tools, 0.3)]), vec![], vec![], q(&[(Food, 1.0)]), 2),
-        mk(1, 1, "Bronze and iron levies", ["Heavy infantry", "Cavalry", "Pike formations"], "(T022 | T023) & C016",
-           q(&[(Metal, 0.4), (Tools, 0.3)]), q(&[(Copper, 0.35), (Tin, 0.05), (Tools, 0.3)]), q(&[(Horses, 0.3)]), q(&[(Food, 1.0), (Tools, 0.01)]), 4),
-        mk(2, 2, "Powder and drill", ["Assault infantry", "Rapid columns", "Field artillery"], "T037 & C016",
-           q(&[(Metal, 0.8), (Materials, 0.5), (Tools, 0.3), (Munitions, 1.0)]), vec![], q(&[(Horses, 0.3)]), q(&[(Food, 1.0), (Tools, 0.02), (Materials, 0.02), (Munitions, 0.02)]), 6),
-        mk(3, 4, "Mechanized formations", ["Armoured assault groups", "Motorized raiders", "Anti-armour positions"], "(T094 | T068) & T066 & C037",
-           q(&[(Components, 0.8), (Metal, 1.0), (Fuel, 0.3), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.05), (Spares, 0.02), (Munitions, 0.04)]), 9),
-        mk(4, 5, "Networked forces", ["Combined-arms forces", "Mobile strike groups", "Air-defence networks"], "T112 & T107 & T038 & C037",
-           q(&[(Electronics, 2.0), (Components, 1.5), (Fuel, 0.5), (Aluminium, 0.1), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.1), (Spares, 0.05), (Electronics, 0.02), (Munitions, 0.04)]), 12),
-        mk(5, 6, "Autonomous systems", ["Unmanned breakthrough groups", "Distributed swarms", "Area-denial systems"], "T114 & T123 & T142 & C037",
-           q(&[(Hardware, 0.2), (Electronics, 4.0), (Components, 2.0), (Batteries, 2.0), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.1), (Spares, 0.08), (Electronics, 0.05), (Batteries, 0.05), (Munitions, 0.04)]), 12),
+        mk(0, "Subsistence warbands", ["Melee bands", "Light hunters", "Spear lines"], "", q(&[(Tools, 0.3)]), vec![], vec![], q(&[(Food, 1.0)]), 2, 0, &[]),
+        mk(1, "Bronze and iron levies", ["Heavy infantry", "Cavalry", "Pike formations"], "(T022 | T023) & C016",
+           q(&[(Metal, 0.4), (Tools, 0.3)]), q(&[(Copper, 0.35), (Tin, 0.05), (Tools, 0.3)]), q(&[(Horses, 0.3)]), q(&[(Food, 1.0), (Tools, 0.01)]), 4, 1, &[]),
+        mk(2, "Powder and drill", ["Assault infantry", "Rapid columns", "Field artillery"], "T037 & C016",
+           q(&[(Metal, 0.8), (Materials, 0.5), (Tools, 0.3), (Munitions, 1.0)]), vec![], q(&[(Horses, 0.3)]), q(&[(Food, 1.0), (Tools, 0.02), (Materials, 0.02), (Munitions, 0.02)]), 6, 2, &[Munitions]),
+        mk(3, "Rifle and rail", ["Rifle battalions", "Mounted rifles", "Quick-firing batteries"], "T060 & T066 & C037",
+           q(&[(Metal, 1.0), (Components, 0.2), (Tools, 0.2), (Munitions, 2.0)]), vec![], q(&[(Horses, 0.2)]), q(&[(Food, 1.0), (Munitions, 0.04), (Spares, 0.005), (Coal, 0.01)]), 8, 4, &[Munitions]),
+        mk(4, "Mechanized formations", ["Armoured assault groups", "Motorized raiders", "Anti-armour positions"], "(T094 | T068) & T066 & C037",
+           q(&[(Components, 0.8), (Metal, 1.0), (Fuel, 0.3), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.05), (Spares, 0.02), (Munitions, 0.04)]), 9, 8, &[Fuel, Munitions]),
+        mk(5, "Networked forces", ["Combined-arms forces", "Mobile strike groups", "Air-defence networks"], "T112 & T107 & T038 & C037",
+           q(&[(Electronics, 2.0), (Components, 1.5), (Fuel, 0.5), (Aluminium, 0.1), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.1), (Spares, 0.05), (Electronics, 0.02), (Munitions, 0.04)]), 12, 16, &[Fuel, Electronics]),
+        mk(6, "Autonomous systems", ["Unmanned breakthrough groups", "Distributed swarms", "Area-denial systems"], "T114 & T123 & T142 & C037",
+           q(&[(Hardware, 0.2), (Electronics, 4.0), (Components, 2.0), (Batteries, 2.0), (Munitions, 2.0)]), vec![], vec![], q(&[(Food, 1.0), (Fuel, 0.1), (Spares, 0.08), (Electronics, 0.05), (Batteries, 0.05), (Munitions, 0.04)]), 12, 32, &[Electronics, Batteries]),
+        mk(7, "Orbital-supported forces", ["Orbital assault groups", "Sub-orbital rapid forces", "Orbital defence lattices"], "T145 & T152 & T122 & C037",
+           q(&[(Hardware, 0.5), (Electronics, 6.0), (Components, 3.0), (Batteries, 3.0), (Aluminium, 0.2), (Magnets, 0.05), (Munitions, 2.0)]), vec![], vec![],
+           q(&[(Food, 1.0), (Spares, 0.1), (Electronics, 0.08), (Batteries, 0.05), (Propellant, 0.02), (Munitions, 0.04)]), 15, 64, &[Electronics, Hardware]),
     ]
 }
 
@@ -2674,8 +2740,12 @@ pub fn role_index(r: Role) -> usize {
     r.index()
 }
 
-/// 2.5^tier in thousandths.
-pub const TIER_POWER: [i64; 6] = [1000, 2500, 6250, 15625, 39063, 97656];
+/// Power per soldier by equipment generation, 2.5^gen in thousandths (design
+/// chapter 37, section 2.2).
+pub const GEN_POWER: [i64; 8] = [1000, 2500, 6250, 15625, 39063, 97656, 244141, 610352];
+pub const GENS: usize = 8;
+/// Older name of [`GEN_POWER`].
+pub use self::GEN_POWER as TIER_POWER;
 
 // ---------------------------------------------------------------------------
 // Religion content (fictional; original vocabulary)

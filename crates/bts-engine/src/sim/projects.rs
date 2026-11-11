@@ -65,6 +65,8 @@ pub fn project_title(w: &World, kind: &ProjKind, region: Option<RegionId>) -> St
         ProjKind::Study { tag } => format!("Exploratory study: {}", Tag::ALL[*tag].name()),
         ProjKind::Resettle { from, to, people } => format!("Move {} people from {} to {}", group(*people as i64), rn(*from), rn(*to)),
         ProjKind::Recruit { role, soldiers, tier } => format!("Raise {} {} ({})", group(*soldiers as i64), c.unit_tiers[*tier as usize].roles[role.index()], region.map(rn).unwrap_or_default()),
+        ProjKind::Refit { army, to } => format!("Refit {} to {}", w.armies.iter().find(|a| a.id == *army).map(|a| a.name.clone()).unwrap_or_default(), c.unit_tiers[*to as usize].name),
+        ProjKind::Scout { region, .. } => format!("Scout {}", rn(*region)),
         ProjKind::Reform { practice } => format!("Reform: {}", c.practices[*practice].name),
         ProjKind::Revisit { tech, .. } => format!("Revisit study: {}", c.techs[*tech].name),
         ProjKind::Repeal { practice } => format!("Repeal: {}", c.practices[*practice].name),
@@ -259,6 +261,22 @@ pub fn step(w: &mut World, seat: SeatId) {
                 continue;
             }
         }
+        // A refit needs its formation in place and out of battle (design chapter 37, 2.3).
+        if let ProjKind::Refit { army, .. } = &kind {
+            match w.armies.iter().find(|a| a.id == *army && a.owner == seat) {
+                None => {
+                    failed.push((w.civs[si].projects[i].id, "the formation no longer exists".into()));
+                    continue;
+                }
+                Some(a) if Some(a.region) != region || a.in_battle => {
+                    let p = &mut w.civs[si].projects[i];
+                    p.blockers = vec![if a.in_battle { "The formation is in battle".into() } else { "The formation is away from its barracks".into() }];
+                    p.last_progress = 0;
+                    continue;
+                }
+                _ => {}
+            }
+        }
         // Knowledge prerequisites must hold while work continues.
         if let ProjKind::Research { tech } = &kind {
             let site_ok = tech_site_ok(w, seat, *tech);
@@ -375,6 +393,14 @@ pub fn step(w: &mut World, seat: SeatId) {
                 t.state = ST_INVESTIGATING;
             }
             t.work = done_now;
+        }
+        let p = &w.civs[si].projects[i];
+        if let ProjKind::Refit { army, .. } = &kind {
+            // the share converted: work cannot run ahead of the equipment committed
+            let share = (p.work_done * 10_000 / p.work_needed.max(1)).min(9_999) as u16;
+            if let Some(a) = w.armies.iter_mut().find(|a| a.id == *army) {
+                a.refit_bp = share;
+            }
         }
         let p = &w.civs[si].projects[i];
         if p.work_done >= p.work_needed && frac_bp >= 10_000 {
@@ -622,9 +648,55 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
             let name = w.regions[ri].name.clone();
             brief(w, seat, "info", format!("Survey returned from {name}"), "Terrain, water and visible resources are now recorded.".into(), Some(region), "map");
         }
+        ProjKind::Refit { army, to } => {
+            if let Some(ai) = w.armies.iter().position(|a| a.id == army) {
+                let variant = crate::sim::eras::variant_for(&w.civs[si], to);
+                let a = &mut w.armies[ai];
+                let (old, n) = (a.tier, a.count());
+                a.tier = to;
+                a.refit_to = None;
+                a.refit_bp = 0;
+                a.variant = variant;
+                let name = a.name.clone();
+                // the old kit goes to the store (design 2.4)
+                if let Some(k) = w.civs[si].kit.get_mut(old as usize) {
+                    *k += n;
+                }
+                brief(w, seat, "good", format!("Refit complete: {name}"), format!("The formation now fights as {}.", c.unit_tiers[to as usize].name), p.region, "military");
+            }
+        }
+        ProjKind::Scout { region, people } => {
+            let ri = region as usize;
+            let base = p.region.map(|r| r as usize).unwrap_or(w.civs[si].capital as usize);
+            // the journey's risks, one keyed draw (design chapter 40, 4.2)
+            let mut risk: u64 = 0;
+            if crate::sim::raiders::camp_at(w, ri).is_some() {
+                risk += 1_500;
+            }
+            if w.armies.iter().any(|a| a.region as usize == ri && w.at_war(seat, a.owner)) {
+                risk += 2_500;
+            }
+            if matches!(w.regions[ri].terrain, Terrain::Desert | Terrain::Tundra | Terrain::Mountains) {
+                risk += 300;
+            }
+            let name = w.regions[ri].name.clone();
+            if draw_range(w.secret, &[stream("scout"), seat as u64, p.id as u64, month as u64], 10_000) < risk {
+                let lost = crate::sim::population::draw_adults(w, base, people);
+                let f = &mut w.civs[si].flows;
+                f.deaths += lost;
+                f.deaths_cause[crate::sim::population::CAUSE_WAR] += lost;
+                brief(w, seat, "warning", format!("Scouts lost near {name}"), format!("The party of {} did not return.", group(lost as i64)), Some(region), "map");
+            } else {
+                crate::sim::knowledge::scout_region(w, seat, ri);
+                brief(w, seat, "info", format!("Scouts returned from {name}"), "The region and the land around it are charted.".into(), Some(region), "map");
+            }
+        }
         ProjKind::Settle { from, to, people } => {
             let (fi, ti) = (from as usize, to as usize);
-            if w.regions[ti].owner.is_some() {
+            if let Some(ci) = crate::sim::raiders::camp_at(w, ti) {
+                let (cn, rn) = (w.camps[ci].name.clone(), w.regions[ti].name.clone());
+                brief(w, seat, "warning", format!("Settlers turned back from {rn}"), format!("{cn} hold the land. The party returned; stores were consumed."), Some(to), "map");
+            } else if w.regions[ti].owner.is_some() {
                 brief(w, seat, "warning", format!("Settlers turned back from {}", w.regions[ti].name), "Another authority holds the land. The party returned; stores were consumed.".into(), Some(to), "map");
             } else {
                 // the land is taken into government first, so the settlers and their
@@ -696,6 +768,11 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                 move_progress: 0,
                 initial: got,
                 variant,
+                refit_to: None,
+                refit_bp: 0,
+                crit_low: 0,
+                crit_vlow: 0,
+                degraded: 0,
             });
             brief(w, seat, "info", format!("Raised: {name}"), format!("{} recruits begin {} months of training.", group(got as i64), training), p.region, "military");
         }

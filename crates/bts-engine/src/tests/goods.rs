@@ -139,11 +139,11 @@ fn building_lines_are_valid_metadata() {
 fn unit_equipment_is_written_per_generation() {
     let c = content();
     let gens: Vec<u8> = c.unit_tiers.iter().map(|t| t.generation).collect();
-    assert_eq!(gens, vec![0, 1, 2, 4, 5, 6]);
+    assert_eq!(gens, vec![0, 1, 2, 3, 4, 5, 6, 7]);
     let has = |t: usize, g: Good| c.unit_tiers[t].equipment.iter().any(|(x, _)| *x == g);
     assert!(c.unit_tiers[1].alternative.iter().any(|(g, _)| *g == Good::Tin), "bronze levies");
     assert!(c.unit_tiers[1].maneuver_extra.iter().any(|(g, _)| *g == Good::Horses));
-    assert!(has(2, Good::Munitions) && has(4, Good::Aluminium) && has(5, Good::Batteries));
+    assert!(has(2, Good::Munitions) && has(3, Good::Components) && has(5, Good::Aluminium) && has(6, Good::Batteries) && has(7, Good::Magnets));
 }
 
 /// Every late input except the fictional lattice has a costlier substitute method

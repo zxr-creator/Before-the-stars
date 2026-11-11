@@ -8,6 +8,7 @@ pub mod directives;
 pub mod economy;
 pub mod eras;
 pub mod knowledge;
+pub mod market;
 pub mod military;
 pub mod network;
 pub mod cities;
@@ -16,6 +17,7 @@ pub mod outbreaks;
 pub mod population;
 pub mod productivity;
 pub mod projects;
+pub mod raiders;
 pub mod victory;
 
 use crate::state::*;
@@ -34,6 +36,8 @@ pub fn step_month(w: &mut World) {
     directives::step(w);
     // 1. contractual deliveries settle from month-start stock
     diplomacy::step(w);
+    // 1b. market clearing from month-start stock (design chapter 36, 6.4)
+    market::step(w);
     // 2. labour, power and production
     for s in 0..n {
         economy::step(w, s as SeatId);
@@ -55,6 +59,8 @@ pub fn step_month(w: &mut World) {
     }
     // 5. conflict
     military::step(w);
+    // raider camps: raids, and each January their numbers and arms
+    raiders::step(w);
     // 6. knowledge, institutions, culture
     for s in 0..n {
         knowledge::step(w, s as SeatId);

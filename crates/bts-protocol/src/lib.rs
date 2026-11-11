@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// `ForeignCiv.traditions`, `ArmyView.variant`, `SpectatorCiv.era`,
 /// `SpectatorCiv.traditions`, `Action::EnterEra`, `Action::ChooseCharter`,
 /// `Action::ChooseTradition`).
-pub const PROTOCOL_VERSION: &str = "bts-protocol/2.3";
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.4";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -404,6 +404,9 @@ pub struct Observation {
     /// Hash of the public building tree (`GET /api/building-tree`; protocol 2.3).
     #[serde(default)]
     pub building_tree_hash: String,
+    /// The seat's market, when it has a route to another seat (protocol 2.4).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market: Option<MarketView>,
 }
 
 /// A civilization's place on the era ladder and what goes with it.
@@ -863,6 +866,12 @@ pub struct OwnCiv {
     /// How many more people would currently agree to serve as soldiers.
     #[serde(default)]
     pub recruit_room: u32,
+    /// Soldier sets in the kit store by generation (protocol 2.4).
+    #[serde(default)]
+    pub kit: Vec<u32>,
+    /// The generation home militia fight with: two below the best, raised by kit.
+    #[serde(default)]
+    pub militia_generation: u8,
     pub overlord: Option<SeatId>,
     pub subordinates: Vec<SeatId>,
 }
@@ -1414,6 +1423,75 @@ pub struct RegionView {
     /// public geography like terrain). Absent where the generator named none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub city: Option<CitySiteView>,
+    /// A raider camp this seat has sighted here, as last seen (protocol 2.4).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub camp: Option<CampView>,
+}
+
+/// A raider camp as sighted (design chapter 40, 5.10): estimated bands, never counts.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CampView {
+    pub name: String,
+    pub people_low: u32,
+    pub people_high: u32,
+    pub warriors_low: u32,
+    pub warriors_high: u32,
+    /// Completed months when it was last seen.
+    pub seen: Month,
+    /// Paying this seat's tribute until this month, if it does.
+    #[serde(default)]
+    pub tribute_until: Option<Month>,
+}
+
+/// The seat's market (protocol 2.4; design chapter 36, 6.8): aggregates only.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct MarketView {
+    /// Member seats (public), this seat included.
+    pub members: Vec<SeatId>,
+    /// Goods this seat knows: price per display unit in credit, last month's
+    /// price, volume cleared and total sale and buy orders (base units).
+    pub lines: Vec<MarketLineView>,
+    pub orders: Vec<MarketOrderView>,
+    pub routes: Vec<RouteView>,
+    /// Trade credit held: never negative, earned by sales and spent on purchases.
+    pub credit: i64,
+    pub embargoes: Vec<SeatId>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MarketLineView {
+    pub good: Good,
+    pub price: i64,
+    pub prev_price: i64,
+    pub base_price: i64,
+    pub volume: i64,
+    pub sale_orders: i64,
+    pub buy_orders: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MarketOrderView {
+    pub good: Good,
+    pub side: MarketSide,
+    pub per_month: i64,
+    pub limit_price: Option<i64>,
+    pub keep_stock: i64,
+    /// Last month: base units bought (shipped), received after loss, sold, and the
+    /// credit paid (buy) or earned (sale).
+    pub bought: i64,
+    pub received: i64,
+    pub sold: i64,
+    pub credit: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RouteView {
+    pub partner: SeatId,
+    pub sea: bool,
+    pub length: u16,
+    pub loss_bp: i64,
+    /// Cargo the route carries a month, tonnes.
+    pub capacity_t: i64,
 }
 
 /// Where a region's principal city stands (design chapter 38, section 2.1).
@@ -1911,6 +1989,17 @@ pub struct ArmyView {
     /// The tradition variant the formation was equipped as ("Ironclad and rail" ...).
     #[serde(default)]
     pub variant: Option<String>,
+    /// A refit in place under way: the generation and the share converted (protocol 2.4).
+    #[serde(default)]
+    pub refit_to: Option<u8>,
+    #[serde(default)]
+    pub refit_bp: u16,
+    /// Generations lost to shortages of critical upkeep goods.
+    #[serde(default)]
+    pub degraded: u8,
+    /// Three or more generations behind the best: morale capped, upkeep +50%.
+    #[serde(default)]
+    pub obsolete: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -2266,6 +2355,17 @@ pub enum ProjectSpec {
     /// names a known member of the family by its handle; for 240 months after it
     /// completes, the seat's evidence on that family is no longer held back.
     Revisit { card: String },
+    /// Refit a formation in place to a newer equipment generation (protocol 2.4;
+    /// design chapter 37, section 2.3): the whole new equipment bill, fit-out work in
+    /// its region and half the generation's training months (all of them when a
+    /// generation is skipped). The formation must stand in a region the seat owns
+    /// and controls, with a barracks, out of battle.
+    Refit { army: u32, generation: u8 },
+    /// Send a scout party of 300 people to a known region or one next to known land
+    /// (protocol 2.4; design chapter 40, section 4.2): on arrival it charts the
+    /// region and its neighbours. Raider camps, enemy formations and harsh land on
+    /// the way can cost the party its life.
+    Scout { region: RegionId },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -2333,6 +2433,32 @@ pub enum PolicySetting {
         #[serde(default)]
         accept_cession_max: u8,
     },
+    /// What survivors of a raider camp this seat breaks become (protocol 2.4;
+    /// design chapter 40, section 5.6): subjects with the land, or refugees.
+    CampPolicy { subjugate: bool },
+    /// Pay tribute to the raider camp sighted in `region` (design 5.7): the goods go
+    /// to the camp's store at once and its raids on this seat stop for `years`.
+    Tribute { region: RegionId, goods: Vec<GoodQty>, years: u8 },
+    /// Standing market order for one good (protocol 2.4; design chapter 36, 6.3).
+    /// `per_month: 0` cancels; one side per good.
+    MarketOrder {
+        good: Good,
+        side: MarketSide,
+        per_month: i64,
+        #[serde(default)]
+        limit_price: Option<i64>,
+        #[serde(default)]
+        keep_stock: i64,
+    },
+    /// No route with that seat while on (design chapter 36, 6.6).
+    Embargo { seat: SeatId, on: bool },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MarketSide {
+    Buy,
+    Sell,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -19,6 +19,7 @@ mod productivity;
 mod graph39;
 mod eras;
 mod cities;
+mod job3;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
@@ -990,9 +991,10 @@ fn starting_stocks_and_qualifications_are_the_declared_endowment() {
         assert_eq!(stocked, vec![Good::Food, Good::Materials, Good::Tools]);
         assert_eq!((c.stock[Good::Food.index()], c.stock[Good::Materials.index()], c.stock[Good::Tools.index()]), (900_000, 90_000, 45_000));
     }
-    // nobody lives outside the four home regions, and nobody is under arms
-    assert_eq!(snap.people, snap.regions.iter().filter(|r| r.controller.is_some()).map(|r| r.residents as u64).sum::<u64>());
-    assert_eq!(snap.regions.iter().filter(|r| r.residents > 0).count(), 4);
+    // nobody lives outside the four home regions and the raider camps, and nobody is under arms
+    assert_eq!(snap.people, snap.regions.iter().filter(|r| r.controller.is_some() || r.camp).map(|r| r.residents as u64).sum::<u64>());
+    assert_eq!(snap.regions.iter().filter(|r| r.residents > 0).count(), 4 + m.world.camps.len());
+    assert!(!m.world.camps.is_empty(), "the world has its free peoples");
 }
 
 #[test]
@@ -1499,7 +1501,7 @@ fn recruits_and_fallen_militia_take_their_qualifications_with_them() {
     // through the real order: a formation is raised, and the world loses nobody
     // (a world whose capital can call up the muster: in some worlds of ruleset
     // 3.0.0-s6c and -s10 the last worker-month waits on call-up for a long time)
-    let mut m = Match::new(cfg("enlist-e"), 1);
+    let mut m = Match::new(cfg("enlist-f"), 1);
     let capital = m.world.civs[0].capital;
     let before = m.ledger_snapshot();
     let r = m.act(0, vec![Action::StartProject { spec: ProjectSpec::Recruit { region: capital, role: Role::Denial, soldiers: 8_000, tier: 0 }, priority: None }]);
@@ -2022,6 +2024,9 @@ fn a_scripted_match_balances_every_month_for_thirty_years() {
                 let army = m.world.armies.iter_mut().find(|a| a.owner == 0 && a.soldiers[Role::Assault.index()] > 0).expect("seat 0 raised its formation");
                 assert_eq!(army.training_left, 0);
                 army.region = far1 as RegionId;
+                // with the newest arms: the militia of a civilization that knows
+                // everything fights two generations below its best (design chapter 37, 2.4)
+                army.tier = 7;
             }
             4 => {
                 // seat 1's formation marches into seat 0's capital, where the militia breaks it

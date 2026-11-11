@@ -26,6 +26,10 @@ fn observe_region(w: &mut World, seat: SeatId, ri: usize) {
     mem.owner = owner;
     mem.pop_estimate = pop;
     mem.notable = notable;
+    // raider camps are seen only where sighted (design chapter 40, 5.10)
+    if mem.camp.is_some() || (owner.is_none() && w.regions[ri].controller.is_none() && !w.camps.is_empty()) {
+        crate::sim::raiders::sight(w, seat, ri);
+    }
     if let Some(o) = owner {
         if o != seat {
             meet(w, seat, o);
@@ -90,6 +94,16 @@ pub fn refresh_visibility(w: &mut World, seat: SeatId) {
     seen.dedup();
     for ri in seen {
         observe_region(w, seat, ri);
+    }
+}
+
+/// A scout party charts a region and its neighbours (design chapter 40, 4.2),
+/// without the survey's record of land and deposits.
+pub fn scout_region(w: &mut World, seat: SeatId, ri: usize) {
+    observe_region(w, seat, ri);
+    let nbs: Vec<usize> = w.regions[ri].neighbors.iter().map(|(n, _)| *n as usize).collect();
+    for nb in nbs {
+        observe_region(w, seat, nb);
     }
 }
 

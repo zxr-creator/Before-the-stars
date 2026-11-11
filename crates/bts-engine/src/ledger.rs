@@ -41,6 +41,8 @@ pub struct CivLedger {
 pub struct RegionLedger {
     pub id: RegionId,
     pub controller: Option<SeatId>,
+    /// A raider camp lives here: people under no government, by design.
+    pub camp: bool,
     /// The seat whose economy ran the region's last month (the owner of the service account).
     pub month_seat: Option<SeatId>,
     pub residents: u32,
@@ -94,6 +96,12 @@ pub struct LedgerSnapshot {
     pub deposits: Vec<DepositLedger>,
     /// Everyone alive: residents of every region plus soldiers.
     pub people: u64,
+    /// Raider camps' births, deaths and goods (design chapter 40, 5.13), and what
+    /// their stores hold, by `Good`.
+    pub wild: WildLedger,
+    pub camp_stock: Vec<i64>,
+    /// Trade credit per seat: balance, earned, spent (design chapter 36, 6.5).
+    pub credit: Vec<(i64, i64, i64)>,
 }
 
 pub use crate::content::deposit_good;
@@ -169,6 +177,7 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
         .map(|(ri, r)| RegionLedger {
             id: r.id,
             controller: r.controller,
+            camp: w.camps.iter().any(|c| c.region == r.id),
             month_seat: r.last.seat,
             residents: r.population(),
             working: r.working(),
@@ -208,7 +217,14 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
         .flat_map(|r| r.deposits.iter().map(move |d| DepositLedger { region: r.id, kind: d.kind, remaining: d.remaining, drawn: d.drawn, delivered: d.delivered }))
         .collect();
     let people = w.regions.iter().map(|r| r.population() as u64).sum::<u64>() + w.armies.iter().map(|a| a.count() as u64).sum::<u64>();
-    LedgerSnapshot { month: w.month, round: w.round, before_month, civs, regions, deposits, people }
+    let mut camp_stock = vec![0i64; NG];
+    for c in &w.camps {
+        for (g, a) in &c.plunder {
+            camp_stock[g.index()] += a;
+        }
+    }
+    let credit = w.civs.iter().map(|c| (c.credit, c.credit_earned, c.credit_spent)).collect();
+    LedgerSnapshot { month: w.month, round: w.round, before_month, civs, regions, deposits, people, wild: w.wild.clone(), camp_stock, credit }
 }
 
 /// Every conservation rule the books of `cur` break, on their own or against the
@@ -257,8 +273,29 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
 
     // ---- people: the world changes by births less deaths ----------------------------
     let change = cur.people as i64 - prev.people as i64;
+    // raider camps are people outside every seat's books (design chapter 40, 5.13)
+    let (births, deaths) = (births + (cur.wild.births - prev.wild.births) as i64, deaths + (cur.wild.deaths - prev.wild.deaths) as i64);
     if change != births - deaths {
         out.push(format!("{at}: the world's people changed by {change} with {births} births and {deaths} deaths recorded"));
+    }
+    // camp stores hold what was plundered or paid and not eaten, recovered or abandoned
+    for g in 0..NG {
+        let at_g = |v: &Vec<i64>| v.get(g).copied().unwrap_or(0);
+        let w = &cur.wild;
+        let held = at_g(&w.plundered) + at_g(&w.tribute) - at_g(&w.eaten) - at_g(&w.recovered) - at_g(&w.abandoned);
+        if held != cur.camp_stock[g] || cur.camp_stock[g] < 0 {
+            out.push(format!("{at}: raider camps hold {} of {:?} but their books explain {held}", cur.camp_stock[g], Good::from_index(g)));
+        }
+    }
+    // trade credit is never created, never negative and only ever transferred
+    let total: i64 = cur.credit.iter().map(|c| c.0).sum();
+    if total != 0 {
+        out.push(format!("{at}: the world holds {total} trade credit; it must hold none"));
+    }
+    for (s, c) in cur.credit.iter().enumerate() {
+        if c.0 < 0 || c.0 != c.1 - c.2 {
+            out.push(format!("{at}: seat {s} holds {} credit with {} earned and {} spent", c.0, c.1, c.2));
+        }
     }
 
     // ---- migrants: every emigrant is some seat's immigrant; refugees are migrants ----
@@ -271,6 +308,7 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
             out.push(format!("{at}: seat {} booked more refugees than migrants", c.seat));
         }
     }
+    let emig = emig + (cur.wild.migrated_out - prev.wild.migrated_out) as i64;
     if emig != immig {
         out.push(format!("{at}: {emig} people emigrated but {immig} immigrated"));
     }
@@ -344,7 +382,7 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
     let mut region_lost = vec![vec![0i64; NG]; n];
     for r in &cur.regions {
         let name = format!("{at}: region {}", r.id);
-        if r.controller.is_none() && (r.residents > 0 || r.quals.iter().any(|x| *x > 0) || r.students > 0) {
+        if r.controller.is_none() && ((r.residents > 0 && !r.camp) || r.quals.iter().any(|x| *x > 0) || r.students > 0) {
             out.push(format!("{name}: people live under no government ({} residents)", r.residents));
         }
         let roles: u64 = r.quals.iter().map(|x| *x as u64).sum::<u64>() + r.students as u64;

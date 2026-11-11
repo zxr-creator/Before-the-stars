@@ -69,6 +69,8 @@ const SETTLER_TOOLS_PER_K: i64 = 50;
 const RESETTLE_KEEP: u32 = 50_000;
 /// A formation, in soldiers, and the worker-months to muster a thousand recruits.
 pub const FORMATION_MIN: u32 = 1_000;
+/// People in a scout party (design chapter 40, 4.2).
+pub const SCOUT_PEOPLE: u32 = 300;
 pub const FORMATION_MAX: u32 = 5_000_000;
 const MUSTER_WORK_PER_K: i64 = 150;
 /// Places one programme may book.
@@ -192,6 +194,8 @@ fn label(a: &Action) -> String {
                 ProjectSpec::FtlDeployment => "ftl_deployment",
                 ProjectSpec::FtlReplacement => "ftl_replacement",
                 ProjectSpec::Revisit { .. } => "revisit",
+                ProjectSpec::Refit { .. } => "refit",
+                ProjectSpec::Scout { .. } => "scout",
             }
         ),
         Action::ManageProject { .. } => "manage_project".into(),
@@ -565,6 +569,64 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     }
                     w.civs[si].war_policy[o] = accept_white_peace_after_months.map(|m| (m.min(1200), accept_cession_max));
                 }
+                PolicySetting::CampPolicy { subjugate } => {
+                    w.civs[si].subjugate_camps = subjugate;
+                }
+                PolicySetting::Tribute { region, goods, years } => {
+                    let ri = region as usize;
+                    // only a camp the seat has sighted can be paid; the same words for any other region
+                    let sighted = ri < w.regions.len() && w.civs[si].memory[ri].camp.is_some();
+                    let Some(ci) = crate::sim::raiders::camp_at(w, ri).filter(|_| sighted) else { return fail(UNKNOWN, "no camp known there") };
+                    if !(1..=20).contains(&years) || goods.is_empty() {
+                        return fail("INVALID_SCHEMA", "tribute is some goods for 1 to 20 years");
+                    }
+                    let known = crate::observe::known_goods(w, seat);
+                    let mut bill = Vec::new();
+                    for q in &goods {
+                        if !known[q.good.index()] || q.amount <= 0 {
+                            return fail(UNKNOWN, "unknown good");
+                        }
+                        if w.civs[si].stock_of(q.good) < q.amount {
+                            return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("not enough {} in store", q.good.label().to_lowercase()));
+                        }
+                        bill.push((q.good, q.amount));
+                    }
+                    // tribute at least the camp's expected yearly plunder over the years stops raids
+                    let worth: i64 = bill.iter().map(|(g, a)| a / 1000 * crate::content::base_price(*g)).sum();
+                    let expected: i64 = crate::sim::raiders::PLUNDER.iter().map(|g| crate::sim::raiders::expected_yearly_of(w, seat, *g) / 1000 * crate::content::base_price(*g)).sum::<i64>() * years as i64;
+                    if worth < expected {
+                        return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("the camp expects goods worth at least {} credit for {years} years", group(expected)));
+                    }
+                    crate::sim::raiders::pay_tribute(w, seat, ci, &bill, years);
+                    return Ok(("Tribute paid: the camp will leave us alone for the years agreed.".into(), None));
+                }
+                PolicySetting::MarketOrder { good, side, per_month, limit_price, keep_stock } => {
+                    if !crate::observe::known_goods(w, seat)[good.index()] {
+                        return fail(UNKNOWN, "unknown good");
+                    }
+                    if per_month < 0 || keep_stock < 0 || limit_price.map(|p| p <= 0).unwrap_or(false) {
+                        return fail("INVALID_SCHEMA", "amounts must be positive");
+                    }
+                    let civ = &mut w.civs[si];
+                    civ.orders.retain(|o| o.good != good);
+                    if per_month > 0 {
+                        civ.orders.push(MarketOrderSt { good, sell: side == MarketSide::Sell, per_month, limit: limit_price, keep: keep_stock });
+                        civ.orders.sort_by_key(|o| o.good.index());
+                    }
+                }
+                PolicySetting::Embargo { seat: other, on } => {
+                    let o = other as usize;
+                    if other == seat || o >= w.civs.len() || !w.civs[si].contacts[o].met {
+                        return fail(UNKNOWN, "unknown counterpart");
+                    }
+                    let civ = &mut w.civs[si];
+                    civ.embargo.retain(|x| *x != other);
+                    if on {
+                        civ.embargo.push(other);
+                        civ.embargo.sort_unstable();
+                    }
+                    w.routes_dirty = true;
+                }
             }
             Ok(("Standing policy updated.".into(), None))
         }
@@ -710,6 +772,9 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.civs[si].memory[ti].owner.is_some() {
                         return fail("CONFLICTING_ACTIONS", "our records show that land is already held");
                     }
+                    if let Some(ci) = crate::sim::raiders::camp_at(w, ti) {
+                        return fail("CONFLICTING_ACTIONS", format!("{} hold this land", w.camps[ci].name));
+                    }
                     if !(SETTLERS_MIN..=SETTLERS_MAX).contains(&people) {
                         return fail("INVALID_SCHEMA", "a settling party is 20,000 to 400,000 people");
                     }
@@ -755,6 +820,71 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     let id = new_project(w, seat, ProjKind::Resettle { from, to, people }, Some(from), work, vec![(Good::Food, people as i64 * crate::content::FOOD_PER_PERSON_MONTH)], 2, priority);
                     Ok(("Resettlement organized.".into(), Some(id)))
                 }
+                ProjectSpec::Refit { army, generation } => {
+                    let Some(ai) = w.armies.iter().position(|a| a.id == army && a.owner == seat) else { return fail(UNKNOWN, "no such formation") };
+                    let a = w.armies[ai].clone();
+                    let ri = a.region as usize;
+                    if a.training_left > 0 {
+                        return fail("CONFLICTING_ACTIONS", "the formation is still in its first training");
+                    }
+                    if w.regions[ri].owner != Some(seat) || w.regions[ri].controller != Some(seat) {
+                        return fail("CONFLICTING_ACTIONS", "a refit needs a region we own and control");
+                    }
+                    if a.in_battle || a.refit_to.is_some() {
+                        return fail("CONFLICTING_ACTIONS", "the formation is fighting or already refitting");
+                    }
+                    let best = crate::sim::military::military_tier(w, seat);
+                    if generation <= a.tier || generation > best || (generation as usize) >= c.unit_tiers.len() {
+                        return fail(UNKNOWN, "unknown formation type");
+                    }
+                    if w.regions[ri].cap(Cap::Barracks) == 0 {
+                        return fail("INSUFFICIENT_VISIBLE_BUDGET", "a refit needs a barracks in the region");
+                    }
+                    let def = &c.unit_tiers[generation as usize];
+                    let n = a.count() as i64;
+                    let variant = crate::sim::eras::variant_for(&w.civs[si], generation);
+                    let mut bill: Vec<(Good, i64)> = crate::sim::eras::variant_goods(variant, &def.equipment, false).iter().map(|(g, q)| (*g, q * n / 1000)).collect();
+                    if a.soldiers[Role::Maneuver.index()] > 0 {
+                        bill.extend(def.maneuver_extra.iter().map(|(g, q)| (*g, q * a.soldiers[Role::Maneuver.index()] as i64 / 1000)));
+                    }
+                    let work = scaled((def.fit * crate::content::FIT_WORK_PER_K * n / 1000).max(1000), pace);
+                    let train = crate::sim::eras::training_months(&w.civs[si], generation) as i64;
+                    let months = if generation > a.tier + 1 { train } else { (train + 1) / 2 };
+                    let id = new_project(w, seat, ProjKind::Refit { army, to: generation }, Some(ri as RegionId), work, bill, months.max(1), priority);
+                    w.armies[ai].refit_to = Some(generation);
+                    w.armies[ai].refit_bp = 0;
+                    Ok(("Refit ordered: the formation converts as equipment, fit-out work and retraining allow.".into(), Some(id)))
+                }
+                ProjectSpec::Scout { region } => {
+                    let ti = region as usize;
+                    if ti >= w.regions.len() {
+                        return fail(UNKNOWN, "unknown region");
+                    }
+                    let known_adjacent = w.civs[si].memory[ti].seen || w.regions[ti].neighbors.iter().any(|(n, _)| w.civs[si].memory[*n as usize].seen);
+                    if !known_adjacent {
+                        return fail(UNKNOWN, "unknown region");
+                    }
+                    if w.civs[si].projects.iter().any(|p| matches!(p.kind, ProjKind::Scout { region: r, .. } if r == region)) {
+                        return fail("CONFLICTING_ACTIONS", "a scout party is already on its way there");
+                    }
+                    let scouting = w.civs[si].projects.iter().filter(|p| matches!(p.kind, ProjKind::Scout { .. })).count();
+                    let held = w.regions.iter().filter(|r| r.controller == Some(seat)).count();
+                    if scouting >= (2 + held / 4).min(12) {
+                        return fail("RATE_LIMITED", "every scout party we can field is already out");
+                    }
+                    let (mut base, dist) = nearest_own(w, seat, ti).ok_or(Fail { code: UNKNOWN, reason: "no governed region can supply a party".into() })?;
+                    if w.regions[base].working() < SCOUT_PEOPLE * 4 {
+                        // a frontier settlement too small to spare a party: the capital sends one
+                        base = w.civs[si].capital as usize;
+                    }
+                    if w.regions[base].controller != Some(seat) || w.regions[base].working() < SCOUT_PEOPLE * 4 {
+                        return fail("INSUFFICIENT_VISIBLE_BUDGET", "the supplying region cannot spare a party");
+                    }
+                    let work = scaled((2 + 2 * dist as i64) * 1000, pace);
+                    let months = (1 + dist as i64).min(12);
+                    let id = new_project(w, seat, ProjKind::Scout { region, people: SCOUT_PEOPLE }, Some(base as RegionId), work, vec![(Good::Food, SCOUT_PEOPLE as i64 * months), (Good::Tools, 2_000)], months, priority);
+                    Ok(("Scout party sent.".into(), Some(id)))
+                }
                 ProjectSpec::Recruit { region, role, soldiers, tier } => {
                     let ri = own_region(w, seat, region)?;
                     if (tier as usize) >= c.unit_tiers.len() || !c.unit_tiers[tier as usize].req.eval(&CivCtx { world: w, seat }) {
@@ -779,15 +909,38 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     // and mounted formations need their mounts
                     let per_k = |v: &[(Good, i64)]| -> Vec<(Good, i64)> { v.iter().map(|(g, a)| (*g, a * soldiers as i64 / 1000)).collect() };
                     let covered = |v: &[(Good, i64)]| v.iter().all(|(g, a)| w.civs[si].stock_of(*g) >= *a);
+                    // the recruiting floor (design chapter 37, 2.7): nothing below one
+                    // generation behind the best unless that cannot be fitted out, or two
+                    // behind from the kit store
+                    let best = crate::sim::military::military_tier(w, seat);
+                    let from_kit = w.civs[si].kit.get(tier as usize).copied().unwrap_or(0) >= soldiers;
+                    if tier + 1 < best && !(from_kit && tier + 2 >= best) {
+                        let next = best - 1;
+                        let nd = &c.unit_tiers[next as usize];
+                        let nv = crate::sim::eras::variant_for(&w.civs[si], next);
+                        let short = per_k(&crate::sim::eras::variant_goods(nv, &nd.equipment, false)).into_iter().any(|(g, a)| w.civs[si].stock_of(g) * 4 < a);
+                        if !short && !(next >= 1 && w.regions[ri].cap(Cap::Barracks) == 0) {
+                            return fail("CONFLICTING_ACTIONS", format!("generation {tier} is obsolete: generation {next} ({}) can be fitted out", nd.name));
+                        }
+                    }
                     // a held tradition's variant swaps what the formation is equipped with
                     let variant = crate::sim::eras::variant_for(&w.civs[si], tier);
                     let main = per_k(&crate::sim::eras::variant_goods(variant, &def.equipment, false));
                     let alt = per_k(&def.alternative);
-                    let mut inputs: Vec<(Good, i64)> = if !alt.is_empty() && !covered(&main) && covered(&alt) { alt } else { main };
-                    if role == Role::Maneuver {
+                    let mut inputs: Vec<(Good, i64)> = if from_kit {
+                        // sets from the kit store replace the equipment bill and the fit-out
+                        w.civs[si].kit[tier as usize] -= soldiers;
+                        Vec::new()
+                    } else if !alt.is_empty() && !covered(&main) && covered(&alt) {
+                        alt
+                    } else {
+                        main
+                    };
+                    if role == Role::Maneuver && !from_kit {
                         inputs.extend(per_k(&def.maneuver_extra));
                     }
-                    let work = scaled(soldiers as i64 * MUSTER_WORK_PER_K / 1000, pace) * crate::sim::eras::muster_bp(&w.civs[si]) / 10_000;
+                    let fit = if from_kit { 0 } else { def.fit * crate::content::FIT_WORK_PER_K * soldiers as i64 / 1000 };
+                    let work = scaled(soldiers as i64 * MUSTER_WORK_PER_K / 1000 + fit, pace) * crate::sim::eras::muster_bp(&w.civs[si]) / 10_000;
                     let id = new_project(w, seat, ProjKind::Recruit { role, soldiers, tier }, Some(region), work, inputs, 2, priority);
                     Ok(("Recruitment and equipment ordered.".into(), Some(id)))
                 }
@@ -1076,11 +1229,16 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     let home = if w.regions[a.region as usize].controller == Some(seat) { a.region } else { w.civs[si].capital };
                     let lineage = w.civs[si].lineage;
                     crate::sim::population::return_adults(&mut w.regions[home as usize], lineage, a.count());
-                    return Ok(("Formation disbanded; its people return to civilian life. Equipment is not recovered.".into(), None));
+                    // the equipment goes to the kit store (design chapter 37, 2.4)
+                    if let Some(k) = w.civs[si].kit.get_mut(a.tier as usize) {
+                        *k += a.count();
+                    }
+                    w.civs[si].projects.retain(|p| !matches!(p.kind, ProjKind::Refit { army: x, .. } if x == a.id));
+                    return Ok(("Formation disbanded; its people return to civilian life and its equipment to the kit store.".into(), None));
                 }
                 ArmyOrder::Merge { into } => {
                     let Some(bi) = w.armies.iter().position(|a| a.id == into && a.owner == seat) else { return fail(UNKNOWN, "no such formation") };
-                    if bi == ai || w.armies[ai].region != w.armies[bi].region || w.armies[ai].tier != w.armies[bi].tier {
+                    if bi == ai || w.armies[ai].region != w.armies[bi].region || w.armies[ai].tier != w.armies[bi].tier || w.armies[ai].refit_to.is_some() || w.armies[bi].refit_to.is_some() {
                         return fail("CONFLICTING_ACTIONS", "formations must share a region and equipment tier to merge");
                     }
                     let a = w.armies[ai].clone();

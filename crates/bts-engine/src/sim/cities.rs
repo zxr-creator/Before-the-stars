@@ -318,7 +318,8 @@ pub fn urban_defence_bp(class: SettlementKind) -> i64 {
     }
 }
 
-/// What a region's fortifications add against attackers of a tier (design 4.2).
+/// What a region's fortifications add against attackers of an equipment generation
+/// (design 4.2).
 pub fn fort_bp(r: &Region, attacker_tier: u8) -> i64 {
     let t = attacker_tier;
     let info = network::kind_info();
@@ -334,12 +335,13 @@ pub fn fort_bp(r: &Region, attacker_tier: u8) -> i64 {
     if lv(2) {
         best = best.max(match t {
             0..=2 => 3_000,
-            3 => 1_000,
+            3 => 2_000,
+            4 => 1_000,
             _ => 0,
         });
     }
     if lv(3) {
-        best = best.max(if t <= 5 { 1_500 } else { 500 });
+        best = best.max(if t <= 6 { 1_500 } else { 500 });
     }
     best
 }

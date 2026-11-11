@@ -147,19 +147,33 @@ fn bonuses_seen(civ: &Civ, r: &Region) -> Vec<BonusView> {
 }
 
 fn fuzz(w: &World, seat: SeatId, key: u64, value: u64, spread_pct: u64) -> (u64, u64) {
+    estimate(w, seat, key, value, spread_pct)
+}
+
+/// A band estimate of a hidden figure (design chapter 40, section 6.4, interim fix):
+/// the band's half-width is `w = spread / 2` percent and its centre is off the truth
+/// by `w x (beta / 2 + eta)`, where `beta` is a bias fixed for the seat and subject
+/// for the whole match and `eta` a slowly changing yearly term (a weighted mean of
+/// four yearly draws). The band therefore misses the truth about one time in ten,
+/// and neither repeated queries nor intersecting the bands of many years converge on
+/// it. Deterministic per seat, subject and year.
+pub fn estimate(w: &World, seat: SeatId, key: u64, value: u64, spread_pct: u64) -> (u64, u64) {
     if value == 0 {
         return (0, 0);
     }
-    // deterministic per seat, subject and year: re-querying never sharpens an estimate
     let year = (w.month / 12) as u64;
-    let shift = draw_range(w.secret, &[stream("estimate"), seat as u64, key, year], spread_pct + 1) as i64 - (spread_pct as i64 / 2);
-    let mid = (value as i64 * (100 + shift) / 100).max(1);
-    let lo = mid * (100 - spread_pct as i64 / 2) / 100;
-    let hi = mid * (100 + spread_pct as i64 / 2) / 100;
+    let u = |k: u64, y: u64| draw_range(w.secret, &[stream("estimate"), seat as u64, key, k, y], 20_001) as i64 - 10_000;
+    let beta = u(0, 0);
+    let eta = (4 * u(1, year) + 3 * u(1, year.wrapping_sub(1)) + 2 * u(1, year.wrapping_sub(2)) + u(1, year.wrapping_sub(3))) / 10;
+    let half = spread_pct as i64 * 100 / 2; // basis points
+    let eps = half * (beta / 2 + eta) / 10_000;
+    let mid = (value as i64 * (10_000 + eps) / 10_000).max(1);
+    let lo = mid * (10_000 - half) / 10_000;
+    let hi = mid * (10_000 + half) / 10_000;
     // estimates of people are reported in round numbers: to the nearest 5,000 for a
     // camp or a formation, 500,000 for a nation
     let round = |v: i64| -> u64 {
-        let step = if v >= 10_000_000 { 500_000 } else if v >= 1_000_000 { 100_000 } else if v >= 100_000 { 10_000 } else { 5_000 };
+        let step = if v >= 10_000_000 { 500_000 } else if v >= 1_000_000 { 100_000 } else if v >= 100_000 { 10_000 } else if v >= 20_000 { 5_000 } else { 500 };
         ((v / step) * step).max(0) as u64
     };
     (round(lo), round(hi).max(round(lo) + 1))
@@ -362,6 +376,8 @@ fn project_kind_key(kind: &ProjKind) -> &'static str {
         ProjKind::Study { .. } => "study",
         ProjKind::Resettle { .. } => "resettle",
         ProjKind::Recruit { .. } => "recruit",
+        ProjKind::Refit { .. } => "refit",
+        ProjKind::Scout { .. } => "scout",
         ProjKind::Reform { .. } => "reform",
         ProjKind::Revisit { .. } => "revisit",
         ProjKind::Repeal { .. } => "repeal",
@@ -827,6 +843,15 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             climate: Some(r.climate),
             city_size: city_seen(w, seat, ri, mine, current),
             city: (!r.city_name.is_empty()).then(|| CitySiteView { name: r.city_name.clone(), at: r.city_at, natural_harbour: r.natural_harbour }),
+            camp: mem.camp.as_ref().map(|m| CampView {
+                name: m.name.clone(),
+                people_low: m.people.0,
+                people_high: m.people.1,
+                warriors_low: m.warriors.0,
+                warriors_high: m.warriors.1,
+                seen: m.month,
+                tribute_until: crate::sim::raiders::camp_at(w, ri).and_then(|ci| w.camps[ci].tribute.iter().find(|t| t.0 == seat).map(|t| t.1)).filter(|_| m.month > 0),
+            }),
         });
     }
 
@@ -952,6 +977,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         water_fulfillment_bp: civ.water_ful_bp,
         military_tier: military::military_tier(w, seat),
         recruit_room: military::recruit_room(w, seat),
+        kit: civ.kit.clone(),
+        militia_generation: military::militia_gen(w, seat, 1),
         overlord: civ.overlord,
         subordinates: w.civs.iter().filter(|o| o.overlord == Some(seat)).map(|o| o.seat).collect(),
     };
@@ -1408,6 +1435,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             blockers: p.blockers.clone(),
         })
         .collect();
+    let best_gen = military::military_tier(w, seat);
     let armies = w
         .armies
         .iter()
@@ -1436,6 +1464,10 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             training_months_left: a.training_left,
             in_battle: a.in_battle,
             variant: a.variant.and_then(|v| crate::sim::eras::TRADITIONS.get(v as usize)).map(|t| t.variant.split(':').next().unwrap_or("").to_string()),
+            refit_to: a.refit_to,
+            refit_bp: a.refit_bp,
+            degraded: a.degraded,
+            obsolete: a.tier + 3 <= best_gen,
         })
         .collect();
     let foreign_armies = w
@@ -1641,6 +1673,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         directives: civ.directives.iter().map(|d| DirectiveView { id: d.id, directive: d.directive.clone(), last_result: d.last_result.clone(), last_status: d.last_status.clone(), last_month: d.last_month }).collect(),
         era: Some(crate::sim::eras::view(w, seat)),
         building_tree_hash: building_tree().hash.clone(),
+        market: crate::sim::market::view(w, seat),
     }
 }
 
@@ -1828,6 +1861,11 @@ pub fn spectate(w: &World) -> SpectatorView {
             climate: Some(r.climate),
             city_size: Some(CityView { name: r.city_name.clone(), residents: sizes[ri], class: crate::sim::cities::class_of(sizes[ri]) }),
             city: (!r.city_name.is_empty()).then(|| CitySiteView { name: r.city_name.clone(), at: r.city_at, natural_harbour: r.natural_harbour }),
+            // the observer sees every camp as it is
+            camp: crate::sim::raiders::camp_at(w, ri).map(|ci| {
+                let (p, war) = (crate::sim::raiders::people(w, ci), crate::sim::raiders::warriors(w, ci));
+                CampView { name: w.camps[ci].name.clone(), people_low: p, people_high: p, warriors_low: war, warriors_high: war, seen: w.month, tribute_until: None }
+            }),
         });
     }
     let civs = w

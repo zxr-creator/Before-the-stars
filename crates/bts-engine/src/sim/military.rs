@@ -1,16 +1,46 @@
 //! Campaign-level warfare: training, supply, movement, simultaneous monthly
 //! losses, capture after sustained control, and elimination.
 //!
-//! There is no combat die. Power is engaged people × 2.5^tier × proficiency ×
-//! supply × morale × terrain, adjusted by the three-role counter matrix.
+//! There is no combat die. Power is engaged people × 2.5^generation × proficiency ×
+//! supply × morale × terrain, adjusted by the three-role counter matrix while the
+//! two sides' mean generations differ by less than two (design chapter 37, 2.2).
 
-use crate::content::{content, Cap, COUNTER, TIER_POWER};
+use crate::content::{content, Cap, COUNTER, GEN_POWER};
 use crate::sim::chronicle::{brief, moment, reported};
 use crate::state::*;
 use bts_protocol::*;
 
 /// Home-defence militia: one working adult in forty, at most this many.
 const MILITIA_MAX: u32 = 500_000;
+
+/// The generation home militia fight with (design chapter 37, 2.4): two below the
+/// best, raised to the best generation of which the kit store holds a set for every
+/// militiaman, never above the best.
+pub fn militia_gen(w: &World, seat: SeatId, militia: u32) -> u8 {
+    let best = military_tier(w, seat);
+    let kit = &w.civs[seat as usize].kit;
+    let mut g = best.saturating_sub(2);
+    for k in (g + 1)..=best {
+        if kit.get(k as usize).copied().unwrap_or(0) >= militia.max(1) {
+            g = k;
+        }
+    }
+    g
+}
+
+/// Power per soldier of a formation (thousandths) and its generation (thousandths):
+/// a refit blends the old and the new by the share converted (design 2.3).
+pub fn unit_power(a: &Army) -> (i64, i64) {
+    let g = a.fighting_gen() as usize;
+    match a.refit_to {
+        Some(t) => {
+            let t = (t.saturating_sub(a.degraded) as usize).min(GEN_POWER.len() - 1);
+            let s = a.refit_bp as i64;
+            (GEN_POWER[g] * (10_000 - s) / 10_000 + GEN_POWER[t] * s / 10_000, (g as i64 * (10_000 - s) + t as i64 * s) / 10)
+        }
+        None => (GEN_POWER[g], g as i64 * 1000),
+    }
+}
 
 pub fn military_tier(w: &World, seat: SeatId) -> u8 {
     let c = content();
@@ -62,6 +92,7 @@ pub fn declare_war(w: &mut World, aggressor: SeatId, victim: SeatId, reason: &st
     if aggressor == victim || w.at_war(aggressor, victim) {
         return;
     }
+    w.routes_dirty = true;
     let month = w.month;
     let when = crate::util::event_label(&w.cfg, month);
     let (an, vn) = (w.civs[aggressor as usize].name.clone(), w.civs[victim as usize].name.clone());
@@ -138,6 +169,7 @@ pub fn declare_war(w: &mut World, aggressor: SeatId, victim: SeatId, reason: &st
 }
 
 pub fn make_peace(w: &mut World, a: SeatId, b: SeatId) {
+    w.routes_dirty = true;
     let month = w.month;
     for (x, y) in [(a, b), (b, a)] {
         let ct = &mut w.civs[x as usize].contacts[y as usize];
@@ -217,42 +249,209 @@ struct Side {
     armies: Vec<usize>,
     militia: u32,
     militia_tier: u8,
+    /// Raider warriors (irregulars, equal roles, 80% power) and their generation.
+    irregular: u32,
+    irregular_gen: u8,
+    irregular_morale: u16,
 }
 
-fn side_power(w: &World, side: &Side, enemy_mix: [i64; 3], terrain_bp: i64) -> (i64, [i64; 3], u32) {
+impl Side {
+    fn of(armies: Vec<usize>) -> Side {
+        Side { armies, militia: 0, militia_tier: 0, irregular: 0, irregular_gen: 0, irregular_morale: 8_000 }
+    }
+}
+
+/// What a side brings: power by role, people, and its power-weighted generation
+/// (thousandths).
+struct Force {
+    by_role: [i64; 3],
+    people: u32,
+    gen_milli: i64,
+}
+
+fn force(w: &World, side: &Side) -> Force {
     let mut by_role = [0i64; 3];
     let mut people = 0u32;
+    let mut gen_w = 0i64;
+    let mut pw = 0i64;
     for &ai in &side.armies {
         let a = &w.armies[ai];
         let quality = a.proficiency_bp as i64 * a.supply_bp.max(2000) as i64 / 10_000 * a.morale_bp.max(2000) as i64 / 10_000;
         // a tradition variant's bonuses by role (design chapter 37, section 2.6)
         let vp = crate::sim::eras::variant_power(&w.civs[a.owner as usize], a.variant);
+        let (per, g) = unit_power(a);
         for role in 0..3 {
-            by_role[role] += a.soldiers[role] as i64 * TIER_POWER[a.tier as usize] / 1000 * quality / 10_000 * vp[role] / 10_000;
+            let p = a.soldiers[role] as i64 * per / 1000 * quality / 10_000 * vp[role] / 10_000;
+            by_role[role] += p;
+            gen_w += p / 1000 * g;
+            pw += p / 1000;
         }
         people += a.count();
     }
     if side.militia > 0 {
         // defenders of their own homes: untrained, lightly armed, holding positions
-        by_role[2] += side.militia as i64 * TIER_POWER[side.militia_tier as usize] / 1000 * 4000 / 10_000;
+        let p = side.militia as i64 * GEN_POWER[side.militia_tier as usize] / 1000 * 4000 / 10_000;
+        by_role[2] += p;
+        gen_w += p / 1000 * side.militia_tier as i64 * 1000;
+        pw += p / 1000;
         people += side.militia;
     }
-    let total: i64 = by_role.iter().sum();
-    if total == 0 {
-        return (0, [0; 3], people);
+    if side.irregular > 0 {
+        let p = side.irregular as i64 * GEN_POWER[side.irregular_gen as usize] / 1000 * crate::sim::raiders::IRREGULAR_BP / 10_000 * side.irregular_morale.max(2_000) as i64 / 10_000;
+        for r in by_role.iter_mut() {
+            *r += p / 3;
+        }
+        gen_w += p / 1000 * side.irregular_gen as i64 * 1000;
+        pw += p / 1000;
+        people += side.irregular;
     }
-    let mix = [by_role[0] * 10_000 / total, by_role[1] * 10_000 / total, by_role[2] * 10_000 / total];
-    let esum: i64 = enemy_mix.iter().sum();
-    let mut counter = 10_000;
-    if esum > 0 {
-        counter = 0;
-        for i in 0..3 {
-            for j in 0..3 {
-                counter += mix[i] * enemy_mix[j] / 10_000 * COUNTER[i][j] / 10_000;
-            }
+    Force { by_role, people, gen_milli: if pw > 0 { gen_w / pw } else { 0 } }
+}
+
+/// The power a side engages against an enemy: the counter matrix applies while the
+/// two mean generations differ by less than two; beyond that the older side's
+/// factor is a flat 8,000 and the newer side's 10,000 (design chapter 37, 2.2).
+fn engaged(f: &Force, enemy: &Force, terrain_bp: i64) -> i64 {
+    let total: i64 = f.by_role.iter().sum();
+    if total == 0 {
+        return 0;
+    }
+    total * counter_bp(f.by_role, f.gen_milli, enemy.by_role, enemy.gen_milli) / 10_000 * terrain_bp / 10_000
+}
+
+/// The counter factor of a side against an enemy (basis points), from their power by
+/// role and mean generations in thousandths (design chapter 37, 2.2).
+pub(crate) fn counter_bp(own: [i64; 3], own_gen: i64, enemy: [i64; 3], enemy_gen: i64) -> i64 {
+    let (total, esum): (i64, i64) = (own.iter().sum(), enemy.iter().sum());
+    if total == 0 || esum == 0 {
+        return 10_000;
+    }
+    if (own_gen - enemy_gen).abs() >= 2000 {
+        return if own_gen < enemy_gen { 8_000 } else { 10_000 };
+    }
+    let mix = [own[0] * 10_000 / total, own[1] * 10_000 / total, own[2] * 10_000 / total];
+    let emix = [enemy[0] * 10_000 / esum, enemy[1] * 10_000 / esum, enemy[2] * 10_000 / esum];
+    let mut c = 0;
+    for i in 0..3 {
+        for j in 0..3 {
+            c += mix[i] * emix[j] / 10_000 * COUNTER[i][j] / 10_000;
         }
     }
-    (total * counter / 10_000 * terrain_bp / 10_000, mix, people)
+    c
+}
+
+fn terrain_factor(t: Terrain) -> i64 {
+    match t {
+        Terrain::Hills | Terrain::Mountains | Terrain::Forest | Terrain::Marsh => 11_500,
+        _ => 10_500,
+    }
+}
+
+fn home_militia(w: &World, ri: usize, ctrl: SeatId) -> u32 {
+    if w.regions[ri].owner != Some(ctrl) {
+        return 0;
+    }
+    let militia_f = crate::sim::eras::militia_bp(&w.civs[ctrl as usize]);
+    ((w.regions[ri].working() as i64 / 40).min(MILITIA_MAX as i64) * militia_f / 10_000) as u32
+}
+
+fn defenders_of(w: &World, ri: usize, ctrl: SeatId) -> Side {
+    let armies: Vec<usize> = (0..w.armies.len()).filter(|i| w.armies[*i].region as usize == ri && w.armies[*i].count() > 0 && friendly(w, w.armies[*i].owner, ctrl)).collect();
+    let militia = home_militia(w, ri, ctrl);
+    let mut side = Side::of(armies);
+    side.militia = militia;
+    side.militia_tier = militia_gen(w, ctrl, militia);
+    side
+}
+
+/// The power defending a region against attackers of a generation (raid deterrence).
+pub fn region_defence(w: &World, ri: usize, attacker_gen: u8) -> i64 {
+    let Some(ctrl) = w.regions[ri].controller else { return 0 };
+    let side = defenders_of(w, ri, ctrl);
+    let f = force(w, &side);
+    let t = crate::sim::cities::defence_bp(w, ri, terrain_factor(w.regions[ri].terrain), attacker_gen);
+    f.by_role.iter().sum::<i64>() * t / 10_000
+}
+
+/// One month's battle of a raid on `ri` by camp `ci` (design chapter 40, 5.4).
+/// Returns whether the raiders prevailed. Defender losses are booked as war
+/// deaths of the seat; raider losses as deaths outside every seat's books.
+pub fn raid_battle(w: &mut World, ci: usize, ri: usize) -> bool {
+    let ctrl = w.regions[ri].controller.unwrap();
+    let def = defenders_of(w, ri, ctrl);
+    let mut att = Side::of(vec![]);
+    att.irregular = crate::sim::raiders::warriors(w, ci);
+    att.irregular_gen = w.raider_gen;
+    att.irregular_morale = w.camps[ci].morale_bp;
+    let (fa, fd) = (force(w, &att), force(w, &def));
+    let pa = engaged(&fa, &fd, 10_000);
+    let t = crate::sim::cities::defence_bp(w, ri, terrain_factor(w.regions[ri].terrain), w.raider_gen);
+    let pd = engaged(&fd, &fa, t);
+    if pd == 0 {
+        return true;
+    }
+    let loss_att = (1000 * pd / pa.max(1)).clamp(10, 3000);
+    let loss_def = (1000 * pa / pd.max(1)).clamp(0, 3000);
+    let ld = apply_losses(w, &def, loss_def);
+    let militia_lost = crate::sim::population::draw_adults(w, ri, (def.militia as i64 * loss_def / 10_000) as u32);
+    let f = &mut w.civs[ctrl as usize].flows;
+    f.deaths += ld + militia_lost;
+    f.deaths_cause[crate::sim::population::CAUSE_WAR] += ld + militia_lost;
+    crate::sim::raiders::kill_warriors(w, ci, (att.irregular as i64 * loss_att / 10_000) as u32);
+    let won = pa > pd;
+    let m = &mut w.camps[ci].morale_bp;
+    *m = (*m as i64 + if won { 300 } else { -1500 }).clamp(500, 10_000) as u16;
+    won
+}
+
+/// Formations fighting a raider camp in its own region (design chapter 40, 5.6).
+fn camp_battles(w: &mut World) {
+    let mut ci = 0;
+    while ci < w.camps.len() {
+        let ri = w.camps[ci].region as usize;
+        let present: Vec<usize> = (0..w.armies.len()).filter(|i| w.armies[*i].region as usize == ri && w.armies[*i].count() > 0 && w.armies[*i].training_left == 0).collect();
+        if present.is_empty() {
+            ci += 1;
+            continue;
+        }
+        let lead = w.armies[present[0]].owner;
+        let att = Side::of(present.clone());
+        let mut def = Side::of(vec![]);
+        def.irregular = crate::sim::raiders::warriors(w, ci);
+        def.irregular_gen = w.raider_gen;
+        def.irregular_morale = w.camps[ci].morale_bp;
+        if def.irregular == 0 {
+            crate::sim::raiders::broken(w, ci, lead);
+            continue;
+        }
+        // irregulars defend their home ground: x1.25 in rough land
+        let home = if matches!(w.regions[ri].terrain, Terrain::Hills | Terrain::Mountains | Terrain::Forest | Terrain::Marsh) { 12_500 } else { 10_000 };
+        let (fa, fd) = (force(w, &att), force(w, &def));
+        let pa = engaged(&fa, &fd, 10_000);
+        let pd = engaged(&fd, &fa, home);
+        let loss_att = (1000 * pd / pa.max(1)).clamp(10, 3000);
+        let loss_def = (1000 * pa / pd.max(1)).clamp(0, 3000);
+        let la = apply_losses(w, &att, loss_att);
+        let f = &mut w.civs[lead as usize].flows;
+        f.deaths += la;
+        f.deaths_cause[crate::sim::population::CAUSE_WAR] += la;
+        let killed = crate::sim::raiders::kill_warriors(w, ci, (def.irregular as i64 * loss_def / 10_000) as u32);
+        let m = &mut w.camps[ci].morale_bp;
+        *m = (*m as i64 + if loss_def > loss_att { -1500 } else { 200 }).clamp(500, 10_000) as u16;
+        for &ai in &present {
+            let a = &mut w.armies[ai];
+            a.morale_bp = (a.morale_bp as i64 + if loss_att > loss_def { -700 } else { 150 }).clamp(500, 10_000) as u16;
+        }
+        // the camp breaks when its warriors fall below a fifth or its morale fails
+        let left = def.irregular - killed.min(def.irregular);
+        if (left as u64) * 5 < def.irregular as u64 && pa > pd || w.camps[ci].morale_bp < 3_000 {
+            crate::sim::raiders::broken(w, ci, lead);
+            continue;
+        }
+        let rname = w.regions[ri].name.clone();
+        brief(w, lead, "warning", format!("Fighting raiders at {rname}"), format!("Our forces lost {}; the raiders lost about {}.", crate::util::group(la as i64), crate::util::group(killed as i64)), Some(ri as RegionId), "military");
+        ci += 1;
+    }
 }
 
 fn apply_losses(w: &mut World, side: &Side, frac_bp: i64) -> u32 {
@@ -316,15 +515,46 @@ pub fn step(w: &mut World) {
     armistices(w);
 
     // ---- training and upkeep --------------------------------------------------
+    // the best generation of each seat (obsolescence) and refits still ordered
+    let best: Vec<u8> = (0..w.civs.len()).map(|s| military_tier(w, s as SeatId)).collect();
+    for i in 0..w.armies.len() {
+        let (owner, id) = (w.armies[i].owner as usize, w.armies[i].id);
+        if w.armies[i].refit_to.is_some() && !w.civs[owner].projects.iter().any(|p| matches!(p.kind, ProjKind::Refit { army, .. } if army == id)) {
+            w.armies[i].refit_to = None;
+            w.armies[i].refit_bp = 0;
+        }
+    }
     for i in 0..w.armies.len() {
         let owner = w.armies[i].owner as usize;
         let tier = w.armies[i].tier as usize;
         let count = w.armies[i].count() as i64;
         let def = &c.unit_tiers[tier];
         let mut ok: i64 = 10_000;
-        // the variant's swaps, the Standing Army's surcharge
-        let upkeep = crate::sim::eras::variant_goods(w.armies[i].variant, &def.upkeep, true);
-        let upkeep_f = crate::sim::eras::army_upkeep_bp(&w.civs[owner]);
+        let mut crit: i64 = 10_000;
+        let obsolete = (tier as u8) + 3 <= best[owner];
+        // the variant's swaps, the Standing Army's surcharge; a refit pays the new
+        // generation's upkeep for the share converted (design 2.3)
+        let mut upkeep: Vec<(Good, i64, bool)> = crate::sim::eras::variant_goods(w.armies[i].variant, &def.upkeep, true).into_iter().map(|(g, a)| (g, a, def.critical.contains(&g))).collect();
+        if let Some(t) = w.armies[i].refit_to {
+            let s = w.armies[i].refit_bp as i64;
+            let nd = &c.unit_tiers[t as usize];
+            let nv = crate::sim::eras::variant_for(&w.civs[owner], t);
+            for u in upkeep.iter_mut() {
+                u.1 = u.1 * (10_000 - s) / 10_000;
+            }
+            for (g, a) in crate::sim::eras::variant_goods(nv, &nd.upkeep, true) {
+                let add = a * s / 10_000;
+                match upkeep.iter_mut().find(|u| u.0 == g) {
+                    Some(u) => u.1 += add,
+                    None => upkeep.push((g, add, nd.critical.contains(&g))),
+                }
+            }
+        }
+        let mut upkeep_f = crate::sim::eras::army_upkeep_bp(&w.civs[owner]);
+        if obsolete {
+            // spares and tools for patterns no longer made (design 2.7)
+            upkeep_f = upkeep_f * 3 / 2;
+        }
         let cap_add = crate::sim::eras::proficiency_add(&w.civs[owner], tier as u8, w.armies[i].variant);
         if w.armies[i].variant.and_then(|v| crate::sim::eras::TRADITIONS.get(v as usize)).map(|t| t.key == "synthetic").unwrap_or(false) {
             // autonomous swarms draw compute from the month's supply
@@ -337,7 +567,7 @@ pub fn step(w: &mut World) {
                 ok = ok.min(got * 10_000 / need);
             }
         }
-        for (g, a) in &upkeep {
+        for (g, a, critical) in &upkeep {
             if *g == Good::Food {
                 continue;
             }
@@ -346,10 +576,26 @@ pub fn step(w: &mut World) {
             if need > 0 {
                 let got = w.civs[owner].take(*g, need);
                 ok = ok.min(got * 10_000 / need);
+                if *critical {
+                    crit = crit.min(got * 10_000 / need);
+                }
             }
         }
         let a = &mut w.armies[i];
         a.supply_bp = ((a.supply_bp as i64 * 2 + ok.min(a.supply_bp as i64 + 4000)) / 3).clamp(1000, 10_000) as u16;
+        // vehicles parked, fighting dismounted: three months short of the critical
+        // goods cost a generation, three months nearly without them two; one good
+        // month restores it (design 2.5)
+        if crit >= 8_000 {
+            a.crit_low = 0;
+            a.crit_vlow = 0;
+            a.degraded = 0;
+        } else {
+            a.crit_low = if crit < 5_000 { a.crit_low.saturating_add(1) } else { 0 };
+            a.crit_vlow = if crit < 2_000 { a.crit_vlow.saturating_add(1) } else { 0 };
+            let d = if a.crit_vlow >= 3 { 2 } else if a.crit_low >= 3 { 1 } else { 0 };
+            a.degraded = a.degraded.max(d).min(a.tier);
+        }
         if a.training_left > 0 {
             a.training_left -= 1;
             let total = def.training_months.max(1) as i64;
@@ -358,8 +604,15 @@ pub fn step(w: &mut World) {
         } else if (a.proficiency_bp as i64) < 7500 + cap_add {
             a.proficiency_bp += 20;
         }
+        if a.refit_to.is_some() {
+            // the retraining dip of a refit (design 2.3)
+            a.proficiency_bp = a.proficiency_bp.min((6_000 + 3_000 * a.refit_bp as i64 / 10_000) as u16);
+        }
         if a.morale_bp < 8000 {
             a.morale_bp += 150;
+        }
+        if obsolete {
+            a.morale_bp = a.morale_bp.min(6_000);
         }
     }
 
@@ -416,6 +669,9 @@ pub fn step(w: &mut World) {
         w.armies[i].region = next as RegionId;
     }
 
+    // ---- raider camps ------------------------------------------------------------------
+    camp_battles(w);
+
     // ---- battles and occupation -----------------------------------------------------
     for ri in 0..w.regions.len() {
         let present: Vec<usize> = (0..w.armies.len()).filter(|i| w.armies[*i].region as usize == ri && w.armies[*i].count() > 0).collect();
@@ -428,25 +684,19 @@ pub fn step(w: &mut World) {
             }
             continue;
         }
-        let defenders: Vec<usize> = present.iter().copied().filter(|i| friendly(w, w.armies[*i].owner, ctrl)).collect();
         let lead = w.armies[attackers[0]].owner;
-        let home_defence = w.regions[ri].owner == Some(ctrl);
-        let militia_f = crate::sim::eras::militia_bp(&w.civs[ctrl as usize]);
-        let militia = if home_defence { ((w.regions[ri].working() as i64 / 40).min(MILITIA_MAX as i64) * militia_f / 10_000) as u32 } else { 0 };
-        let def_side = Side { armies: defenders.clone(), militia, militia_tier: military_tier(w, ctrl).min(1) };
-        let att_side = Side { armies: attackers.clone(), militia: 0, militia_tier: 0 };
-        let terrain_bp = match w.regions[ri].terrain {
-            Terrain::Hills | Terrain::Mountains | Terrain::Forest | Terrain::Marsh => 11_500,
-            _ => 10_500,
-        };
-        let (_, att_mix, att_people) = side_power(w, &att_side, [0; 3], 10_000);
-        let (_, def_mix, def_people) = side_power(w, &def_side, [0; 3], 10_000);
-        let (pa, _, _) = side_power(w, &att_side, def_mix, 10_000);
+        let def_side = defenders_of(w, ri, ctrl);
+        let defenders = def_side.armies.clone();
+        let militia = def_side.militia;
+        let att_side = Side::of(attackers.clone());
+        let (fa, fd) = (force(w, &att_side), force(w, &def_side));
+        let (att_people, def_people) = (fa.people, fd.people);
+        let pa = engaged(&fa, &fd, 10_000);
         // the city and its walls (design chapter 38, sections 4.1-4.2), against the
         // newest equipment among the attackers
-        let att_tier = attackers.iter().map(|i| w.armies[*i].tier).max().unwrap_or(0);
-        let terrain_bp = crate::sim::cities::defence_bp(w, ri, terrain_bp, att_tier);
-        let (pd, _, _) = side_power(w, &def_side, att_mix, terrain_bp);
+        let att_tier = attackers.iter().map(|i| w.armies[*i].fighting_gen()).max().unwrap_or(0);
+        let terrain_bp = crate::sim::cities::defence_bp(w, ri, terrain_factor(w.regions[ri].terrain), att_tier);
+        let pd = engaged(&fd, &fa, terrain_bp);
         let contested = pd > 0 && def_people > 0;
         // defenders outmatched three to one cannot keep control, though they still fight
         let overwhelmed = contested && pa >= pd * 3;
@@ -579,7 +829,7 @@ pub fn step(w: &mut World) {
     // barracks keep idle formations in practice
     for i in 0..w.armies.len() {
         let ri = w.armies[i].region as usize;
-        if w.regions[ri].controller == Some(w.armies[i].owner) && w.regions[ri].cap(Cap::Barracks) > 0 && w.armies[i].proficiency_bp < 8500 && w.armies[i].training_left == 0 {
+        if w.regions[ri].controller == Some(w.armies[i].owner) && w.regions[ri].cap(Cap::Barracks) > 0 && w.armies[i].proficiency_bp < 8500 && w.armies[i].training_left == 0 && w.armies[i].refit_to.is_none() {
             w.armies[i].proficiency_bp += 15;
         }
     }

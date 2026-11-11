@@ -598,6 +598,11 @@ pub enum ProjKind {
     Study { tag: usize },
     Resettle { from: RegionId, to: RegionId, people: u32 },
     Recruit { role: Role, soldiers: u32, tier: u8 },
+    /// Refit a formation in place to a newer generation (design chapter 37, 2.3).
+    Refit { army: u32, to: u8 },
+    /// A scout party sent to a region (design chapter 40, 4.2, minimal): `people`
+    /// residents of the supplying region who face the journey's risks.
+    Scout { region: RegionId, people: u32 },
     Reform { practice: usize },
     /// A revisit study of a rival family's locked question (design chapter 39, 1.4).
     Revisit { family: usize, tech: usize },
@@ -730,11 +735,31 @@ pub struct Army {
     /// `sim::eras::TRADITIONS`), fixed at recruitment (design chapter 37, 2.6).
     #[serde(default)]
     pub variant: Option<u8>,
+    /// The generation a refit in place is converting the formation to, and the share
+    /// of its soldiers already converted, basis points (design chapter 37, 2.3).
+    #[serde(default)]
+    pub refit_to: Option<u8>,
+    #[serde(default)]
+    pub refit_bp: u16,
+    /// Consecutive months with less than half, and less than a fifth, of the
+    /// critical upkeep goods; generations the formation fights below its own for
+    /// want of them (design 2.5).
+    #[serde(default)]
+    pub crit_low: u8,
+    #[serde(default)]
+    pub crit_vlow: u8,
+    #[serde(default)]
+    pub degraded: u8,
 }
 
 impl Army {
     pub fn count(&self) -> u32 {
         self.soldiers.iter().sum()
+    }
+    /// The generation the formation fights at before a refit's blend: its own less
+    /// what supply failures took away.
+    pub fn fighting_gen(&self) -> u8 {
+        self.tier.saturating_sub(self.degraded)
     }
 }
 
@@ -881,6 +906,18 @@ pub struct RegionMemory {
     pub owner: Option<SeatId>,
     pub pop_estimate: u32,
     pub notable: Vec<String>,
+    /// The raider camp last sighted in the region, as reported (design chapter 40,
+    /// 3.1): kept until the region is observed again.
+    #[serde(default)]
+    pub camp: Option<CampMemory>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CampMemory {
+    pub name: String,
+    pub people: (u32, u32),
+    pub warriors: (u32, u32),
+    pub month: Month,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -1182,6 +1219,31 @@ pub struct Civ {
     pub immigration: Immigration,
     #[serde(default)]
     pub emigration: Emigration,
+    /// Soldier sets of equipment in store, by generation (design chapter 37, 2.4).
+    #[serde(default)]
+    pub kit: Vec<u32>,
+    /// Trade credit (design chapter 36, 6.1), in thousandths of a credit: never
+    /// negative, only ever transferred; cumulative credit earned by sales and spent
+    /// on purchases.
+    #[serde(default)]
+    pub credit: i64,
+    #[serde(default)]
+    pub credit_earned: i64,
+    #[serde(default)]
+    pub credit_spent: i64,
+    /// Standing market orders, at most one per good (design chapter 36, 6.3).
+    #[serde(default)]
+    pub orders: Vec<MarketOrderSt>,
+    /// Seats this one embargoes (design chapter 36, 6.6).
+    #[serde(default)]
+    pub embargo: Vec<SeatId>,
+    /// Last month's own fills: (good, bought, received after loss, sold, credit in
+    /// thousandths).
+    #[serde(default)]
+    pub fills: Vec<(Good, i64, i64, i64, i64)>,
+    /// What survivors of a cleared raider camp become: subjects (true) or refugees.
+    #[serde(default)]
+    pub subjugate_camps: bool,
     /// Calibration diagnostics of the last month (referee-side, never served to a
     /// seat, never saved).
     #[serde(skip)]
@@ -1191,6 +1253,79 @@ pub struct Civ {
     /// economy; derived, never saved.
     #[serde(skip)]
     pub successors: Vec<bool>,
+}
+
+/// A standing market order for one good (design chapter 36, 6.3).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MarketOrderSt {
+    pub good: Good,
+    pub sell: bool,
+    /// Most to trade each month, base units.
+    pub per_month: i64,
+    /// Credit per display unit: a buy is not filled above it, a sale not below it.
+    pub limit: Option<i64>,
+    /// A sale never takes stock below this; a buy stops once stock reaches it.
+    pub keep: i64,
+}
+
+/// A raider camp (design chapter 40, section 5): real people of the region's
+/// population blocks of the camp's lineage, belonging to no seat.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Camp {
+    pub id: u32,
+    pub region: RegionId,
+    pub name: String,
+    pub lineage: u16,
+    /// The plunder store, base units by `Good` index of goods it holds.
+    pub plunder: Vec<(Good, i64)>,
+    pub since: Month,
+    pub last_raid: Month,
+    pub last_success: Month,
+    /// Seats paying tribute, and the month their tribute runs to.
+    pub tribute: Vec<(SeatId, Month)>,
+    pub morale_bp: u16,
+}
+
+/// What the world outside every seat's books did (design chapter 40, 5.13): the
+/// births and deaths of raider camps, and the goods that entered and left camp
+/// stores. Cumulative from the start of the match.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WildLedger {
+    pub births: u64,
+    pub deaths: u64,
+    /// Goods by `Good` index: taken in raids, paid as tribute, eaten by camps,
+    /// recovered by the seats that cleared a camp, left behind by a camp that ended.
+    pub plundered: Vec<i64>,
+    pub tribute: Vec<i64>,
+    pub eaten: Vec<i64>,
+    pub recovered: Vec<i64>,
+    pub abandoned: Vec<i64>,
+    /// Camp people who left for a seat's region (immigrants of that seat).
+    pub migrated_out: u64,
+}
+
+/// A trade route between two seats (design chapter 36, 6.2).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Route {
+    pub a: SeatId,
+    pub b: SeatId,
+    pub loss_bp: i64,
+    /// Cargo the route carries a month, tonnes.
+    pub cap_t: i64,
+    /// Regions crossed.
+    pub length: u16,
+    pub sea: bool,
+}
+
+/// One good's line in one market last month (design chapter 36, 6.8).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MarketLine {
+    /// Credit per display unit.
+    pub price: i64,
+    pub prev_price: i64,
+    pub volume: i64,
+    pub sale_orders: i64,
+    pub buy_orders: i64,
 }
 
 /// Population-weighted averages of last month's fertility factors and land
@@ -1330,6 +1465,27 @@ pub struct World {
     /// never saved.
     #[serde(skip)]
     pub city_month: Vec<u32>,
+    /// Raider camps and the generation they fight with (design chapter 40, 5.2):
+    /// the generation in force, and a new one with the month it was first computed.
+    #[serde(default)]
+    pub camps: Vec<Camp>,
+    #[serde(default)]
+    pub raider_gen: u8,
+    #[serde(default)]
+    pub raider_gen_next: (u8, Month),
+    #[serde(default)]
+    pub wild: WildLedger,
+    /// Trade routes and markets (design chapter 36, 6.2): the routes found when the
+    /// round began or war or embargo last changed, each seat's market (its lowest
+    /// member seat), and the last line of each good in the market keyed by that seat.
+    #[serde(default)]
+    pub routes: Vec<Route>,
+    #[serde(default)]
+    pub market_of: Vec<SeatId>,
+    #[serde(default)]
+    pub market_lines: Vec<Vec<MarketLine>>,
+    #[serde(default)]
+    pub routes_dirty: bool,
 }
 
 /// A sea link between two subpolar or polar regions that ice closes in winter

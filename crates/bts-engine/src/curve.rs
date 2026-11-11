@@ -87,6 +87,16 @@ pub struct CurveRow {
     pub emigrated: u64,
     pub immigrated: u64,
     pub jobless_bp: u16,
+    /// Job 3: the best generation the seat can field, the newest and the
+    /// soldier-weighted mean (tenths) of its formations, seats it is at war with,
+    /// raider camps in the world and their generation, trade credit earned so far.
+    pub best_gen: u8,
+    pub army_gen: u8,
+    pub mean_gen10: u16,
+    pub wars: u8,
+    pub camps: u8,
+    pub raider_gen: u8,
+    pub credit_earned: i64,
 }
 
 impl CurveRow {
@@ -105,6 +115,7 @@ impl CurveRow {
         h += ",food_share_bp,food_per_worker,established,fert_food_bp,fert_intensity_bp,cap_ratio_bp,land_bp";
         h += ",era,crossing,age,golden,dark,trad_machine,trad_frontier,mastery_machine,mastery_frontier,largest_region";
         h += ",urban_bp,largest_city,metropolises,moved_internal,emigrated,immigrated,jobless_bp";
+        h += ",best_gen,army_gen,mean_gen10,wars,camps,raider_gen,credit_earned";
         h
     }
     pub fn csv(&self) -> String {
@@ -125,6 +136,7 @@ impl CurveRow {
         s += &format!(",{},{},{},{},{},{},{}", self.food_share_bp, self.food_per_worker, self.established, self.fert_food_bp, self.fert_intensity_bp, self.cap_ratio_bp, self.land_bp);
         s += &format!(",{},{},{},{},{},{},{},{},{},{}", self.era, self.crossing, self.age, self.golden, self.dark, self.trad_machine, self.trad_frontier, self.mastery_machine, self.mastery_frontier, self.largest_region);
         s += &format!(",{},{},{},{},{},{},{}", self.urban_bp, self.largest_city, self.metropolises, self.moved_internal, self.emigrated, self.immigrated, self.jobless_bp);
+        s += &format!(",{},{},{},{},{},{},{}", self.best_gen, self.army_gen, self.mean_gen10, self.wars, self.camps, self.raider_gen, self.credit_earned);
         s
     }
 }
@@ -298,6 +310,20 @@ impl CurveRecorder {
                 emigrated: std::mem::take(&mut self.moves[i][1]),
                 immigrated: std::mem::take(&mut self.moves[i][2]),
                 jobless_bp: (civ.labor.household as u64 * 10_000 / civ.labor.working_age.max(1) as u64).min(10_000) as u16,
+                best_gen: crate::sim::military::military_tier(w, civ.seat),
+                army_gen: w.armies.iter().filter(|a| a.owner == civ.seat).map(|a| a.tier).max().unwrap_or(0),
+                mean_gen10: {
+                    let (mut n, mut g) = (0u64, 0u64);
+                    for a in w.armies.iter().filter(|a| a.owner == civ.seat) {
+                        n += a.count() as u64;
+                        g += a.count() as u64 * a.tier as u64 * 10;
+                    }
+                    (g / n.max(1)) as u16
+                },
+                wars: civ.contacts.iter().filter(|c| c.at_war).count() as u8,
+                camps: w.camps.len() as u8,
+                raider_gen: w.raider_gen,
+                credit_earned: civ.credit_earned,
             });
         }
     }

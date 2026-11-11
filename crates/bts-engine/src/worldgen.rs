@@ -1320,6 +1320,14 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             immigration: Immigration::default(),
             emigration: Emigration::default(),
             successors: Vec::new(),
+            kit: vec![0; crate::content::GENS],
+            credit: 0,
+            credit_earned: 0,
+            credit_spent: 0,
+            orders: Vec::new(),
+            embargo: Vec::new(),
+            fills: Vec::new(),
+            subjugate_camps: false,
         });
     }
 
@@ -1352,7 +1360,17 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         last_round_months: 0,
         ice_links,
         city_month: Vec::new(),
+        camps: Vec::new(),
+        raider_gen: 0,
+        raider_gen_next: (0, 0),
+        wild: WildLedger::default(),
+        routes: Vec::new(),
+        market_of: (0..seats as SeatId).collect(),
+        market_lines: vec![Vec::new(); seats],
+        routes_dirty: true,
     };
+    // the free peoples of the unclaimed land (design chapter 40, 5.3)
+    crate::sim::raiders::seed_camps(&mut world);
     for s in 0..seats {
         crate::sim::knowledge::refresh_visibility(&mut world, s as SeatId);
     }
