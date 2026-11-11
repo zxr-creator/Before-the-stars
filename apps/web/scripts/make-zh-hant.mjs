@@ -1,4 +1,5 @@
-// Generate Traditional Chinese dictionaries from the Simplified ones.
+// Generate Traditional Chinese dictionaries from the Simplified ones, and the "zh-Hant" text of
+// the encyclopedia passages in content/lore/*.json from their "zh-Hans" text.
 //   node scripts/make-zh-hant.mjs
 // Uses OpenCC (Simplified -> Traditional with Taiwan phrasing). OpenCC's Taiwan phrase table is
 // tuned for software text and rewrites ordinary words of this game into computing jargon
@@ -64,3 +65,20 @@ for (const name of readdirSync(join(root, 'zh-Hans')).filter((f) => f.endsWith('
   n += 1;
 }
 console.log(`converted ${n} dictionaries to zh-Hant`);
+
+// The encyclopedia passages, content/lore/{technologies,practices}.json: each entry keeps its
+// three languages together, and its "zh-Hant" member is always regenerated here from
+// "zh-Hans" (never edit it by hand; fix the Simplified text or add a phrase above).
+const loreDir = join(root, '..', '..', '..', '..', 'content', 'lore');
+let m = 0;
+for (const name of ['technologies.json', 'practices.json']) {
+  const path = join(loreDir, name);
+  const list = JSON.parse(readFileSync(path, 'utf8'));
+  const out = list.map((e) => {
+    const { 'zh-Hant': _old, ...rest } = e;
+    if (rest['zh-Hans']) m += 1;
+    return rest['zh-Hans'] ? { ...rest, 'zh-Hant': walk(rest['zh-Hans']) } : rest;
+  });
+  writeFileSync(path, JSON.stringify(out, null, 1) + '\n');
+}
+console.log(`converted ${m} encyclopedia passages to zh-Hant`);
