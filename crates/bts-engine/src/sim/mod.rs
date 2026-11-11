@@ -18,6 +18,7 @@ pub mod population;
 pub mod productivity;
 pub mod projects;
 pub mod raiders;
+pub mod space;
 pub mod victory;
 
 use crate::state::*;
@@ -42,6 +43,8 @@ pub fn step_month(w: &mut World) {
     for s in 0..n {
         economy::step(w, s as SeatId);
     }
+    // 2b. stations and off-world research stations crew, power and supply themselves
+    space::stations_step(w);
     // 3. projects and education draw on this month's labour and research
     for s in 0..n {
         projects::step(w, s as SeatId);
@@ -61,6 +64,8 @@ pub fn step_month(w: &mut World) {
     military::step(w);
     // raider camps: raids, and each January their numbers and arms
     raiders::step(w);
+    // 5b. the off-world layer: shipments, sites, the month's boost accounts
+    space::step(w);
     // 6. knowledge, institutions, culture
     for s in 0..n {
         knowledge::step(w, s as SeatId);

@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-j3";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-j4";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,9 +26,9 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0-j3";
 /// released each slice that changes saved state carries a pre-release tag
 /// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
 /// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-j3";
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-j4";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
-pub const GENERATOR_VERSION: &str = "bts-worldgen/2.1.0-j3";
+pub const GENERATOR_VERSION: &str = "bts-worldgen/2.1.0-j4";
 
 /// Base units in one display unit of goods, work, research or service.
 pub const DISPLAY_DIVISOR: i64 = 1000;
@@ -1258,6 +1258,10 @@ pub struct Recipe {
     pub helium: bool,
     /// The latest era among the technologies the method rests on (set at load).
     pub era: u8,
+    /// Boost made per level-month at full rate, and the cap each level adds to the
+    /// seat's boost stock, tonnes (design chapter 39, 4.2): launch-chain stages only.
+    pub boost: i64,
+    pub boost_cap: i64,
 }
 
 impl Recipe {
@@ -1419,6 +1423,8 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
         // (slice E: the crews of the launch complex, the orbital yard, the testbed,
         // the lines and the nodes grew with the works they build)
         "launch_complex" => (&[(&[Builder], 8_000), (&[Mechanic], 4_000), (&[Technician], 4_000), (&[Electrician], 2_000), (&[Scientist], 1_000)], 150.0, 24),
+        "proving_ground" => (&[(&[Builder], 2_000), (&[Mechanic], 500), (&[Technician], 500)], 30.0, 12),
+        "life_support_plant" => (&[(&[Builder], 500), (&[Technician], 200)], 5.0, 6),
         "orbital_station" => (&[(&[Builder], 4_000), (&[Technician], 3_000), (&[Electrician], 2_000), (&[Scientist], 1_000), (&[Orbital, Technician], 4_000)], 150.0, 30),
         "orbital_yard" => (&[(&[Builder], 8_000), (&[Mechanic], 6_000), (&[Technician], 6_000), (&[Electrician], 3_000), (&[Orbital], 8_000)], 300.0, 36),
         "orbital_power" => (&[(&[Builder], 4_000), (&[Technician], 2_000), (&[Electrician], 2_000), (&[Orbital], 2_000)], 150.0, 24),
@@ -1472,6 +1478,8 @@ fn rec(key: &'static str, name: &'static str) -> RB {
         assembly: 0,
         helium: false,
         era: 0,
+        boost: 0,
+        boost_cap: 0,
     })
 }
 impl RB {
@@ -1526,6 +1534,12 @@ impl RB {
     }
     fn assembly(mut self, v: f64) -> Self {
         self.0.assembly = m(v);
+        self
+    }
+    /// A launch-chain stage: tonnes of boost per level-month and cap per level.
+    fn boost(mut self, per_month: i64, cap: i64) -> Self {
+        self.0.boost = per_month;
+        self.0.boost_cap = cap;
         self
     }
     fn helium(mut self) -> Self {
@@ -2239,13 +2253,33 @@ fn facilities() -> Vec<FacDef> {
             .recipe(rec("frontier_hts", "Frontier experiments, nitrogen-cooled magnets").research(RC::Frontier, 60.0).elec(1500.0).compute(50.0))
             .upkeep(&[(Instruments, 6.0), (Electronics, 4.0), (Spares, 4.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Science]),
         // ---- space and jump engineering ----------------------------------
-        fac("launch_complex", "Launch complex", "Space", "Pads, tracking and propellant handling worked by sixty thousand people. Keeps a launch cadence only while supplied.")
+        // the launch chain makes boost (design chapter 39, 4.2): tonnes a seat can put
+        // into low Earth orbit, a stock that does not decay; at the cap the stages
+        // stand down and draw nothing
+        fac("proving_ground", "Rocket proving ground", "Space", "Test stands and a small range. Makes a little boost (50 t a level-month) and counts as space activity.")
+            .req("T140").cost(&[(Metal, 20.0), (Components, 10.0), (Electronics, 2.0)]).work(800.0)
+            .skilled(&[Q::Technician], 2_000).skilled(&[Q::Mechanic], 1_000).skilled(&[Q::Scientist], 1_000)
+            .recipe(rec("test_launches", "Test launches").inp(&[(Fuel, 2.0), (Components, 0.5), (Electronics, 0.1)]).elec(40.0).boost(50, 150))
+            .upkeep(&[(Spares, 0.2)]).labor(L::Industry).tags(&[Tag::Space, Tag::Fuel]).max(4),
+        fac("launch_complex", "Launch complex", "Space", "Pads, tracking and propellant handling worked by sixty thousand people. Makes boost (800 t a level-month, more with reusable or mass-produced vehicles) only while supplied.")
             .req("T140 & T141 & C045").cost(&[(Metal, 160.0), (Components, 120.0), (Electronics, 60.0), (Conductors, 30.0)]).work(4000.0)
             .skilled(&[Q::Technician], 16_000).skilled(&[Q::Scientist], 6_000).skilled(&[Q::Mechanic], 16_000).general(22_000)
-            .recipe(rec("cadence", "Launch cadence").inp(&[(Fuel, 30.0), (Components, 6.0), (Electronics, 3.0), (Aluminium, 2.0), (CobaltNickel, 0.1), (Batteries, 5.0)]).elec(400.0))
+            // later stages first: the works run the best method whose inputs are in store
+            .recipe(rec("heavy_boosters", "Mass-produced heavy boosters").req("T178").inp(&[(Fuel, 50.0), (Metal, 2.0), (Components, 1.5), (Electronics, 0.2)]).elec(300.0).boost(1_600, 6_400))
+            .recipe(rec("reusable", "Reusable vehicles").req("T154").inp(&[(Fuel, 36.0), (Components, 1.2), (Electronics, 0.5), (Aluminium, 0.4), (Spares, 1.0)]).elec(400.0).boost(1_200, 4_800))
+            .recipe(rec("assist_track", "Launch-assist track").req("T156").inp(&[(Fuel, 24.0), (Components, 1.2), (Electronics, 0.5)]).elec(700.0).boost(1_200, 4_800))
+            .recipe(rec("cadence", "Launch cadence").inp(&[(Fuel, 30.0), (Components, 6.0), (Electronics, 3.0), (Aluminium, 2.0), (CobaltNickel, 0.1), (Batteries, 5.0)]).elec(400.0).boost(800, 2_400))
             // without aluminium and superalloys: heavier steel vehicles and more propellant
-            .recipe(rec("cadence_steel", "Launch cadence with steel vehicles").inp(&[(Fuel, 36.0), (Components, 6.0), (Electronics, 3.0), (Metal, 6.5), (Batteries, 5.0)]).elec(400.0))
-            .provides(Cap::Launch, 1.0).upkeep(&[(Spares, 3.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Fuel]).max(1),
+            .recipe(rec("cadence_steel", "Launch cadence with steel vehicles").inp(&[(Fuel, 36.0), (Components, 6.0), (Electronics, 3.0), (Metal, 6.5), (Batteries, 5.0)]).elec(400.0).boost(800, 2_400))
+            .provides(Cap::Launch, 1.0).upkeep(&[(Spares, 3.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Fuel]).max(4),
+        // water and breathing gases for crews in orbit and beyond, from the Earth's
+        // water like the salt pans (renewable): what stations and outposts use
+        // before ice works make volatiles off the Earth (design chapter 37, 6.4)
+        fac("life_support_plant", "Water and air supply plant", "Space", "Purifies, packs and compresses water and breathing gases for crews in orbit and beyond.")
+            .req("T144").cost(&[(Metal, 10.0), (Components, 5.0), (Electronics, 1.0)]).work(600.0)
+            .skilled(&[Q::Technician], 500).general(1_500)
+            .recipe(rec("pack", "Water and air packing").out(&[(Volatiles, 1.0)]).elec(20.0))
+            .upkeep(&[(Spares, 0.1), (Chemicals, 0.02)]).labor(L::Industry).tags(&[Tag::Space]).max(4).extracts(),
         fac("orbital_station", "Orbital station", "Space", "A crewed, resupplied station. Requires a working launch complex in the same region.")
             .req("T142 & T144").site(Site::With("launch_complex"))
             .cost(&[(Metal, 80.0), (Components, 80.0), (Electronics, 60.0), (Insulation, 30.0), (Fuel, 120.0)]).work(3500.0)
@@ -2476,7 +2510,9 @@ pub fn line_meta(key: &str) -> (&'static str, u8, u8) {
         "advanced_lab" => ("research", 5, 5),
         "auto_lab" => ("research", 6, 8),
         "high_energy" => ("high_energy", 1, 7),
+        "proving_ground" => ("launch", 1, 6),
         "launch_complex" => ("launch", 2, 6),
+        "life_support_plant" => ("life_support", 1, 7),
         "orbital_station" => ("orbital", 1, 7),
         "orbital_yard" => ("orbital_yard", 1, 7),
         "interferometer" => ("interferometer", 1, 7),

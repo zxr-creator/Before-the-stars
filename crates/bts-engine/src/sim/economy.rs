@@ -1375,6 +1375,18 @@ pub fn step(w: &mut World, seat: SeatId) {
     // ---- 4. production ---------------------------------------------------------
     let targets: Vec<i64> = Good::ALL.iter().map(|g| stock_target(&w.civs[si], *g)).collect();
     let motor_age = w.civs[si].knows_id("T094");
+    // boost (design chapter 39, 4.2): the cap is what the launch stages' methods give
+    // this month; what the stock lacks of it is all they may make
+    let mut boost_cap = 0i64;
+    for (pi, &ri) in regs.iter().enumerate() {
+        for (fi, f) in w.regions[ri].facilities.iter().enumerate() {
+            if let Some(m) = methods[pi][fi] {
+                boost_cap += c.facilities[f.kind].recipes[m].boost_cap * f.level as i64;
+            }
+        }
+    }
+    w.civs[si].space.cap = boost_cap;
+    let mut boost_room = (boost_cap - w.civs[si].space.boost).max(0);
     let stock_start: Vec<i64> = w.civs[si].stock.clone();
     for (pi, p) in plans.iter().enumerate() {
         let ri = p.idx;
@@ -1498,6 +1510,17 @@ pub fn step(w: &mut World, seat: SeatId) {
                     blockers |= 128;
                 }
             }
+            // a launch stage stands down at the boost cap: posts stay filled, nothing is drawn
+            let mut standing_down = false;
+            if rec.boost > 0 {
+                let full = rec.boost * level;
+                let room = (boost_room * 10_000 / full.max(1)).min(10_000);
+                if room < rate {
+                    rate = room;
+                    blockers |= 128;
+                    standing_down = true;
+                }
+            }
             // a line with four accepted assemblies on hand keeps its crews but builds no more
             if rec.assembly > 0 && w.civs[si].ftl.assemblies.iter().filter(|a| !a.retired).count() >= 4 {
                 rate = 0;
@@ -1580,6 +1603,25 @@ pub fn step(w: &mut World, seat: SeatId) {
                     for (g, a) in &rec.outputs {
                         withheld[g.index()] += a * level * (ready - rate) / 10_000;
                     }
+                }
+            }
+            if rec.boost > 0 {
+                let made = rec.boost * level * rate / 10_000;
+                boost_room -= made;
+                let cs = &mut w.civs[si].space;
+                cs.boost += made;
+                cs.made_total += made;
+                cs.made_month += made;
+                match cs.by_stage.iter_mut().find(|x| x.0 == rec.name) {
+                    Some(x) => {
+                        x.1 += level as u16;
+                        x.2 += made;
+                        x.3 |= standing_down;
+                    }
+                    None => cs.by_stage.push((rec.name.to_string(), level as u16, made, standing_down)),
+                }
+                if def.key == "launch_complex" && (made > 0 || standing_down) {
+                    cs.lc_ok = true;
                 }
             }
             let (shaft_used, elec_used, comp_used) = (rec.shaft * level * rate / 10_000, elec_full * rate / 10_000, rec.compute * level * rate / 10_000);

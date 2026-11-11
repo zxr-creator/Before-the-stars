@@ -836,6 +836,8 @@ pub fn step(w: &mut World) {
 }
 
 pub fn eliminate(w: &mut World, seat: SeatId) {
+    // colonies follow the metropole (design chapter 37, 6.6)
+    crate::sim::space::pass_colonies(w, seat);
     let month = w.month;
     let when = crate::util::event_label(&w.cfg, month);
     let name = w.civs[seat as usize].name.clone();

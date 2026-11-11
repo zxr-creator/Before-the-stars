@@ -1328,6 +1328,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             embargo: Vec::new(),
             fills: Vec::new(),
             subjugate_camps: false,
+            space: crate::sim::space::CivSpace::new(),
         });
     }
 
@@ -1368,6 +1369,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         market_of: (0..seats as SeatId).collect(),
         market_lines: vec![Vec::new(); seats],
         routes_dirty: true,
+        space: crate::sim::space::SpaceWorld::new(),
     };
     // the free peoples of the unclaimed land (design chapter 40, 5.3)
     crate::sim::raiders::seed_camps(&mut world);

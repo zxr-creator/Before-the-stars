@@ -1674,6 +1674,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         era: Some(crate::sim::eras::view(w, seat)),
         building_tree_hash: building_tree().hash.clone(),
         market: crate::sim::market::view(w, seat),
+        space: crate::sim::space::view(w, seat),
     }
 }
 

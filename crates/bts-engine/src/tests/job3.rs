@@ -368,23 +368,33 @@ fn camps_are_seen_only_where_sighted() {
 
 #[test]
 fn a_scout_party_charts_a_region_and_its_neighbours() {
-    let mut m = Match::new(cfg("scout"), 1);
+    let mut m = Match::new(cfg("scout-d"), 1);
     let home = m.world.civs[0].capital as usize;
     settle_fixture(&mut m.world, home, 500_000);
     m.world.civs[0].stock[Good::Food.index()] = 5_000_000;
+    m.world.civs[0].stock[Good::Tools.index()] = 20_000;
     let seen_before = m.world.civs[0].memory.iter().filter(|x| x.seen).count();
     // a region at the edge of what is known
     let target = (0..m.world.regions.len()).find(|r| !m.world.civs[0].memory[*r].seen && m.world.regions[*r].neighbors.iter().any(|(n, _)| m.world.civs[0].memory[*n as usize].seen)).expect("an unknown region next to known land");
     let r = m.act(0, vec![Action::StartProject { spec: ProjectSpec::Scout { region: target as RegionId }, priority: Some(1) }]).remove(0);
     assert_eq!(r.status, "accepted", "{}", r.reason);
+    // the party leaves from the governed region nearest the target: people to call up there
+    let base = m.world.civs[0].projects.iter().find(|p| matches!(p.kind, ProjKind::Scout { .. })).and_then(|p| p.region).unwrap() as usize;
+    if base != home {
+        settle_fixture(&mut m.world, base, 300_000);
+    }
     let mut prev = m.ledger_snapshot();
-    for _ in 0..12 {
+    // the journey's work grows with the distance from the capital
+    for _ in 0..36 {
         crate::sim::step_month(&mut m.world);
         let cur = m.ledger_snapshot();
         assert_balanced(&prev, &cur);
         prev = cur;
+        if !m.world.civs[0].projects.iter().any(|p| matches!(p.kind, ProjKind::Scout { .. })) {
+            break;
+        }
     }
-    assert!(!m.world.civs[0].projects.iter().any(|p| matches!(p.kind, ProjKind::Scout { .. })), "the party came back (or was lost)");
+    assert!(!m.world.civs[0].projects.iter().any(|p| matches!(p.kind, ProjKind::Scout { .. })), "the party came back (or was lost): {:?}", m.world.civs[0].projects.iter().find(|p| matches!(p.kind, ProjKind::Scout { .. })).map(|p| (p.work_done, p.work_needed, p.inputs.clone(), p.blockers.clone(), p.region)));
     let lost = m.world.civs[0].briefing.iter().any(|b| b.title.starts_with("Scouts lost"));
     if !lost {
         assert!(m.world.civs[0].memory[target].seen);

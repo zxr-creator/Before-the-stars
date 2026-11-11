@@ -97,6 +97,14 @@ pub struct CurveRow {
     pub camps: u8,
     pub raider_gen: u8,
     pub credit_earned: i64,
+    /// Job 4a: boost cap and boost made so far (t), stations and their modules,
+    /// sites held, residents off the Earth.
+    pub boost_cap: i64,
+    pub boost_made: i64,
+    pub stations: u8,
+    pub modules: u16,
+    pub sites: u8,
+    pub offworld_pop: u64,
 }
 
 impl CurveRow {
@@ -116,6 +124,7 @@ impl CurveRow {
         h += ",era,crossing,age,golden,dark,trad_machine,trad_frontier,mastery_machine,mastery_frontier,largest_region";
         h += ",urban_bp,largest_city,metropolises,moved_internal,emigrated,immigrated,jobless_bp";
         h += ",best_gen,army_gen,mean_gen10,wars,camps,raider_gen,credit_earned";
+        h += ",boost_cap,boost_made,stations,modules,sites,offworld_pop";
         h
     }
     pub fn csv(&self) -> String {
@@ -137,6 +146,7 @@ impl CurveRow {
         s += &format!(",{},{},{},{},{},{},{},{},{},{}", self.era, self.crossing, self.age, self.golden, self.dark, self.trad_machine, self.trad_frontier, self.mastery_machine, self.mastery_frontier, self.largest_region);
         s += &format!(",{},{},{},{},{},{},{}", self.urban_bp, self.largest_city, self.metropolises, self.moved_internal, self.emigrated, self.immigrated, self.jobless_bp);
         s += &format!(",{},{},{},{},{},{},{}", self.best_gen, self.army_gen, self.mean_gen10, self.wars, self.camps, self.raider_gen, self.credit_earned);
+        s += &format!(",{},{},{},{},{},{}", self.boost_cap, self.boost_made, self.stations, self.modules, self.sites, self.offworld_pop);
         s
     }
 }
@@ -324,6 +334,12 @@ impl CurveRecorder {
                 camps: w.camps.len() as u8,
                 raider_gen: w.raider_gen,
                 credit_earned: civ.credit_earned,
+                boost_cap: civ.space.cap,
+                boost_made: civ.space.made_total,
+                stations: w.space.stations.iter().filter(|s| s.owner == civ.seat).count() as u8,
+                modules: w.space.stations.iter().filter(|s| s.owner == civ.seat).map(|s| s.modules.iter().sum::<u16>()).sum(),
+                sites: w.space.sites.iter().filter(|s| s.owner == Some(civ.seat)).count() as u8,
+                offworld_pop: w.space.sites.iter().filter(|s| s.owner == Some(civ.seat)).map(|s| s.block.total() as u64).sum(),
             });
         }
     }
