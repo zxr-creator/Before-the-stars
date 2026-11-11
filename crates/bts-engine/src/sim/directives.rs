@@ -111,6 +111,11 @@ fn build_target(w: &mut World, seat: SeatId, region: RegionId, facility: &str, l
 
 /// Researcher-months each class pool still has once the running investigations
 /// have drawn what they can use this month, in the order the projects are served.
+/// Priorities of investigations begun by a research agenda and by automatic
+/// research (a seat's own orders run at the priority it gives them, 5 by default).
+pub const AGENDA_PRIORITY: u8 = 4;
+pub const AUTO_RESEARCH_PRIORITY: u8 = 6;
+
 fn research_pools(w: &World, seat: SeatId) -> Vec<i64> {
     let civ = &w.civs[seat as usize];
     let mut pools = civ.research_cap.clone();
@@ -196,8 +201,19 @@ fn research(w: &mut World, seat: SeatId, list: Vec<usize>, pools: &mut Vec<i64>,
         if spare(pools, c.techs[t].class) <= 0 {
             break;
         }
+        // automatic research leaves two investigation lines to the seat's own agenda
+        // and orders (design chapter 39, section 1.6), and both yield research
+        // capacity to what the seat ordered itself: agenda items at priority 4,
+        // automatic ones at 6
+        if auto {
+            let lines = crate::sim::knowledge::investigation_lines(w, seat) as usize;
+            let running_n = w.civs[si].projects.iter().filter(|p| matches!(p.kind, ProjKind::Research { .. }) && !p.paused).count();
+            if running_n + 2 >= lines {
+                break;
+            }
+        }
         let handle = crate::actions::tech_handle(w, seat, t);
-        match crate::actions::apply_for_directive(w, seat, Action::StartProject { spec: ProjectSpec::Research { tech: handle }, priority: None }) {
+        match crate::actions::apply_for_directive(w, seat, Action::StartProject { spec: ProjectSpec::Research { tech: handle }, priority: Some(if auto { AUTO_RESEARCH_PRIORITY } else { AGENDA_PRIORITY }) }) {
             Ok((_, Some(id))) => {
                 let per_month = w.civs[si].projects.iter().find(|p| p.id == id).map(|p| p.max_per_month).unwrap_or(0);
                 draw(pools, c.techs[t].class, per_month);

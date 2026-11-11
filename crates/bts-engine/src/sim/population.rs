@@ -151,11 +151,12 @@ pub fn carrying_capacity(w: &World, seat: SeatId, ri: usize) -> i64 {
 /// full land fewer. It is the Malthusian brake that keeps a pre-modern people near
 /// what its land and knowledge can feed, so that long-run growth follows new land
 /// and new methods rather than drifting to an explosion or to extinction.
-/// The land factor's neutral point (residents over carrying capacity, basis points),
+/// The land factor's neutral point (residents over carrying capacity, basis points;
+/// 4,650 in slice 6r, 4,800 since slice 6c),
 /// its change over one neutral span, and its bounds (ruleset 3.0 slice 6r: the
 /// pre-industrial ceiling sits where households begin to feel the land is full,
 /// well short of what the best fields could feed in a good year).
-pub const LAND_NEUTRAL_BP: i64 = 4_650;
+pub const LAND_NEUTRAL_BP: i64 = 4_800;
 pub const LAND_SLOPE_BP: i64 = 1_500;
 pub const LAND_MIN_BP: i64 = 6_000;
 pub const LAND_MAX_BP: i64 = 10_500;

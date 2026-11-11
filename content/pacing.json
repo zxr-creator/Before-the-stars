@@ -33,13 +33,13 @@
     },
     {
       "tier": 4,
-      "hint": 900000,
+      "hint": 750000,
       "work_k": 2000,
       "min_months": 36
     },
     {
       "tier": 5,
-      "hint": 960000,
+      "hint": 800000,
       "work_k": 4000,
       "min_months": 30
     },
@@ -119,7 +119,7 @@
       ]
     },
     "scientific_method": {
-      "hint": 6000000,
+      "hint": 5000000,
       "target": [
         1550,
         1700
@@ -200,120 +200,120 @@
       "band": 5
     },
     "T086": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T087": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T096": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T097": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T108": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T113": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T116": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T117": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T118": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T119": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T120": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T121": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T122": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T124": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T125": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T130": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T131": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T132": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T133": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T134": {
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T135": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T136": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T137": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T148": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T149": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T150": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
     "T165": {
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -324,7 +324,7 @@
         "machine"
       ],
       "needs_facility": "launch_complex",
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T155": {
@@ -333,7 +333,7 @@
         "space",
         "electric"
       ],
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T156": {
@@ -342,7 +342,7 @@
         "electric",
         "space"
       ],
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T157": {
@@ -352,7 +352,7 @@
         "highenergy"
       ],
       "needs_facility": "high_energy",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -364,7 +364,7 @@
         "electric"
       ],
       "needs_facility": "high_energy",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -375,7 +375,7 @@
         "chem",
         "mine"
       ],
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T170": {
@@ -385,7 +385,7 @@
         "build"
       ],
       "needs_facility": "launch_complex",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -396,7 +396,7 @@
         "space"
       ],
       "needs_facility": "offworld_inhabited",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -408,7 +408,7 @@
         "machine"
       ],
       "needs_facility": "offworld_station",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -419,7 +419,7 @@
         "space"
       ],
       "needs_facility": "high_energy",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -430,7 +430,7 @@
         "space"
       ],
       "needs_facility": "orbital_station",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -440,7 +440,7 @@
         "compute",
         "space"
       ],
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T176": {
@@ -450,7 +450,7 @@
         "chem"
       ],
       "needs_facility": "orbital_station",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -462,7 +462,7 @@
         "bio"
       ],
       "needs_facility": "orbital_station",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -474,7 +474,7 @@
         "machine"
       ],
       "needs_facility": "launch_complex",
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 11500
     },
     "T179": {
@@ -484,7 +484,7 @@
         "space"
       ],
       "needs_facility": "offworld_station",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -494,7 +494,7 @@
         "compute",
         "health"
       ],
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -506,7 +506,7 @@
         "space"
       ],
       "needs_facility": "offworld_station",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -517,7 +517,7 @@
         "space"
       ],
       "needs_facility": "high_energy",
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 12500,
       "min_months": 48
     },
@@ -687,7 +687,7 @@
       ],
       "band": 2,
       "era": "medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T199": {
@@ -697,7 +697,7 @@
       ],
       "band": 2,
       "era": "medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T200": {
@@ -708,7 +708,7 @@
       ],
       "band": 2,
       "era": "medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T201": {
@@ -719,7 +719,7 @@
       ],
       "band": 2,
       "era": "medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T202": {
@@ -730,7 +730,7 @@
       ],
       "band": 2,
       "era": "high_medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T203": {
@@ -740,7 +740,7 @@
       ],
       "band": 2,
       "era": "medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T204": {
@@ -751,7 +751,7 @@
       ],
       "band": 2,
       "era": "medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T205": {
@@ -762,7 +762,7 @@
       ],
       "band": 2,
       "era": "high_medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T206": {
@@ -773,7 +773,7 @@
       ],
       "band": 2,
       "era": "medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T207": {
@@ -784,7 +784,7 @@
       ],
       "band": 2,
       "era": "high_medieval",
-      "work_bp": 11000,
+      "work_bp": 10500,
       "hint_bp": 10000
     },
     "T208": {
@@ -795,7 +795,7 @@
       ],
       "band": 3,
       "era": "renaissance",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T209": {
@@ -806,7 +806,7 @@
       ],
       "band": 3,
       "era": "early_modern",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T210": {
@@ -817,7 +817,7 @@
       ],
       "band": 3,
       "era": "early_modern",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T211": {
@@ -828,7 +828,7 @@
       ],
       "band": 3,
       "era": "early_modern",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T212": {
@@ -839,7 +839,7 @@
       ],
       "band": 3,
       "era": "early_modern",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T213": {
@@ -850,7 +850,7 @@
       ],
       "band": 3,
       "era": "early_modern",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T214": {
@@ -860,7 +860,7 @@
       ],
       "band": 3,
       "era": "early_modern",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T215": {
@@ -871,7 +871,7 @@
       ],
       "band": 3,
       "era": "early_modern",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T216": {
@@ -882,7 +882,7 @@
       ],
       "band": 3,
       "era": "early_modern",
-      "work_bp": 12000,
+      "work_bp": 11000,
       "hint_bp": 11000
     },
     "T217": {
@@ -892,7 +892,7 @@
         "steam"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T218": {
@@ -902,7 +902,7 @@
         "measure"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T219": {
@@ -912,7 +912,7 @@
         "record"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T220": {
@@ -922,7 +922,7 @@
         "steam"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T221": {
@@ -932,7 +932,7 @@
         "chem"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T222": {
@@ -941,7 +941,7 @@
         "metal"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T223": {
@@ -951,7 +951,7 @@
         "steam"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T224": {
@@ -961,7 +961,7 @@
         "chem"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T225": {
@@ -971,7 +971,7 @@
         "steam"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T226": {
@@ -982,7 +982,7 @@
         "mine"
       ],
       "band": 4,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 12000
     },
     "T227": {
@@ -991,7 +991,7 @@
         "electric"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T228": {
@@ -1000,7 +1000,7 @@
         "electric"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T229": {
@@ -1010,7 +1010,7 @@
         "record"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T230": {
@@ -1020,7 +1020,7 @@
         "build"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T231": {
@@ -1030,7 +1030,7 @@
         "bio"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T232": {
@@ -1040,7 +1040,7 @@
         "war"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T233": {
@@ -1050,7 +1050,7 @@
         "machine"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T234": {
@@ -1060,7 +1060,7 @@
         "war"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T235": {
@@ -1071,7 +1071,7 @@
         "build"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T236": {
@@ -1081,7 +1081,7 @@
         "fuel"
       ],
       "band": 5,
-      "work_bp": 12500,
+      "work_bp": 11250,
       "hint_bp": 13000
     },
     "T237": {
@@ -1091,7 +1091,7 @@
         "sea"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T238": {
@@ -1101,7 +1101,7 @@
         "bio"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T239": {
@@ -1111,7 +1111,7 @@
         "electric"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T240": {
@@ -1120,7 +1120,7 @@
         "compute"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T241": {
@@ -1130,7 +1130,7 @@
         "compute"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T242": {
@@ -1140,7 +1140,7 @@
         "chem"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T243": {
@@ -1150,7 +1150,7 @@
         "record"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T244": {
@@ -1160,7 +1160,7 @@
         "mine"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T245": {
@@ -1170,7 +1170,7 @@
         "compute"
       ],
       "band": 6,
-      "work_bp": 13000,
+      "work_bp": 11500,
       "hint_bp": 15000
     },
     "T246": {
@@ -1180,7 +1180,7 @@
         "electric"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000
     },
     "T247": {
@@ -1190,7 +1190,7 @@
         "measure"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000,
       "min_months": 48
     },
@@ -1201,7 +1201,7 @@
         "machine"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000,
       "min_months": 48
     },
@@ -1212,7 +1212,7 @@
         "chem"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000,
       "min_months": 48
     },
@@ -1223,7 +1223,7 @@
         "chem"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000,
       "min_months": 48
     },
@@ -1234,7 +1234,7 @@
         "chem"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000,
       "min_months": 48
     },
@@ -1245,7 +1245,7 @@
         "health"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000,
       "min_months": 48,
       "needs_facility": "launch_complex"
@@ -1257,7 +1257,7 @@
         "machine"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000,
       "min_months": 48
     },
@@ -1268,7 +1268,7 @@
         "fuel"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000
     },
     "T255": {
@@ -1278,7 +1278,7 @@
         "chem"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000
     },
     "T256": {
@@ -1288,7 +1288,7 @@
         "fuel"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000
     },
     "T257": {
@@ -1298,7 +1298,7 @@
         "machine"
       ],
       "band": 7,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 17000,
       "min_months": 48,
       "needs_facility": "orbital_station"
@@ -1310,7 +1310,7 @@
         "chem"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48
     },
@@ -1321,7 +1321,7 @@
         "build"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48,
       "needs_facility": "orbital_station"
@@ -1333,7 +1333,7 @@
         "science"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48
     },
@@ -1343,7 +1343,7 @@
         "compute"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48
     },
@@ -1354,7 +1354,7 @@
         "bio"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48
     },
@@ -1364,7 +1364,7 @@
         "bio"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48
     },
@@ -1374,7 +1374,7 @@
         "highenergy"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48,
       "needs_facility": "high_energy"
@@ -1385,7 +1385,7 @@
         "highenergy"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48,
       "needs_facility": "high_energy"
@@ -1397,7 +1397,7 @@
         "mine"
       ],
       "band": 8,
-      "work_bp": 17500,
+      "work_bp": 13750,
       "hint_bp": 20000,
       "min_months": 48
     },
@@ -1408,7 +1408,7 @@
         "space"
       ],
       "band": 9,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 15000
     },
     "T268": {
@@ -1417,7 +1417,7 @@
         "highenergy"
       ],
       "band": 9,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 15000
     },
     "T269": {
@@ -1427,7 +1427,7 @@
         "compute"
       ],
       "band": 9,
-      "work_bp": 15000,
+      "work_bp": 12500,
       "hint_bp": 15000
     },
     "T270": {
@@ -1438,7 +1438,7 @@
         "machine"
       ],
       "band": 4,
-      "work_bp": 13750,
+      "work_bp": 11875,
       "hint_bp": 12000
     },
     "T271": {
@@ -1448,7 +1448,7 @@
         "machine"
       ],
       "band": 4,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 15000
     },
     "T272": {
@@ -1458,7 +1458,7 @@
         "machine"
       ],
       "band": 4,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 15000
     },
     "T273": {
@@ -1468,7 +1468,7 @@
         "steam"
       ],
       "band": 4,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 15000
     },
     "T274": {
@@ -1478,7 +1478,7 @@
         "steam"
       ],
       "band": 4,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 15000
     },
     "T275": {
@@ -1488,7 +1488,7 @@
         "build"
       ],
       "band": 4,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 15000
     },
     "T276": {
@@ -1497,7 +1497,7 @@
         "steam"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T277": {
@@ -1507,7 +1507,7 @@
         "steam"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1518,7 +1518,7 @@
         "chem"
       ],
       "band": 5,
-      "work_bp": 13750,
+      "work_bp": 11875,
       "hint_bp": 13000
     },
     "T279": {
@@ -1528,7 +1528,7 @@
         "electric"
       ],
       "band": 5,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 16250
     },
     "T280": {
@@ -1539,7 +1539,7 @@
         "machine"
       ],
       "band": 5,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 16250
     },
     "T281": {
@@ -1549,7 +1549,7 @@
         "war"
       ],
       "band": 5,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 16250
     },
     "T282": {
@@ -1559,7 +1559,7 @@
         "fuel"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T283": {
@@ -1569,7 +1569,7 @@
         "war"
       ],
       "band": 5,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 16250
     },
     "T284": {
@@ -1580,7 +1580,7 @@
         "machine"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1591,7 +1591,7 @@
         "chem"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T286": {
@@ -1601,7 +1601,7 @@
         "build"
       ],
       "band": 5,
-      "work_bp": 13750,
+      "work_bp": 11875,
       "hint_bp": 13000
     },
     "T287": {
@@ -1611,7 +1611,7 @@
         "metal"
       ],
       "band": 5,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 16250
     },
     "T288": {
@@ -1622,7 +1622,7 @@
         "farm"
       ],
       "band": 5,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 16250
     },
     "T289": {
@@ -1631,7 +1631,7 @@
         "electric"
       ],
       "band": 5,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 16250
     },
     "T290": {
@@ -1641,7 +1641,7 @@
         "machine"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T291": {
@@ -1650,7 +1650,7 @@
         "electric"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T292": {
@@ -1660,7 +1660,7 @@
         "electric"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1672,7 +1672,7 @@
         "metal"
       ],
       "band": 5,
-      "work_bp": 15625,
+      "work_bp": 12812,
       "hint_bp": 16250
     },
     "T294": {
@@ -1682,7 +1682,7 @@
         "health"
       ],
       "band": 6,
-      "work_bp": 14300,
+      "work_bp": 12150,
       "hint_bp": 15000
     },
     "T295": {
@@ -1692,7 +1692,7 @@
         "machine"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1703,7 +1703,7 @@
         "chem"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1714,7 +1714,7 @@
         "war"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1725,7 +1725,7 @@
         "farm"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T299": {
@@ -1735,7 +1735,7 @@
         "mine"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1746,7 +1746,7 @@
         "space"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     },
@@ -1756,7 +1756,7 @@
         "highenergy"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48,
       "needs_facility": "high_energy"
@@ -1767,7 +1767,7 @@
         "compute"
       ],
       "band": 6,
-      "work_bp": 14300,
+      "work_bp": 12150,
       "hint_bp": 15000
     },
     "T303": {
@@ -1777,7 +1777,7 @@
         "compute"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1788,7 +1788,7 @@
         "teach"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T305": {
@@ -1798,7 +1798,7 @@
         "trade"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T306": {
@@ -1808,7 +1808,7 @@
         "compute"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1819,7 +1819,7 @@
         "build"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1831,7 +1831,7 @@
         "space"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     },
@@ -1843,7 +1843,7 @@
         "teach"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     },
@@ -1854,7 +1854,7 @@
         "chem"
       ],
       "band": 6,
-      "work_bp": 14300,
+      "work_bp": 12150,
       "hint_bp": 15000
     },
     "T311": {
@@ -1864,7 +1864,7 @@
         "mine"
       ],
       "band": 6,
-      "work_bp": 16250,
+      "work_bp": 13125,
       "hint_bp": 18750
     },
     "T312": {
@@ -1874,7 +1874,7 @@
         "farm"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1885,7 +1885,7 @@
         "build"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1897,7 +1897,7 @@
         "war"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1909,7 +1909,7 @@
         "space"
       ],
       "band": 7,
-      "work_bp": 18750,
+      "work_bp": 14375,
       "hint_bp": 21250,
       "min_months": 48
     },
@@ -1920,7 +1920,7 @@
         "space"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48,
       "needs_facility": "offworld_station"
@@ -1932,7 +1932,7 @@
         "space"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48,
       "needs_facility": "offworld_station"
@@ -1944,7 +1944,7 @@
         "machine"
       ],
       "band": 6,
-      "work_bp": 14300,
+      "work_bp": 12150,
       "hint_bp": 15000
     },
     "T319": {
@@ -1954,7 +1954,7 @@
         "machine"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     },
@@ -1965,7 +1965,7 @@
         "record"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     },
@@ -1976,7 +1976,7 @@
         "war"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     },
@@ -1987,7 +1987,7 @@
         "machine"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     },
@@ -1998,7 +1998,7 @@
         "space"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48,
       "needs_facility": "offworld_station"
@@ -2010,7 +2010,7 @@
         "science"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     },
@@ -2020,9 +2020,10 @@
         "compute"
       ],
       "band": 8,
-      "work_bp": 21875,
+      "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
     }
-  }
+  },
+  "_doc_work_bp": "Per-node work multipliers (design chapter 39, section 1.6) are calibrated to the completion targets: with the late research capacity these seats build (slice 6c), half of the design's surcharge above 10,000."
 }

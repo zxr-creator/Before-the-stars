@@ -167,3 +167,62 @@ fn expert_policy_plays_from_observations() {
     let o = m.observe(0);
     assert!(o.knowledge.techs.iter().filter(|t| t.state >= KnowledgeState::Understood).count() >= 10);
 }
+
+fn practice_card(id: &str, handle: &str, state: PracticeState, can_reform: bool) -> PracticeCard {
+    let name = tables().practices.iter().find(|(_, i)| i.id == id).map(|(n, _)| n.clone()).unwrap();
+    PracticeCard {
+        handle: handle.into(),
+        name,
+        group: String::new(),
+        state,
+        behavior: String::new(),
+        requirements: String::new(),
+        known_requirements: vec![],
+        adoption_bp: if state >= PracticeState::Enacted { 10_000 } else { 0 },
+        can_reform,
+        reform_work: 100_000,
+        enables: vec![],
+        links: vec![],
+        source: String::new(),
+        recognized_month: 0,
+        era: 4,
+        load: 1,
+        exclusive_with: vec![],
+        tension_with: vec![],
+    }
+}
+
+/// `exclusive_route` (section 3.3): a federal seat on the constitutional route to the
+/// common mission charter (C061, through federal contracts C042) never reforms
+/// hierarchical appointment (C041), which would close it.
+#[test]
+fn hard_keeps_its_route_to_the_mission_charter() {
+    let (mut obs, mut ai) = early_plan(6);
+    ai.memory.war_target = None;
+    if let Some(d) = obs.date.as_mut() {
+        d.year = 1950;
+    }
+    obs.civ.stability = 80;
+    let seat = obs.seat;
+    // six steady regions of its own among more than ten that others hold
+    while obs.regions.len() < 20 {
+        let mut extra = obs.regions.iter().find(|r| r.own.is_none()).cloned().unwrap_or_else(|| obs.regions[0].clone());
+        extra.own = None;
+        extra.id = 1_000 + obs.regions.len() as u16;
+        obs.regions.push(extra);
+    }
+    let own: Vec<RegionId> = obs.regions.iter().map(|r| r.id).take(6).collect();
+    for r in obs.regions.iter_mut() {
+        r.owner = if own.contains(&r.id) { Some(seat) } else { Some(seat + 1) };
+    }
+    obs.culture.practices = vec![
+        practice_card("C042", "k-fed", PracticeState::Established, false),
+        practice_card("C041", "k-hier", PracticeState::Recognized, true),
+        practice_card("C061", "k-const", PracticeState::Recognized, false),
+    ];
+    obs.culture.reform_slots = 3;
+    obs.culture.load = InstitutionLoad { used: 0, capacity: 60 };
+    obs.projects.retain(|p| p.kind != "reform");
+    let actions = ai.decide(&obs);
+    assert!(!actions.iter().any(|a| matches!(a, Action::ProposeReform { practice } if practice == "k-hier")), "{actions:?}");
+}

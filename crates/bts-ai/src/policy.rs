@@ -1573,7 +1573,8 @@ fn world_route(ai: &NativeAi, obs: &Observation) -> &'static str {
     }
 }
 
-/// Practice ids that the chosen route rests on (the world order and its ancestors).
+/// Practice ids that the chosen route rests on outright (the world order and the
+/// ancestors it needs, alternatives left open).
 fn route_closure(route: &str) -> HashSet<String> {
     let tb = tables();
     let mut out = HashSet::new();
@@ -1582,8 +1583,9 @@ fn route_closure(route: &str) -> HashSet<String> {
         if !out.insert(id.clone()) {
             continue;
         }
-        if let Some(pre) = tb.prac_prereq.get(&id) {
-            stack.extend(pre.iter().filter(|x| x.as_str() != "C061" && x.as_str() != "C062" && x.as_str() != "C063" || x.as_str() == route).cloned());
+        // what the route needs outright: alternatives stay open
+        if let Some(pre) = tb.prac_and.get(&id) {
+            stack.extend(pre.iter().cloned());
         }
     }
     out
@@ -1671,10 +1673,16 @@ fn culture(ai: &NativeAi, p: &mut Plan, capital: &RegionView) {
         cands.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.handle.cmp(&b.1.handle)));
     }
     let mut started = 0;
+    let mut room = headroom;
     for (_, pr) in &cands {
         if reforming + started >= limit {
             break;
         }
+        let critical = tb.practices.get(&pr.name).map(|i| i.critical).unwrap_or(false);
+        if !critical && load.capacity > 0 && pr.load as i64 > room {
+            continue;
+        }
+        room -= pr.load as i64;
         p.push(Action::ProposeReform { practice: pr.handle.clone() });
         started += 1;
     }
@@ -1692,7 +1700,23 @@ fn culture(ai: &NativeAi, p: &mut Plan, capital: &RegionView) {
         if p.diff != Difficulty::Easy {
             rec.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.handle.cmp(&b.1.handle)));
         }
-        let agenda: Vec<String> = rec.into_iter().map(|(_, c)| c.handle.clone()).take(64).collect();
+        // within the load the offices can carry (capacity less four), the critical
+        // practices always
+        let mut room = if load.capacity > 0 { load.capacity as i64 - 4 - load.used as i64 } else { i64::MAX };
+        let agenda: Vec<String> = rec
+            .into_iter()
+            .filter(|(_, c)| {
+                let critical = tb.practices.get(&c.name).map(|i| i.critical).unwrap_or(false);
+                if critical || (c.load as i64) <= room {
+                    room -= c.load as i64;
+                    true
+                } else {
+                    false
+                }
+            })
+            .map(|(_, c)| c.handle.clone())
+            .take(64)
+            .collect();
         if !agenda.is_empty() && limit >= 2 {
             p.directives.push(Action::Directive { op: DirectiveOp::Add, id: None, directive: Some(Directive::ReformAgenda { practices: agenda }), position: None });
         }

@@ -182,7 +182,148 @@
       "critical_members": []
     }
   ],
-  "exclusive_groups": [],
+  "exclusive_groups": [
+    {
+      "id": "X01",
+      "name": "Early authority",
+      "members": [
+        "C068",
+        "C069"
+      ]
+    },
+    {
+      "id": "X02",
+      "name": "Classical polity",
+      "members": [
+        "C075",
+        "C076"
+      ]
+    },
+    {
+      "id": "X03",
+      "name": "Revenue collection",
+      "members": [
+        "C078",
+        "C079"
+      ]
+    },
+    {
+      "id": "X04",
+      "name": "Land and service",
+      "members": [
+        "C086",
+        "C087"
+      ]
+    },
+    {
+      "id": "X05",
+      "name": "Sovereignty",
+      "members": [
+        "C101",
+        "C102"
+      ]
+    },
+    {
+      "id": "X06",
+      "name": "Faith and state",
+      "members": [
+        "C103",
+        "C104"
+      ]
+    },
+    {
+      "id": "X07",
+      "name": "Trade doctrine",
+      "members": [
+        "C107",
+        "C112"
+      ]
+    },
+    {
+      "id": "X08",
+      "name": "Army recruitment",
+      "members": [
+        "C114",
+        "C115"
+      ]
+    },
+    {
+      "id": "X09",
+      "name": "Economic coordination",
+      "members": [
+        "C127",
+        "C128"
+      ]
+    },
+    {
+      "id": "X10",
+      "name": "Broadcast media",
+      "members": [
+        "C131",
+        "C132"
+      ]
+    },
+    {
+      "id": "X11",
+      "name": "Data and the state",
+      "members": [
+        "C139",
+        "C140"
+      ]
+    },
+    {
+      "id": "X12",
+      "name": "Off-world claims",
+      "members": [
+        "C149",
+        "C150"
+      ]
+    },
+    {
+      "id": "X13",
+      "name": "Settler recruitment",
+      "members": [
+        "C156",
+        "C157"
+      ]
+    },
+    {
+      "id": "X14",
+      "name": "Automation dividend",
+      "members": [
+        "C160",
+        "C161"
+      ]
+    },
+    {
+      "id": "X15",
+      "name": "Central authority",
+      "members": [
+        "C041",
+        "C042"
+      ],
+      "existing": true
+    },
+    {
+      "id": "X16",
+      "name": "Highest administration",
+      "members": [
+        "C051",
+        "C053"
+      ],
+      "existing": true
+    },
+    {
+      "id": "X17",
+      "name": "World order",
+      "members": [
+        "C061",
+        "C062",
+        "C063"
+      ],
+      "existing": true
+    }
+  ],
   "critical_technologies": [
     "T001",
     "T002",

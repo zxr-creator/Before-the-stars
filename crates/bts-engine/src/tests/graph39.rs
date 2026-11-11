@@ -262,3 +262,84 @@ fn investigation_lines_follow_research_staff() {
     m.world.civs[0].research_cap[0] = i64::MAX / 20_000;
     assert_eq!(knowledge::investigation_lines(&m.world, 0), 24);
 }
+
+/// Section 6.6 for the practice graph: 174 practices, 17 exclusive groups, every
+/// side of every group leaves a route to C064, tensions are symmetric.
+#[test]
+fn deeper_practice_graph_is_well_formed() {
+    let c = content();
+    assert_eq!(c.practices.len(), 174);
+    assert_eq!(c.exclusive_groups.len(), 17);
+    let c064 = c.p("C064");
+    for g in &c.exclusive_groups {
+        assert!(g.members.len() >= 2, "{}", g.id);
+        for &m in &g.members {
+            assert_eq!(c.practices[m].exclusive.map(|x| &c.exclusive_groups[x].id), Some(&g.id));
+            let others: Vec<usize> = g.members.iter().copied().filter(|x| *x != m).collect();
+            assert!(reachable_practices(&others)[c064], "choosing {} in {} closes every route to C064", c.practices[m].id, g.id);
+        }
+    }
+    for (i, p) in c.practices.iter().enumerate() {
+        for &j in &p.tension {
+            assert!(c.practices[j].tension.contains(&i), "{} and {}", p.id, c.practices[j].id);
+        }
+        // the victory-critical practices keep their present costs
+        if p.critical {
+            assert!(p.evidence_needed <= 12_000 && p.work <= 260_000, "{}", p.id);
+        }
+    }
+    // late reforms cost more than early ones
+    assert!(c.practices[c.p("C160")].work > c.practices[c.p("C068")].work);
+}
+
+/// A polity holds one member of an exclusive group: reforming the other is refused
+/// until a repeal returns the held one to recognized (section 2.2).
+#[test]
+fn exclusive_groups_need_a_repeal() {
+    let mut m = Match::new(cfg("exclusive"), 1);
+    let c = content();
+    let (elders, chiefs) = (c.p("C068"), c.p("C069"));
+    for p in [c.p("C003"), c.p("C011"), c.p("C009")] {
+        m.world.civs[0].practice[p].state = 3;
+        m.world.civs[0].practice[p].adoption_bp = 10_000;
+    }
+    m.world.civs[0].practice[elders].state = 3;
+    m.world.civs[0].practice[elders].adoption_bp = 10_000;
+    m.world.civs[0].practice[chiefs].state = 1;
+    let h = |m: &Match, p: usize| crate::actions::prac_handle(&m.world, 0, p);
+    let chiefs_h = h(&m, chiefs);
+    let r = m.act(0, vec![Action::ProposeReform { practice: chiefs_h.clone() }]);
+    assert_eq!(r[0].status, "rejected", "{:?}", r[0]);
+    assert!(r[0].reason.contains("repealed first"), "{}", r[0].reason);
+    let elders_h = h(&m, elders);
+    let r = m.act(0, vec![Action::Repeal { practice: elders_h }]);
+    assert_eq!(r[0].status, "accepted", "{:?}", r[0]);
+    let o = m.observe(0);
+    let card = o.culture.practices.iter().find(|p| p.handle == chiefs_h).unwrap();
+    assert_eq!(card.exclusive_with.len(), 1);
+}
+
+/// Institutional load, capacity and reform slots (section 2.3).
+#[test]
+fn institutions_load_the_offices_and_slots_follow_administration() {
+    let mut m = Match::new(cfg("load"), 1);
+    let c = content();
+    for p in m.world.civs[0].practice.iter_mut() {
+        *p = PracSt::default();
+    }
+    assert_eq!(crate::sim::culture::reform_slots(&m.world, 0), 1);
+    assert_eq!(crate::sim::culture::institutional_load(&m.world, 0), 0);
+    let cap0 = crate::sim::culture::institutional_capacity(&m.world, 0);
+    for id in ["C026", "C036"] {
+        let p = c.p(id);
+        m.world.civs[0].practice[p].state = 3;
+        m.world.civs[0].practice[p].adoption_bp = 10_000;
+    }
+    assert_eq!(crate::sim::culture::reform_slots(&m.world, 0), 3);
+    assert_eq!(crate::sim::culture::institutional_capacity(&m.world, 0), cap0 + 20);
+    // an established Modern-era practice adds two
+    let modern = (0..c.practices.len()).find(|i| c.practices[*i].era == 5 && !c.practices[*i].critical).unwrap();
+    m.world.civs[0].practice[modern].state = 3;
+    m.world.civs[0].practice[modern].adoption_bp = 10_000;
+    assert_eq!(crate::sim::culture::institutional_load(&m.world, 0), 2 + c.practices[c.p("C026")].load + c.practices[c.p("C036")].load);
+}

@@ -308,12 +308,12 @@ pub fn locks(w: &World, seat: SeatId, installed: &[i64]) -> Locks {
 
 /// Investigations a seat may run at once (design chapter 39, section 1.6):
 /// `LINES_BASE + isqrt(research staff / LINES_STAFF)`, at most 24. Four times the
-/// staff give twice the extra lines. Calibrated (slice 6b): the design's `2 +
+/// staff give twice the extra lines. Calibrated (slices 6b-6c): the design's `2 +
 /// isqrt(staff / 50,000)` assumed the research staff of design table 36 §3.1's
 /// populations; with the staff these seats build it left a medieval seat with two
 /// lines, and printing came seven centuries late.
 pub const LINES_BASE: i64 = 4;
-pub const LINES_STAFF: i64 = 10_000;
+pub const LINES_STAFF: i64 = 5_000;
 pub const LINES_MAX: i64 = 24;
 
 pub fn investigation_lines(w: &World, seat: SeatId) -> u32 {
@@ -341,6 +341,34 @@ pub fn step(w: &mut World, seat: SeatId) {
     let installed = installed_base(w, seat);
     let lk = locks(w, seat, &installed);
     let revealed = w.civs[si].milestones.interstellar.is_some();
+    // practice drags (design chapter 39, section 1.5): sunk institutions that make
+    // some questions harder to ask
+    let civ = &w.civs[si];
+    let guilds = est_opt(civ, "C018") && !est_opt(civ, "C033");
+    let state_church = est_opt(civ, "C104");
+    let mercantile = est_opt(civ, "C107");
+    let police = est_opt(civ, "C135");
+    let surveillance = est_opt(civ, "C140");
+    let drag_of = |i: usize| -> i64 {
+        let t = &c.techs[i];
+        let mut d: i64 = 10_000;
+        if guilds && t.id == "T066" {
+            d = d * 8_500 / 10_000;
+        }
+        if t.tags.contains(&Tag::Science) {
+            if state_church {
+                d = d * 9_000 / 10_000;
+            }
+            if police {
+                d = d * 9_500 / 10_000;
+            }
+        }
+        if surveillance && (t.id == "T240" || t.id == "T245") {
+            d = d * 8_000 / 10_000;
+        }
+        d
+    };
+    let contact_drag: i64 = if mercantile { 8_000 } else { 10_000 };
 
     // contact and trade context
     let met: Vec<usize> = (0..w.civs.len()).filter(|o| *o != si && w.civs[si].contacts[*o].met && w.civs[*o].status != SeatStatus::Eliminated).collect();
@@ -403,13 +431,18 @@ pub fn step(w: &mut World, seat: SeatId) {
         if cross {
             gain = gain * 5 / 4;
         }
-        // path dependence: people building on a rival stop asking this question
-        gain = gain * lk.evidence_bp[i] / 10_000;
+        // path dependence: people building on a rival stop asking this question, and
+        // sunk institutions drag; on a victory-critical node never below 0.80 together
+        let mut damp = lk.evidence_bp[i] * drag_of(i) / 10_000;
+        if tech.critical {
+            damp = damp.max(CRITICAL_LOCK_E);
+        }
+        gain = gain * damp / 10_000;
         // X: methods in use among peoples we are in touch with are noticed sooner
         let mut foreign: Option<usize> = None;
         for &o in &peaceful {
             if w.civs[o].tech[i].state >= ST_PROTOTYPED {
-                gain += practice.max(100) * chan / 10_000 * contact_bp / 10_000;
+                gain += practice.max(100) * chan / 10_000 * contact_bp / 10_000 * contact_drag / 10_000;
                 foreign.get_or_insert(o);
             }
         }
