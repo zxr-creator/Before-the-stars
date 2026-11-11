@@ -38,6 +38,42 @@ pub fn mode_of(def: &FacDef) -> Option<(Mode, u8)> {
     Some((m, def.stage.max(1)))
 }
 
+/// What each facility kind is to the networks and cities, found once from content:
+/// its mode and stage, the residents a level of urban transit moves, whether it is
+/// dense housing, and its fortification stage (0 none).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct KindInfo {
+    pub mode: Option<(Mode, u8)>,
+    pub transit: i64,
+    pub dense: bool,
+    pub fort: u8,
+}
+
+pub fn kind_info() -> &'static [KindInfo] {
+    static T: std::sync::OnceLock<Vec<KindInfo>> = std::sync::OnceLock::new();
+    T.get_or_init(|| {
+        content()
+            .facilities
+            .iter()
+            .map(|d| KindInfo {
+                mode: mode_of(d),
+                transit: match d.key {
+                    "metro" => 3_000_000,
+                    "tramways" => 1_000_000,
+                    _ => 0,
+                },
+                dense: matches!(d.key, "apartments" | "towers"),
+                fort: match d.key {
+                    "walls" => 1,
+                    "bastion" => 2,
+                    "fortified_zone" => 3,
+                    _ => 0,
+                },
+            })
+            .collect()
+    })
+}
+
 /// Region freight per level, by mode and stage (facility levels of works served).
 const REGION_FREIGHT: [[i64; 3]; MODES] = [[6, 10, 20], [10, 20, 20], [6, 15, 30], [20, 25, 25], [1, 2, 2], [0, 0, 0]];
 /// Link freight per level, kt a month, by mode and stage.
@@ -78,11 +114,10 @@ impl Net {
 /// The network of a region: enabled levels in repair (a level below three tenths
 /// of its condition carries nothing).
 pub fn net(r: &Region) -> Net {
-    let c = content();
+    let info = kind_info();
     let mut n = Net::default();
     for f in r.facilities.iter().filter(|f| f.enabled && f.level > 0 && f.condition_bp >= 3_000) {
-        let def = &c.facilities[f.kind];
-        if let Some((m, s)) = mode_of(def) {
+        if let Some((m, s)) = info[f.kind].mode {
             let i = m as usize;
             n.stage[i] = n.stage[i].max(s);
             n.levels[i] += f.level;
@@ -269,17 +304,8 @@ pub fn urban_mobility(r: &Region) -> i64 {
     let n = net(r);
     let roads = n.levels(Mode::Roads) as i64 * if n.stage(Mode::Roads) >= 3 { 1_000_000 } else { 250_000 };
     let rail = n.levels(Mode::Rail) as i64 * 500_000;
-    let c = content();
-    let transit: i64 = r
-        .facilities
-        .iter()
-        .filter(|f| f.enabled && f.level > 0)
-        .map(|f| match c.facilities[f.kind].key {
-            "metro" => f.level as i64 * 3_000_000,
-            "tramways" => f.level as i64 * 1_000_000,
-            _ => 0,
-        })
-        .sum();
+    let info = kind_info();
+    let transit: i64 = r.facilities.iter().filter(|f| f.enabled && f.level > 0).map(|f| f.level as i64 * info[f.kind].transit).sum();
     500_000 + roads + rail + transit
 }
 

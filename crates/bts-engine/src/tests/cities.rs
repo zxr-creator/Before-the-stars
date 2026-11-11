@@ -267,16 +267,16 @@ fn migration_moves_people_without_creating_or_losing_any() {
     let before: u64 = w.regions.iter().map(|r| r.population() as u64).sum();
     let snap = crate::ledger::snapshot(w, false);
     let pops = (w.regions[home].population(), w.regions[other].population());
-    for _ in 0..12 {
-        migration::step(w);
-    }
+    // voluntary moves are decided on 1 January
+    assert_eq!(w.month % 12, 0);
+    migration::step(w);
     let after: u64 = w.regions.iter().map(|r| r.population() as u64).sum();
     assert_eq!(before, after, "migration neither creates nor loses people");
     assert!(w.regions[home].population() < pops.0 && w.regions[other].population() > pops.1);
     let moved = w.civs[0].flows.moved_internal as i64;
     assert_eq!(moved, (pops.0 - w.regions[home].population()) as i64);
     // at most the railway's mobility cap a year
-    assert!(moved <= pops.0 as i64 * 150 / 10_000 + 12, "{moved}");
+    assert!(moved <= pops.0 as i64 * 150 / 10_000 + 1, "{moved}");
     assert!(crate::ledger::violations(&snap, &crate::ledger::snapshot(w, false)).iter().all(|v| !v.contains("people")));
 }
 

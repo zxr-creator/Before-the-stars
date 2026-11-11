@@ -44,6 +44,29 @@ pub const PROVISION_BASE: i64 = 100_000;
 /// Field levels lost to the city in a year at most.
 pub const ENCROACH_PER_YEAR: u16 = 5;
 
+/// Posts away from the land and posts in extraction, last month, and residents in
+/// dense housing, in one pass.
+fn scan(r: &Region) -> (i64, i64, i64) {
+    let c = content();
+    let info = network::kind_info();
+    let (mut off, mut ext, mut dense) = (0i64, 0i64, 0i64);
+    for f in &r.facilities {
+        let def = &c.facilities[f.kind];
+        if info[f.kind].dense && f.enabled {
+            dense += def.provides.iter().filter(|(k, _)| *k == Cap::Housing).map(|(_, v)| v * f.level as i64).sum::<i64>();
+        }
+        if def.food {
+            continue;
+        }
+        if def.labor == Some(LaborCategory::Extraction) {
+            ext += f.staffed as i64;
+        } else {
+            off += f.staffed as i64;
+        }
+    }
+    (off, ext, dense)
+}
+
 /// Posts away from the land and posts in extraction, last month.
 fn posts(r: &Region) -> (i64, i64) {
     let c = content();
@@ -69,8 +92,11 @@ fn posts(r: &Region) -> (i64, i64) {
 /// employed do, so they change no share (the design counts half of them as
 /// townspeople; with so large a pool that would make every era's towns alike).
 pub fn off_land_bp(r: &Region) -> i64 {
+    off_land_with(r, posts(r))
+}
+
+fn off_land_with(r: &Region, (off, ext): (i64, i64)) -> i64 {
     let l = &r.last.labor;
-    let (off, ext) = posts(r);
     let food = if r.last.food_equiv > 0 { r.last.food_equiv } else { l.food } as i64;
     let num = off + l.projects as i64 + l.teachers as i64;
     let den = num + food + ext;
@@ -79,16 +105,6 @@ pub fn off_land_bp(r: &Region) -> i64 {
     } else {
         num * 10_000 / den
     }
-}
-
-/// Residents housed in apartment blocks and towers (dense housing).
-fn dense_housed(r: &Region) -> i64 {
-    let c = content();
-    r.facilities
-        .iter()
-        .filter(|f| f.enabled && matches!(c.facilities[f.kind].key, "apartments" | "towers"))
-        .map(|f| c.facilities[f.kind].provides.iter().filter(|(k, _)| *k == Cap::Housing).map(|(_, v)| v * f.level as i64).sum::<i64>())
-        .sum()
 }
 
 /// Concentration (design 2.2), basis points, without and with its dense-housing term.
@@ -111,11 +127,17 @@ pub fn concentration_bp(r: &Region) -> i64 {
 /// Share of a region's residents who live in its towns and city, basis points
 /// (design chapter 38, section 2.2): `min(9,500, off-land share x concentration)`.
 pub fn urban_share(r: &Region) -> i64 {
-    let n = off_land_bp(r);
+    urban_share_pop(r, r.population() as i64)
+}
+
+fn urban_share_pop(r: &Region, pop: i64) -> i64 {
+    if pop == 0 {
+        return 0;
+    }
+    let (off, ext, dense) = scan(r);
+    let n = off_land_with(r, (off, ext));
     let c0 = concentration_bp(r);
-    let pop = r.population() as i64;
     let urban0 = pop * (n * c0 / 10_000).min(URBAN_SHARE_CAP) / 10_000;
-    let dense = dense_housed(r);
     let housing = if urban0 > 0 { 1_500 * dense.min(urban0) / urban0 } else { 0 };
     let c = (c0 + housing).min(CONCENTRATION_CAP);
     (n * c / 10_000).min(URBAN_SHARE_CAP)
@@ -210,7 +232,10 @@ pub fn primacy(w: &World, ri: usize) -> i64 {
 pub fn city_size(w: &World, ri: usize) -> u32 {
     let r = &w.regions[ri];
     let pop = r.population() as i64;
-    (pop * urban_share(r) / 10_000 * primacy(w, ri) / 10_000) as u32
+    if pop == 0 {
+        return 0;
+    }
+    (pop * urban_share_pop(r, pop) / 10_000 * primacy(w, ri) / 10_000) as u32
 }
 
 pub fn city_class(w: &World, ri: usize) -> SettlementKind {
@@ -254,6 +279,16 @@ pub fn city_sizes(w: &World) -> Vec<u32> {
     (0..w.regions.len()).map(|i| city_size(w, i)).collect()
 }
 
+/// The cities as they stood at the start of the month being resolved (reckoned
+/// afresh outside the monthly step).
+pub fn month_sizes(w: &World) -> std::borrow::Cow<'_, [u32]> {
+    if w.city_month.len() == w.regions.len() {
+        std::borrow::Cow::Borrowed(&w.city_month)
+    } else {
+        std::borrow::Cow::Owned(city_sizes(w))
+    }
+}
+
 /// [`access_bonus`] with the neighbours' city sizes already reckoned.
 pub fn access_bonus_with(w: &World, ri: usize, city: i64, sizes: &[u32]) -> i64 {
     let r = &w.regions[ri];
@@ -286,23 +321,24 @@ pub fn urban_defence_bp(class: SettlementKind) -> i64 {
 /// What a region's fortifications add against attackers of a tier (design 4.2).
 pub fn fort_bp(r: &Region, attacker_tier: u8) -> i64 {
     let t = attacker_tier;
-    let lv = |k: &str| r.fac(content().f(k)).map(|f| f.enabled && f.level > 0).unwrap_or(false);
+    let info = network::kind_info();
+    let lv = |stage: u8| r.facilities.iter().any(|f| f.enabled && f.level > 0 && info[f.kind].fort == stage);
     let mut best = 0;
-    if lv("walls") {
+    if lv(1) {
         best = best.max(match t {
             0 | 1 => 3_000,
             2 => 1_500,
             _ => 0,
         });
     }
-    if lv("bastion") {
+    if lv(2) {
         best = best.max(match t {
             0..=2 => 3_000,
             3 => 1_000,
             _ => 0,
         });
     }
-    if lv("fortified_zone") {
+    if lv(3) {
         best = best.max(if t <= 5 { 1_500 } else { 500 });
     }
     best

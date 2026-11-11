@@ -462,7 +462,9 @@ pub fn successor_table(w: &World, seat: SeatId) -> Vec<bool> {
             .collect()
     });
     let ctx = CivCtx { world: w, seat };
-    later.iter().map(|l| l.iter().any(|j| c.facilities[*j].req.eval(&ctx))).collect()
+    // only works two or more eras behind can be obsolete: the rest need not be asked
+    let era = w.civs[seat as usize].era.era as u16;
+    later.iter().enumerate().map(|(k, l)| c.facilities[k].era as u16 + 2 <= era && l.iter().any(|j| c.facilities[*j].req.eval(&ctx))).collect()
 }
 
 /// Whether a works of this kind is obsolete for the seat: two or more eras behind

@@ -262,11 +262,11 @@ fn city_seen(w: &World, seat: SeatId, ri: usize, mine: bool, current: bool) -> O
 }
 
 /// City, land, provisioning and network of a governed region (protocol 2.3).
-fn urban_view(w: &World, seat: SeatId, ri: usize) -> UrbanView {
+fn urban_view(w: &World, seat: SeatId, ri: usize, sizes: &[u32]) -> UrbanView {
     use crate::sim::{cities, network};
     let r = &w.regions[ri];
     let land = cities::land_use(r);
-    let city = cities::city_size(w, ri) as i64;
+    let city = sizes[ri] as i64;
     let n = network::net(r);
     let civ = &w.civs[seat as usize];
     let (boats, sail) = (civ.knows_id("T013"), civ.knows_id("T028"));
@@ -288,10 +288,10 @@ fn urban_view(w: &World, seat: SeatId, ri: usize) -> UrbanView {
         provision_capacity: cities::provision_capacity(r).min(u32::MAX as i64) as u32,
         access_bp: network::access_bp(r) as u16,
         feedable: cities::feedable(r).min(u32::MAX as i64) as u32,
-        access_bonus_bp: cities::access_bonus(w, ri, city) as u16,
+        access_bonus_bp: cities::access_bonus_with(w, ri, city, sizes) as u16,
         congestion_bp: cities::congestion_bp(r, city) as u16,
-        defence_bp: cities::defence_bp(w, ri, 10_000, tier) as u16,
-        attractiveness: crate::sim::migration::attractiveness(w, ri) as i32,
+        defence_bp: (10_000 * (10_000 + cities::urban_defence_bp(cities::class_of(sizes[ri])) + cities::fort_bp(r, tier)) / 10_000).min(20_000) as u16,
+        attractiveness: crate::sim::migration::attractiveness_with(w, ri, sizes) as i32,
         mobility_cap_bp: network::mobility_cap_bp(r) as u16,
         network: ["roads", "canals", "harbour", "railway", "air", "urban_transit"].iter().enumerate().filter(|(i, _)| n.levels[*i] > 0).map(|(i, m)| NetworkLine { mode: m.to_string(), stage: n.stage[i], levels: n.levels[i] }).collect(),
         links: r
@@ -409,7 +409,7 @@ fn region_queue(civ: &Civ, region: usize) -> Vec<&Project> {
     queue
 }
 
-fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
+fn own_region(w: &World, seat: SeatId, ri: usize, link: i64, sizes: &[u32]) -> OwnRegion {
     let c = content();
     let r = &w.regions[ri];
     let lin = |i: u16| w.lineages.get(i as usize).map(|l| l.name.clone()).unwrap_or_default();
@@ -541,7 +541,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
         })
         .collect();
     OwnRegion {
-        urban: urban_view(w, seat, ri),
+        urban: urban_view(w, seat, ri, sizes),
         productivity: productivity::breakdown(w, seat, ri),
         // the price of one more level here, exactly as an order placed now is charged
         construction_sites: c.facilities.iter().enumerate().filter(|(k, _)| facility_visible(w, seat, *k)).map(|(k, def)| {
@@ -759,6 +759,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     let month = w.month;
     let revealed = victory_revealed(w, seat);
     let link = economy::link_efficiencies(w, seat);
+    let sizes = crate::sim::cities::city_sizes(w);
 
     // ---- regions ------------------------------------------------------------
     let mut regions = Vec::new();
@@ -818,7 +819,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             controller: if current { r.controller } else { mem.owner },
             settlement,
             survey,
-            own: if r.controller == Some(seat) { Some(own_region(w, seat, ri, link[ri])) } else { None },
+            own: if r.controller == Some(seat) { Some(own_region(w, seat, ri, link[ri], &sizes)) } else { None },
             foreign,
             test_node: revealed && w.test_nodes.contains(&r.id),
             // an epidemic is seen by the region's government and by anyone observing it now
@@ -1782,10 +1783,13 @@ pub fn building_tree_json() -> &'static str {
 pub fn spectate(w: &World) -> SpectatorView {
     let c = content();
     let mut regions = Vec::new();
+    let sizes = crate::sim::cities::city_sizes(w);
+    // carriage from each seat's capital, reckoned once per seat
+    let links: Vec<Vec<i64>> = (0..w.civs.len()).map(|seat| economy::link_efficiencies(w, seat as SeatId)).collect();
     for (ri, r) in w.regions.iter().enumerate() {
         let own = r.controller.map(|seat| {
-            let link = economy::link_efficiencies(w, seat);
-            own_region(w, seat, ri, link[ri])
+            let link = &links[seat as usize];
+            own_region(w, seat, ri, link[ri], &sizes)
         });
         regions.push(RegionView {
             id: r.id,
@@ -1821,7 +1825,7 @@ pub fn spectate(w: &World) -> SpectatorView {
             test_node: w.test_nodes.contains(&r.id),
             outbreak: r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }),
             climate: Some(r.climate),
-            city: Some(CityView { name: r.city_name.clone(), residents: crate::sim::cities::city_size(w, ri), class: crate::sim::cities::city_class(w, ri) }),
+            city: Some(CityView { name: r.city_name.clone(), residents: sizes[ri], class: crate::sim::cities::class_of(sizes[ri]) }),
         });
     }
     let civs = w

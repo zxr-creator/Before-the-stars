@@ -1351,6 +1351,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         round_start: 0,
         last_round_months: 0,
         ice_links,
+        city_month: Vec::new(),
     };
     for s in 0..seats {
         crate::sim::knowledge::refresh_visibility(&mut world, s as SeatId);

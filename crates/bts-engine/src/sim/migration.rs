@@ -1,7 +1,8 @@
 //! Migration (design chapter 38, section 3, simplified by chapter 41).
 //!
 //! One rule moves people between regions: each region has an attractiveness, and
-//! people move from a region toward better ones within reach, slowly (a few per
+//! on every 1 January people move from a region toward better ones within reach,
+//! slowly (a few per
 //! thousand a year, bounded by the best transport mode at home) and more slowly
 //! across borders, where the receiving seat's border policy decides who may come.
 //! Regions in distress (famine, war, epidemic) send refugees to better
@@ -117,9 +118,16 @@ fn route_open(w: &World, a: SeatId, b: SeatId) -> bool {
 /// One month's flows, computed from the month's state and applied in order.
 pub fn step(w: &mut World) {
     let n = w.regions.len();
-    let sizes = cities::city_sizes(w);
-    let attr: Vec<i64> = (0..n).map(|i| attractiveness_with(w, i, &sizes)).collect();
+    // voluntary moves are decided once a year, on 1 January, from that day's
+    // attractiveness (design 3.3); distress is felt every month
+    let yearly = w.month % 12 == 0;
     let distress: Vec<i64> = (0..n).map(|i| distress_bp(w, i)).collect();
+    let attr: Vec<i64> = if yearly || distress.iter().any(|d| *d > 0) {
+        let sizes = cities::month_sizes(w).into_owned();
+        (0..n).map(|i| attractiveness_with(w, i, &sizes)).collect()
+    } else {
+        vec![0; n]
+    };
     let pops: Vec<i64> = w.regions.iter().map(|r| r.population() as i64).collect();
     let nets: Vec<network::Net> = w.regions.iter().map(network::net).collect();
     let seats = w.civs.len();
@@ -131,8 +139,8 @@ pub fn step(w: &mut World) {
         .map(|i| {
             let r = &w.regions[i];
             let c = content();
-            let crew = |key: &str| r.fac_level(key) as i64 * c.facilities[c.f(key)].general as i64;
-            let livelihoods = (r.wild * 1000 / 2600 + crew("fields") + crew("pasture") + crew("fishery")).max(1);
+            let crew: i64 = r.facilities.iter().filter(|f| matches!(c.facilities[f.kind].site, crate::content::Site::Arable | crate::content::Site::Pasture | crate::content::Site::Fishery) && c.facilities[f.kind].food).map(|f| f.level as i64 * c.facilities[f.kind].general as i64).sum();
+            let livelihoods = (r.wild * 1000 / 2600 + crew).max(1);
             let food_workers = if r.last.food_equiv > 0 { r.last.food_equiv } else { r.last.labor.food } as i64;
             crowd[i].max(if food_workers * 10_000 / livelihoods > 9_500 { 9_000 } else { 0 })
         })
@@ -195,6 +203,9 @@ pub fn step(w: &mut World) {
             }
         }
         // ---- voluntary
+        if !yearly {
+            continue;
+        }
         let civ = &w.civs[s as usize];
         let (boats, sail) = (civ.knows_id("T013"), civ.knows_id("T028"));
         let restricted = civ.emigration == Emigration::Restricted;
@@ -262,7 +273,7 @@ pub fn step(w: &mut World) {
         let rate_home = rate * (total - abroad_score) / total.max(1);
         let rate = rate_home + rate_abroad;
         // thousandths of a person this month
-        let want = pops[i] * rate * 1_000 / 10_000 / 12 + rem[i];
+        let want = pops[i] * rate * 1_000 / 10_000 + rem[i];
         let whole = want / 1_000;
         rem[i] = want % 1_000;
         if whole == 0 {
@@ -283,10 +294,10 @@ pub fn step(w: &mut World) {
         let (s, t) = (w.regions[i].controller.unwrap(), w.regions[j].controller.unwrap());
         let mut count = people;
         if !refugee {
-            let room = pops[j] * INTAKE_CAP_BP / 10_000 / 12 - intake[j];
+            let room = pops[j] * INTAKE_CAP_BP / 10_000 - intake[j];
             count = count.min(room.max(0));
             if s != t && w.civs[t as usize].immigration == Immigration::Selective {
-                let room = seat_pop[t as usize] * SELECTIVE_CAP_BP / 10_000 / 12 - selective[t as usize];
+                let room = seat_pop[t as usize] * SELECTIVE_CAP_BP / 10_000 - selective[t as usize];
                 count = count.min(room.max(0));
             }
         }
@@ -322,5 +333,5 @@ pub fn step(w: &mut World) {
 pub fn move_migrants(w: &mut World, from: usize, to: usize, count: u32) -> u32 {
     static WEIGHTS: std::sync::OnceLock<[u64; AGES]> = std::sync::OnceLock::new();
     let weights = WEIGHTS.get_or_init(|| std::array::from_fn(age_weight));
-    crate::sim::population::move_people_weighted(w, from, to, count, weights)
+    crate::sim::population::move_people_weighted(w, from, to, count, weights, 2_000)
 }

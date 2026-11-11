@@ -475,6 +475,12 @@ pub fn general_posts(def: &FacDef, f: &Facility, rec: Option<&Recipe>, infra_bp:
 
 /// Effective level cap of a facility in a region for a civilization.
 pub fn level_cap(w: &World, seat: SeatId, region: usize, def: &FacDef) -> u16 {
+    level_cap_land(w, seat, region, def, true)
+}
+
+/// [`level_cap`], with arable land counted whole (`town: false`) or less what the
+/// town and works stand on (design chapter 37, section 8.6).
+pub fn level_cap_land(w: &World, seat: SeatId, region: usize, def: &FacDef, town: bool) -> u16 {
     use crate::content::Site;
     let r = &w.regions[region];
     // arable land and pasture are shared: fibre plantations take field land, horse
@@ -486,7 +492,7 @@ pub fn level_cap(w: &World, seat: SeatId, region: usize, def: &FacDef) -> u16 {
     let site_cap: u16 = match def.site {
         Site::Any => def.max_level,
         // the arable land the town and works leave (design chapter 37, section 8.6)
-        Site::Arable => crate::sim::cities::land_use(r).arable_left().saturating_sub(shared(Site::Arable)),
+        Site::Arable => if town { crate::sim::cities::land_use(r).arable_left() } else { r.arable }.saturating_sub(shared(Site::Arable)),
         Site::Pasture => r.pasture.saturating_sub(shared(Site::Pasture)),
         Site::SpiceLand => r.spice_land,
         Site::Fishery => r.fishery,
@@ -708,7 +714,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     // productivity (design chapter 36, section 4): the seat's technology and
     // automation factors, and each region's other factors, as the month opens
     let tables = productivity::civ_tables(&w.civs[si]);
-    let sizes = crate::sim::cities::city_sizes(w);
+    let sizes = crate::sim::cities::month_sizes(w).into_owned();
     let factors: Vec<productivity::RegionFactors> = regs.iter().map(|ri| productivity::region_factors_with(w, seat, *ri, &sizes)).collect();
     let food_k = Sector::Food.index();
     // a food works' labour productivity at a method of a given era

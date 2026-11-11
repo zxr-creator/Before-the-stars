@@ -118,7 +118,9 @@ pub fn carrying_capacity(w: &World, seat: SeatId, ri: usize) -> i64 {
     // month's gathering can bring in
     let mut rations = r.wild / 3;
     if known("fields") {
-        rations += cap("fields") * field;
+        // the formula is the land's (design chapter 37, section 8.6): fields the town
+        // has taken still count, the region being fed from elsewhere in their stead
+        rations += crate::sim::economy::level_cap_land(w, seat, ri, &c.facilities[c.f("fields")], false) as i64 * field;
     }
     // herds and fishing grounds count at half: they feed a people only alongside its fields
     if known("pasture") {
@@ -361,12 +363,15 @@ pub fn move_people(w: &mut World, from: usize, to: usize, count: u32, adults_bia
     if adults_bias {
         weights[50..].iter_mut().for_each(|x| *x = 0);
     }
-    move_people_weighted(w, from, to, count, &weights)
+    move_people_weighted(w, from, to, count, &weights, 0)
 }
 
 /// [`move_people`] with a weight per age: the people of each age cell are drawn in
 /// proportion to their number times the weight (migrants are mostly young adults).
-pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, weight: &[u64; AGES]) -> u32 {
+/// Blocks smaller than `min_share_bp` of the region's people send nobody (migrants
+/// leave from the region's main communities, which keeps small groups from
+/// scattering into every region).
+pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, weight: &[u64; AGES], min_share_bp: u64) -> u32 {
     if from == to {
         return 0;
     }
@@ -383,12 +388,16 @@ pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, w
     let mut moved_working = 0u32;
     let mut carried: Vec<PopBlock> = Vec::new();
     // the eligible pool, weighted by age
-    let pool: u64 = w.regions[from].blocks.iter().map(|b| b.ages.iter().zip(weight.iter()).map(|(n, wt)| *n as u64 * wt).sum::<u64>()).sum();
+    let floor = pop as u64 * min_share_bp / 10_000;
+    let pool: u64 = w.regions[from].blocks.iter().filter(|b| b.total() as u64 >= floor).map(|b| b.ages.iter().zip(weight.iter()).map(|(n, wt)| *n as u64 * wt).sum::<u64>()).sum();
     if pool == 0 {
         return 0;
     }
     let mut rem: u64 = 0;
     for b in w.regions[from].blocks.iter_mut() {
+        if (b.total() as u64) < floor {
+            continue;
+        }
         let mut out = PopBlock::new(b.lineage, b.religion);
         out.birth_hist = b.birth_hist;
         for age in 0..AGES {
@@ -411,13 +420,23 @@ pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, w
             carried.push(out);
         }
     }
+    let dest_pop = w.regions[to].population() as u64;
     for out in carried {
-        if let Some(b) = w.regions[to].blocks.iter_mut().find(|b| b.lineage == out.lineage && b.religion == out.religion) {
-            for age in 0..AGES {
-                b.ages[age] += out.ages[age];
+        let blocks = &mut w.regions[to].blocks;
+        let mut at = blocks.iter().position(|b| b.lineage == out.lineage && b.religion == out.religion);
+        // migrants too few to form a community of their own (under 1% of the
+        // destination) join its largest community of their faith, or its largest
+        if at.is_none() && min_share_bp > 0 && (out.total() as u64) * 100 < dest_pop {
+            let largest = |same_faith: bool| blocks.iter().enumerate().filter(|(_, b)| !same_faith || b.religion == out.religion).max_by_key(|(i, b)| (b.total(), std::cmp::Reverse(*i))).map(|(i, _)| i);
+            at = largest(true).or_else(|| largest(false));
+        }
+        match at {
+            Some(i) => {
+                for age in 0..AGES {
+                    blocks[i].ages[age] += out.ages[age];
+                }
             }
-        } else {
-            w.regions[to].blocks.push(out);
+            None => blocks.push(out),
         }
     }
     w.regions[from].blocks.retain(|b| b.total() > 0);
@@ -743,6 +762,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     let mut water_weighted: i64 = 0;
 
     let capacities: Vec<i64> = regs.iter().map(|ri| carrying_capacity(w, seat, *ri)).collect();
+    let sizes = crate::sim::cities::month_sizes(w).into_owned();
     for (k, &ri) in regs.iter().enumerate() {
         // the Malthusian brake fades as children survive: households that expect
         // their children to live plan families by other things than the land
@@ -750,7 +770,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         let land = 10_000 + (land_factor(w.regions[ri].population() as i64, capacities[k]) - 10_000) * (10_000 - ((child_gain - LAND_FADE_FROM_BP) * 2).clamp(0, 10_000)) / 10_000;
         let secret = w.secret;
         let smoke_bp = crate::sim::eras::urban_mortality_bp(w, seat, ri);
-        let town_weight = crate::sim::cities::mortality_weight(crate::sim::cities::city_class(w, ri));
+        let town_weight = crate::sim::cities::mortality_weight(crate::sim::cities::class_of(sizes[ri]));
         let rpop0 = w.regions[ri].population() as i64;
         let food_bp = if rpop0 > 0 { food_bp * reach[k] / rpop0 } else { food_bp };
         let mut died = [0u32; NQ];

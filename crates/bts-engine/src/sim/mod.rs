@@ -26,6 +26,7 @@ pub fn step_month(w: &mut World) {
         return;
     }
     w.month += 1;
+    w.city_month = cities::city_sizes(w);
     let n = w.civs.len();
     let before: Vec<Vec<i64>> = w.civs.iter().map(|c| c.flows.consumed.clone()).collect();
 

@@ -1325,6 +1325,11 @@ pub struct World {
     /// sorted pairs. Recorded world data: no rule of ruleset 3.0 slices 4-6 reads it.
     #[serde(default)]
     pub ice_links: Vec<IceLink>,
+    /// Every region's principal city at the start of the month being resolved
+    /// (`sim::cities::city_sizes`), refilled before anything reads it; derived,
+    /// never saved.
+    #[serde(skip)]
+    pub city_month: Vec<u32>,
 }
 
 /// A sea link between two subpolar or polar regions that ice closes in winter
