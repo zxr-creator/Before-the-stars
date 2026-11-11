@@ -359,6 +359,8 @@ fn the_order_charged_is_the_quote_times_the_levels() {
 
 #[test]
 fn a_site_crew_holds_no_other_post_and_returns_when_the_order_ends() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let c = content();
     let (mut m, capital, home) = site_world("crew-posts");
     // two levels of workshops need four thousand artisans, and exactly that many live here

@@ -305,7 +305,7 @@ pub fn activate(w: &mut World, offer_ix: usize) -> Result<u32, String> {
                     // existing investigation benefits from the records
                     for p in w.civs[to as usize].projects.iter_mut() {
                         if p.kind == (ProjKind::Research { tech: ti }) {
-                            let full = crate::sim::projects::scaled(ct.techs[ti].work, w.cfg.pace_bp);
+                            let full = crate::sim::projects::scaled(ct.techs[ti].work, w.cfg.research_pace());
                             p.work_needed = p.work_needed.min(full * (10_000 - discount as i64) / 10_000).max(p.work_done);
                         }
                     }

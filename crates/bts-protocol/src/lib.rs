@@ -252,6 +252,17 @@ public_enum!(PracticeState {
 });
 
 public_enum!(
+    /// Economic sectors of productivity (design chapter 36, section 4.2).
+    Sector {
+    Food => "Food",
+    Extraction => "Extraction",
+    Industry => "Industry",
+    Services => "Services",
+    Knowledge => "Knowledge",
+    Construction => "Construction",
+});
+
+public_enum!(
     /// Labour categories whose relative priority a government can set.
     LaborCategory {
     Extraction => "Extraction",
@@ -775,6 +786,49 @@ pub struct FacilityView {
     /// one chosen when the chosen one's chemicals or fuel were not in store.
     #[serde(default)]
     pub active_method: Option<String>,
+    /// General and qualified posts the works' levels need under the method it ran:
+    /// at the method's base, after shared support, and after productivity
+    /// (ruleset 3.0 slice 5; design chapter 36, section 4.3).
+    #[serde(default)]
+    pub posts_base: u32,
+    #[serde(default)]
+    pub posts_after_scale: u32,
+    #[serde(default)]
+    pub posts_after_productivity: u32,
+    /// Labour productivity applied to the works last month, basis points.
+    #[serde(default)]
+    pub productivity_bp: u32,
+    /// Land works: what one level grows in a month, base units, and the factors of
+    /// that yield.
+    #[serde(default)]
+    pub yield_per_level: i64,
+    #[serde(default)]
+    pub yield_factors: Vec<FactorView>,
+}
+
+/// One factor of productivity (design chapter 36, section 4.3), named by its source.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FactorView {
+    /// "education", "culture", "religion", "technology", "city", "health",
+    /// "resources", "buildings" or "land".
+    pub source: String,
+    /// Multiplier in basis points (10,000 = no effect).
+    pub bp: u32,
+    /// What it rests on, in words: "Literate share 42%", "Practice: Craft guilds".
+    pub detail: String,
+}
+
+/// Labour productivity of one economic sector in a region.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ProductivityView {
+    pub sector: Sector,
+    /// The product of the factors, bounded to 5,000-40,000 basis points: a works
+    /// needs `10,000 / total` of its method's general posts. Works of an older era
+    /// receive less of the technology factor (shown per works in `FacilityView`).
+    pub total_bp: u32,
+    pub factors: Vec<FactorView>,
+    /// General posts the region's works of the sector did without last month.
+    pub posts_saved: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -926,6 +980,9 @@ pub struct OwnRegion {
     /// that stand together here.
     #[serde(default)]
     pub infrastructure: InfraView,
+    /// Labour productivity by sector with its factors (ruleset 3.0 slice 6).
+    #[serde(default)]
+    pub productivity: Vec<ProductivityView>,
 }
 
 /// A region's shared infrastructure and the economies of scale it carries

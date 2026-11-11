@@ -599,7 +599,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     }
                     let t = &c.techs[ti];
                     let discount = w.civs[si].tech[ti].discount_bp as i64;
-                    let work = scaled(t.work, pace) * (10_000 - discount) / 10_000;
+                    let work = scaled(t.work, w.cfg.research_pace()) * (10_000 - discount) / 10_000;
                     let min_months = (t.min_months as i64 * pace as i64 / 10_000).max(2);
                     let id = new_project(w, seat, ProjKind::Research { tech: ti }, None, work.max(1000), vec![], min_months, priority);
                     Ok(("Investigation funded. It advances only with qualified research staff.".into(), Some(id)))
@@ -837,7 +837,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 return fail("CONFLICTING_ACTIONS", "this lead is already being followed up");
             }
             let t = &c.techs[ti];
-            let work = scaled(t.work * 15 / 100, pace);
+            let work = scaled(t.work * 15 / 100, w.cfg.research_pace());
             let id = new_project(w, seat, ProjKind::LeadStudy { tech: ti }, None, work, vec![], 2, Some(4));
             Ok(("A small team will follow up the lead.".into(), Some(id)))
         }
@@ -855,7 +855,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 return fail("INSUFFICIENT_VISIBLE_BUDGET", "its real requirements are not yet met");
             }
             let capital = w.civs[si].capital;
-            let id = new_project(w, seat, ProjKind::Reform { practice: pi }, Some(capital), scaled(p.work, pace), p.cost.clone(), 3, Some(3));
+            let id = new_project(w, seat, ProjKind::Reform { practice: pi }, Some(capital), scaled(p.work, w.cfg.research_pace()), p.cost.clone(), 3, Some(3));
             w.civs[si].practice[pi].state = 2;
             Ok(("Reform proposed. Assemblies and officials at the capital must give it their time.".into(), Some(id)))
         }

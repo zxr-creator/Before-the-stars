@@ -262,7 +262,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                     break;
                 }
             }
-            let threshold = muldiv(p.evidence_needed, w.cfg.pace_bp as i64, 10_000);
+            let threshold = muldiv(p.evidence_needed, w.cfg.evidence_pace() as i64, 10_000);
             let st = &mut w.civs[si].practice[i];
             st.evidence += gain;
             if st.evidence >= threshold {

@@ -212,7 +212,7 @@ fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment()
     // campaign is audited to its horizon, or to the month a seat wins it)
     // (the fourth is one in which native seats lend each other experts under this ruleset)
     let horizon = MatchConfig::default().horizon();
-    let campaigns = [("riverland", mixed()), ("eval-4", vec![ControllerKind::NativeMedium; 4]), ("eval-22", mixed()), ("eval-1", mixed())];
+    let campaigns = [("riverland", mixed()), ("eval-4", vec![ControllerKind::NativeMedium; 4]), ("eval-13", mixed()), ("eval-1", mixed())];
     let results: Vec<(&str, Seen)> = std::thread::scope(|scope| {
         let handles: Vec<_> = campaigns.iter().map(|(seed, controllers)| scope.spawn(move || (*seed, audit(seed, controllers.clone(), 600)))).collect();
         handles.into_iter().map(|h| h.join().expect("campaign thread")).collect()

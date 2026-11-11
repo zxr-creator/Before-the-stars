@@ -321,7 +321,9 @@ pub fn step(w: &mut World, seat: SeatId) {
             // work is done only by people called up in the project's region this
             // month: the site's own crew first, then the region's other workers
             let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
-            let own = crew_on * unrest_factor / 10_000;
+            // the construction factor of the month: a called-up worker's worker-months
+            let construction = (w.regions[ri].last.construction_bp as i64).clamp(10_000, crate::sim::productivity::CONSTRUCTION_MAX);
+            let own = crew_on * unrest_factor / 10_000 * construction / 10_000;
             let free = w.regions[ri].last.project_labor_free.max(0);
             if own + free < progress && !blockers.contains(&labour_short) {
                 blockers.push(labour_short);

@@ -108,7 +108,7 @@ pub fn survey_region(w: &mut World, seat: SeatId, ri: usize) {
 }
 
 fn hint_threshold(w: &World, tech: usize) -> i64 {
-    muldiv(content().techs[tech].hint, w.cfg.pace_bp as i64, 10_000)
+    muldiv(content().techs[tech].hint, w.cfg.evidence_pace() as i64, 10_000)
 }
 
 /// How a civilization keeps and passes on knowledge (design chapter 36, section
@@ -191,7 +191,7 @@ pub fn study_result(w: &mut World, seat: SeatId, tag: usize, work: i64) -> u32 {
     // domain down, it does not skip an era
     let mut found = 0;
     for i in eligible.into_iter().take(2) {
-        let hint = muldiv(c.techs[i].hint, w.cfg.pace_bp as i64, 10_000);
+        let hint = muldiv(c.techs[i].hint, w.cfg.evidence_pace() as i64, 10_000);
         let st = &mut w.civs[seat as usize].tech[i];
         st.evidence += work * STUDY_EVIDENCE_PER_MONTH;
         if st.evidence >= hint {

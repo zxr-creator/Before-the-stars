@@ -250,8 +250,10 @@ fn config_from<A: AgentSlot>(n: NewMatch) -> Result<MatchConfig, String> {
         }
     }
     if let Some(r) = n.regions {
-        if ![24, 48, 72].contains(&r) {
-            return Err("regions must be 24, 48 or 72".into());
+        // the map presets (Small 30, Standard 60, Large 120, Huge 200; 90 for tests)
+        // and the earlier 24, 48 and 72
+        if ![30, 60, 90, 120, 200, 24, 48, 72].contains(&r) {
+            return Err("regions must be 30, 60, 90, 120 or 200".into());
         }
         cfg.regions = r;
     }

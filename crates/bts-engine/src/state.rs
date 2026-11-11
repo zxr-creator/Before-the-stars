@@ -40,6 +40,15 @@ impl MatchConfig {
     pub fn round_months(&self, r: u32) -> u32 {
         self.calendar.round_months(r)
     }
+    /// The pace multiplier of research and reform work: the scenario pace times the
+    /// map-size scale of `content/pacing.json` (larger maps, larger research bases).
+    pub fn research_pace(&self) -> u32 {
+        (self.pace_bp as i64 * crate::content::pacing().map_scale.work(self.regions) / 10_000) as u32
+    }
+    /// The pace multiplier of evidence thresholds (technologies and practices).
+    pub fn evidence_pace(&self) -> u32 {
+        (self.pace_bp as i64 * crate::content::pacing().map_scale.evidence(self.regions) / 10_000) as u32
+    }
     /// The ruleset 2.0 clock for unit tests: twelve-month rounds from 5000 BC,
     /// `rounds` of them.
     pub fn fixture_calendar(rounds: u32) -> crate::calendar::CalendarId {
@@ -51,7 +60,9 @@ impl Default for MatchConfig {
     fn default() -> Self {
         MatchConfig {
             seed: "riverland".into(),
-            regions: 48,
+            // the Standard map (design chapter 40 decision: Small 30, Standard 60,
+            // Large 120, Huge 200 regions)
+            regions: 60,
             calendar: crate::calendar::CalendarId::Standard,
             pace_bp: 10_000,
             controllers: vec![
@@ -191,12 +202,25 @@ pub struct Facility {
     /// kept the land on a lower method than the seat allows.
     #[serde(default)]
     pub field_run: Option<RunStat>,
+    /// Labour productivity applied to the works' general posts last month and the
+    /// automation factor applied to its qualified posts, basis points (0 before the
+    /// works first ran; ruleset 3.0 slice 6).
+    #[serde(default)]
+    pub lp_bp: u16,
+    #[serde(default)]
+    pub lpq_bp: u16,
+    /// The levels and shared-support saving the posts were reckoned on last month
+    /// (a level completed later in the month is staffed from the next).
+    #[serde(default)]
+    pub staff_level: u16,
+    #[serde(default)]
+    pub staff_saving_bp: u16,
 }
 
 impl Facility {
     /// A new, enabled installation in full repair that has not yet run.
     pub fn new(kind: usize, level: u16) -> Facility {
-        Facility { kind, level, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0, method: None, field_run: None }
+        Facility { kind, level, condition_bp: 10_000, enabled: true, staffed: 0, staff_needed: 0, skilled_bp: 10_000, run: None, operated: false, assembly_progress: 0, method: None, field_run: None, lp_bp: 0, lpq_bp: 0, staff_level: 0, staff_saving_bp: 0 }
     }
 }
 
@@ -303,6 +327,19 @@ pub struct RegionMonth {
     pub food_made: i64,
     pub qual_employed: Vec<u32>,
     pub tag_staff: Vec<u32>,
+    /// Worker-months one called-up worker supplied this month: the construction factor
+    /// of productivity (10,000 = one; at most 15,000; ruleset 3.0 slice 6).
+    #[serde(default)]
+    pub construction_bp: u16,
+    /// Food workers counted at a productivity of one: the people the same food
+    /// would have needed (ruleset 3.0 slice 6). Town life (`urban_share`) is reckoned
+    /// on it, so that productivity frees people for other work without turning the
+    /// countryside into a town by bookkeeping. 0 before the slice: use `labor.food`.
+    #[serde(default)]
+    pub food_equiv: u32,
+    /// General posts each sector's works did without because of productivity.
+    #[serde(default)]
+    pub posts_saved: Vec<u32>,
     /// Worker-months of called-up labour not yet assigned to a project this month.
     /// Site crews are not in this pool: each works only on its own order.
     pub project_labor_free: i64,

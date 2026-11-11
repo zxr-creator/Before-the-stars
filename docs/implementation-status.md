@@ -123,6 +123,25 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   it), road capacity loss without horses (porters stand in at no loss). Calibration:
   `docs/calibration/ruleset3-slice-5-eval.txt`.
 
+- **Slice 6, productivity (done).** The eight factors as bounded multipliers
+  (`sim::productivity`; `docs/units-and-scale.md` section 15): education, culture
+  (tendencies and established practices), religion (doctrines of the majority faith,
+  with the new Sanctified Labour and Stewardship of the Land), resources and land
+  (deposit quality and site bonuses on yields), technology (gated by the works' era),
+  city (`city_class`, a function of its inputs for the cities slice), health, and
+  buildings and methods (base posts, shared support), applied to general posts,
+  qualified posts (automation), field and land yields (capped at twice the method)
+  and construction work (at most 1.5 worker-months a worker); never to what a level
+  makes. A breakdown per region and sector and per works in the observation; the
+  posts formula and the construction bound in the monthly audit. Fields now work as
+  many levels at the best method as the stores supply and the rest lower, instead of
+  all or nothing. Evidence and the town share count work at a productivity of one.
+  The Standard map is now 60 regions (presets 30, 60, 90, 120, 200; the referee still
+  accepts 24, 48 and 72), with map-size scaling of knowledge pacing in
+  `content/pacing.json`. Ruleset `bts-rules/3.0.0-s6`, content `bts-content/3.0.0-s6`.
+  Prosperity in `F_city` and `F_dev` is still 0 (consumption slice). Calibration and the
+  remaining late-population gap: `docs/calibration/ruleset3-slice-6-eval.txt`.
+
 ## Known calibration gaps
 
 - All numeric parameters are first-pass values tuned only through all-AI matches.

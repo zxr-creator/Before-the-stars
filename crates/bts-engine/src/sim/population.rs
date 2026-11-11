@@ -92,7 +92,10 @@ pub fn urban_share(r: &Region) -> i64 {
     if pop == 0 {
         return 0;
     }
-    let off_land = (10_000 - (r.last.labor.food as i64 * 32_000 / pop).min(10_000)).max(0);
+    // food workers at a productivity of one (labour productivity frees farmers for
+    // other work; it does not move them into towns)
+    let food = if r.last.food_equiv > 0 { r.last.food_equiv } else { r.last.labor.food } as i64;
+    let off_land = (10_000 - (food * 32_000 / pop).min(10_000)).max(0);
     let weight = match settlement_class(pop.min(u32::MAX as i64) as u32) {
         SettlementKind::Wilderness | SettlementKind::Camp => 0,
         SettlementKind::Village => 2_000,
@@ -930,7 +933,8 @@ pub fn step(w: &mut World, seat: SeatId) {
         let crew = |key: &str| w.regions[ri].fac_level(key) as i64 * content().facilities[content().f(key)].general as i64;
         let fields = crew("fields") + crew("pasture") + crew("fishery");
         let livelihoods = (foragers_cap + fields).max(1);
-        let food_pressure = w.regions[ri].last.labor.food as i64 * 10_000 / livelihoods;
+        let food_workers = if w.regions[ri].last.food_equiv > 0 { w.regions[ri].last.food_equiv } else { w.regions[ri].last.labor.food };
+        let food_pressure = food_workers as i64 * 10_000 / livelihoods;
         let push = crowd.max(if food_pressure > 9500 { 9000 } else { 0 });
         if push < 8000 {
             continue;

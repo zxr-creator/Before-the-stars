@@ -42,6 +42,25 @@ export type ResearchClass = 'craft' | 'scholarly' | 'scientific' | 'industrial' 
 export type KnowledgeState = 'hinted' | 'discovered' | 'investigating' | 'understood' | 'prototyped' | 'adopted';
 export type PracticeState = 'recognized' | 'reforming' | 'enacted' | 'established';
 export type LaborCategory = 'extraction' | 'industry' | 'services' | 'knowledge' | 'construction';
+/** Economic sectors of labour productivity (bts-protocol/2.0, ruleset 3.0 slice 6). */
+export type Sector = 'food' | 'extraction' | 'industry' | 'services' | 'knowledge' | 'construction';
+
+/** One factor of productivity, named by its source (bts-protocol/2.0). */
+export interface FactorView {
+  /** "education", "culture", "religion", "technology", "city", "health", "automation" or "land". */
+  source: string;
+  bp: number;
+  detail: string;
+}
+
+/** Labour productivity of one sector in a region (bts-protocol/2.0). */
+export interface ProductivityView {
+  sector: Sector;
+  /** Product of the factors (automation excluded), 5,000-40,000 bp. */
+  total_bp: number;
+  factors: FactorView[];
+  posts_saved: number;
+}
 export type Phase = 'contact' | 'negotiate' | 'plan' | 'finished';
 export type SeatStatus = 'active' | 'eliminated' | 'forfeited';
 export type ControllerKind = 'human' | 'external' | 'native_easy' | 'native_medium' | 'native_hard';
@@ -357,6 +376,14 @@ export interface FacilityView {
    * the land was worked by. (serde default)
    */
   active_method?: string | null;
+  /** Posts at the method's base, after shared support, after productivity (bts-protocol/2.0). */
+  posts_base?: number;
+  posts_after_scale?: number;
+  posts_after_productivity?: number;
+  productivity_bp?: number;
+  /** Land works: one level's yield and its factors. */
+  yield_per_level?: number;
+  yield_factors?: FactorView[];
 }
 
 export interface BlockView {
@@ -406,6 +433,8 @@ export interface OwnRegion {
   venues?: VenueSeats[];
   /** The region's shared infrastructure and what it saves or costs its works. (serde default) */
   infrastructure?: InfraView;
+  /** Labour productivity by sector (bts-protocol/2.0, ruleset 3.0 slice 6). */
+  productivity?: ProductivityView[];
 }
 
 export interface ForeignRegion {

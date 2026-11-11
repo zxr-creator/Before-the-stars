@@ -67,6 +67,17 @@ jump trials - (`consumed`, never refunded); carriage from outlying regions (`los
 deliveries and tribute (`traded_out`); and the stores of a polity that ceases to
 govern (`lost`).
 
+Labour productivity (ruleset 3.0 slice 6, units chapter section 15) is not a source
+of anything either: it changes how many posts a works needs (the audit checks every
+works' posts against the formula with the month's stored factors, and the factors'
+bounds) and how many worker-months a called-up worker supplies (project work is at
+most the called-up workers times the month's construction factor, at most 1.5). The
+recipe's ceiling `recipe x level x rate` is unchanged (`productivity_frees_people_and_never_makes_goods`);
+a field level yields at most twice its method's base
+(`field_yield_per_level_is_capped_at_twice_the_method`). Fields with partial inputs
+reserve every level's month of inputs from month-start stock before the food plan,
+and draw only what the cultivators at work need.
+
 Economies of scale (units chapter, section 7) are not a source of anything, and the
 audit holds them to that. Shared support posts change how many general posts a works
 needs and nothing else. Maintenance pooling makes the works take less upkeep out of

@@ -10,6 +10,7 @@ pub mod knowledge;
 pub mod military;
 pub mod outbreaks;
 pub mod population;
+pub mod productivity;
 pub mod projects;
 pub mod victory;
 

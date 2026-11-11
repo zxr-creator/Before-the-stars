@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s5";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,7 +26,7 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s5";
 /// released each slice that changes saved state carries a pre-release tag
 /// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
 /// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s5";
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
 pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s5";
 
@@ -435,9 +435,40 @@ fn tech_needs_facility(id: &str) -> Option<&'static str> {
 pub struct PacingJson {
     pub tiers: Vec<TierPacing>,
     #[serde(default)]
+    pub map_scale: MapScale,
+    #[serde(default)]
     pub eras: HashMap<String, EraPacing>,
     #[serde(default)]
     pub nodes: HashMap<String, NodePacing>,
+}
+
+/// How knowledge pacing scales with the size of the map (`content/pacing.json`).
+#[derive(Deserialize, Clone, Copy)]
+pub struct MapScale {
+    pub reference_regions: u16,
+    pub evidence_bp: i64,
+    pub work_bp: i64,
+}
+
+impl Default for MapScale {
+    fn default() -> Self {
+        MapScale { reference_regions: 48, evidence_bp: 0, work_bp: 0 }
+    }
+}
+
+impl MapScale {
+    fn factor(&self, regions: u16, bp: i64) -> i64 {
+        let r = self.reference_regions.max(1) as i64;
+        (10_000 + bp * (regions as i64 - r) / r).max(2_500)
+    }
+    /// Multiplier (basis points) of evidence thresholds on a map of `regions`.
+    pub fn evidence(&self, regions: u16) -> i64 {
+        self.factor(regions, self.evidence_bp)
+    }
+    /// Multiplier (basis points) of research and reform work on a map of `regions`.
+    pub fn work(&self, regions: u16) -> i64 {
+        self.factor(regions, self.work_bp)
+    }
 }
 
 #[derive(Deserialize, Clone, Copy)]
@@ -979,6 +1010,8 @@ pub struct Recipe {
     /// field's helium content (`DepositState::helium_bp`), never more than the
     /// stated output.
     pub helium: bool,
+    /// The latest era among the technologies the method rests on (set at load).
+    pub era: u8,
 }
 
 impl Recipe {
@@ -1177,6 +1210,7 @@ fn rec(key: &'static str, name: &'static str) -> RB {
         disturb_bp: 10_000,
         assembly: 0,
         helium: false,
+        era: 0,
     })
 }
 impl RB {
@@ -2262,7 +2296,9 @@ pub const BELIEFS: &[Belief] = &[
     Belief { key: "watchfulness", slot: "Follower practice", name: "The Long Watch", desc: "Followers accept defence duty more readily." },
     // ruleset 3.0 doctrines (design chapter 36, sections 3.2 and 4.2)
     Belief { key: "fruitful_households", slot: "Follower practice", name: "Fruitful Households", desc: "Followers marry young and prize many children: customary fertility is higher where they live." },
-    Belief { key: "day_of_rest", slot: "Follower practice", name: "Day of Rest", desc: "Followers keep a day free of work each week: households are a little larger and steadier." },
+    Belief { key: "day_of_rest", slot: "Follower practice", name: "Day of Rest", desc: "Followers keep a day free of work each week: households are a little larger and steadier, work a little slower." },
+    Belief { key: "sanctified_labour", slot: "Follower practice", name: "Sanctified Labour", desc: "Work at the furnace and the seam is worship: works and mines need fewer hands where followers live." },
+    Belief { key: "stewardship", slot: "Founding obligation", name: "Stewardship of the Land", desc: "The land is held in trust: fields yield a little more and need fewer hands where followers live." },
     Belief { key: "open_courts", slot: "Worship facility", name: "Open Courts", desc: "Precincts double as meeting grounds; disputes settle sooner." },
     Belief { key: "copy_houses", slot: "Worship facility", name: "Copy Houses", desc: "Precincts copy texts: a small monthly supply of record media." },
     Belief { key: "sky_terraces", slot: "Worship facility", name: "Sky Terraces", desc: "Precincts keep observations; questions of measurement surface sooner." },
@@ -2412,6 +2448,9 @@ fn load() -> Content {
         f.req = pr(f.req_src);
         for r in f.recipes.iter_mut() {
             r.req = pr(r.req_src);
+            let mut ts = Vec::new();
+            r.req.techs(&mut ts);
+            r.era = ts.iter().map(|t| techs[*t].era).max().unwrap_or(0);
         }
         for s in f.scale.iter_mut() {
             s.1 = pr(s.2);

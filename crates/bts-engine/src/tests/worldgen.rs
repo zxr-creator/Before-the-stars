@@ -171,11 +171,11 @@ fn starts_are_temperate_or_subtropical_river_lands_far_apart() {
 }
 
 /// Starts are placed for any number of seats from two to ten, and larger worlds
-/// (160 regions) generate quickly.
+/// (30 to 200 regions) generate quickly.
 #[test]
 fn starts_for_two_to_ten_seats_and_large_worlds() {
     for seats in 2..=10usize {
-        for regions in [48u16, 160] {
+        for regions in [30u16, 60, 120, 200] {
             let c = MatchConfig { seed: format!("seats-{seats}"), regions, world: WorldKind::EarthLike, controllers: vec![ControllerKind::NativeMedium; seats], ..Default::default() };
             let t = std::time::Instant::now();
             let (g, starts) = geography(&c, derive_secret(&c, 0));

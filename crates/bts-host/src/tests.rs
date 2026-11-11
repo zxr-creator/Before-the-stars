@@ -291,7 +291,7 @@ fn new_match_requests_are_validated() {
     assert_eq!(post(&mut h, "/api/advance", json!({})).status, 404);
     assert_eq!(get(&mut h, "/api/session/export").status, 404);
     for (body, needle) in [
-        (json!({ "regions": 30 }), "regions must be"),
+        (json!({ "regions": 31 }), "regions must be"),
         (json!({ "horizon": 100 }), "horizon must be"),
         (json!({ "controllers": ["human"] }), "exactly four"),
         (json!({ "regions": "many" }), "invalid type"),

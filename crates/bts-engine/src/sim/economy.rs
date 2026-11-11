@@ -38,6 +38,7 @@
 //! exceeded. `Region.last.infra` records what each did, for the audit.
 
 use crate::content::{content, Cap, FacDef, Recipe, Tag, FOOD_PER_PERSON_MONTH};
+use crate::sim::productivity;
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
@@ -165,6 +166,39 @@ pub fn field_method_for(civ: &Civ, ceiling: Option<usize>, ok: &[bool; 4]) -> (u
         }
     }
     (used, missing)
+}
+
+/// How a region's fields are worked this month: `(method, levels, short inputs)`
+/// groups. As many levels as `avail` supplies with a full month of their inputs are
+/// worked at the best method the seat knows and allows (`ceiling`); the rest at the
+/// best method whose inputs what is then left covers for all of them (the hand
+/// always can). What each group's levels draw is taken out of `avail`, so later
+/// regions see only what remains. The first group's short inputs are those whose
+/// absence kept levels below the best method.
+pub fn field_groups(civ: &Civ, ceiling: Option<usize>, levels: i64, avail: &mut [i64; 4]) -> Vec<(usize, i64, Vec<Good>)> {
+    let allowed: Vec<usize> = (0..FIELD_METHODS.len()).filter(|i| field_method_known(civ, *i) && field_method_allowed(*i, ceiling)).collect();
+    let best = allowed.last().copied().unwrap_or(0);
+    let mb = &FIELD_METHODS[best];
+    let mut n_best = levels;
+    for k in 0..FIELD_INPUTS.len() {
+        if mb.inputs[k] > 0 {
+            n_best = n_best.min(avail[k].max(0) / mb.inputs[k]);
+        }
+    }
+    let short: Vec<Good> = (0..FIELD_INPUTS.len()).filter(|k| mb.inputs[*k] > 0 && avail[*k] < levels * mb.inputs[*k]).map(|k| FIELD_INPUTS[k]).collect();
+    for k in 0..FIELD_INPUTS.len() {
+        avail[k] -= n_best * mb.inputs[k];
+    }
+    let rest = levels - n_best;
+    let mut out = vec![(best, n_best, short)];
+    if rest > 0 {
+        let fallback = allowed.iter().rev().copied().find(|i| *i != best && (0..FIELD_INPUTS.len()).all(|k| FIELD_METHODS[*i].inputs[k] == 0 || avail[k] >= rest * FIELD_METHODS[*i].inputs[k])).unwrap_or(0);
+        for k in 0..FIELD_INPUTS.len() {
+            avail[k] -= rest * FIELD_METHODS[fallback].inputs[k];
+        }
+        out.push((fallback, rest, Vec::new()));
+    }
+    out
 }
 
 /// The harvest of a year in a region, basis points added to field yields
@@ -307,6 +341,9 @@ struct FoodOpt {
     /// level of fields: its posts; motor boats: a thousand fishers).
     inp: [i64; 4],
     per: i64,
+    /// Labour productivity of its workers (basis points): evidence counts the work
+    /// done, so a worker who does the work of two practises as two.
+    act_bp: i64,
     /// Fields, as against pasture, fishing grounds and the wild.
     field: bool,
 }
@@ -466,10 +503,12 @@ pub fn scale_saving_bp(def: &FacDef, f: &Facility, infra_bp: i64) -> u16 {
 
 /// General posts of a works this month: the facility's, less what the method it
 /// runs does without, less the shared support saving.
-fn general_posts(def: &FacDef, f: &Facility, rec: Option<&Recipe>, infra_bp: i64) -> u32 {
-    let base = def.general as u64 * f.level as u64 * rec.map(|r| r.general_bp).unwrap_or(10_000) as u64;
-    // Round requirements up: many tiny buildings cannot exploit fractional posts.
-    ((base * (10_000 - scale_saving_bp(def, f, infra_bp) as u64) + 99_999_999) / 100_000_000) as u32
+/// General posts of a works this month: the facility's, less what the method it
+/// runs does without, less the shared support saving, divided by its labour
+/// productivity (`lp_bp`; design chapter 36, section 4.2). Rounded up: many tiny
+/// buildings cannot exploit fractional posts.
+pub fn general_posts(def: &FacDef, f: &Facility, rec: Option<&Recipe>, infra_bp: i64, lp_bp: i64) -> u32 {
+    productivity::general_posts_for(def.general, f.level as u32, rec.map(|r| r.general_bp).unwrap_or(10_000), scale_saving_bp(def, f, infra_bp), lp_bp)
 }
 
 /// Effective level cap of a facility in a region for a civilization.
@@ -637,13 +676,18 @@ pub fn step(w: &mut World, seat: SeatId) {
     // full month's draw for every field and motor boat that may draw it is in
     // store; the draw is taken before anything else this month, so the yield is
     // never credited without its inputs
-    let (field_need, boat_posts) = field_input_needs(w, seat);
-    let mut input_ok = [false; 4];
+    // a method that needs horses, fertilizer, chemicals or fuel works only the
+    // levels whose full month of inputs is in store; the draw is taken before
+    // anything else this month, so the yield is never credited without its inputs
+    let (_, boat_posts) = field_input_needs(w, seat);
+    // motor boats are fuelled first; what is left of each input is shared out among
+    // the fields, level by level (`field_groups`)
+    let boat_fuel = boat_posts * FIELD_FUEL_PER_K / 1000;
+    let fuel_ok = w.civs[si].knows_id("T094") && boat_fuel > 0 && w.civs[si].stock_of(Good::Fuel) >= boat_fuel;
+    let mut field_avail = [0i64; 4];
     for (k, g) in FIELD_INPUTS.iter().enumerate() {
-        let need = field_need[k] + if *g == Good::Fuel { boat_posts * FIELD_FUEL_PER_K / 1000 } else { 0 };
-        input_ok[k] = w.civs[si].stock_of(*g) > 0 && w.civs[si].stock_of(*g) >= need;
+        field_avail[k] = w.civs[si].stock_of(*g).max(0) - if *g == Good::Fuel && fuel_ok { boat_fuel } else { 0 };
     }
-    let fuel_ok = input_ok[3];
     let ft = food_tech(&w.civs[si], fuel_ok);
     let link = link_efficiencies(w, seat);
     // the region's shared infrastructure, from the works as they stand and the
@@ -685,12 +729,21 @@ pub fn step(w: &mut World, seat: SeatId) {
     let research_eff = crate::sim::knowledge::research_effectiveness(&w.civs[si]);
     let mob = mob_cap * w.civs[si].mobilization_bp as i64 / 10_000;
     let tools_ok = w.civs[si].stock_of(Good::Tools) > 0;
+    // productivity (design chapter 36, section 4): the seat's technology and
+    // automation factors, and each region's other factors, as the month opens
+    let tables = productivity::civ_tables(&w.civs[si]);
+    let factors: Vec<productivity::RegionFactors> = regs.iter().map(|ri| productivity::region_factors(w, seat, *ri)).collect();
+    let food_k = Sector::Food.index();
+    // a food works' labour productivity at a method of a given era
+    let food_lp = |pi: usize, def: &FacDef, method_era: u8| factors[pi].lp(Sector::Food, tables.tech[food_k][productivity::era_cap(def, method_era)]);
+    // the people's agricultural habits and a faith of stewards raise what fields yield
+    let steward_bp = |ri: usize| productivity::field_land_bp(w, seat, ri);
 
     // ---- 1. food plan ------------------------------------------------------
     let soldiers: u32 = w.armies.iter().filter(|a| a.owner == seat).map(|a| a.count()).sum();
     let mut plans: Vec<RegionPlan> = Vec::new();
     let mut need_total: i64 = soldiers as i64 * FOOD_PER_PERSON_MONTH;
-    for &ri in &regs {
+    for (pi, &ri) in regs.iter().enumerate() {
         let r = &w.regions[ri];
         let pop = r.population();
         need_total += pop as i64 * FOOD_PER_PERSON_MONTH;
@@ -703,57 +756,80 @@ pub fn step(w: &mut World, seat: SeatId) {
         let mut field_run: Option<RunStat> = None;
         if let Some(f) = r.fac(fields_k) {
             if f.enabled && f.level > 0 {
-                // the method this region's fields are worked by: the best the seat
-                // knows and allows here whose month of inputs is in store
-                let (method, missing) = field_method_for(&w.civs[si], field_ceiling(&w.civs[si], f), &input_ok);
-                let m = &FIELD_METHODS[method];
-                let field_crew = m.posts;
-                // inputs per level (`per` cultivators) of this method
-                let (inp, per) = (m.inputs, m.posts as i64);
-                field_run = Some(RunStat { recipe: method, rate_bp: 0, blockers: if missing.is_empty() { 0 } else { 4 }, missing });
+                // the methods this region's fields are worked by: as many levels at the
+                // best method the seat knows and allows here as the stores can supply
+                // with a full month of its inputs, the rest at the best method whose
+                // inputs the stores still cover for them (design chapter 36, section
+                // 3.3). Every level's inputs are reserved here and drawn after the plan,
+                // so no yield is ever credited to an input that was not delivered.
+                let civ = &w.civs[si];
+                let groups = field_groups(civ, field_ceiling(civ, f), f.level as i64, &mut field_avail);
+                let (lead, missing) = (groups[0].0, groups[0].2.clone());
+                field_run = Some(RunStat { recipe: groups.iter().max_by_key(|g| (g.1, g.0)).map(|g| g.0).unwrap_or(lead), rate_bp: 0, blockers: if missing.is_empty() { 0 } else { 4 }, missing });
                 // full husbandry needs five hundred agronomists for each level of fields
                 let agr = r.quals[Qual::Agronomist.index()] as i64;
                 let skill = 8500 + 1500 * (agr * 2).min(f.level as i64 * 1000) / (f.level as i64 * 1000).max(1);
                 let tool = if tools_ok { 10_000 } else { 7000 };
-                let irrigated = ((r.cap(Cap::Irrigation) / 1000) as u16).min(f.level);
-                // the year's harvest, damped by irrigation and by machines
-                let mut harvest = harvest_bp(w, ri);
-                harvest = harvest * (10_000 - 5_000 * irrigated as i64 / f.level.max(1) as i64) / 10_000;
-                if m.fuel() {
-                    harvest = harvest * 3 / 10;
-                }
-                let base = field_yield(&w.civs[si], method);
+                let mut irrigated_left = ((r.cap(Cap::Irrigation) / 1000) as u16).min(f.level) as i64;
+                let irrigated_share = irrigated_left * 10_000 / f.level.max(1) as i64;
                 // a fertile floodplain (design chapter 36, 5.3) adds to every level
                 let flood = r.bonus(Bonus::Floodplain);
-                let y = base * (10_000 + harvest + flood) / 10_000 * skill / 10_000 * tool / 10_000 * f.condition_bp.max(5000) as i64 / 10_000;
-                // a level never yields more than twice its method's base
-                let cap = base * 2;
-                if irrigated > 0 {
-                    opts.push(FoodOpt { yield_k: adj((y * 125 / 100).min(cap)), capacity: irrigated as u32 * field_crew, used: 0, tag: Tag::Farm, inp, per, field: true });
-                }
-                if f.level > irrigated {
-                    opts.push(FoodOpt { yield_k: adj(y.min(cap)), capacity: (f.level - irrigated) as u32 * field_crew, used: 0, tag: Tag::Farm, inp, per, field: true });
+                for (method, levels, _) in groups.into_iter().filter(|g| g.1 > 0) {
+                    let m = &FIELD_METHODS[method];
+                    // productivity: a level needs `10,000 / LP` of the method's cultivators
+                    // and yields what it yields (channel 1); the yield of the land rises only
+                    // through the land factor below, at most to twice the method (channel 2)
+                    let lp = food_lp(pi, &c.facilities[fields_k], productivity::field_method_era(method));
+                    let field_crew = productivity::general_posts_for(m.posts, 1, 10_000, 0, lp).max(1);
+                    // inputs per level (`per` cultivators) of this method
+                    let (inp, per) = (m.inputs, field_crew as i64);
+                    // the year's harvest, damped by irrigation and by machines
+                    let mut harvest = harvest_bp(w, ri);
+                    harvest = harvest * (10_000 - 5_000 * irrigated_share / 10_000) / 10_000;
+                    if m.fuel() {
+                        harvest = harvest * 3 / 10;
+                    }
+                    let base = field_yield(&w.civs[si], method);
+                    let y = base * (10_000 + harvest + flood) / 10_000 * skill / 10_000 * tool / 10_000 * f.condition_bp.max(5000) as i64 / 10_000 * steward_bp(ri) / 10_000;
+                    // a level never yields more than twice its method's base; the same
+                    // level's rations over its fewer cultivators
+                    let cap = base * 2;
+                    let (y, cap) = (y * m.posts as i64 / field_crew as i64, cap * m.posts as i64 / field_crew as i64);
+                    let irrigated = irrigated_left.min(levels);
+                    irrigated_left -= irrigated;
+                    if irrigated > 0 {
+                        opts.push(FoodOpt { yield_k: adj((y * 125 / 100).min(cap)), capacity: irrigated as u32 * field_crew, used: 0, tag: Tag::Farm, inp, per, field: true, act_bp: lp });
+                    }
+                    if levels > irrigated {
+                        opts.push(FoodOpt { yield_k: adj(y.min(cap)), capacity: (levels - irrigated) as u32 * field_crew, used: 0, tag: Tag::Farm, inp, per, field: true, act_bp: lp });
+                    }
                 }
             }
         }
         if let Some(f) = r.fac(pasture_k) {
             if f.enabled && f.level > 0 {
-                // rich pasture feeds the herds better
-                let y = ft.pasture * (10_000 + r.bonus(Bonus::RichPasture)) / 10_000;
-                opts.push(FoodOpt { yield_k: adj(y), capacity: f.level as u32 * pasture_crew, used: 0, tag: Tag::Farm, inp: [0; 4], per: 1000, field: false });
+                // rich pasture feeds the herds better; productivity needs fewer herders a level
+                let pasture_lp = food_lp(pi, &c.facilities[pasture_k], 0);
+                let crew = productivity::general_posts_for(pasture_crew, 1, 10_000, 0, pasture_lp).max(1);
+                let y = ft.pasture * (10_000 + r.bonus(Bonus::RichPasture)) / 10_000 * pasture_crew as i64 / crew as i64;
+                opts.push(FoodOpt { yield_k: adj(y), capacity: f.level as u32 * crew, used: 0, tag: Tag::Farm, inp: [0; 4], per: 1000, field: false, act_bp: pasture_lp });
             }
         }
         if let Some(f) = r.fac(fishery_k) {
             if f.enabled && f.level > 0 {
                 let port = r.cap(Cap::Port) > 0;
                 // fish banks: the catch is half again as large for the same boats
-                let y = if port { ft.fish_port } else { ft.fish } * (10_000 + r.bonus(Bonus::FishBanks)) / 10_000;
-                // motor boats working from a harbour burn fuel like field machinery
-                opts.push(FoodOpt { yield_k: adj(y), capacity: f.level as u32 * fishery_crew, used: 0, tag: Tag::Sea, inp: [0, 0, 0, if port { ft.boat_fuel_per_worker } else { 0 }], per: 1000, field: false });
+                let fish_lp = food_lp(pi, &c.facilities[fishery_k], 0);
+                let crew = productivity::general_posts_for(fishery_crew, 1, 10_000, 0, fish_lp).max(1);
+                let y = if port { ft.fish_port } else { ft.fish } * (10_000 + r.bonus(Bonus::FishBanks)) / 10_000 * fishery_crew as i64 / crew as i64;
+                // motor boats working from a harbour burn fuel like field machinery (per
+                // level: the same boats whoever crews them)
+                let boat = if port { ft.boat_fuel_per_worker * fishery_crew as i64 / 1000 } else { 0 };
+                opts.push(FoodOpt { yield_k: adj(y), capacity: f.level as u32 * crew, used: 0, tag: Tag::Sea, inp: [0, 0, 0, boat], per: crew as i64, field: false, act_bp: fish_lp });
             }
         }
         // the land feeds foragers only up to what grows wild
-        opts.push(FoodOpt { yield_k: adj(ft.forage), capacity: (r.wild * 1000 / ft.forage).min(u32::MAX as i64) as u32, used: 0, tag: Tag::Forage, inp: [0; 4], per: 1000, field: false });
+        opts.push(FoodOpt { yield_k: adj(ft.forage), capacity: (r.wild * 1000 / ft.forage).min(u32::MAX as i64) as u32, used: 0, tag: Tag::Forage, inp: [0; 4], per: 1000, field: false, act_bp: 10_000 });
         opts.sort_by(|a, b| b.yield_k.cmp(&a.yield_k));
         plans.push(RegionPlan { idx: ri, workers, opts, food_workers: 0, food_made: 0, max_food_workers: (workers as u64 * 94 / 100) as u32, field_run });
     }
@@ -903,7 +979,9 @@ pub fn step(w: &mut World, seat: SeatId) {
         month.labor.food = p.food_workers;
         month.food_made = p.food_made;
         for o in &p.opts {
-            month.tag_staff[o.tag as usize] += o.used;
+            let equiv = (o.used as i64 * o.act_bp / 10_000).min(u32::MAX as i64) as u32;
+            month.tag_staff[o.tag as usize] += equiv;
+            month.food_equiv = month.food_equiv.saturating_add(equiv);
         }
 
         let nonfood = p.workers - p.food_workers;
@@ -971,6 +1049,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         // while a computing centre stands empty. Between the two the orders' other
         // labour is called up (below).
         let mut fac_workers = 0u32;
+        let mut saved = vec![0u32; productivity::SECTORS];
         let mut skilled: Vec<(usize, u32, u32)> = Vec::new(); // (facility index, needed, got)
         for &kind in &order {
             let def = &c.facilities[kind];
@@ -985,10 +1064,14 @@ pub fn step(w: &mut World, seat: SeatId) {
             let lv = f.level as u32;
             let mut skilled_needed = 0u32;
             let mut skilled_got = 0u32;
-            // the facility's own qualified posts and those its method adds
+            // the facility's own qualified posts and those its method adds, divided by
+            // automation (never research posts: a researcher-month is a person's)
             let rec = methods[pi][fi].map(|i| &def.recipes[i]);
+            let sector = productivity::sector_of(def);
+            let lpq = if rec.map(|r| r.research.is_some()).unwrap_or(false) { 10_000 } else { tables.auto[sector.index()] };
+            f.lpq_bp = lpq as u16;
             for (quals, n) in def.skilled.iter().chain(rec.iter().flat_map(|r| r.extra_skilled.iter())) {
-                let need = *n * lv;
+                let need = productivity::qualified_posts_for(*n * lv, lpq);
                 skilled_needed += need;
                 let mut left = need;
                 for q in quals {
@@ -1026,12 +1109,28 @@ pub fn step(w: &mut World, seat: SeatId) {
             wanted -= take;
         }
         month.labor.projects = crew_workers + called;
-        month.project_labor_free = called as i64 * unrest_factor / 10_000;
+        // the construction factor: a called-up worker supplies up to one and a half
+        // worker-months of project work (design chapter 36, section 4.2)
+        let construction = factors[pi].lp(Sector::Construction, tables.tech[Sector::Construction.index()][productivity::ERA_CAPS - 1]).min(productivity::CONSTRUCTION_MAX);
+        month.construction_bp = construction as u16;
+        month.project_labor_free = called as i64 * unrest_factor / 10_000 * construction / 10_000;
         let mut open_general: u32 = 0;
         for (fi, skilled_needed, skilled_got) in skilled {
             let f = &mut r.facilities[fi];
             let def = &c.facilities[f.kind];
-            let positions = skilled_needed + general_posts(def, f, methods[pi][fi].map(|i| &def.recipes[i]), infra.infra_bp);
+            let rec = methods[pi][fi].map(|i| &def.recipes[i]);
+            let sector = productivity::sector_of(def);
+            let lp = factors[pi].lp(sector, tables.tech[sector.index()][productivity::era_cap(def, rec.map(productivity::recipe_era).unwrap_or(0))]);
+            f.lp_bp = lp as u16;
+            f.staff_level = f.level;
+            f.staff_saving_bp = scale_saving_bp(def, f, infra.infra_bp);
+            let general = general_posts(def, f, rec, infra.infra_bp, lp);
+            let general_plain = general_posts(def, f, rec, infra.infra_bp, 10_000);
+            saved[sector.index()] += general_plain.saturating_sub(general);
+            let positions = skilled_needed + general;
+            // the posts the same work would take at a productivity of one
+            let skilled_plain: u32 = def.skilled.iter().chain(rec.iter().flat_map(|r| r.extra_skilled.iter())).map(|(_, n)| *n * f.level as u32).sum();
+            let positions_plain = skilled_plain + general_plain;
             let mut filled = skilled_got;
             let is_research = def.recipes.iter().any(|r| r.research.is_some());
             if !is_research {
@@ -1056,11 +1155,15 @@ pub fn step(w: &mut World, seat: SeatId) {
             f.staff_needed = positions;
             f.skilled_bp = if skilled_needed == 0 { 10_000 } else { (skilled_got as u64 * 10_000 / skilled_needed as u64) as u16 };
             fac_workers += filled;
+            // evidence counts the work done: practitioners weighed by productivity
+            // (filled posts at the posts the work would take at a productivity of one)
+            let practice = if positions == 0 { filled } else { (filled as u64 * positions_plain as u64 / positions as u64) as u32 };
             for t in &def.tags {
-                month.tag_staff[*t as usize] += filled;
+                month.tag_staff[*t as usize] += practice;
             }
         }
         month.labor.facilities = fac_workers;
+        month.posts_saved = saved;
         let leftover: u32 = unskilled + avail.iter().sum::<u32>();
         month.labor.household = leftover;
         household_total += leftover as i64;
@@ -1300,7 +1403,8 @@ pub fn step(w: &mut World, seat: SeatId) {
             let (level, cond, enabled, staff_bp, skilled_bp, skilled_count) = {
                 let f = &w.regions[ri].facilities[fi];
                 let extra = method.iter().flat_map(|i| def.recipes[*i].extra_skilled.iter());
-                let sk: u32 = def.skilled.iter().chain(extra).map(|(_, n)| *n * f.level as u32).sum();
+                let lpq = if f.lpq_bp == 0 { 10_000 } else { f.lpq_bp as i64 };
+                let sk: u32 = def.skilled.iter().chain(extra).map(|(_, n)| productivity::qualified_posts_for(*n * f.level as u32, lpq)).sum();
                 (f.level as i64, f.condition_bp as i64, f.enabled, staff_rate(def, f), f.skilled_bp as i64, sk as i64 * f.skilled_bp as i64 / 10_000)
             };
             if level == 0 {

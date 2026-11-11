@@ -15,6 +15,7 @@ mod methods;
 mod population;
 mod worldgen;
 mod goods;
+mod productivity;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
@@ -469,6 +470,8 @@ fn construction_quotes_reserve_every_queued_level_and_prevent_prototype_cancella
 
 #[test]
 fn industrial_scale_reduces_general_posts_but_does_not_multiply_goods() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let mut m = Match::new(cfg("industrial-scale"), 1);
     let region = m.world.civs[0].capital as usize;
     let k = content().f("camp");
@@ -1177,6 +1180,8 @@ const ATMOSPHERIC: &[&str] = &["food_synthesis", "ammonia", "ammonia_coal"];
 
 #[test]
 fn field_methods_are_used_only_when_their_inputs_are_delivered() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let c = content();
     let mut m = Match::new(cfg("field-inputs"), 1);
     let home = m.world.civs[0].capital as usize;
@@ -1189,24 +1194,37 @@ fn field_methods_are_used_only_when_their_inputs_are_delivered() {
     put_works(&mut m.world.regions[home], "fields", 30);
     let chem = Good::Fertilizer.index();
     let food = Good::Food.index();
-    // a full month for thirty levels of fertilized fields is 30 x 150 t = 4,500 t
-    m.world.civs[0].stock[chem] = 4_499;
+    // a full month for one level of fertilized fields is 150 t: with 149 t in store
+    // no level is fertilized and nothing is drawn
+    m.world.civs[0].stock[chem] = 149;
     m.world.civs[0].stock[food] = 0;
     crate::sim::economy::step(&mut m.world, 0);
     let plain = m.world.civs[0].stock[food];
     let workers_plain = m.world.civs[0].labor.food;
-    assert_eq!(m.world.civs[0].stock[chem], 4_499, "a store that cannot cover the month is not drawn on");
+    assert_eq!(m.world.civs[0].stock[chem], 149, "a store that cannot cover a level's month is not drawn on");
     assert_eq!(m.world.civs[0].flows.consumed[chem], 0);
-    // with the month's draw in store the method is used, and the chemicals are really taken
-    m.world.civs[0].stock[chem] = 4_500;
+    let run = |m: &Match| m.world.regions[home].fac(c.f("fields")).unwrap().field_run.clone().unwrap();
+    assert_eq!(run(&m).missing, vec![Good::Fertilizer]);
+    // with ten levels' month in store, ten levels are fertilized and the rest hand-worked;
+    // what is drawn is what those levels' cultivators at work need, never more than is there
+    m.world.civs[0].stock[chem] = 1_500;
     m.world.civs[0].stock[food] = 0;
     crate::sim::economy::step(&mut m.world, 0);
-    let workers = m.world.civs[0].labor.food as i64;
     let used = m.world.civs[0].flows.consumed[chem];
+    assert!(used > 0 && used <= 1_500, "{used}");
+    assert_eq!(m.world.civs[0].stock[chem], 1_500 - used);
+    assert_eq!(run(&m).missing, vec![Good::Fertilizer], "the other twenty levels are short");
+    // with the whole month in store every level is fertilized, and the inputs are really taken
+    m.world.civs[0].stock[chem] = 4_500;
+    m.world.civs[0].stock[food] = 0;
+    let before = m.world.civs[0].flows.consumed[chem];
+    crate::sim::economy::step(&mut m.world, 0);
+    let workers = m.world.civs[0].labor.food as i64;
+    let used = m.world.civs[0].flows.consumed[chem] - before;
     // 150 t a level of 6,000 cultivators: 25 t for every thousand at work
     assert_eq!(used, workers * 25 / 1000, "twenty-five tonnes for every thousand cultivators at work");
     assert!(used > 0 && used <= 4_500);
-    assert_eq!(m.world.civs[0].stock[chem], 4_500 - used);
+    assert!(run(&m).missing.is_empty());
     // the better yield feeds the same people with fewer hands
     assert!(m.world.civs[0].stock[food] * workers_plain as i64 > plain * workers, "{} rations from {workers} hands against {plain} from {workers_plain}", m.world.civs[0].stock[food]);
 }
@@ -1237,6 +1255,8 @@ fn powered_world(mills: u16, shops: u16, mechanics: u32) -> (Match, usize) {
 
 #[test]
 fn shaft_service_delivered_never_exceeds_supply() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let shop = content().f("machine_shop");
     // one level of mills gives 20; three machine shops fully crewed ask for 90
     let (mut m, home) = powered_world(1, 3, 12_000);
@@ -1401,7 +1421,9 @@ fn project_work_comes_only_from_called_up_workers_and_research_only_from_staffed
         let cur = m.ledger_snapshot();
         assert_balanced(&prev, &cur);
         let last = &m.world.regions[home].last;
-        assert!(last.project_work_done <= last.labor.projects as i64, "{} worker-months from {} workers", last.project_work_done, last.labor.projects);
+        // a called-up worker supplies at most the month's construction factor (design 36, 4.2)
+        assert!((10_000..=15_000).contains(&last.construction_bp), "{}", last.construction_bp);
+        assert!(last.project_work_done <= last.labor.projects as i64 * last.construction_bp as i64 / 10_000, "{} worker-months from {} workers", last.project_work_done, last.labor.projects);
         // the waterworks hold two thousand builders; the camps hold none, and no
         // builder is called up beyond the crews
         let crew: u32 = m.world.civs[0].projects.iter().map(|p| p.crew_counts().1).sum();
@@ -1590,6 +1612,8 @@ fn learners_die_with_everybody_else() {
 
 #[test]
 fn copy_houses_make_media_only_from_a_staffed_precinct_and_real_material() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let c = content();
     let mut m = Match::new(cfg("copy-houses"), 1);
     let capital = m.world.civs[0].capital;

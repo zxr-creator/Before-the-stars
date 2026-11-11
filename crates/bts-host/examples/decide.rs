@@ -30,6 +30,15 @@ fn main() {
     }
     let obs = s.m.observe(seat);
     println!("round {} {} phase {:?}", obs.round, obs.date.as_ref().map(|d| d.label.clone()).unwrap_or_default(), obs.phase);
+    if std::env::var("BTS_DEBUG_PRODUCTIVITY").is_ok() {
+        for r in obs.regions.iter().filter(|r| r.own.is_some()) {
+            let o = r.own.as_ref().unwrap();
+            println!("region {} pop {} food workers {}", r.id, o.population, o.labor.food);
+            for p in &o.productivity {
+                println!("  {:?} {}: {}", p.sector, p.total_bp, p.factors.iter().map(|f| format!("{} {}", f.source, f.bp)).collect::<Vec<_>>().join(", "));
+            }
+        }
+    }
     if std::env::var("BTS_DEBUG_COURSES").is_ok() {
         for c in &obs.catalog.courses {
             println!("course {} {} out {:?} venue {} available {} entrants {:?}", c.key, c.name, c.output, c.venue, c.available, c.entrants);

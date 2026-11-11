@@ -6,7 +6,7 @@
 
 use crate::actions::{channel_open, course_visible, facility_visible, prac_handle, tech_handle, view_clause};
 use crate::content::{content, good_mass_kg, good_unit, Cap, Req, Site, Tag, BELIEFS, DISPLAY_DIVISOR, FOOD_PER_PERSON_MONTH, RELIGION_SLOTS, TRAIT_NAMES};
-use crate::sim::{culture, economy, military, population, projects, victory};
+use crate::sim::{culture, economy, military, population, productivity, projects, victory};
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
@@ -363,7 +363,39 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
         } else {
             (f.staffed, f.staff_needed)
         };
+        // posts at the method's base, after shared support and after productivity
+        let rec = f.run.as_ref().and_then(|run| def.recipes.get(run.recipe));
+        let gbp = rec.map(|x| x.general_bp).unwrap_or(10_000);
+        let skilled_base: u32 = def.skilled.iter().chain(rec.iter().flat_map(|x| x.extra_skilled.iter())).map(|(_, n)| *n * f.level as u32).sum();
+        let lpq = if f.lpq_bp == 0 { 10_000 } else { f.lpq_bp as i64 };
+        let skilled_after: u32 = def.skilled.iter().chain(rec.iter().flat_map(|x| x.extra_skilled.iter())).map(|(_, n)| productivity::qualified_posts_for(*n * f.level as u32, lpq)).sum();
+        let saving = economy::scale_saving_bp(def, f, infra.infra_bp);
+        let lp = if f.lp_bp == 0 { 10_000 } else { f.lp_bp as i64 };
+        let posts_base = skilled_base + productivity::general_posts_for(def.general, f.level as u32, gbp, 0, 10_000);
+        let posts_after_scale = skilled_base + productivity::general_posts_for(def.general, f.level as u32, gbp, saving, 10_000);
+        let posts_after_productivity = skilled_after + productivity::general_posts_for(def.general, f.level as u32, gbp, saving, lp);
+        let (yield_per_level, yield_factors) = if def.land {
+            let bp = economy::land_yield_bp(r, def);
+            let out = def.recipes.first().and_then(|x| x.outputs.first()).map(|o| o.1).unwrap_or(0);
+            (out * bp / 10_000, if bp != 10_000 { vec![FactorView { source: "land".into(), bp: bp as u32, detail: "Site bonus".into() }] } else { vec![] })
+        } else if def.key == "fields" {
+            let m = f.field_run.as_ref().map(|run| &economy::FIELD_METHODS[run.recipe.min(economy::FIELD_METHODS.len() - 1)]).unwrap_or(&economy::FIELD_METHODS[0]);
+            let flood = r.bonus(Bonus::Floodplain);
+            let mut fv = Vec::new();
+            if flood > 0 {
+                fv.push(FactorView { source: "land".into(), bp: (10_000 + flood) as u32, detail: "Fertile floodplain".into() });
+            }
+            (m.rations * (10_000 + flood) / 10_000, fv)
+        } else {
+            (0, vec![])
+        };
         facilities.push(FacilityView {
+            posts_base,
+            posts_after_scale,
+            posts_after_productivity,
+            productivity_bp: lp as u32,
+            yield_per_level,
+            yield_factors,
             // the choice in force: shown as long as the seat knows the method (a region
             // just taken, or herds since lost, do not make it name anything unknown)
             method: f.method.clone().filter(|key| {
@@ -424,6 +456,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
         })
         .collect();
     OwnRegion {
+        productivity: productivity::breakdown(w, seat, ri),
         // the price of one more level here, exactly as an order placed now is charged
         construction_sites: c.facilities.iter().enumerate().filter(|(k, _)| facility_visible(w, seat, *k)).map(|(k, def)| {
             let quote = projects::build_quote(w, seat, k);
@@ -893,7 +926,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
                 source: st.source.clone(),
                 month: st.disc_month,
                 confidence_bp: (st.evidence * 4000 / (900 * (t.tier as i64 + 1)).max(1)).clamp(1500, 9000) as u16,
-                study_work: projects::scaled(t.work * 15 / 100, w.cfg.pace_bp),
+                study_work: projects::scaled(t.work * 15 / 100, w.cfg.research_pace()),
                 class: t.class,
             });
             continue;
@@ -912,7 +945,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
                 links.push(tech_handle(w, seat, p));
             }
         }
-        let full = projects::scaled(t.work, w.cfg.pace_bp) * (10_000 - st.discount_bp as i64) / 10_000;
+        let full = projects::scaled(t.work, w.cfg.research_pace()) * (10_000 - st.discount_bp as i64) / 10_000;
         techs.push(TechCard {
             handle,
             name: t.name.clone(),
@@ -976,7 +1009,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             known_requirements: reqs,
             adoption_bp: st.adoption_bp,
             can_reform: st.state == 1 && p.prereq.eval(&PracEnactedCtx { world: w, seat, recognized_only: false }) && p.hard.eval(&ctx),
-            reform_work: projects::scaled(p.work, w.cfg.pace_bp),
+            reform_work: projects::scaled(p.work, w.cfg.research_pace()),
             enables: shown_enables(civ, &c.prac_enables[i], &c.prac_enables_gate[i]),
             links,
             source: st.source.clone(),

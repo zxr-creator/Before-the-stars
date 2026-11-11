@@ -3,7 +3,7 @@
 //   node apps/web/scripts/wasm-calendar-bench.mjs [seed] [standard|quick]
 //
 // Loads apps/web/wasm/bts.wasm (scripts/build-wasm.sh), starts an all-native
-// 48-region observer match (hard, medium, medium, easy) and plays it to the end
+// 60-region (Standard) observer match (hard, medium, medium, easy) and plays it to the end
 // through the module's ABI exactly as the browser worker does (bts_call, bts_tick),
 // timing every round. Prints p50/p95/max milliseconds per round and the total.
 import { readFileSync } from 'node:fs';
@@ -33,7 +33,7 @@ function call(line, body = '') {
 
 const seed = process.argv[2] || 'riverland';
 const calendar = process.argv[3] || 'standard';
-const created = call('POST /api/match', JSON.stringify({ seed, regions: 48, calendar, controllers: ['hard', 'medium', 'medium', 'easy'] }));
+const created = call('POST /api/match', JSON.stringify({ seed, regions: 60, calendar, controllers: ['hard', 'medium', 'medium', 'easy'] }));
 if (created.status !== 200) throw new Error(`new match: ${created.status} ${created.body.slice(0, 300)}`);
 const FLAG_AUTOSAVE = 1, FLAG_PENDING = 8;
 const per = [];

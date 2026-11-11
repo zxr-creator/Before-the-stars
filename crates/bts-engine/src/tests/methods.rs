@@ -83,6 +83,8 @@ fn steel_world(method: Option<&str>) -> (Match, RegionId, usize) {
 
 #[test]
 fn choosing_a_method_changes_the_inputs_outputs_service_and_posts_of_a_works() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let steel = content().f("steelworks");
     let (ore, coal, metal) = (Good::IronOre.index(), Good::Coal.index(), Good::Metal.index());
 
@@ -309,6 +311,8 @@ fn field_world() -> (Match, RegionId, usize, RegionId, usize) {
 
 #[test]
 fn field_methods_are_held_by_region_and_a_region_on_traction_burns_no_fuel() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let fields = content().f("fields");
     let (chem, fuel) = (Good::Fertilizer.index(), Good::Fuel.index());
     let (mut m, capital, home, far_id, far) = field_world();
@@ -474,6 +478,8 @@ fn camps_world(idle_works: u16) -> (Match, RegionId, usize) {
 
 #[test]
 fn shared_support_saves_posts_only_and_shrinks_when_freight_is_congested() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let camp = content().f("quarry");
     let (mat, tools) = (Good::Materials.index(), Good::Tools.index());
     let def = &content().facilities[camp];
@@ -666,6 +672,8 @@ fn output_used_in_the_same_region_pays_no_carriage_and_nothing_else_is_spared() 
 
 #[test]
 fn a_congested_region_loses_more_in_carriage_until_transport_is_added() {
+    // post counts and yields of the plain recipes: productivity is tested on its own
+    crate::sim::productivity::set_neutral(true);
     let mat = Good::Materials.index();
     let camp = content().f("quarry");
     // twelve levels on the freight capacity of a region without roads (ten)

@@ -183,13 +183,14 @@ referee's diagnostics) are `u64`; a region and an age cell stay `u32`.
 - **Deaths by cause** partition all deaths: age and illness (base, technology,
   care), hunger and crowding (`M_hazard`), town conditions (`M_urban`), epidemic
   (`M_outbreak`) and war; `OwnCiv.deaths_by_cause` reports them for the last round.
-- **Field methods v3** (rations and general posts per level-month; fertilizer is
-  drawn as chemicals until the resources slice, horses are stood in for by herds on
-  pasture): hand 30,000 / 10,000; animal traction 46,000 / 8,000; rotation and
-  manuring (T020, T011, C017) 60,000 / 8,000; fertilized 120,000 / 6,000 with 150 t
-  of chemicals; mechanized 110,000 / 3,000 with 100 t of fuel; intensive 250,000 /
-  2,000 with 300 t of chemicals and 150 t of fuel; restorative 380,000 / 1,500 with
-  250 t of chemicals and 150 t of fuel. A level never yields more than twice its
+- **Field methods v3** (rations and general posts per level-month; since slice 5 the
+  real horses and fertilizer, and since slice 6 as many levels at a method as the
+  stores supply, section 15): hand 30,000 / 10,000; animal traction 46,000 / 8,000 with
+  30 horses; rotation and manuring (T020, T011, C017) 60,000 / 8,000 with 30 horses;
+  fertilized 120,000 / 6,000 with 150 t of fertilizer; mechanized 110,000 / 3,000 with
+  100 t of fuel; intensive 250,000 / 2,000 with 300 t of fertilizer and 150 t of fuel;
+  restorative 380,000 / 1,500 with 200 t of fertilizer, 50 t of chemicals and 150 t of
+  fuel. General posts are divided by the food sector's productivity. A level never yields more than twice its
   method's base. **Food synthesis works** (T132 and T135): 4 kt of chemicals and
   400 units of electricity make 200,000 rations a level-month, a declared
   atmospheric-input recipe (output mass at most three times the input taken from
@@ -943,3 +944,74 @@ five times as much in a month of battle); G5 aluminium, G6 batteries.
 
 **Building lines** (`FacDef.line`, `stage`, `era`; `content().upgrades`): metadata for
 the building lifecycle of slice 7, and the era that gates productivity technologies.
+
+## 15. Labour productivity (ruleset 3.0)
+
+Design chapter 36, section 4, as changed by chapter 37, section 8.3; `sim::productivity`.
+
+For region `r` and sector `k` (food, extraction, industry, services, knowledge,
+construction; a works' sector follows its labour category, food works are food):
+
+```text
+LP(r, k) = clamp(F_edu x F_cul x F_rel x F_tech x F_city x F_health, 5,000, 40,000)
+
+- `F_edu = 10,000 + 3,000 x literate share + 2,000 x qualified share` (working age; the
+  qualified are holders of any qualification but literacy and lore).
+- `F_cul = clamp(10,000 + (tendency - 5,000) / 5 + practice bonuses, 8,500, 13,000)`, the
+  tendency of the region's majority lineage that drives the sector (agricultural
+  stewardship for food; industrial workmanship for industry and extraction; urban
+  organization for services and construction; revisability for knowledge) and the
+  established practices of the design's table (C018 craft guilds until C033).
+- `F_rel = clamp(10,000 + doctrines, 9,000, 11,500)` of the region's majority faith:
+  Shared Labour Days +500 construction; Sanctified Labour (new follower practice) +500
+  industry and extraction; Stewardship of the Land (new founding obligation) +500 food
+  and +5% field yield; Day of Rest -300 everywhere.
+- `F_tech = 10,000 + ` the productivity technologies of the sector (the design's
+  table), counting for a works only those of an era at most one above the works' era
+  (its building stage's era, or the era of the method it runs when later: fields
+  worked by machine are modern farming).
+- `F_city` (`city_factor`, a function of its inputs): the class term of the region's
+  principal city (`city_class`: the settlement class until the cities slice) for
+  industry, services and knowledge (camp 9,500 ... megalopolis 11,400), times
+  `1 + 0.06 x prosperity` (prosperity 0 until the consumption slice), less
+  `1,000 x (1 - water coverage)` and a quarter of the health pressure; 8,000-12,500.
+- `F_health = 10,000 - (10,000 - food access) / 2 - health pressure / 4`, 6,000-10,000.
+- `F_auto` (qualified posts, never research posts): T114 +1,000 industry, T116 +1,000
+  services and knowledge, T122 +2,500 everywhere; 10,000-15,000.
+
+**Channels.** A works needs `ceil(general x method share x (1 - shared support) x
+10,000 / LP)` general posts and `ceil(qualified / F_auto)` qualified posts; what a level
+makes is unchanged (the hard ceiling `recipe x level x rate`). A field level needs
+`10,000 / LP(food)` of its method's cultivators and yields the same rations, times the
+land factor (floodplain, irrigation, the harvest, agricultural habits, the stewardship
+doctrine), at most twice the method. Pasture and fishing need fewer hands for the same
+food. The construction factor `min(LP(construction), 15,000)` is the worker-months a
+called-up worker supplies. Evidence of discovery and the town share of a region are
+reckoned on the work done (posts at a productivity of one), so productivity frees
+people without slowing discovery or turning farmers into townspeople by bookkeeping.
+
+**Fields with partial inputs** (ruleset 3.0 slice 6): a region's fields are worked at
+the best method on as many levels as the stores supply with a full month of that
+method's horses, fertilizer, chemicals and fuel (motor boats are fuelled first), and the
+rest at the best method the remaining stores cover; every level's inputs are reserved
+before the plan and drawn after it. (Before, a method was used only when a month for
+every field of the civilization was in store, which held whole late nations at hand
+cultivation for want of the last kilotonne of fertilizer.)
+
+**Visibility.** `OwnRegion.productivity` (one `ProductivityView` per sector: total,
+factors named by source and detail, posts saved last month) and per works
+`FacilityView.posts_base`, `posts_after_scale`, `posts_after_productivity`,
+`productivity_bp`, `yield_per_level`, `yield_factors`. Only technologies the seat
+understands and practices it established are named.
+
+**Audit.** Every works' posts equal the formula with the month's factors (stored on
+the facility: `lp_bp`, `lpq_bp`, `staff_level`, `staff_saving_bp`), its factors are in
+bounds, and project work is at most the called-up workers times the month's
+construction factor (`ledger::violations`).
+
+**Map size.** Knowledge pacing scales with the region count (`content/pacing.json`,
+`map_scale`): evidence thresholds by `1 + evidence_bp x (regions - 48) / 48` and
+research and reform work by `1 + work_bp x (regions - 48) / 48`. Calibrated on the
+60-region Standard map (now the default; presets 30, 60, 90, 120, 200): the larger
+generated world develops more slowly than the 48-region one (seats are farther apart),
+so the evidence factor is 0.95 there (`evidence_bp` -2,000) and work is unscaled.

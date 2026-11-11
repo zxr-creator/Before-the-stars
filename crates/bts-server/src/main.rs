@@ -5,7 +5,7 @@
 //! ```text
 //! bts                                   start the game in its own window (packaged use)
 //! bts serve   [--port 7878] [--web apps/web/dist] [--require-tokens]
-//! bts run     [--seed S] [--rounds N] [--ai hard,medium,medium,easy] [--regions 48] [--horizon 2880] [--every 20] [--matches M]
+//! bts run     [--seed S] [--rounds N] [--ai hard,medium,medium,easy] [--regions 60] [--horizon 2880] [--every 20] [--matches M]
 //!             [--calendar standard|quick] [--world earth_like|classic] [--curve out.csv] [--checkpoints DIR [--at m1,m2,... | --at-years -1000,1000,...]]
 //!             [--save out.json] [--first K] [--threads T]   (--horizon M: development clock of 12-month rounds)
 //! bts verify  [--seed S] [--rounds N]
@@ -328,7 +328,7 @@ fn print_table(s: &Session) {
 }
 
 fn run_config(args: &Args) -> MatchConfig {
-    let mut cfg = MatchConfig { seed: args.get("seed", "riverland"), regions: args.num("regions", 48), pace_bp: args.num("pace", 10_000), ..Default::default() };
+    let mut cfg = MatchConfig { seed: args.get("seed", "riverland"), regions: args.num("regions", 60), pace_bp: args.num("pace", 10_000), ..Default::default() };
     cfg.calendar = match args.get("calendar", "standard").as_str() {
         "quick" => bts_engine::calendar::CalendarId::Quick,
         _ => bts_engine::calendar::CalendarId::Standard,
