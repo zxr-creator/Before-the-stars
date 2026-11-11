@@ -306,7 +306,7 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
     },
     {
       key: 'research', icon: 'flask', label: t('Research capacity'), hint: t('Researcher-months a month that staffed research posts can put into investigations'),
-      rank: (c) => c.research_capacity, cell: (c) => <Tick value={c.research_capacity} format={(n) => researchMonths(n)} />,
+      rank: (c) => c.research_capacity, cell: (c) => <span title={researchMonths(c.research_capacity)}><Tick value={c.research_capacity} format={(n) => compact(Math.round(n))} /></span>,
     },
     {
       key: 'milestones', icon: 'star', label: t('Milestones'), hint: t('Scientific method, planetary reach, interstellar reach'),

@@ -133,6 +133,8 @@
 .sb-goodlist .icon { color: var(--ink-2); }
 .sb-row.sbr-goods td { white-space: normal; }
 .ms-row { display: inline-flex; gap: 4px; }
+/* historical years ("1037 BC") are wider than game years: milestones stack in a column */
+.ms-row:has(.ms.is-on small) { flex-direction: column; align-items: center; gap: 2px; padding: 2px 0; }
 .ms { display: inline-flex; align-items: center; gap: 2px; height: 20px; min-width: 20px; padding: 0 3px; justify-content: center; border-radius: 10px; color: var(--line); box-shadow: 0 0 0 1px var(--line) inset; }
 .ms.is-on { color: var(--night-0); background: var(--brass-grad); box-shadow: 0 0 0 1px var(--brass-deep) inset, 0 0 6px rgba(201, 162, 77, 0.6); }
 .ms small { font: 700 9.5px var(--sans) !important; color: var(--night-0) !important; }
