@@ -12,11 +12,14 @@
 //! bts observe --seat N [--url http://127.0.0.1:7878] [--token T]
 //! bts act     --seat N --file actions.json [--url ...] [--token T]
 //! bts ready   --seat N [--round] [--url ...] [--token T]
+//! bts mcp                               the game's MCP server on stdio, bound to one seat by
+//!                                       BTS_URL, BTS_SEAT and BTS_SEAT_TOKEN (see docs/agent-api.md)
 //! ```
 
 mod agents;
 #[cfg(feature = "desktop")]
 mod desktop;
+mod mcp;
 mod providers;
 mod saves;
 
@@ -208,7 +211,9 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
         host.limits = bts_host::portable::Limits { max_file: mib << 20, max_unpacked: mib << 20 };
     }
     let body_cap = host.limits.max_file;
-    let shared: agents::Shared = std::sync::Arc::new(std::sync::Mutex::new(agents::ServerState { host, saves: saves.clone() }));
+    // agent CLIs reach this referee through `bts mcp`, which is this very program
+    let exe = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("bts"));
+    let shared: agents::Shared = std::sync::Arc::new(std::sync::Mutex::new(agents::ServerState { host, saves: saves.clone(), url: format!("http://127.0.0.1:{port}"), exe }));
     let autosave = saves.join("autosave.json");
     if autosave.exists() && !args.has("fresh") {
         if let Ok(text) = std::fs::read_to_string(&autosave) {
@@ -254,6 +259,24 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
         let mut guard = shared.lock().unwrap();
         let st = &mut *guard;
         let mut quit = false;
+        // Provider detection and the Test button run local programs and may take seconds:
+        // they are answered from a thread of their own so the referee keeps serving.
+        if matches!((method.as_str(), path), ("GET", "/api/agents/providers") | ("POST", "/api/agents/test")) {
+            if require_tokens {
+                drop(guard);
+                let _ = req.respond(err(403, "UNAUTHORIZED", "agent seats are set up only on a referee that does not require seat tokens"));
+                continue;
+            }
+            let (exe, url) = (st.exe.clone(), st.url.clone());
+            drop(guard);
+            let refresh = target.contains("refresh=1");
+            let is_test = path == "/api/agents/test";
+            std::thread::spawn(move || {
+                let response = if is_test { agent_test(&body, &exe, &url) } else { json_response(200, detect_cached(&exe, refresh).to_string()) };
+                let _ = req.respond(response);
+            });
+            continue;
+        }
         // Saves on this machine (named saves, the exports folder) are answered by saves.rs.
         if let Some(outcome) = saves::handle(st, &dirs, method.as_str(), path, target.split_once('?').map(|(_, q)| q).unwrap_or(""), &body) {
             if outcome.installed {
@@ -301,6 +324,36 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
             std::process::exit(0);
         }
     }
+}
+
+/// Provider detection, kept for half a minute: setup asks every time it opens.
+fn detect_cached(exe: &Path, refresh: bool) -> serde_json::Value {
+    static CACHE: std::sync::Mutex<Option<(std::time::Instant, serde_json::Value)>> = std::sync::Mutex::new(None);
+    if !refresh {
+        if let Some((at, v)) = CACHE.lock().unwrap().as_ref() {
+            if at.elapsed() < std::time::Duration::from_secs(30) {
+                return v.clone();
+            }
+        }
+    }
+    let v = providers::detect(exe);
+    *CACHE.lock().unwrap() = Some((std::time::Instant::now(), v.clone()));
+    v
+}
+
+/// One Test button press: a tiny real call with the seat's settings. One at a time,
+/// so a click storm cannot run up a bill.
+fn agent_test(body: &[u8], exe: &Path, url: &str) -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
+    static BUSY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    let Ok(req) = serde_json::from_slice::<providers::TestRequest>(body) else {
+        return err(400, "INVALID_SCHEMA", "expected {provider, model?, effort?, auth?, api_key?, base_url?}");
+    };
+    if BUSY.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return err(429, "BUSY", "another test is running; try again when it has finished");
+    }
+    let v = providers::test(&req, exe, url);
+    BUSY.store(false, std::sync::atomic::Ordering::SeqCst);
+    json_response(200, v.to_string())
 }
 
 fn print_table(s: &Session) {
@@ -731,10 +784,18 @@ fn attach_parent_console() {}
 
 fn main() {
     let argv: Vec<String> = std::env::args().collect();
+    // the MCP server speaks on its own stdin and stdout, which an agent CLI has piped
+    if argv.get(1).map(String::as_str) == Some("mcp") {
+        if let Err(e) = mcp::run() {
+            eprintln!("{e}");
+            std::process::exit(2);
+        }
+        return;
+    }
     if argv.len() > 1 {
         attach_parent_console();
     }
-    const USAGE: &str = "Before the Stars\n\n  bts                    the game in its own window\n  bts serve [--port N]   referee and web client for a browser or external agents\n  bts run | verify | inspect      headless matches, determinism check, one seat's view\n  bts critical-path --seed S --seat K   a seat's victory-critical path (referee-side)\n  bts match | observe | act | ready   talk to a running referee\n\nSee README.md and docs/agent-api.md.";
+    const USAGE: &str = "Before the Stars\n\n  bts                    the game in its own window\n  bts serve [--port N]   referee and web client for a browser or external agents\n  bts run | verify | inspect      headless matches, determinism check, one seat's view\n  bts critical-path --seed S --seat K   a seat's victory-critical path (referee-side)\n  bts match | observe | act | ready   talk to a running referee\n  bts mcp                the game's MCP server for one seat (BTS_URL, BTS_SEAT, BTS_SEAT_TOKEN)\n\nSee README.md and docs/agent-api.md.";
     if matches!(argv.get(1).map(|s| s.as_str()), Some("--help" | "-h" | "help")) {
         println!("{USAGE}");
         return;
