@@ -96,10 +96,14 @@ fn a_programme_short_of_crews_asks_a_partner_with_terms_the_referee_accepts() {
     for o in obs.others.iter_mut() {
         o.trust = o.trust.max(60);
     }
+    // in plenty, and made in surplus (a seat with escrow pays monthly from its output)
     for g in obs.civ.goods.iter_mut() {
-        g.stock = g.stock.max(5_000_000);
+        g.stock = g.stock.max(5_000_000).max(g.consumed * 4);
+        g.produced = g.produced.max(g.consumed * 2 + 5_000_000);
     }
     ai.memory.last_offer_round = vec![0; m.seats()];
+    // nothing to import this round (trade for wanted goods is proposed before cooperation)
+    ai.memory.imports.clear();
     // asks are spaced by rounds; with fifty-year rounds the first talks come early
     obs.round = obs.round.max(10);
     let actions = ai.decide(&obs);

@@ -81,7 +81,19 @@ export const DEPOSIT_COLOR: Record<Deposit, string> = {
   iron_ore: '#5d6470',
   coal: '#2a2724',
   crude: '#4a3526',
-  minerals: '#6d5ca8',
+  tin: '#8a8f96',
+  salt: '#d8d4c8',
+  saltpetre: '#b8ae94',
+  precious: '#c9a227',
+  gas: '#5a8aa8',
+  bauxite: '#a8573a',
+  uranium_ore: '#7a9a3a',
+  rare_earths: '#6d5ca8',
+  lithium: '#9ab0bc',
+  cobalt_nickel: '#4a6a8a',
+  quartz: '#5c9c94',
+  volatiles: '#6aa8d0',
+  helium3: '#a0c0e0',
 };
 export const TERRAIN_TINT = TINT;
 const COAST_INK = '#2c4650';
@@ -2366,7 +2378,7 @@ export function drawDepositGlyph(ctx: CanvasRenderingContext2D, kind: Deposit, x
       ctx.bezierCurveTo(x - r * 0.8, y + r * 1.1, x - r * 1.5, y + r * 0.2, x, y - r * 1.25);
       ctx.closePath();
       break;
-    case 'minerals':
+    default:
       for (let i = 0; i < 6; i++) {
         const a = -Math.PI / 2 + (Math.PI / 3) * i;
         if (i === 0) ctx.moveTo(x + Math.cos(a) * r * 1.1, y + Math.sin(a) * r * 1.1);

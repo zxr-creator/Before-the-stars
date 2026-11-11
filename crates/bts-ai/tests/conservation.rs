@@ -212,7 +212,7 @@ fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment()
     // campaign is audited to its horizon, or to the month a seat wins it)
     // (the fourth is one in which native seats lend each other experts under this ruleset)
     let horizon = MatchConfig::default().horizon();
-    let campaigns = [("riverland", mixed()), ("eval-4", vec![ControllerKind::NativeMedium; 4]), ("eval-0", mixed()), ("eval-1", mixed())];
+    let campaigns = [("riverland", mixed()), ("eval-4", vec![ControllerKind::NativeMedium; 4]), ("eval-22", mixed()), ("eval-1", mixed())];
     let results: Vec<(&str, Seen)> = std::thread::scope(|scope| {
         let handles: Vec<_> = campaigns.iter().map(|(seed, controllers)| scope.spawn(move || (*seed, audit(seed, controllers.clone(), 600)))).collect();
         handles.into_iter().map(|h| h.join().expect("campaign thread")).collect()
@@ -259,4 +259,28 @@ fn all_ai_campaigns_balance_every_month_through_war_settlement_and_recruitment()
     assert!(total.congested_months > 0, "no region's freight was ever congested: {total:?}");
     // sites ran both on the regions' own shaft work and on engines burning coal or fuel
     assert!(total.site_power_from_supply > 0 && total.site_power_from_engines > 0, "site power came from one source only: {total:?}");
+}
+
+/// Which worlds see a border move under this harness's controllers (to choose the
+/// campaigns above when the rules change).
+/// `cargo test -p bts-ai --release --test conservation scan_for_conquest -- --ignored --nocapture`
+#[test]
+#[ignore]
+fn scan_for_conquest() {
+    let seeds: Vec<String> = (0..24).map(|i| format!("eval-{i}")).chain(["riverland".to_string()]).collect();
+    std::thread::scope(|scope| {
+        for seed in &seeds {
+            scope.spawn(move || {
+                let mut t = Table::new(seed, mixed());
+                let mut owners: Vec<Option<SeatId>> = t.m.ledger_snapshot().regions.iter().map(|r| r.controller).collect();
+                let mut moved = 0;
+                while t.step() {
+                    let now: Vec<Option<SeatId>> = t.m.ledger_snapshot().regions.iter().map(|r| r.controller).collect();
+                    moved += owners.iter().zip(now.iter()).filter(|(a, b)| a.is_some() && b.is_some() && a != b).count();
+                    owners = now;
+                }
+                eprintln!("{seed}: {moved} regions changed hands");
+            });
+        }
+    });
 }

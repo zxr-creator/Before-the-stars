@@ -303,6 +303,8 @@ pub fn step(w: &mut World) {
     let c = content();
     let month = w.month;
     let when = crate::util::event_label(&w.cfg, month);
+    // munitions go five times as fast in a month of battle (design chapter 36, 5.4)
+    let fought: Vec<bool> = w.armies.iter().map(|a| a.in_battle).collect();
     for a in w.armies.iter_mut() {
         a.in_battle = false;
     }
@@ -320,7 +322,7 @@ pub fn step(w: &mut World) {
                 continue;
             }
             // upkeep is stated per thousand soldiers
-            let need = a * count / 1000;
+            let need = a * count / 1000 * if *g == Good::Munitions && fought.get(i).copied().unwrap_or(false) { 5 } else { 1 };
             if need > 0 {
                 let got = w.civs[owner].take(*g, need);
                 ok = ok.min(got * 10_000 / need);

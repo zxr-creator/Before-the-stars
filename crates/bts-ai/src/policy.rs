@@ -49,13 +49,56 @@ fn made_in_year(l: &GoodLine) -> i64 {
     }
 }
 
+/// The good a deposit yields (public protocol schema).
+fn deposit_good(d: Deposit) -> Good {
+    match d {
+        Deposit::CopperOre => Good::CopperOre,
+        Deposit::IronOre => Good::IronOre,
+        Deposit::Coal => Good::Coal,
+        Deposit::Crude => Good::Crude,
+        Deposit::Tin => Good::Tin,
+        Deposit::Salt => Good::Salt,
+        Deposit::Saltpetre => Good::Saltpetre,
+        Deposit::Precious => Good::Precious,
+        Deposit::Gas => Good::Gas,
+        Deposit::Bauxite => Good::Bauxite,
+        Deposit::UraniumOre => Good::UraniumOre,
+        Deposit::RareEarths => Good::RareEarths,
+        Deposit::Lithium => Good::Lithium,
+        Deposit::CobaltNickel => Good::CobaltNickel,
+        Deposit::Quartz => Good::Quartz,
+        Deposit::Volatiles => Good::Volatiles,
+        Deposit::Helium3 => Good::Helium3,
+    }
+}
+
 fn base_price(g: Good) -> i64 {
     match g {
         Good::Food => 4,
         Good::Materials => 5,
         Good::Tools => 12,
-        Good::CopperOre | Good::IronOre | Good::Coal | Good::Crude => 7,
-        Good::Minerals => 20,
+        Good::CopperOre | Good::IronOre | Good::Coal | Good::Crude | Good::Gas | Good::Bauxite => 7,
+        Good::Timber | Good::Salt => 5,
+        Good::Fibres => 15,
+        Good::Horses => 20,
+        Good::Spices => 60,
+        Good::Precious => 300,
+        Good::Tin => 40,
+        Good::Saltpetre => 25,
+        Good::UraniumOre | Good::RareEarths | Good::Lithium | Good::CobaltNickel | Good::Quartz => 20,
+        Good::Helium => 600,
+        Good::Aluminium => 80,
+        Good::Fertilizer => 30,
+        Good::Munitions => 10,
+        Good::Magnets => 150,
+        Good::Batteries => 20,
+        Good::NuclearFuel => 50,
+        Good::Textiles => 3,
+        Good::ConsumerGoods => 10,
+        Good::FineWares => 8,
+        Good::Lattice => 600,
+        Good::Volatiles | Good::Propellant => 10,
+        Good::Helium3 => 1000,
         Good::Copper => 25,
         Good::Metal => 30,
         Good::Components => 60,
@@ -1092,6 +1135,10 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
     if p.stock(Good::Materials) < 50_000 + pop * 60 / K {
         p.wanted.insert(Good::Materials);
     }
+    // timber for furnaces, handles and hulls, once something the seat runs burns it
+    if p.line(Good::Timber).map(|l| l.consumed > 0).unwrap_or(false) && p.stock(Good::Timber) < 20_000 + pop * 20 / K {
+        p.wanted.insert(Good::Timber);
+    }
 
     // stale projects that never got their inputs free up what they reserved
     for pr in &obs.projects {
@@ -1838,9 +1885,9 @@ fn power(p: &mut Plan, regions: &[&RegionView]) {
             let starved = |kind: &str| regions.iter().any(|x| x.own.as_ref().unwrap().facilities.iter().any(|f| f.kind == kind && f.runs.iter().any(|run| !run.missing.is_empty())));
             let fed = |g: Good| p.stock(g) > 200_000 || p.produces(g);
             let fusion = fed(Good::Chemicals) && !starved("fusion");
-            let fission = fed(Good::Minerals) && !starved("fission");
+            let fission = fed(Good::NuclearFuel) && !starved("fission");
             if starved("fission") {
-                p.wanted.insert(Good::Minerals);
+                p.wanted.insert(Good::NuclearFuel);
             }
             let built = p.try_build(r, "hydro", 1, 3) || p.try_build(r, "orbital_power", 1, 3) || (fusion && p.try_build(r, "fusion", 1, 3)) || (fission && p.try_build(r, "fission", 1, 3));
             if !built {
@@ -1873,6 +1920,9 @@ fn new_capabilities(p: &mut Plan, regions: &[&RegionView], capital: &RegionView)
         .iter()
         .filter(|f| f.available && f.category != "Food" && !p.civ_has(&f.kind) && !p.civ_pending(&f.kind))
         .filter(|f| !matches!(f.kind.as_str(), "holy_site" | "barracks" | "jump_base" | "grid" | "generator" | "granary" | "roads" | "port" | "waterworks" | "sewers" | "water_treatment" | "clinic" | "hospital"))
+        // household goods and luxuries have no use until the people consume them
+        // (ruleset 3.0 slice 11): built only when something the seat runs asks for them
+        .filter(|f| !matches!(f.kind.as_str(), "weaving" | "textile_mill" | "fibre_farm" | "spice_farm" | "fine_wares" | "consumer_works"))
         .collect();
     cands.sort_by_key(|f| (f.work, f.kind.clone()));
     let mut started = 0;
@@ -1998,13 +2048,7 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
             if let Some(s) = &t.survey {
                 score = s.arable as i64 * 12 + s.wild_food as i64 + s.water as i64 / (20 * K) + s.forest as i64 * 5;
                 for d in &s.deposits {
-                    let g = match d.kind {
-                        Deposit::CopperOre => Good::CopperOre,
-                        Deposit::IronOre => Good::IronOre,
-                        Deposit::Coal => Good::Coal,
-                        Deposit::Crude => Good::Crude,
-                        Deposit::Minerals => Good::Minerals,
-                    };
+                    let g = deposit_good(d.kind);
                     let known_elsewhere = regions.iter().any(|r| r.survey.as_ref().map(|x| x.deposits.iter().any(|y| y.kind == d.kind)).unwrap_or(false));
                     score += if p.wanted.contains(&g) || !known_elsewhere { 700 } else { 150 };
                 }

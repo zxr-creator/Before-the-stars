@@ -35,7 +35,7 @@ fn stats(world: WorldKind, n: usize, regions: u16) -> Stats {
     for i in 0..n {
         let (g, starts) = geo(&format!("stats-{i}"), regions, world);
         s.worlds += 1;
-        if crate::worldgen::start_room_of(&g.regions, &starts) >= room_needed(g.regions.len()) {
+        if crate::worldgen::start_room_of(&g.regions, &starts) >= room_needed(g.regions.len(), starts.len()) {
             s.viable += 1;
         }
         for r in &g.regions {
@@ -168,6 +168,26 @@ fn starts_are_temperate_or_subtropical_river_lands_far_apart() {
     }
     assert!(river * 100 >= n * 90, "{river} of {n} worlds start every seat on a river");
     assert!(far * 100 >= n * 90, "{far} of {n} worlds keep starts three or more links apart");
+}
+
+/// Starts are placed for any number of seats from two to ten, and larger worlds
+/// (160 regions) generate quickly.
+#[test]
+fn starts_for_two_to_ten_seats_and_large_worlds() {
+    for seats in 2..=10usize {
+        for regions in [48u16, 160] {
+            let c = MatchConfig { seed: format!("seats-{seats}"), regions, world: WorldKind::EarthLike, controllers: vec![ControllerKind::NativeMedium; seats], ..Default::default() };
+            let t = std::time::Instant::now();
+            let (g, starts) = geography(&c, derive_secret(&c, 0));
+            assert!(t.elapsed().as_millis() < 2_000, "{regions} regions took {:?}", t.elapsed());
+            assert_eq!(starts.len(), seats);
+            let mut s = starts.clone();
+            s.sort();
+            s.dedup();
+            assert_eq!(s.len(), seats, "distinct starts");
+            assert!(crate::worldgen::start_room_of(&g.regions, &starts) >= 1, "{seats} seats on {regions} regions: a start with no room");
+        }
+    }
 }
 
 /// The generator uses only basic IEEE arithmetic, so that native and WebAssembly

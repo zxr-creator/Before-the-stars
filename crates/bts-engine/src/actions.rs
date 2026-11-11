@@ -702,8 +702,17 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "this formation needs a barracks in the region");
                     }
                     let def = &c.unit_tiers[tier as usize];
-                    // equipment is stated per thousand soldiers
-                    let inputs = def.equipment.iter().map(|(g, a)| (*g, a * soldiers as i64 / 1000)).collect();
+                    // equipment is stated per thousand soldiers; bronze is issued in place
+                    // of iron when the stores cannot cover the iron but can cover the bronze,
+                    // and mounted formations need their mounts
+                    let per_k = |v: &[(Good, i64)]| -> Vec<(Good, i64)> { v.iter().map(|(g, a)| (*g, a * soldiers as i64 / 1000)).collect() };
+                    let covered = |v: &[(Good, i64)]| v.iter().all(|(g, a)| w.civs[si].stock_of(*g) >= *a);
+                    let main = per_k(&def.equipment);
+                    let alt = per_k(&def.alternative);
+                    let mut inputs: Vec<(Good, i64)> = if !alt.is_empty() && !covered(&main) && covered(&alt) { alt } else { main };
+                    if role == Role::Maneuver {
+                        inputs.extend(per_k(&def.maneuver_extra));
+                    }
                     let work = scaled(soldiers as i64 * MUSTER_WORK_PER_K / 1000, pace);
                     let id = new_project(w, seat, ProjKind::Recruit { role, soldiers, tier }, Some(region), work, inputs, 2, priority);
                     Ok(("Recruitment and equipment ordered.".into(), Some(id)))

@@ -9,7 +9,10 @@ Prints, for the sampled years nearest each requested year:
   - regions held by the median seat;
   - era milestones (design table 2.7): median year over all seats that reached it,
     the share of seats that did, and the median over matches of the leader's year;
-  - the highest seat-decade growth rate and the pre-1700 500-year growth band.
+  - the highest seat-decade growth rate and the pre-1700 500-year growth band;
+  - when present (ruleset 3.0 slice 5 and later): the first decade each tracked good
+    was made by a seat (median seat and leader), the food-sector share of working age
+    and the rations per food worker-month of the median seat by date.
 Years are historical and signed (negative = BC, no year zero). Standard library only.
 """
 import csv
@@ -124,6 +127,41 @@ def main():
     if band:
         band.sort()
         print(f"pre-1700 500-year seat growth: min {band[0] * 100:.3f}%/yr, median {median(band) * 100:.3f}%/yr, max {band[-1] * 100:.3f}%/yr ({len(band)} windows)")
+
+    made = [k[5:] for k in rows[0].keys() if k.startswith("made_")]
+    if made:
+        print()
+        print("Goods chains: first sampled decade at which a seat had made the good")
+        print(f"{'good':>14} {'median seat':>12} {'reached':>8} {'leader (median)':>16}")
+        for g in made:
+            firsts, leaders = [], []
+            total = 0
+            for seed, rs in by_match.items():
+                per_seat = defaultdict(list)
+                for r in rs:
+                    per_seat[r["seat"]].append(r)
+                best = None
+                for seat, srs in per_seat.items():
+                    total += 1
+                    srs.sort(key=lambda r: int(r["month"]))
+                    hit = next((int(r["year"]) for r in srs if int(r["made_" + g]) > 0), None)
+                    if hit is not None:
+                        firsts.append(hit)
+                        best = hit if best is None else min(best, hit)
+                if best is not None:
+                    leaders.append(best)
+            med, lead = median(firsts), median(leaders)
+            print(f"{g:>14} {fmt_year(int(med)) if med is not None else '-':>12} {len(firsts):>4}/{total:<3} {fmt_year(int(lead)) if lead is not None else '-':>16}")
+    if "food_share_bp" in rows[0]:
+        print()
+        print("Food sector (median seat with land): share of working age in food, rations per food worker-month")
+        for want in years:
+            y = min(sampled, key=lambda s: (abs(s - want), s))
+            at = [r for r in rows if int(r["year"]) == y and int(r["regions"]) > 0]
+            if at:
+                share = median([int(r["food_share_bp"]) for r in at]) / 100
+                per = median([int(r["food_per_worker"]) for r in at])
+                print(f"{fmt_year(y):>10} {share:6.1f}% {per:8.1f}")
 
 
 if __name__ == "__main__":

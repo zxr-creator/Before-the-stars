@@ -100,6 +100,29 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   `bts-protocol/1.4` (`WorldFrame.wrap_x`, `WorldFrame.kind`, `RegionView.climate`).
   Calibration: `docs/calibration/ruleset3-slice-4-eval.txt`.
 
+- **Slice 5, resources and goods (done).** Fifty goods and seventeen deposits
+  (`docs/units-and-scale.md` section 14): timber split from building materials, rare
+  minerals retired, deposits placed by geology and climate with the design's
+  guarantees, revelation by knowledge (unrecognized deposits, their works and their
+  goods are absent from a seat's views), site bonuses and spice land, about thirty new
+  facility kinds (mines from one template, salt, fibres, spices, horses, textiles,
+  munitions, fertilizer, gas and helium, aluminium, magnets, batteries, nuclear fuel,
+  consumer goods, fine wares, the lattice works), real fertilizer and horses in the
+  fields, a substitute method for every late input except the lattice, unit equipment
+  per generation, building-line metadata and technology eras. The generator also records
+  the city and harbour data of design chapter 38 and places starts for two to ten seats.
+  Ruleset `bts-rules/3.0.0-s5`, content `bts-content/3.0.0-s5`, generator
+  `bts-worldgen/2.0.0-s5`, protocol `bts-protocol/2.0` (breaking: the `Good` and
+  `Deposit` enums). The native AI builds the new chains through its existing
+  wanted-goods rules (it values deposits by their goods, wants timber once it burns
+  some, holds back the household-goods and luxury works until consumption exists).
+  Not built: the consumption basket (slice 11: textiles, consumer goods, spices, fine
+  wares and precious metals are made but not consumed), wool from pasture, the alloy
+  steel method (cobalt-nickel is taken directly by its users), superconducting coils as
+  a separate grade, the permanent-magnet method of generator halls (hydro works have
+  it), road capacity loss without horses (porters stand in at no loss). Calibration:
+  `docs/calibration/ruleset3-slice-5-eval.txt`.
+
 ## Known calibration gaps
 
 - All numeric parameters are first-pass values tuned only through all-AI matches.

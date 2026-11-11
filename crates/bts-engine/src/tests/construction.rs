@@ -122,11 +122,11 @@ fn an_order_stalls_without_each_thing_it_needs_and_resumes_when_it_is_supplied()
     m.world.civs[0].stock[Good::Metal.index()] = 0;
     for _ in 0..3 {
         audited_month(&mut m);
-        stalled(&m, id, "Waiting for structural metal");
+        stalled(&m, id, "Waiting for iron and steel");
     }
     // the crew stays reserved while the order waits: that is the price of leaving it open
     assert_eq!(project(&m, id).crew_on_site, vec![2_000, 1_000]);
-    assert_eq!(queue(&m, capital)[0].waiting_for, vec!["Waiting for structural metal".to_string()]);
+    assert_eq!(queue(&m, capital)[0].waiting_for, vec!["Waiting for iron and steel".to_string()]);
     assert_eq!(queue(&m, capital)[0].goods_bp, 0);
     m.world.civs[0].stock[Good::Metal.index()] = 50_000_000;
     audited_month(&mut m);
@@ -827,7 +827,7 @@ fn no_site_crew_needs_people_who_cannot_exist_yet() {
     for q in Qual::ALL {
         assert!(all.qual[q.index()], "nobody can ever qualify as {q:?}");
     }
-    for g in Good::ALL {
+    for g in Good::ALL.iter().filter(|g| !crate::content::offworld_good(**g)) {
         assert!(all.good[g.index()], "{g:?} can never be made");
     }
     // every facility can be built for the first time: its own requirement, its bill

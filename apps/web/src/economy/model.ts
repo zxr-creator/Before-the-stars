@@ -22,7 +22,12 @@ export const GROUPS: { key: GoodGroup; label: string; hint: string }[] = [
   { key: 'advanced', label: 'Advanced', hint: 'Long chains: precision, electronic and medical goods' },
 ];
 export const GROUP_OF: Record<Good, GoodGroup> = {
-  food: 'raw', materials: 'raw', copper_ore: 'raw', iron_ore: 'raw', coal: 'raw', crude: 'raw', minerals: 'raw',
+  food: 'raw', materials: 'raw', copper_ore: 'raw', iron_ore: 'raw', coal: 'raw', crude: 'raw',
+  timber: 'raw', fibres: 'raw', horses: 'raw', salt: 'raw', spices: 'raw', precious: 'raw', tin: 'raw', saltpetre: 'raw',
+  gas: 'raw', bauxite: 'raw', uranium_ore: 'raw', rare_earths: 'raw', lithium: 'raw', cobalt_nickel: 'raw', quartz: 'raw',
+  helium: 'raw', volatiles: 'raw', aluminium: 'processed', fertilizer: 'processed', munitions: 'processed',
+  textiles: 'processed', propellant: 'processed', fine_wares: 'processed', consumer_goods: 'processed',
+  magnets: 'advanced', batteries: 'advanced', nuclear_fuel: 'advanced', lattice: 'advanced', helium3: 'raw',
   tools: 'processed', copper: 'processed', metal: 'processed', components: 'processed', conductors: 'processed',
   insulation: 'processed', fuel: 'processed', chemicals: 'processed',
   substrate: 'advanced', electronics: 'advanced', hardware: 'advanced', spares: 'advanced', media: 'advanced',

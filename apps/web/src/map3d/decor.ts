@@ -16,7 +16,7 @@ import type * as THREE from 'three';
 
 const KIND_MAP: Record<string, DistrictKind> = {
   fields: 'fields', irrigation: 'fields', pasture: 'pasture', fishery: 'fishery', granary: 'granary', camp: 'timber',
-  mine_copper: 'mine', mine_iron: 'mine', mine_coal: 'mine', mine_minerals: 'mine', oilwell: 'oilwell',
+  mine_copper: 'mine', mine_iron: 'mine', mine_coal: 'mine', mine_tin: 'mine', mine_precious: 'mine', mine_bauxite: 'mine', mine_uranium: 'mine', mine_rare_earths: 'mine', mine_cobalt_nickel: 'mine', mine_quartz: 'mine', nitre_works: 'mine', salt_works: 'mine', oilwell: 'oilwell', gas_well: 'oilwell',
   workshop: 'workshop', kiln: 'workshop', press: 'workshop', instrument_shop: 'workshop',
   copper_smelter: 'industry', bloomery: 'industry', steelworks: 'industry', machine_shop: 'industry', parts_works: 'industry',
   wire_works: 'industry', insulation_works: 'industry',
@@ -37,7 +37,9 @@ const CATEGORY_MAP: Record<string, DistrictKind> = {
   education: 'school', research: 'research', space: 'dishes', 'jump engineering': 'jump',
 };
 const MINE_DEPOSIT: Record<string, Deposit> = {
-  mine_copper: 'copper_ore', mine_iron: 'iron_ore', mine_coal: 'coal', mine_minerals: 'minerals', oilwell: 'crude',
+  mine_copper: 'copper_ore', mine_iron: 'iron_ore', mine_coal: 'coal', oilwell: 'crude', mine_tin: 'tin', mine_precious: 'precious', mine_bauxite: 'bauxite', mine_uranium: 'uranium_ore',
+  mine_rare_earths: 'rare_earths', mine_cobalt_nickel: 'cobalt_nickel', mine_quartz: 'quartz', nitre_works: 'saltpetre',
+  salt_works: 'salt', brine_works: 'lithium', gas_well: 'gas',
 };
 export { eraOfFacilities };
 

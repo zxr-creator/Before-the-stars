@@ -659,6 +659,13 @@ pub fn step(w: &mut World, seat: SeatId) {
     if w.civs[si].est_id("C010") {
         rate_bp = rate_bp * 2 / 3;
     }
+    // salting (design chapter 36, 5.4): stored food spoils three tenths slower while
+    // 0.2 t of salt per million rations in store is at hand; the salt is used up
+    let salt_need = left.min(storage).max(0) / 5_000;
+    if w.civs[si].knows_id("T007") && salt_need > 0 && w.civs[si].stock_of(Good::Salt) >= salt_need {
+        w.civs[si].take(Good::Salt, salt_need);
+        rate_bp = rate_bp * 7 / 10;
+    }
     let mut spoil = left.min(storage) * rate_bp / 10_000;
     if left > storage {
         spoil += (left - storage) * 12 / 100;

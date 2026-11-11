@@ -16,7 +16,11 @@ use serde::{Deserialize, Serialize};
 /// open-ended treaties and the round recap flag of chronicle entries.
 /// 1.4 (additions only): the Earth-like world (`WorldFrame.wrap_x`, `WorldFrame.kind`,
 /// `RegionView.climate`).
-pub const PROTOCOL_VERSION: &str = "bts-protocol/1.4";
+/// 2.0 (breaking): fifty goods and seventeen deposits (`Good::Minerals` and
+/// `Deposit::Minerals` retired), site bonuses and spice land in surveys, helium on gas
+/// fields, unit generations, building lines on facility types, goods shown only once
+/// known (ruleset 3.0 slice 5), productivity breakdowns (slice 6).
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.0";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -43,33 +47,64 @@ macro_rules! public_enum {
 }
 
 public_enum!(
-    /// Storable goods. Quantities on the wire are integer base units: one ration for
-    /// food (one person's food for one month, 50 kg grain-equivalent), one tonne for
-    /// bulk goods and one standard lot for manufactures. 1,000 base units make one
-    /// display unit (see [`UnitsView`] for the unit and mass of each good).
+    /// Storable goods (ruleset 3.0: fifty, design chapter 36 section 5.2 and
+    /// chapter 37 section 1.1). Quantities on the wire are integer base units: one
+    /// ration for food (one person's food for one month, 50 kg grain-equivalent),
+    /// one head for horses, one tonne for bulk goods and one standard lot for
+    /// manufactures. 1,000 base units make one display unit (see [`UnitsView`] for
+    /// the unit and mass of each good). The enum is public schema; a seat is shown
+    /// a good only once it knows a source or a use of it.
     Good {
     Food => "Food",
-    Materials => "Timber, stone and clay",
+    Materials => "Building materials",
     Tools => "Tools",
     CopperOre => "Copper ore",
     IronOre => "Iron ore",
     Coal => "Coal",
     Crude => "Crude oil",
-    Minerals => "Rare minerals",
     Copper => "Copper",
-    Metal => "Structural metal",
+    Metal => "Iron and steel",
     Components => "Mechanical components",
     Conductors => "Conductors",
-    Insulation => "Insulation and seals",
+    Insulation => "Rubber, plastics and insulation",
     Fuel => "Refined fuel",
     Chemicals => "Chemicals",
-    Substrate => "High-purity substrate",
+    Substrate => "Semiconductor materials",
     Electronics => "Electronic devices",
     Hardware => "Computing hardware",
     Spares => "Spare parts",
     Media => "Record media",
     Instruments => "Instruments",
     Medicine => "Medicine and bioproducts",
+    Timber => "Timber",
+    Fibres => "Fibres",
+    Horses => "Horses",
+    Salt => "Salt",
+    Spices => "Spices and stimulants",
+    Precious => "Precious metals",
+    Tin => "Tin",
+    Saltpetre => "Saltpetre",
+    Gas => "Natural gas",
+    Bauxite => "Bauxite",
+    UraniumOre => "Uranium ore",
+    RareEarths => "Rare-earth ore",
+    Lithium => "Lithium",
+    CobaltNickel => "Cobalt and nickel",
+    Quartz => "High-purity quartz",
+    Helium => "Helium",
+    Aluminium => "Aluminium",
+    Fertilizer => "Fertilizer",
+    Munitions => "Munitions",
+    Magnets => "Magnets and superconductors",
+    Batteries => "Batteries",
+    NuclearFuel => "Nuclear fuel",
+    Textiles => "Textiles",
+    ConsumerGoods => "Consumer goods",
+    FineWares => "Fine wares",
+    Lattice => "Interface lattice",
+    Volatiles => "Volatiles (water and ices)",
+    Propellant => "Propellant",
+    Helium3 => "Helium-3",
 });
 
 public_enum!(
@@ -134,12 +169,37 @@ impl Default for WorldKind {
     }
 }
 
-public_enum!(Deposit {
+public_enum!(
+    /// Finite deposits in the ground (ruleset 3.0: seventeen). A seat sees a deposit
+    /// only once it understands what reveals it.
+    Deposit {
     CopperOre => "Copper ore",
     IronOre => "Iron ore",
     Coal => "Coal",
     Crude => "Crude oil",
-    Minerals => "Rare minerals",
+    Tin => "Tin",
+    Salt => "Salt",
+    Saltpetre => "Saltpetre",
+    Precious => "Precious metals",
+    Gas => "Natural gas",
+    Bauxite => "Bauxite",
+    UraniumOre => "Uranium ore",
+    RareEarths => "Rare-earth ore",
+    Lithium => "Lithium brine",
+    CobaltNickel => "Cobalt and nickel",
+    Quartz => "High-purity quartz",
+    Volatiles => "Volatiles (water and ices)",
+    Helium3 => "Helium-3",
+});
+
+public_enum!(
+    /// Site bonuses of a region (design chapter 36, section 5.3), at most two.
+    Bonus {
+    Floodplain => "Fertile floodplain",
+    FishBanks => "Fish banks",
+    WildHerds => "Wild herds",
+    OldGrowth => "Old-growth forest",
+    RichPasture => "Rich pasture",
 });
 
 public_enum!(
@@ -638,6 +698,18 @@ pub struct DepositView {
     pub remaining: i64,
     pub quality_bp: u16,
     pub epistemic: Epistemic,
+    /// Helium recoverable per 10,000 t of natural gas (gas fields only, and only to a
+    /// seat that understands cryogenics).
+    #[serde(default)]
+    pub helium_bp: Option<u16>,
+}
+
+/// A site bonus of a region (design chapter 36, section 5.3).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BonusView {
+    pub kind: Bonus,
+    /// What it adds to the yield it modifies, basis points.
+    pub bp: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -652,6 +724,12 @@ pub struct SurveyView {
     pub water: u32,
     pub hydro: u16,
     pub deposits: Vec<DepositView>,
+    /// Levels of warm, wet land fit for spice plantations (ruleset 3.0).
+    #[serde(default)]
+    pub spice_land: u16,
+    /// Site bonuses (ruleset 3.0).
+    #[serde(default)]
+    pub bonuses: Vec<BonusView>,
     pub surveyed_month: Month,
     /// False while only surface observations exist; deposits may be missing.
     pub detailed: bool,
@@ -1192,6 +1270,14 @@ pub struct FacilityType {
     /// Minimum months of construction before any first-of-kind surcharge.
     #[serde(default)]
     pub build_months: u16,
+    /// Building line, stage in it and era of the stage (design chapter 37, section
+    /// 8.2; ruleset 3.0 slice 5). Static content, the same for every seat.
+    #[serde(default)]
+    pub line: String,
+    #[serde(default)]
+    pub stage: u8,
+    #[serde(default)]
+    pub era: u8,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1225,6 +1311,17 @@ pub struct UnitTier {
     pub training_months: u16,
     pub requirements: Vec<KnownRequirement>,
     pub available: bool,
+    /// Equipment generation of design chapter 37, section 2.1 (G0-G7; the six tiers
+    /// are G0, G1, G2, G4, G5 and G6).
+    #[serde(default)]
+    pub generation: u8,
+    /// What a maneuver formation needs beside the equipment, per thousand soldiers.
+    #[serde(default)]
+    pub maneuver_extra: Vec<GoodQty>,
+    /// Equipment issued instead when the stores cannot cover `equipment` (bronze for
+    /// iron), per thousand soldiers.
+    #[serde(default)]
+    pub alternative: Vec<GoodQty>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

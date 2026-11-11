@@ -6,15 +6,23 @@ import type { Good } from '../protocol';
 
 export const GOOD_TINT: Record<Good, string> = {
   food: '#e0b84c', materials: '#b98958', tools: '#a8b9c4', copper_ore: '#c97f55', iron_ore: '#a8705f',
-  coal: '#77747c', crude: '#7d6c96', minerals: '#7fbcb2', copper: '#dd8f58', metal: '#9fb2c8',
+  coal: '#77747c', crude: '#7d6c96', copper: '#dd8f58', metal: '#9fb2c8',
   components: '#cfa650', conductors: '#e3a25e', insulation: '#bcae8e', fuel: '#d8763e', chemicals: '#86b565',
   substrate: '#93bbdc', electronics: '#71c29c', hardware: '#819fe2', spares: '#b3a78c', media: '#c8a8dc',
   instruments: '#e5c678', medicine: '#dc6f6f',
+  timber: '#9a7246', fibres: '#e8dcb0', horses: '#b07a4e', salt: '#e8e6e0', spices: '#c4572e', precious: '#e8c547',
+  tin: '#b8bcc2', saltpetre: '#d9d2c0', gas: '#9ec4d8', bauxite: '#c7704a', uranium_ore: '#a9c45a', rare_earths: '#8f7fb8',
+  lithium: '#d8e4ea', cobalt_nickel: '#6f8fb0', quartz: '#7fbcb2', helium: '#c9e3f2', aluminium: '#c5ccd4',
+  fertilizer: '#9cb85a', munitions: '#8a7a5a', magnets: '#c0504d', batteries: '#7ab87a', nuclear_fuel: '#b6d84a',
+  textiles: '#d89ab8', consumer_goods: '#e0a070', fine_wares: '#d4a4e0', lattice: '#a0e0f0', volatiles: '#a8d8f0',
+  propellant: '#f0a060', helium3: '#e0f0ff',
 };
 
 type Draw = (f: string) => JSX.Element;
 
-const DRAW: Record<Good, Draw> = {
+// Goods of ruleset 3.0 without a pictogram of their own are drawn with a near one
+// (`DRAW_LIKE`), in their own tint.
+const DRAW: Partial<Record<Good, Draw>> = {
   food: (f) => <>
     <path d="M10 18V8" />
     <path d="M10 8.500c-2.400-.8-3.200-2.800-2.800-5 2 .4 3.200 2.200 2.800 5zM10 8.500c2.400-.8 3.200-2.800 2.800-5-2 .4-3.200 2.200-2.800 5z" fill={f} />
@@ -45,7 +53,7 @@ const DRAW: Record<Good, Draw> = {
     <path d="M10 2.500c3.200 4 5.200 6.600 5.200 9.300a5.200 5.200 0 0 1-10.400 0c0-2.700 2-5.300 5.200-9.300z" fill={f} />
     <path d="M7.500 12a2.600 2.600 0 0 0 2 2.800" />
   </>,
-  minerals: (f) => <>
+  quartz: (f) => <>
     <path d="M10 2.500 15 8l-5 9.500L5 8z" fill={f} />
     <path d="M5 8h10M10 2.500 8 8l2 9.500L12 8z" />
   </>,
@@ -113,8 +121,17 @@ const DRAW: Record<Good, Draw> = {
   </>,
 };
 
+const DRAW_LIKE: Partial<Record<Good, Good>> = {
+  timber: 'materials', fibres: 'food', horses: 'food', salt: 'materials', spices: 'food', precious: 'copper',
+  tin: 'copper_ore', saltpetre: 'materials', gas: 'crude', bauxite: 'iron_ore', uranium_ore: 'quartz', rare_earths: 'quartz',
+  lithium: 'quartz', cobalt_nickel: 'iron_ore', helium: 'crude', aluminium: 'metal', fertilizer: 'chemicals',
+  munitions: 'tools', magnets: 'conductors', batteries: 'electronics', nuclear_fuel: 'quartz', textiles: 'media',
+  consumer_goods: 'components', fine_wares: 'instruments', lattice: 'substrate', volatiles: 'crude', propellant: 'fuel',
+  helium3: 'quartz',
+};
+
 export function GoodIcon({ good, size = 16, class: cls, title }: { good: Good; size?: number; class?: string; title?: string }) {
-  const draw = DRAW[good];
+  const draw = DRAW[good] ?? DRAW[DRAW_LIKE[good] ?? 'materials'];
   if (!draw) return null;
   return (
     <svg class={'icon good-icon' + (cls ? ' ' + cls : '')} width={size} height={size} viewBox="0 0 20 20" fill="none"

@@ -14,6 +14,7 @@ mod knowledge;
 mod methods;
 mod population;
 mod worldgen;
+mod goods;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
@@ -835,7 +836,7 @@ fn print_unit_tables() {
                         if hi != lo {
                             line("        with selection and soil science", hi);
                         }
-                        println!("        {} posts a level; draws {} chemicals and {} fuel per level-month", group(m.posts as i64), disp(m.chem_t), disp(m.fuel_t));
+                        println!("        {} posts a level; draws {} horses, {} fertilizer, {} chemicals and {} fuel per level-month", group(m.posts as i64), m.inputs[0], disp(m.inputs[1]), disp(m.inputs[2]), disp(m.inputs[3]));
                     }
                 }
                 "pasture" => {
@@ -1029,7 +1030,7 @@ fn no_recipe_puts_out_more_mass_than_it_takes_in() {
     }
     // the exception is explicit and narrow: mines, wells, the timber and quarry camps,
     // and kilns digging their own clay
-    assert_eq!(extractive, vec!["camp", "mine_copper", "mine_iron", "mine_coal", "mine_minerals", "oilwell", "kiln"]);
+    assert_eq!(extractive, vec!["camp", "quarry", "salt_works", "salt_pans", "fibre_farm", "spice_farm", "horse_farm", "mine_copper", "mine_iron", "mine_coal", "mine_tin", "mine_precious", "mine_bauxite", "mine_uranium", "mine_rare_earths", "mine_cobalt_nickel", "mine_quartz", "nitre_works", "brine_works", "gas_well", "oilwell", "kiln"]);
     // the recipes that used to fail
     let rec = |fac: &str, key: &str| c.facilities[c.f(fac)].recipes.iter().find(|r| r.key == key).unwrap();
     assert!(mass_kg(&rec("insulation_works", "polymer").outputs) <= mass_kg(&rec("insulation_works", "polymer").inputs));
@@ -1126,14 +1127,14 @@ fn carriage_loss_and_spoilage_are_booked_as_lost() {
     settle_fixture(&mut m.world, far, 200_000);
     m.world.regions[far].forest = 10;
     m.world.regions[far].wild = 2_000_000;
-    put_works(&mut m.world.regions[far], "camp", 2);
+    put_works(&mut m.world.regions[far], "quarry", 2);
     m.world.regions[home].facilities.clear();
     m.world.civs[0].stock[Good::Materials.index()] = 0;
     let link = crate::sim::economy::link_efficiencies(&m.world, 0)[far];
     assert!(link < 10_000, "an outlying region without roads loses some of what it sends");
     let before = m.ledger_snapshot();
     crate::sim::economy::step(&mut m.world, 0);
-    let run = m.world.regions[far].fac(content().f("camp")).unwrap().run.clone().unwrap();
+    let run = m.world.regions[far].fac(content().f("quarry")).unwrap().run.clone().unwrap();
     let gross = 16_000 * 2 * run.rate_bp as i64 / 10_000;
     assert!(gross > 0);
     // idle adults also make 0.3 t each at home; that reaches the stock whole
@@ -1172,7 +1173,7 @@ fn household_craft_is_bounded_by_idle_adults() {
 
 /// Recipes declared to take part of their mass from the air (design chapter 36,
 /// section 5.4): ammonia fertilizer (resources slice) and food synthesis.
-const ATMOSPHERIC: &[&str] = &["food_synthesis"];
+const ATMOSPHERIC: &[&str] = &["food_synthesis", "ammonia", "ammonia_coal"];
 
 #[test]
 fn field_methods_are_used_only_when_their_inputs_are_delivered() {
@@ -1186,7 +1187,7 @@ fn field_methods_are_used_only_when_their_inputs_are_delivered() {
     m.world.regions[home].arable = 40;
     m.world.regions[home].facilities.clear();
     put_works(&mut m.world.regions[home], "fields", 30);
-    let chem = Good::Chemicals.index();
+    let chem = Good::Fertilizer.index();
     let food = Good::Food.index();
     // a full month for thirty levels of fertilized fields is 30 x 150 t = 4,500 t
     m.world.civs[0].stock[chem] = 4_499;
@@ -1869,13 +1870,13 @@ fn industrial_world(seed: &str) -> (Match, Vec<usize>, Vec<Option<usize>>) {
             r.arable = 40;
             r.forest = 30;
             r.hydro = 40;
-            for (kind, amount) in [(Deposit::CopperOre, 5_000_000), (Deposit::IronOre, 5_000_000), (Deposit::Coal, 8_000_000), (Deposit::Crude, 5_000_000), (Deposit::Minerals, 30_000)] {
+            for (kind, amount) in [(Deposit::CopperOre, 5_000_000), (Deposit::IronOre, 5_000_000), (Deposit::Coal, 8_000_000), (Deposit::Crude, 5_000_000), (Deposit::UraniumOre, 30_000)] {
                 r.deposits.retain(|d| d.kind != kind);
                 r.deposits.push(DepositState::new(kind, amount, 8000));
             }
             r.facilities.clear();
             for (k, lv) in [
-                ("fields", 20), ("granary", 2), ("camp", 2), ("mine_copper", 2), ("mine_iron", 2), ("mine_coal", 3), ("mine_minerals", 1), ("oilwell", 1), ("workshop", 2), ("kiln", 1),
+                ("fields", 20), ("granary", 2), ("camp", 2), ("mine_copper", 2), ("mine_iron", 2), ("mine_coal", 3), ("quarry", 1), ("oilwell", 1), ("workshop", 2), ("kiln", 1),
                 ("copper_smelter", 1), ("bloomery", 1), ("steelworks", 1), ("machine_shop", 1), ("parts_works", 1), ("wire_works", 1), ("chem_plant", 1), ("insulation_works", 1), ("refinery", 1),
                 ("press", 1), ("instrument_shop", 1), ("waterwheel", 3), ("steam", 2), ("generator", 1), ("hydro", 2), ("grid", 1), ("fab", 1), ("computer_works", 1), ("datacenter", 1),
                 ("lodge", 4), ("school", 2), ("college", 1), ("tech_institute", 1), ("makers_circle", 1), ("archive", 1), ("laboratory", 1), ("advanced_lab", 1), ("clinic", 1), ("barracks", 1), ("roads", 1),

@@ -17,6 +17,10 @@ pub const MILESTONES: [&str; 25] = [
     "T007", "T008", "T010", "T011", "T015", "T025", "T022", "T023", "T024", "T027", "T028", "T029", "T030", "T036", "T048", "SCI", "T080", "T060", "T061", "T100", "T111", "T142", "T147", "T162", "T167",
 ];
 
+/// Goods whose production over each decade the curve records (ruleset 3.0 slice 5:
+/// when the chains of design chapter 36, section 5.4 come into use).
+pub const TRACKED_GOODS: [Good; 14] = [Good::Timber, Good::Tin, Good::Horses, Good::Salt, Good::Saltpetre, Good::Munitions, Good::Fertilizer, Good::Gas, Good::Helium, Good::Aluminium, Good::Magnets, Good::Batteries, Good::NuclearFuel, Good::Lattice];
+
 /// One seat at the start of one decade.
 #[derive(Clone, Debug)]
 pub struct CurveRow {
@@ -45,6 +49,12 @@ pub struct CurveRow {
     pub soldiers: u32,
     /// Milestones of [`MILESTONES`] reached by the sample.
     pub milestones: [bool; 25],
+    /// Gross production of each of [`TRACKED_GOODS`] over the decade before the sample.
+    pub made: [i64; 14],
+    /// Share of the working-age people working for food in the last month, and the
+    /// rations they made per worker (design chapter 36, section 4.2 targets).
+    pub food_share_bp: u16,
+    pub food_per_worker: i64,
 }
 
 impl CurveRow {
@@ -57,6 +67,10 @@ impl CurveRow {
         for m in MILESTONES {
             h += &format!(",m_{m}");
         }
+        for g in TRACKED_GOODS {
+            h += &format!(",made_{}", serde_json::to_value(g).ok().and_then(|v| v.as_str().map(|x| x.to_string())).unwrap_or_default());
+        }
+        h += ",food_share_bp,food_per_worker";
         h
     }
     pub fn csv(&self) -> String {
@@ -71,6 +85,10 @@ impl CurveRow {
         for m in self.milestones {
             s += if m { ",1" } else { ",0" };
         }
+        for v in self.made {
+            s += &format!(",{v}");
+        }
+        s += &format!(",{},{}", self.food_share_bp, self.food_per_worker);
         s
     }
 }
@@ -82,6 +100,8 @@ pub struct CurveRecorder {
     traded: Vec<i64>,
     births: Vec<u64>,
     deaths: Vec<u64>,
+    made: Vec<[i64; 14]>,
+    before_made: Vec<[i64; 14]>,
     before: Vec<(i64, u32, u32)>,
     last_sample: Option<Month>,
 }
@@ -96,12 +116,15 @@ fn traded_mass(civ: &Civ) -> i64 {
 impl CurveRecorder {
     pub fn new(w: &World) -> CurveRecorder {
         let n = w.civs.len();
-        CurveRecorder { rows: Vec::new(), traded: vec![0; n], births: vec![0; n], deaths: vec![0; n], before: vec![(0, 0, 0); n], last_sample: None }
+        CurveRecorder { rows: Vec::new(), traded: vec![0; n], births: vec![0; n], deaths: vec![0; n], made: vec![[0; 14]; n], before_made: vec![[0; 14]; n], before: vec![(0, 0, 0); n], last_sample: None }
     }
 
     pub fn before_month(&mut self, w: &World) {
         for (i, civ) in w.civs.iter().enumerate() {
             self.before[i] = (traded_mass(civ), civ.flows.births, civ.flows.deaths);
+            for (k, g) in TRACKED_GOODS.iter().enumerate() {
+                self.before_made[i][k] = civ.flows.produced[g.index()];
+            }
         }
     }
 
@@ -111,6 +134,11 @@ impl CurveRecorder {
             self.traded[i] += traded_mass(civ) - t;
             self.births[i] += civ.flows.births.saturating_sub(b) as u64;
             self.deaths[i] += civ.flows.deaths.saturating_sub(d) as u64;
+            for (k, g) in TRACKED_GOODS.iter().enumerate() {
+                // flows restart at round boundaries: a fall means a fresh round
+                let now = civ.flows.produced[g.index()];
+                self.made[i][k] += if now >= self.before_made[i][k] { now - self.before_made[i][k] } else { now };
+            }
         }
         self.sample_if_due(w);
     }
@@ -154,6 +182,12 @@ impl CurveRecorder {
                 food_bp: civ.food_ful_bp,
                 soldiers: w.armies.iter().filter(|a| a.owner == civ.seat).map(|a| a.count()).sum(),
                 milestones,
+                made: std::mem::take(&mut self.made[i]),
+                food_share_bp: (civ.labor.food as u64 * 10_000 / civ.labor.working_age.max(1) as u64).min(10_000) as u16,
+                food_per_worker: {
+                    let made: i64 = w.regions.iter().filter(|r| r.controller == Some(civ.seat)).map(|r| r.last.food_made).sum();
+                    made / civ.labor.food.max(1) as i64
+                },
             });
         }
     }

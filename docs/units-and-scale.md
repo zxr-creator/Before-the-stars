@@ -832,6 +832,114 @@ Earth (slice 16) only adds a map source.
   and migration; no rule of slices 4-6 reads it): coast edges, natural harbour
   quality, navigable river, river mouth, confluence, flat-land share, climate amenity,
   and mineral wealth within one link.
+- **City and harbour data** (design chapter 38, section 8.1; recorded now, used by the
+  cities slice): `Region.natural_harbour` (about a third of coasts, three in five river
+  mouths), `Region.city_name` and `Region.city_at` (the principal city, seaward of the
+  centre on a coast), `World.ice_links` (sea links between regions beyond 52 degrees,
+  seasonal, or beyond 62 or both polar, for most of the year).
+- **Seats and size.** Starts are placed for two to ten seats (the room a start needs
+  scales with the seat count) and worlds of up to about 160 regions generate in well
+  under a second.
 - **Determinism.** Only +, -, x, /, floor, sqrt and comparisons on `f64` and keyed
   integer hashes (`worldgen_uses_no_transcendental_functions` scans the source); noise
   on the wrapped map repeats every 2,000 units.
+
+## 14. Resources and goods (ruleset 3.0)
+
+Design chapter 36, section 5, as changed by chapter 37, section 1.1; `content.rs`,
+`worldgen.rs::place_deposits`, `sim::economy`.
+
+**Goods** (50; base unit, mass): food (ration, 50 kg); horses (head, 500 kg); tools and
+spares (lot, 250 kg); electronics, munitions and batteries (lot, 50 kg); hardware (lot,
+500 kg); media (lot, 150 kg); instruments (lot, 400 kg); medicine (lot, 40 kg); consumer
+goods (lot, 100 kg); textiles, fine wares and interface lattice (lot, 10 kg); precious
+metals, nuclear fuel and helium-3 (lot, 1 kg); everything else a tonne: building
+materials (relabelled; timber split off), copper, tin, iron and copper ore, coal,
+crude, natural gas, salt, saltpetre, bauxite, uranium ore, rare-earth ore, lithium,
+cobalt and nickel, high-purity quartz, helium, timber, fibres, spices, iron and steel,
+copper, aluminium, components, conductors, insulation, fuel, chemicals, fertilizer,
+magnets, semiconductor materials, volatiles, propellant. Rare minerals are retired
+(uranium ore, rare earths, quartz, lithium and cobalt-nickel replace them). Volatiles,
+propellant and helium-3 are in the catalog for the space slice and are not made yet.
+Grown goods (food, fibres, horses, spices, timber) come from extractive land works and
+are outside the mass balance like food; the declared atmospheric recipes (ammonia,
+food synthesis) put out at most three times the mass they take.
+
+**A seat's ledger lists a good** once it holds or has moved some, or a facility,
+method, field method, formation or course within its knowledge names it, or it
+recognizes a deposit of it in a surveyed region (`observe::known_goods`).
+
+**Deposits** (17; `Deposit`; per 48 regions, size per deposit, placement bias):
+
+| Deposit | Regions | Size | Geology and climate | Revealed by |
+| --- | --- | --- | --- | --- |
+| Copper ore | 16-20 | 300-1,200 Mt | orogenic belts, hills, mountains | T014 |
+| Tin | 5-7 (at least 5) | 10-40 Mt | belts in rough land (granite) | T014 |
+| Iron ore | 20-24 | 2,000-8,000 Mt | shields, belts, plains | T023 |
+| Coal | 18-22 | 3,000-12,000 Mt | wet lowland basins | T014 |
+| Saltpetre | 6-9 | 20-80 Mt | deserts, arid lands, hills | T036 |
+| Salt | 18-22 | 500-5,000 Mt | arid lands, coastal basins (and pans on every coast) | from the start |
+| Precious metals | 8-12 | 2,000-10,000 t | belts in rough land | from the start |
+| Crude oil | 8-12 | 1,000-6,000 Mt | sedimentary basins in deserts, steppes, marshes, tundra | T064 or T090 |
+| Natural gas | 8-12 (beside crude) | 1,000-5,000 Mt; helium 0-150 per 10,000 t, 50-150 in 2-4 fields | as crude | T090 (helium content T108) |
+| Bauxite | 4-6 (at least 4) | 500-3,000 Mt | tropical plains and hills | T103 |
+| Uranium ore | 4-6 (at least 3) | 5-30 Mt | shields, deserts, mountains | T146 |
+| Rare-earth ore | 3-5 (at least 3) | 20-100 Mt | shields, mountains, deserts | T043 or T103 |
+| Lithium brine | 3-4 (at least 3) | 5-30 Mt | arid basins and rifts | T105 |
+| Cobalt and nickel | 4-6 (at least 3) | 20-150 Mt | mountains, belts, tundra | T060 |
+| High-purity quartz | 5-8 (at least 3) | 50-300 Mt | rough land | T103 |
+| Volatiles, helium-3 | off the Earth only (space slice) | | | not yet |
+
+For each kind the regions whose geology calls for it most (with noise) receive one; a
+rare kind is placed so that no start's three-link neighbourhood holds more than half of
+its regions where the world allows (95% of rare kinds over 1,000 worlds; a three-link
+neighbourhood is 20 of 48 regions at the median). Within three links of every home: at
+least 1,200 Mt of copper ore, 7,000 Mt of iron ore, 10,000 Mt of coal, and salt (a
+deposit or a coast for pans); every home has a floodplain. **Site bonuses** (at most two):
+fertile floodplain (river lowland, +2,500 field yield), fish banks (+5,000 fishing),
+wild herds (+5,000 horse breeding; seen with T006), old-growth forest (+5,000 timber),
+rich pasture (+3,000 pasture food). **Spice land**: 6-20 levels on tropical plains,
+forest, marsh and hills.
+
+**New facilities** (per level-month): forestry camps (12 t timber, 8,000 posts; the
+old timber-and-quarry camp), quarries and clay pits (16 t materials, 8,000), salt works
+on a deposit (8 t, 6,000) and coastal pans (0.5 t, 1,000), fibre plantations (2 t
+fibres, 8,000, share arable land with fields), spice plantations (0.5 t), horse
+breeding (300 horses, 5,000, shares pasture), mines of tin, precious metals, bauxite,
+uranium, rare earths, cobalt-nickel and quartz (shallow, deep and mechanized workings
+as the copper mine), nitre works (2 t saltpetre), lithium brine works (0.5 t), gas wells
+(30 t gas; with separation, T108, the field's helium share of the gas raised), weaving
+workshops and textile mills (1.1 t fibres to 100 lots of textiles; synthetic method
+1.2 t chemicals), powder works (0.6 t saltpetre and 0.2 t timber to 15 lots of
+munitions), arsenal (0.5 t chemicals and 0.3 t metal to 15 lots), nitrate fertilizer
+works (6 t saltpetre to 5 t), ammonia synthesis (5 t gas to 12 t, or 10 t coal to 12 t,
+atmospheric; ten times the design table's per-level output, see the slice 5
+calibration), aluminium smelter (4 t bauxite and 0.4 t chemicals to 1 t, 150 electric),
+magnet works (3 t rare earths, 1 t metal, 0.5 t chemicals to 1 t magnets), battery works
+(lithium cells, or sodium cells from salt at half the output), nuclear fuel plant
+(4 t uranium ore to 40,000 lots; fusion fuel from lithium), consumer goods works, fine-wares
+workshops, and the lattice conditioning works (one per test node; the only input with
+no substitute). The full table is printed by `print_unit_tables`.
+
+**Changed users**: copper and iron smelting and tool handles burn timber; bronze tools
+(1.4 t copper, 0.2 t tin, 2 t timber to 9,000 lots) before copper tools (6,000); fields
+draw horses (traction and rotation, 30 a level-month) and fertilizer (fertilized 150 t,
+intensive 300 t, restorative 200 t with 50 t chemicals) instead of the stand-ins; roads
+use 20 horses a level-month until motor vehicles (porters stand in without loss of
+condition); stored food spoils three tenths slower while 0.2 t of salt per million
+rations is at hand; harbours take timber; fission burns 3,000 lots of nuclear fuel;
+fusion 5,000 lots and 0.05 t helium; the high-energy laboratory, testbed, assembly line,
+deployment node and lattice works take operating helium (each with a nitrogen-cooled
+method without helium and more electricity); the launch complex takes aluminium,
+cobalt-nickel and batteries (or steel vehicles and more fuel); the orbital yard aluminium
+(or steel); assembly lines lattice and magnets; integrated electronics a trace of
+precious metals; semiconductor materials come from quartz (or twice-refined metallurgical
+silicon); the industrial base of the jump programme counts magnets and lattice.
+
+**Formations** carry an equipment generation (G0, G1, G2, G4, G5, G6): bronze levies may
+be issued copper and tin when iron is short; maneuver formations of G1-G2 need 0.3
+horses per soldier; G2 and later take munitions (one lot per soldier, 0.02-0.04 a month,
+five times as much in a month of battle); G5 aluminium, G6 batteries.
+
+**Building lines** (`FacDef.line`, `stage`, `era`; `content().upgrades`): metadata for
+the building lifecycle of slice 7, and the era that gates productivity technologies.

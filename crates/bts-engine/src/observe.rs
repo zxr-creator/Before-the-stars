@@ -118,12 +118,30 @@ fn req_items(w: &World, seat: SeatId, req: &Req, prac_enacted: bool) -> (Vec<Kno
     (out, unknown)
 }
 
-fn deposit_known(civ: &Civ, d: Deposit) -> bool {
-    match d {
-        Deposit::CopperOre | Deposit::IronOre | Deposit::Coal => civ.knows_id("T014"),
-        Deposit::Crude => civ.knows_id("T064") || civ.knows_id("T090"),
-        Deposit::Minerals => civ.knows_id("T043"),
+/// Whether a seat recognizes deposits of a kind: it understands a technology that
+/// reveals them (design chapter 36, section 5.3). Unrecognized deposits are absent.
+pub fn deposit_known(civ: &Civ, d: Deposit) -> bool {
+    let rev = crate::content::deposit_reveal(d);
+    rev.is_empty() || rev.iter().any(|t| *t != "-" && civ.knows_id(t))
+}
+
+/// A foreign deposit's size to one significant figure (at least the leading unit).
+fn size_band(v: i64) -> i64 {
+    let mut step = 1i64;
+    while step * 10 <= v.max(1) {
+        step *= 10;
     }
+    (v / step).max(1) * step
+}
+
+/// The helium content of a gas field, to a seat that understands cryogenics.
+fn helium_seen(civ: &Civ, d: &DepositState) -> Option<u16> {
+    (d.kind == Deposit::Gas && civ.knows_id(crate::content::HELIUM_REVEAL)).then_some(d.helium_bp)
+}
+
+/// Site bonuses a seat recognizes: wild herds once it understands husbandry (T006).
+fn bonuses_seen(civ: &Civ, r: &Region) -> Vec<BonusView> {
+    r.bonuses.iter().filter(|(k, _)| *k != Bonus::WildHerds || civ.knows_id("T006")).map(|(k, v)| BonusView { kind: *k, bp: *v }).collect()
 }
 
 fn fuzz(w: &World, seat: SeatId, key: u64, value: u64, spread_pct: u64) -> (u64, u64) {
@@ -192,6 +210,7 @@ fn site_text(s: Site) -> String {
         Site::River => "A river or ample water".into(),
         Site::Coast => "A coast".into(),
         Site::Hydro => "A fall of water or steady wind".into(),
+        Site::SpiceLand => "Warm, wet land fit for spice crops".into(),
         Site::Deposit(d) => format!("A known deposit of {}", d.label().to_lowercase()),
         Site::TestNode => "One of the three test nodes".into(),
         Site::With(k) => format!("Beside a {}", content().facilities[content().f(k)].name.to_lowercase()),
@@ -208,6 +227,7 @@ fn site_key(s: Site) -> String {
         Site::River => "river".into(),
         Site::Coast => "coast".into(),
         Site::Hydro => "hydro".into(),
+        Site::SpiceLand => "spice_land".into(),
         Site::Deposit(d) => format!("deposit:{}", serde_json::to_value(d).ok().and_then(|v| v.as_str().map(|x| x.to_string())).unwrap_or_default()),
         Site::TestNode => "test_node".into(),
         Site::With(k) => format!("with:{k}"),
@@ -484,6 +504,69 @@ fn recipe_discovered(civ: &Civ, rec: &crate::content::Recipe) -> bool {
     ts.iter().all(|t| civ.tech[*t].state >= ST_DISCOVERED)
 }
 
+/// The goods a seat knows (design chapter 36, section 6.8): one it holds or has
+/// moved, or that names a source or a use within its knowledge - a discovered
+/// facility's cost, upkeep or method, a field method, a formation, a course, or a
+/// deposit it recognizes. Other goods are left out of its ledger.
+pub fn known_goods(w: &World, seat: SeatId) -> Vec<bool> {
+    let c = content();
+    let civ = &w.civs[seat as usize];
+    let mut k = vec![false; NG];
+    for g in [Good::Food, Good::Materials, Good::Tools] {
+        k[g.index()] = true;
+    }
+    let f = &civ.last_flows;
+    for g in 0..NG {
+        if civ.stock[g] != 0 || f.produced[g] != 0 || f.consumed[g] != 0 || f.traded_in[g] != 0 || f.traded_out[g] != 0 {
+            k[g] = true;
+        }
+    }
+    let disc = |r: &crate::content::Req| -> bool {
+        let (mut ts, mut ps) = (Vec::new(), Vec::new());
+        r.techs(&mut ts);
+        r.pracs(&mut ps);
+        ts.iter().all(|t| civ.tech[*t].state >= ST_DISCOVERED) && ps.iter().all(|p| civ.practice[*p].state >= 1)
+    };
+    let mut mark = |v: &[(Good, i64)]| v.iter().for_each(|(g, _)| k[g.index()] = true);
+    for (fi, def) in c.facilities.iter().enumerate() {
+        if !facility_visible(w, seat, fi) {
+            continue;
+        }
+        mark(&def.cost);
+        mark(&def.upkeep);
+        for r in def.recipes.iter().filter(|r| disc(&r.req)) {
+            mark(&r.inputs);
+            mark(&r.outputs);
+        }
+    }
+    for t in c.unit_tiers.iter().filter(|t| disc(&t.req)) {
+        mark(&t.equipment);
+        mark(&t.alternative);
+        mark(&t.maneuver_extra);
+        mark(&t.upkeep);
+    }
+    for (ci, course) in c.courses.iter().enumerate() {
+        if course_visible(w, seat, ci) {
+            mark(&course.materials);
+        }
+    }
+    for (i, m) in economy::FIELD_METHODS.iter().enumerate() {
+        if field_method_discovered(civ, i) {
+            for (j, g) in economy::FIELD_INPUTS.iter().enumerate() {
+                if m.draws(j) {
+                    k[g.index()] = true;
+                }
+            }
+        }
+    }
+    for d in Deposit::ALL {
+        if deposit_known(civ, *d) && w.regions.iter().any(|r| r.deposit(*d).is_some() && civ.memory[r.id as usize].surveyed) {
+            k[crate::content::deposit_good(*d).index()] = true;
+        }
+    }
+    k
+}
+
 fn field_method_discovered(civ: &Civ, i: usize) -> bool {
     let c = content();
     economy::FIELD_METHODS[i].techs.iter().all(|id| civ.tech[c.t(id)].state >= ST_DISCOVERED) && economy::FIELD_METHODS[i].practices.iter().all(|id| civ.practice[c.p(id)].state >= 1)
@@ -514,24 +597,14 @@ fn method_posts(def: &crate::content::FacDef, rec: &crate::content::Recipe) -> (
 /// chemicals and fuel one level draws.
 fn field_recipes(w: &World, seat: SeatId, _def: &crate::content::FacDef) -> Vec<RecipeView> {
     let civ = &w.civs[seat as usize];
-    let has_pasture = economy::has_pasture(w, seat);
     (0..economy::FIELD_METHODS.len())
         .filter(|i| field_method_discovered(civ, *i))
         .map(|i| {
             let m = &economy::FIELD_METHODS[i];
-            let mut inputs = Vec::new();
-            if m.chem() {
-                inputs.push(GoodQty { good: Good::Chemicals, amount: m.chem_t });
-            }
-            if m.fuel() {
-                inputs.push(GoodQty { good: Good::Fuel, amount: m.fuel_t });
-            }
+            let inputs: Vec<GoodQty> = economy::FIELD_INPUTS.iter().enumerate().filter(|(k, _)| m.draws(*k)).map(|(k, g)| GoodQty { good: *g, amount: m.inputs[k] }).collect();
             let mut note = "Yield of one level's cultivators before irrigation (a quarter more), the year's harvest, husbandry, tools, condition and unrest.".to_string();
-            if m.chem() || m.fuel() {
+            if !inputs.is_empty() {
                 note.push_str(" Used only while a full month of its inputs is in store for every field that may draw them; otherwise the land is worked by the next method down.");
-            }
-            if m.needs_pasture {
-                note.push_str(" Needs herds on pasture somewhere under the same government.");
             }
             RecipeView {
                 key: m.key.to_string(),
@@ -546,7 +619,7 @@ fn field_recipes(w: &World, seat: SeatId, _def: &crate::content::FacDef) -> Vec<
                 out_compute: 0,
                 research: None,
                 note,
-                available: economy::field_method_known(civ, i) && (!m.needs_pasture || has_pasture),
+                available: economy::field_method_known(civ, i),
                 general_posts: m.posts,
                 skilled_posts: Vec::new(),
             }
@@ -591,8 +664,10 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
                     .deposits
                     .iter()
                     .filter(|d| deposit_known(civ, d.kind))
-                    .map(|d| DepositView { kind: d.kind, remaining: if mine { d.remaining } else { (d.remaining / 10_000_000).max(1) * 10_000_000 }, quality_bp: d.quality_bp, epistemic: if mine { Epistemic::Verified } else { Epistemic::Estimated } })
+                    .map(|d| DepositView { kind: d.kind, remaining: if mine { d.remaining } else { size_band(d.remaining) }, quality_bp: d.quality_bp, epistemic: if mine { Epistemic::Verified } else { Epistemic::Estimated }, helium_bp: helium_seen(civ, d) })
                     .collect(),
+                spice_land: r.spice_land,
+                bonuses: bonuses_seen(civ, r),
                 surveyed_month: mem.survey_month,
                 detailed: true,
             })
@@ -636,8 +711,10 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     let ctrl: Vec<&Region> = w.regions.iter().filter(|r| r.controller == Some(seat)).collect();
     let population: u64 = ctrl.iter().map(|r| r.population() as u64).sum();
     let storage: i64 = ctrl.iter().map(|r| r.cap(Cap::Storage) + 400_000).sum();
+    let known = known_goods(w, seat);
     let goods = Good::ALL
         .iter()
+        .filter(|g| known[g.index()])
         .map(|g| GoodLine {
             good: *g,
             stock: civ.stock_of(*g),
@@ -1037,6 +1114,9 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             build_crew: crew_spec(&def.crew),
             build_power: def.build_power,
             build_months: projects::build_months(def.build_months, w.cfg.pace_bp) as u16,
+            line: def.line.to_string(),
+            stage: def.stage,
+            era: def.era,
         });
     }
     let mut cat_courses = Vec::new();
@@ -1081,6 +1161,9 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             training_months: t.training_months,
             requirements,
             available: t.req.eval(&ctx),
+            generation: t.generation,
+            maneuver_extra: qty(&t.maneuver_extra),
+            alternative: qty(&t.alternative),
         });
     }
 
@@ -1411,7 +1494,9 @@ pub fn spectate(w: &World) -> SpectatorView {
                 forest: r.forest,
                 water: r.water,
                 hydro: r.hydro,
-                deposits: r.deposits.iter().map(|d| DepositView { kind: d.kind, remaining: d.remaining, quality_bp: d.quality_bp, epistemic: Epistemic::Verified }).collect(),
+                deposits: r.deposits.iter().map(|d| DepositView { kind: d.kind, remaining: d.remaining, quality_bp: d.quality_bp, epistemic: Epistemic::Verified, helium_bp: (d.kind == Deposit::Gas).then_some(d.helium_bp) }).collect(),
+                spice_land: r.spice_land,
+                bonuses: r.bonuses.iter().map(|(k, v)| BonusView { kind: *k, bp: *v }).collect(),
                 surveyed_month: w.month,
                 detailed: true,
             }),

@@ -24,8 +24,8 @@ pub const HARDWARE_MARGIN: (i64, i64) = (6, 5);
 pub const STORE_MONTHS: i64 = 12;
 pub const SITE_TRANSPORT: u8 = 2;
 pub const SITE_POWER_BP: i64 = 9000;
-/// The goods of the industrial base (check 10).
-pub const HARDWARE_GOODS: [Good; 5] = [Good::Components, Good::Electronics, Good::Hardware, Good::Conductors, Good::Metal];
+/// The goods of the industrial base (check 10; ruleset 3.0 adds magnets and lattice).
+pub const HARDWARE_GOODS: [Good; 7] = [Good::Components, Good::Electronics, Good::Hardware, Good::Conductors, Good::Metal, Good::Magnets, Good::Lattice];
 
 fn check(label: &str, ok: bool, detail: String) -> Check {
     Check { label: label.to_string(), detail, ok, category: String::new() }

@@ -47,7 +47,19 @@ export const DEPOSIT_RGB: Record<Deposit, RGB> = {
   iron_ore: [0.5, 0.54, 0.6],
   coal: [0.16, 0.15, 0.16],
   crude: [0.22, 0.16, 0.14],
-  minerals: [0.56, 0.42, 0.82],
+  tin: [0.54, 0.56, 0.59],
+  salt: [0.85, 0.83, 0.78],
+  saltpetre: [0.72, 0.68, 0.58],
+  precious: [0.79, 0.64, 0.15],
+  gas: [0.35, 0.54, 0.66],
+  bauxite: [0.66, 0.34, 0.23],
+  uranium_ore: [0.48, 0.60, 0.23],
+  rare_earths: [0.43, 0.36, 0.66],
+  lithium: [0.60, 0.69, 0.74],
+  cobalt_nickel: [0.29, 0.42, 0.54],
+  quartz: [0.36, 0.61, 0.58],
+  volatiles: [0.42, 0.66, 0.82],
+  helium3: [0.63, 0.75, 0.88],
 };
 
 export function settlementRadius(kind: SettlementKind): number {

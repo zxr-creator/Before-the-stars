@@ -99,11 +99,14 @@ pub struct DepositState {
     /// Tonnes of ore ever delivered at the pithead from here; never more than `drawn`.
     #[serde(default)]
     pub delivered: i64,
+    /// Gas fields: helium recoverable per 10,000 t of gas raised (0-150).
+    #[serde(default)]
+    pub helium_bp: u16,
 }
 
 impl DepositState {
     pub fn new(kind: Deposit, remaining: i64, quality_bp: u16) -> Self {
-        DepositState { kind, remaining, quality_bp, drawn: 0, delivered: 0 }
+        DepositState { kind, remaining, quality_bp, drawn: 0, delivered: 0, helium_bp: 0 }
     }
 }
 
@@ -366,6 +369,21 @@ pub struct Region {
     /// rules on city growth, harbours and migration read without regenerating the world.
     #[serde(default)]
     pub site: SiteData,
+    /// Levels of warm, wet land fit for spice plantations (ruleset 3.0).
+    #[serde(default)]
+    pub spice_land: u16,
+    /// Site bonuses, at most two: the bonus and what it adds, basis points.
+    #[serde(default)]
+    pub bonuses: Vec<(Bonus, u16)>,
+    /// A sheltered bay, estuary or fjord (design chapter 38, section 2.3).
+    #[serde(default)]
+    pub natural_harbour: bool,
+    /// The region's principal city (design chapter 38, section 2.1): its name and
+    /// position, on the coast or river where there is one.
+    #[serde(default)]
+    pub city_name: String,
+    #[serde(default)]
+    pub city_at: [i32; 2],
 }
 
 fn default_climate() -> ClimateZone {
@@ -407,6 +425,10 @@ pub struct Outbreak {
 }
 
 impl Region {
+    /// What a site bonus of this kind adds here, basis points (0 without it).
+    pub fn bonus(&self, b: Bonus) -> i64 {
+        self.bonuses.iter().find(|(k, _)| *k == b).map(|(_, v)| *v as i64).unwrap_or(0)
+    }
     pub fn population(&self) -> u32 {
         self.blocks.iter().map(|b| b.total()).sum()
     }
@@ -1194,6 +1216,19 @@ pub struct World {
     /// `last_flows` (0 before the first round is resolved).
     #[serde(default)]
     pub last_round_months: u32,
+    /// Sea links closed by ice (generator 2.0; design chapter 38, section 8.1), as
+    /// sorted pairs. Recorded world data: no rule of ruleset 3.0 slices 4-6 reads it.
+    #[serde(default)]
+    pub ice_links: Vec<IceLink>,
+}
+
+/// A sea link between two subpolar or polar regions that ice closes in winter
+/// (`permanent: false`) or for most of the year (`permanent: true`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IceLink {
+    pub a: RegionId,
+    pub b: RegionId,
+    pub permanent: bool,
 }
 
 impl World {

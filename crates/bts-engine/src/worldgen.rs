@@ -156,8 +156,9 @@ const SYL_C: &[&str] = &["dale", "mere", "ford", "haven", "reach", "wold", "mark
 const CIV_ROOTS: &[(&str, &str)] = &[
     ("Riverland", "Riverlander"), ("Clearbay", "Clearbay"), ("Greenreach", "Greenreach"), ("Farcape", "Farcaper"),
     ("Highmere", "Highmere"), ("Stonewold", "Stonewolder"), ("Amberfen", "Amberfen"), ("Longstrand", "Longstrander"),
+    ("Sunmarch", "Sunmarcher"), ("Ironvale", "Ironvaler"), ("Westerholm", "Westerholmer"), ("Duskmoor", "Duskmoorer"),
 ];
-pub const CIV_COLORS: [&str; 4] = ["#c1503a", "#2f73a0", "#5c8a36", "#8a59a8"];
+pub const CIV_COLORS: [&str; 10] = ["#c1503a", "#2f73a0", "#5c8a36", "#8a59a8", "#c08a2a", "#2a9a9a", "#a8507a", "#6a6a3a", "#4a5aa8", "#8a4a2a"];
 
 pub(crate) fn region_name(secret: u64, i: usize, used: &mut Vec<String>) -> String {
     for attempt in 0..20u64 {
@@ -298,6 +299,11 @@ pub(crate) fn new_region(secret: u64, rid: usize, used_names: &mut Vec<String>, 
         army_seen: 0,
         climate,
         site: SiteData::default(),
+        spice_land: 0,
+        bonuses: Vec::new(),
+        natural_harbour: false,
+        city_name: String::new(),
+        city_at: center,
     }
 }
 
@@ -631,6 +637,82 @@ fn finish_geography(geo: &mut Geo, secret: u64) {
         };
         regions[i].site = site;
     }
+    // natural harbours: about a third of coasts, three in five river mouths
+    for i in 0..nr {
+        let r = &regions[i];
+        if !r.coastal {
+            continue;
+        }
+        let chance = if r.site.river_mouth { 6_000 } else { 2_000 + r.site.harbour_bp as u64 / 6 };
+        if draw_range(secret, &[stream("natural-harbour"), i as u64], 10_000) < chance {
+            regions[i].natural_harbour = true;
+            regions[i].site.harbour_bp = regions[i].site.harbour_bp.max(7_000);
+        }
+    }
+    // the principal city: named, and placed on the shore (seaward of the centre, away
+    // from the land neighbours) or on the river at the centre
+    let mut used = regions.iter().map(|r| r.name.clone()).collect::<Vec<_>>();
+    for i in 0..nr {
+        regions[i].city_name = city_name(secret, i, regions[i].coastal, &mut used);
+        let c = regions[i].center;
+        let mut at = c;
+        if regions[i].coastal && !regions[i].poly.is_empty() {
+            let land: Vec<[i32; 2]> = regions[i].neighbors.iter().filter(|(_, k)| *k != LinkKind::Sea).map(|(n, _)| regions[*n as usize].center).collect();
+            let near_land = |p: [i32; 2]| -> i64 { land.iter().map(|q| dist2(p, *q, wrap_w)).min().unwrap_or(0) };
+            // the polygon is contiguous around its centre, so plain offsets apply
+            let v = *regions[i].poly.iter().max_by_key(|p| (near_land(**p), -(p[0] as i64), -(p[1] as i64))).unwrap();
+            at = [c[0] + (v[0] - c[0]) * 6 / 10, c[1] + (v[1] - c[1]) * 6 / 10];
+            if wrap_w > 0 {
+                at[0] = at[0].rem_euclid(wrap_w);
+            }
+        }
+        regions[i].city_at = at;
+    }
+}
+
+const CITY_A: &[&str] = &["Ast", "Bran", "Cer", "Dal", "Esk", "Fair", "Gor", "Hav", "Ister", "Jor", "Kel", "Lun", "Mor", "Ner", "Oss", "Pra", "Riv", "Sol", "Tam", "Ur", "Ves", "Wyn", "Xan", "Yor", "Zel", "Ald", "Bel", "Cas", "Dor", "Emb"];
+const CITY_B: &[&str] = &["", "a", "e", "i", "o", "an", "er", "in", "ol", "ur"];
+const CITY_C: &[&str] = &["ton", "burg", "ia", "polis", "grad", "by", "heim", "ora", "ium", "stad", "ville", "akar", "ost", "ene"];
+const CITY_COAST: &[&str] = &["port", "mouth", "haven", "quay"];
+
+/// A name for a region's principal city, distinct from every region and city name.
+fn city_name(secret: u64, i: usize, coastal: bool, used: &mut Vec<String>) -> String {
+    for attempt in 0..20u64 {
+        let d = |k: u64, n: usize| draw_range(secret, &[stream("city-name"), i as u64, attempt, k], n as u64) as usize;
+        let a = CITY_A[d(0, CITY_A.len())];
+        let b = CITY_B[d(1, CITY_B.len())];
+        let c = if coastal && d(3, 3) == 0 { CITY_COAST[d(2, CITY_COAST.len())] } else { CITY_C[d(2, CITY_C.len())] };
+        let name = format!("{a}{b}{c}");
+        if !used.contains(&name) {
+            used.push(name.clone());
+            return name;
+        }
+    }
+    format!("City {i}")
+}
+
+/// Sea links between subpolar or polar regions that ice closes: seasonally where
+/// both ends lie beyond 52 degrees of latitude, for most of the year where both lie
+/// beyond 62 or both are polar.
+fn ice_links(regions: &[Region], height: i32) -> Vec<IceLink> {
+    let lat = |r: &Region| -> i64 { (90 - r.center[1] as i64 * 180 / height.max(1) as i64).abs() };
+    let mut out = Vec::new();
+    for r in regions {
+        for (n, k) in &r.neighbors {
+            let o = &regions[*n as usize];
+            if *k != LinkKind::Sea || o.id <= r.id {
+                continue;
+            }
+            let (la, lb) = (lat(r), lat(o));
+            let polar = r.climate == ClimateZone::Polar && o.climate == ClimateZone::Polar;
+            if la.min(lb) > 62 || polar {
+                out.push(IceLink { a: r.id, b: o.id, permanent: true });
+            } else if la.min(lb) > 52 {
+                out.push(IceLink { a: r.id, b: o.id, permanent: false });
+            }
+        }
+    }
+    out
 }
 
 /// Mineral wealth within one link of each region, in basis points of the richest:
@@ -651,45 +733,173 @@ fn resource_proximity(regions: &mut [Region]) {
     }
 }
 
-/// Correlated deposits, placed by geology and climate. Kilotonnes in the ground
-/// (stored in tonnes). Extraction draws from a deposit at least what it delivers,
-/// and shallow workings disturb twice what they deliver. Generator 2.0 holds three
-/// centuries of industrial demand at the scale of ruleset 3.0 (design chapter 36,
-/// section 5.3).
-fn place_deposits(geo: &mut Geo, secret: u64) {
+/// What each deposit kind looks for and how much of it there is (design chapter
+/// 36, table 5.3, at the scale of 48 regions): the number of regions (low, high),
+/// the size per deposit in kilotonnes (low, high), and the geology bias.
+struct DepositRule {
+    kind: Deposit,
+    regions: (usize, usize),
+    kt: (i64, i64),
+}
+
+const DEPOSIT_RULES: [DepositRule; 15] = [
+    DepositRule { kind: Deposit::CopperOre, regions: (16, 20), kt: (300_000, 1_200_000) },
+    DepositRule { kind: Deposit::Tin, regions: (5, 7), kt: (10_000, 40_000) },
+    DepositRule { kind: Deposit::IronOre, regions: (20, 24), kt: (2_000_000, 8_000_000) },
+    DepositRule { kind: Deposit::Coal, regions: (18, 22), kt: (3_000_000, 12_000_000) },
+    DepositRule { kind: Deposit::Saltpetre, regions: (6, 9), kt: (20_000, 80_000) },
+    DepositRule { kind: Deposit::Salt, regions: (18, 22), kt: (500_000, 5_000_000) },
+    DepositRule { kind: Deposit::Precious, regions: (8, 12), kt: (2, 10) },
+    DepositRule { kind: Deposit::Crude, regions: (8, 12), kt: (1_000_000, 6_000_000) },
+    DepositRule { kind: Deposit::Gas, regions: (8, 12), kt: (1_000_000, 5_000_000) },
+    DepositRule { kind: Deposit::Bauxite, regions: (4, 6), kt: (500_000, 3_000_000) },
+    DepositRule { kind: Deposit::UraniumOre, regions: (4, 6), kt: (5_000, 30_000) },
+    DepositRule { kind: Deposit::RareEarths, regions: (3, 5), kt: (20_000, 100_000) },
+    DepositRule { kind: Deposit::Lithium, regions: (3, 4), kt: (5_000, 30_000) },
+    DepositRule { kind: Deposit::CobaltNickel, regions: (4, 6), kt: (20_000, 150_000) },
+    DepositRule { kind: Deposit::Quartz, regions: (5, 8), kt: (50_000, 300_000) },
+];
+
+/// World minimum of regions holding each rare kind (design chapter 36, 5.3).
+pub(crate) fn world_minimum(d: Deposit) -> usize {
+    match d {
+        Deposit::Tin => 5,
+        Deposit::Lithium | Deposit::RareEarths | Deposit::UraniumOre | Deposit::Quartz | Deposit::CobaltNickel => 3,
+        Deposit::Bauxite => 4,
+        _ => 0,
+    }
+}
+
+/// Gas fields rich in helium (`helium_bp` of 50 or more) in the world at least.
+pub(crate) const HELIUM_RICH_MIN: usize = 2;
+
+/// How strongly a region's geology, terrain and climate call for a deposit kind.
+fn deposit_bias(d: Deposit, r: &Region, g: GeoTag) -> f64 {
+    use Terrain::*;
+    let t = r.terrain;
+    let arid = r.climate == ClimateZone::Arid || matches!(t, Desert | Steppe);
+    let rough = matches!(t, Hills | Mountains);
+    let wet_lowland = g.basin && matches!(t, Plains | Hills | Forest | Marsh) && !matches!(r.climate, ClimateZone::Arid | ClimateZone::Polar);
+    match d {
+        Deposit::CopperOre => if g.belt { 0.30 } else if rough { 0.15 } else { 0.0 },
+        Deposit::Tin => if g.belt && rough { 0.35 } else if rough { 0.15 } else { -0.1 },
+        Deposit::IronOre => if g.shield || g.belt { 0.25 } else if matches!(t, Plains | Hills) { 0.10 } else { 0.0 },
+        Deposit::Coal => if wet_lowland { 0.30 } else if matches!(t, Hills | Forest | Plains) { 0.10 } else { -0.1 },
+        Deposit::Saltpetre => if t == Desert { 0.35 } else if arid || t == Hills { 0.18 } else { -0.1 },
+        Deposit::Salt => if arid { 0.25 } else if g.basin && r.coastal { 0.15 } else { 0.0 },
+        Deposit::Precious => if g.belt && rough { 0.30 } else if rough { 0.15 } else { -0.05 },
+        Deposit::Crude => if g.basin && matches!(t, Desert | Steppe | Tundra | Marsh) { 0.35 } else if g.basin { 0.12 } else { -0.1 },
+        Deposit::Gas => if g.basin && matches!(t, Desert | Steppe | Tundra | Marsh) { 0.30 } else if g.basin { 0.12 } else { -0.1 },
+        Deposit::Bauxite => if r.climate == ClimateZone::Tropical && matches!(t, Plains | Hills | Forest) { 0.40 } else if r.climate == ClimateZone::Tropical { 0.15 } else { -0.15 },
+        Deposit::UraniumOre => if g.shield || t == Desert { 0.25 } else if t == Mountains { 0.18 } else { -0.05 },
+        Deposit::RareEarths => if g.shield || t == Mountains { 0.25 } else if t == Desert { 0.15 } else { -0.05 },
+        Deposit::Lithium => if arid && (g.basin || g.rift) { 0.40 } else if arid { 0.20 } else { -0.15 },
+        Deposit::CobaltNickel => if t == Mountains || g.belt { 0.25 } else if t == Tundra { 0.20 } else { -0.05 },
+        Deposit::Quartz => if rough { 0.25 } else { -0.05 },
+        Deposit::Volatiles | Deposit::Helium3 => -1.0,
+    }
+}
+
+/// Deposits placed by geology and climate (design chapter 36, section 5.3; chapter
+/// 37, section 5.1, step 6). For each kind the regions whose geology calls for it
+/// most (with noise) receive one, as many as the table asks for this world's size;
+/// then no starting neighbourhood (three links) may hold more than half of the
+/// regions with a rare kind, and the larger ones are moved away. Gas fields get a
+/// helium content, a few of them rich. Kilotonnes in the table, tonnes in the state.
+fn place_deposits(geo: &mut Geo, secret: u64, starts: &[usize]) {
     let noise = Noise { key: draw(secret, &[stream("geology")]) };
-    let wrap = geo.wrap;
     let nr = geo.regions.len();
-    // (kind, layer, threshold, low, high in kt)
-    let belts: [(Deposit, u64, f64, i64, i64); 5] = [
-        (Deposit::CopperOre, 40, 0.56, 300_000, 1_200_000),
-        (Deposit::IronOre, 50, 0.52, 2_000_000, 8_000_000),
-        (Deposit::Coal, 60, 0.54, 3_000_000, 12_000_000),
-        (Deposit::Crude, 70, 0.57, 600_000, 2_000_000),
-        (Deposit::Minerals, 80, 0.58, 80_000, 260_000),
-    ];
-    for i in 0..nr {
-        let r = &geo.regions[i];
-        let (x, y) = (r.center[0] as f64, r.center[1] as f64);
-        let t = r.terrain;
-        let g = geo.tags[i];
-        let mut add = Vec::new();
-        for (kind, layer, threshold, lo, hi) in belts.iter() {
-            let mut v = if wrap { noise.fractal_wrapped(*layer, x, y, 250.0, geo.width as f64) } else { noise.fractal(*layer, x, y, 330.0) };
-            v += match kind {
-                Deposit::CopperOre => if g.belt { 0.12 } else if matches!(t, Terrain::Hills | Terrain::Mountains) { 0.06 } else { -0.04 },
-                Deposit::IronOre => if g.shield || g.belt { 0.10 } else { -0.03 },
-                Deposit::Coal => if g.basin && matches!(t, Terrain::Plains | Terrain::Hills | Terrain::Forest | Terrain::Marsh) && !matches!(r.climate, ClimateZone::Arid | ClimateZone::Polar) { 0.10 } else if matches!(t, Terrain::Hills | Terrain::Forest | Terrain::Plains) { 0.03 } else { -0.04 },
-                Deposit::Crude => if g.basin && matches!(t, Terrain::Desert | Terrain::Steppe | Terrain::Tundra | Terrain::Marsh) { 0.14 } else if g.basin { 0.04 } else { -0.04 },
-                _ => if g.shield || matches!(t, Terrain::Mountains | Terrain::Desert) { 0.10 } else { -0.02 },
-            };
-            if v > *threshold {
-                let amount = rng_between(secret, &[stream("deposit"), i as u64, *layer], *lo, *hi);
-                let quality = rng_between(secret, &[stream("depq"), i as u64, *layer], 5500, 9500) as u16;
-                add.push(DepositState::new(*kind, amount * 1000, quality));
+    let near: Vec<Vec<usize>> = starts.iter().map(|h| within_links(&geo.regions, *h, 3).into_iter().map(|x| x.0).collect()).collect();
+    for (k, rule) in DEPOSIT_RULES.iter().enumerate() {
+        let layer = 40 + 10 * k as u64;
+        let mut score: Vec<(f64, usize)> = (0..nr)
+            .map(|i| {
+                let r = &geo.regions[i];
+                let (x, y) = (r.center[0] as f64, r.center[1] as f64);
+                let v = if geo.wrap { noise.fractal_wrapped(layer, x, y, 250.0, geo.width as f64) } else { noise.fractal(layer, x, y, 330.0) };
+                let mut sc = v + deposit_bias(rule.kind, r, geo.tags[i]);
+                if rule.kind == Deposit::Gas && r.deposit(Deposit::Crude).is_some() {
+                    sc += 0.25;
+                }
+                (sc, i)
+            })
+            .collect();
+        score.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap().then(a.1.cmp(&b.1)));
+        let (lo, hi) = (rule.regions.0 * nr / 48, (rule.regions.1 * nr + 47) / 48);
+        let want = (lo + draw_range(secret, &[stream("deposit-count"), k as u64], (hi - lo + 1) as u64) as usize).max(world_minimum(rule.kind)).min(nr);
+        // a rare kind is not concentrated around one start: take the regions in order
+        // of how strongly they call for it, skipping one that would put more than half
+        // of the kind's regions in some start's neighbourhood while another will do
+        let mut chosen: Vec<usize> = Vec::new();
+        if world_minimum(rule.kind) > 0 {
+            let cap = want / 2;
+            for &(_, i) in &score {
+                if chosen.len() >= want {
+                    break;
+                }
+                let fits = near.iter().all(|n| !n.contains(&i) || chosen.iter().filter(|c| n.contains(c)).count() < cap);
+                if fits {
+                    chosen.push(i);
+                }
             }
+            for &(_, i) in &score {
+                if chosen.len() >= want {
+                    break;
+                }
+                if !chosen.contains(&i) {
+                    chosen.push(i);
+                }
+            }
+        } else {
+            chosen = score.iter().take(want).map(|x| x.1).collect();
         }
-        geo.regions[i].deposits.extend(add);
+        chosen.sort();
+        for i in chosen {
+            let amount = rng_between(secret, &[stream("deposit"), i as u64, layer], rule.kt.0, rule.kt.1);
+            let quality = rng_between(secret, &[stream("depq"), i as u64, layer], 5500, 9500) as u16;
+            geo.regions[i].deposits.push(DepositState::new(rule.kind, amount * 1000, quality));
+        }
+    }
+    // helium content of gas fields: a few rich ones, the rest poor
+    let mut gas: Vec<usize> = (0..nr).filter(|i| geo.regions[*i].deposit(Deposit::Gas).is_some()).collect();
+    gas.sort_by_key(|i| (draw(secret, &[stream("helium-rank"), *i as u64]), *i));
+    let rich = (HELIUM_RICH_MIN + draw_range(secret, &[stream("helium-count")], 3) as usize).min(gas.len());
+    for (k, i) in gas.iter().enumerate() {
+        let bp = if k < rich { rng_between(secret, &[stream("helium"), *i as u64], 50, 150) } else { rng_between(secret, &[stream("helium"), *i as u64], 0, 30) };
+        if let Some(d) = geo.regions[*i].deposits.iter_mut().find(|d| d.kind == Deposit::Gas) {
+            d.helium_bp = bp as u16;
+        }
+    }
+}
+
+/// Site bonuses (at most two per region) and spice land (design chapter 36, 5.3).
+fn place_bonuses(regions: &mut [Region], secret: u64, starts: &[usize]) {
+    for (i, r) in regions.iter_mut().enumerate() {
+        let roll = |k: u64| draw_range(secret, &[stream("bonus"), i as u64, k], 10_000);
+        let mut b: Vec<(Bonus, u16)> = Vec::new();
+        let lowland = !matches!(r.terrain, Terrain::Hills | Terrain::Mountains | Terrain::Desert | Terrain::Tundra);
+        if (r.river && lowland && roll(0) < 7_000) || starts.contains(&i) {
+            b.push((Bonus::Floodplain, 2_500));
+        }
+        if r.coastal && r.fishery > 0 && roll(1) < 3_000 {
+            b.push((Bonus::FishBanks, 5_000));
+        }
+        if matches!(r.terrain, Terrain::Steppe | Terrain::Plains) && r.pasture >= 20 && roll(2) < 3_500 {
+            b.push((Bonus::WildHerds, 5_000));
+        }
+        if r.terrain == Terrain::Forest && r.forest >= 24 && roll(3) < 4_000 {
+            b.push((Bonus::OldGrowth, 5_000));
+        }
+        if r.pasture >= 30 && roll(4) < 3_000 {
+            b.push((Bonus::RichPasture, 3_000));
+        }
+        b.truncate(2);
+        r.bonuses = b;
+        r.spice_land = match (r.climate, r.terrain) {
+            (ClimateZone::Tropical, Terrain::Plains | Terrain::Forest | Terrain::Marsh | Terrain::Hills) => rng_between(secret, &[stream("spice"), i as u64], 6, 20) as u16,
+            (ClimateZone::Tropical, _) => rng_between(secret, &[stream("spice"), i as u64], 0, 4) as u16,
+            _ => 0,
+        };
     }
 }
 
@@ -765,7 +975,8 @@ fn choose_starts(regions: &[Region], seats: usize, wrap_w: i32) -> (Vec<usize>, 
             _ => true,
         }
     };
-    let land_room = |s: usize| -> usize { link_distances(regions, s, true).iter().filter(|d| **d <= 3).count() };
+    let rooms: Vec<usize> = (0..nr).map(|s| link_distances(regions, s, true).iter().filter(|d| **d <= 3).count()).collect();
+    let land_room = |s: usize| -> usize { rooms[s] };
     let mut best: (i64, Vec<usize>, usize) = (i64::MIN, Vec::new(), 0);
     'levels: for strict in [2u8, 1, 0] {
         let mut cands: Vec<usize> = (0..nr).filter(|i| fit(&regions[*i], strict)).collect();
@@ -797,12 +1008,12 @@ fn choose_starts(regions: &[Region], seats: usize, wrap_w: i32) -> (Vec<usize>, 
                 let room = start_room_of(regions, &starts);
                 let scores: Vec<i64> = starts.iter().map(|s| home_score(&regions[*s])).collect();
                 let fair = scores.iter().min().unwrap() * 100 / scores.iter().max().unwrap().max(&1);
-                let value = room.min(room_needed(nr)) as i64 * 4000 + strict as i64 * 1500 + room.min(12) as i64 * 300 + fair * 5 + apart.min(4) as i64 * 2500;
+                let value = room.min(room_needed(nr, seats)) as i64 * 4000 + strict as i64 * 1500 + room.min(12) as i64 * 300 + fair * 5 + apart.min(4) as i64 * 2500;
                 if value > best.0 {
                     best = (value, starts, room);
                 }
             }
-            if !best.1.is_empty() && best.2 >= room_needed(nr) && apart >= 3 {
+            if !best.1.is_empty() && best.2 >= room_needed(nr, seats) && apart >= 3 {
                 break 'levels;
             }
         }
@@ -821,15 +1032,20 @@ pub(crate) fn start_room_of(regions: &[Region], starts: &[usize]) -> usize {
 }
 
 /// Regions a viable start needs about it.
-pub(crate) fn room_needed(regions: usize) -> usize {
-    (regions / 12).max(3)
+/// Regions a viable start needs about it: a third of an even share of the world
+/// (four for 48 regions and four seats), at least three, for any number of seats.
+pub(crate) fn room_needed(regions: usize, seats: usize) -> usize {
+    (regions / (3 * seats.max(1))).max(3)
 }
+
+/// Seats a world is generated for: the configured controllers, two to ten.
+pub(crate) const MAX_SEATS: usize = 10;
 
 /// The geography of a match: the configured map source, then the shared steps.
 /// An Earth-like world is drawn again (from the next address of the same secret)
 /// when its starts would not be viable, at most a dozen times; the best attempt stands.
 pub(crate) fn geography(cfg: &MatchConfig, secret: u64) -> (Geo, Vec<usize>) {
-    let seats = cfg.controllers.len().clamp(2, 4);
+    let seats = cfg.controllers.len().clamp(2, MAX_SEATS);
     let mut best: Option<(usize, Geo, Vec<usize>)> = None;
     let attempts = if cfg.world == WorldKind::Classic { 1 } else { 12 };
     for attempt in 0..attempts {
@@ -842,7 +1058,7 @@ pub(crate) fn geography(cfg: &MatchConfig, secret: u64) -> (Geo, Vec<usize>) {
         if starts.len() < seats {
             continue;
         }
-        let good = room >= room_needed(geo.regions.len());
+        let good = room >= room_needed(geo.regions.len(), seats);
         if best.as_ref().map(|b| room > b.0).unwrap_or(true) {
             best = Some((room, geo, starts));
         }
@@ -879,9 +1095,10 @@ pub(crate) fn geography(cfg: &MatchConfig, secret: u64) -> (Geo, Vec<usize>) {
 pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
     let secret = derive_secret(&cfg, entropy);
     let (mut geo, mut starts) = geography(&cfg, secret);
-    place_deposits(&mut geo, secret);
+    place_deposits(&mut geo, secret, &starts);
+    place_bonuses(&mut geo.regions, secret, &starts);
     let wrap_w = if geo.wrap { geo.width } else { 0 };
-    let seats = cfg.controllers.len().clamp(2, 4);
+    let seats = cfg.controllers.len().clamp(2, MAX_SEATS);
     // Rotate seat assignment by seed so seat 0 is not always the best site.
     let rot = draw_range(secret, &[stream("seat-rot")], seats as u64) as usize;
     starts.rotate_left(rot);
@@ -903,11 +1120,10 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         }
         let near = within_links(&regions, home, 3);
         // at least this much within three links of home, in kilotonnes
-        let needed: [(Deposit, i64); 4] = [
+        let needed: [(Deposit, i64); 3] = [
             (Deposit::CopperOre, 1_200_000),
             (Deposit::IronOre, 7_000_000),
             (Deposit::Coal, 10_000_000),
-            (Deposit::Minerals, 120_000),
         ];
         for (k, (kind, amount)) in needed.iter().enumerate() {
             let have: i64 = near.iter().filter_map(|(x, _)| regions[*x].deposit(*kind)).map(|d| d.remaining).sum();
@@ -933,7 +1149,17 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             }
         }
     }
+    // salt within three links of every home: a deposit or a coast for pans
+    for (s, &home) in starts.iter().enumerate() {
+        let near = within_links(&regions, home, 3);
+        if near.iter().any(|(x, _)| regions[*x].coastal || regions[*x].deposit(Deposit::Salt).is_some()) {
+            continue;
+        }
+        let target = near.iter().filter(|(x, d)| *d >= 1 && !starts.contains(x)).map(|(x, d)| (*d, draw_range(secret, &[stream("viab-salt"), s as u64, *x as u64], 5), *x)).min().map(|p| p.2).unwrap_or(home);
+        regions[target].deposits.push(DepositState::new(Deposit::Salt, 500_000_000, 7000));
+    }
     resource_proximity(&mut regions);
+    let ice_links = ice_links(&regions, height);
 
     // --- test nodes: three mutually distant regions -----------------------------
     let mut test_nodes: Vec<usize> = Vec::new();
@@ -1002,7 +1228,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             r.blocks.push(block);
             r.quals[Qual::Lorekeeper.index()] = START_LOREKEEPERS;
             r.quals[Qual::Artisan.index()] = START_ARTISANS;
-            for key in ["makers_circle", "camp", "workshop"] {
+            for key in ["makers_circle", "camp", "quarry", "workshop"] {
                 r.facilities.push(Facility::new(c.f(key), 1));
             }
         }
@@ -1030,7 +1256,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             seat: s as SeatId,
             name: name.to_string(),
             adjective: adjective.to_string(),
-            color: CIV_COLORS[s % 4].to_string(),
+            color: CIV_COLORS[s % CIV_COLORS.len()].to_string(),
             controller: cfg.controllers[s],
             status: SeatStatus::Active,
             capital: home as RegionId,
@@ -1118,6 +1344,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         versions: vec![RULESET_VERSION.into(), CONTENT_VERSION.into(), GENERATOR_VERSION.into(), PROTOCOL_VERSION.into()],
         round_start: 0,
         last_round_months: 0,
+        ice_links,
     };
     for s in 0..seats {
         crate::sim::knowledge::refresh_visibility(&mut world, s as SeatId);

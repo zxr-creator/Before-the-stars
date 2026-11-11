@@ -23,7 +23,7 @@ export const METRIC_KEYS: MetricKey[] = [
 export const FOOD_CAP_MONTHS = 60;
 
 /** Goods that are grown, gathered or dug rather than made. */
-const RAW: Good[] = ['food', 'materials', 'copper_ore', 'iron_ore', 'coal', 'crude', 'minerals'];
+const RAW: Good[] = ['food', 'materials', 'copper_ore', 'iron_ore', 'coal', 'crude', 'timber', 'quartz', 'uranium_ore', 'rare_earths'];
 
 export interface Sample {
   round: number;

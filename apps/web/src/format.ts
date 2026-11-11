@@ -8,19 +8,32 @@ import type { ComponentChildren } from 'preact';
 import { isZh, t, tc } from './i18n';
 
 export const GOOD_LABEL: Record<Good, string> = {
-  food: 'Food', materials: 'Timber, stone and clay', tools: 'Tools', copper_ore: 'Copper ore', iron_ore: 'Iron ore',
-  coal: 'Coal', crude: 'Crude oil', minerals: 'Rare minerals', copper: 'Copper', metal: 'Structural metal',
-  components: 'Mechanical components', conductors: 'Conductors', insulation: 'Insulation and seals',
-  fuel: 'Refined fuel', chemicals: 'Chemicals', substrate: 'High-purity substrate', electronics: 'Electronic devices',
+  food: 'Food', materials: 'Building materials', tools: 'Tools', copper_ore: 'Copper ore', iron_ore: 'Iron ore',
+  coal: 'Coal', crude: 'Crude oil', copper: 'Copper', metal: 'Iron and steel',
+  components: 'Mechanical components', conductors: 'Conductors', insulation: 'Rubber, plastics and insulation',
+  fuel: 'Refined fuel', chemicals: 'Chemicals', substrate: 'Semiconductor materials', electronics: 'Electronic devices',
   hardware: 'Computing hardware', spares: 'Spare parts', media: 'Record media', instruments: 'Instruments',
   medicine: 'Medicine and bioproducts',
+  timber: 'Timber', fibres: 'Fibres', horses: 'Horses', salt: 'Salt', spices: 'Spices and stimulants',
+  precious: 'Precious metals', tin: 'Tin', saltpetre: 'Saltpetre', gas: 'Natural gas', bauxite: 'Bauxite',
+  uranium_ore: 'Uranium ore', rare_earths: 'Rare-earth ore', lithium: 'Lithium', cobalt_nickel: 'Cobalt and nickel',
+  quartz: 'High-purity quartz', helium: 'Helium', aluminium: 'Aluminium', fertilizer: 'Fertilizer', munitions: 'Munitions',
+  magnets: 'Magnets and superconductors', batteries: 'Batteries', nuclear_fuel: 'Nuclear fuel', textiles: 'Textiles',
+  consumer_goods: 'Consumer goods', fine_wares: 'Fine wares', lattice: 'Interface lattice',
+  volatiles: 'Volatiles (water and ices)', propellant: 'Propellant', helium3: 'Helium-3',
 };
 export const GOOD_SHORT: Record<Good, string> = {
   food: 'Food', materials: 'Materials', tools: 'Tools', copper_ore: 'Copper ore', iron_ore: 'Iron ore', coal: 'Coal',
-  crude: 'Crude', minerals: 'Minerals', copper: 'Copper', metal: 'Metal', components: 'Components',
+  crude: 'Crude', copper: 'Copper', metal: 'Metal', components: 'Components',
   conductors: 'Conductors', insulation: 'Insulation', fuel: 'Fuel', chemicals: 'Chemicals', substrate: 'Substrate',
   electronics: 'Electronics', hardware: 'Hardware', spares: 'Spares', media: 'Media', instruments: 'Instruments',
   medicine: 'Medicine',
+  timber: 'Timber', fibres: 'Fibres', horses: 'Horses', salt: 'Salt', spices: 'Spices', precious: 'Precious',
+  tin: 'Tin', saltpetre: 'Saltpetre', gas: 'Gas', bauxite: 'Bauxite', uranium_ore: 'Uranium', rare_earths: 'Rare earths',
+  lithium: 'Lithium', cobalt_nickel: 'Cobalt-nickel', quartz: 'Quartz', helium: 'Helium', aluminium: 'Aluminium',
+  fertilizer: 'Fertilizer', munitions: 'Munitions', magnets: 'Magnets', batteries: 'Batteries', nuclear_fuel: 'Nuclear fuel',
+  textiles: 'Textiles', consumer_goods: 'Consumer goods', fine_wares: 'Fine wares', lattice: 'Lattice',
+  volatiles: 'Volatiles', propellant: 'Propellant', helium3: 'Helium-3',
 };
 export const GOODS: Good[] = Object.keys(GOOD_LABEL) as Good[];
 
@@ -36,7 +49,10 @@ export const TERRAIN_LABEL: Record<Terrain, string> = {
   desert: 'Desert', tundra: 'Tundra',
 };
 export const DEPOSIT_LABEL: Record<Deposit, string> = {
-  copper_ore: 'Copper ore', iron_ore: 'Iron ore', coal: 'Coal', crude: 'Crude oil', minerals: 'Rare minerals',
+  copper_ore: 'Copper ore', iron_ore: 'Iron ore', coal: 'Coal', crude: 'Crude oil', tin: 'Tin', salt: 'Salt',
+  saltpetre: 'Saltpetre', precious: 'Precious metals', gas: 'Natural gas', bauxite: 'Bauxite', uranium_ore: 'Uranium ore',
+  rare_earths: 'Rare-earth ore', lithium: 'Lithium brine', cobalt_nickel: 'Cobalt and nickel', quartz: 'High-purity quartz',
+  volatiles: 'Volatiles (water and ices)', helium3: 'Helium-3',
 };
 export const ROLE_LABEL: Record<Role, string> = { assault: 'Assault', maneuver: 'Maneuver', denial: 'Denial' };
 export const ROLES: Role[] = ['assault', 'maneuver', 'denial'];

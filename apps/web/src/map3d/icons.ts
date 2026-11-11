@@ -13,7 +13,19 @@ const BADGE: Record<Deposit, { face: string; rim: string }> = {
   iron_ore: { face: '#cdd8e4', rim: '#3d4a5c' },
   coal: { face: '#e6d7b4', rim: '#2a2622' },
   crude: { face: '#f3d568', rim: '#3a2a14' },
-  minerals: { face: '#decff7', rim: '#4d3a8a' },
+  tin: { face: '#ece6d8', rim: '#8a8f96' },
+  salt: { face: '#ece6d8', rim: '#d8d4c8' },
+  saltpetre: { face: '#ece6d8', rim: '#b8ae94' },
+  precious: { face: '#ece6d8', rim: '#c9a227' },
+  gas: { face: '#ece6d8', rim: '#5a8aa8' },
+  bauxite: { face: '#ece6d8', rim: '#a8573a' },
+  uranium_ore: { face: '#ece6d8', rim: '#7a9a3a' },
+  rare_earths: { face: '#ece6d8', rim: '#6d5ca8' },
+  lithium: { face: '#ece6d8', rim: '#9ab0bc' },
+  cobalt_nickel: { face: '#ece6d8', rim: '#4a6a8a' },
+  quartz: { face: '#ece6d8', rim: '#5c9c94' },
+  volatiles: { face: '#ece6d8', rim: '#6aa8d0' },
+  helium3: { face: '#ece6d8', rim: '#a0c0e0' },
 };
 
 function glyph(ctx: CanvasRenderingContext2D, kind: Deposit): void {

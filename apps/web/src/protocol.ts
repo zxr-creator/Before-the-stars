@@ -10,10 +10,15 @@ export type SeatId = number;
 export type RegionId = number;
 export type Month = number;
 
+/** bts-protocol/2.0 (ruleset 3.0): fifty goods; 'minerals' retired. */
 export type Good =
-  | 'food' | 'materials' | 'tools' | 'copper_ore' | 'iron_ore' | 'coal' | 'crude' | 'minerals'
+  | 'food' | 'materials' | 'tools' | 'copper_ore' | 'iron_ore' | 'coal' | 'crude'
   | 'copper' | 'metal' | 'components' | 'conductors' | 'insulation' | 'fuel' | 'chemicals'
-  | 'substrate' | 'electronics' | 'hardware' | 'spares' | 'media' | 'instruments' | 'medicine';
+  | 'substrate' | 'electronics' | 'hardware' | 'spares' | 'media' | 'instruments' | 'medicine'
+  | 'timber' | 'fibres' | 'horses' | 'salt' | 'spices' | 'precious' | 'tin' | 'saltpetre' | 'gas'
+  | 'bauxite' | 'uranium_ore' | 'rare_earths' | 'lithium' | 'cobalt_nickel' | 'quartz' | 'helium'
+  | 'aluminium' | 'fertilizer' | 'munitions' | 'magnets' | 'batteries' | 'nuclear_fuel'
+  | 'textiles' | 'consumer_goods' | 'fine_wares' | 'lattice' | 'volatiles' | 'propellant' | 'helium3';
 
 export type Qual =
   | 'lorekeeper' | 'artisan' | 'agronomist' | 'tallier' | 'smith' | 'builder' | 'navigator'
@@ -26,7 +31,12 @@ export type Terrain = 'plains' | 'hills' | 'mountains' | 'forest' | 'marsh' | 's
 export type ClimateZone = 'tropical' | 'arid' | 'temperate' | 'continental' | 'polar';
 /** Kind of home world (design chapter 37, section 5). */
 export type WorldKind = 'earth_like' | 'classic';
-export type Deposit = 'copper_ore' | 'iron_ore' | 'coal' | 'crude' | 'minerals';
+/** bts-protocol/2.0: seventeen deposits; 'minerals' retired. */
+export type Deposit =
+  | 'copper_ore' | 'iron_ore' | 'coal' | 'crude' | 'tin' | 'salt' | 'saltpetre' | 'precious' | 'gas'
+  | 'bauxite' | 'uranium_ore' | 'rare_earths' | 'lithium' | 'cobalt_nickel' | 'quartz' | 'volatiles' | 'helium3';
+/** Site bonuses of a region (bts-protocol/2.0). */
+export type Bonus = 'floodplain' | 'fish_banks' | 'wild_herds' | 'old_growth' | 'rich_pasture';
 export type Role = 'assault' | 'maneuver' | 'denial';
 export type ResearchClass = 'craft' | 'scholarly' | 'scientific' | 'industrial' | 'advanced' | 'frontier';
 export type KnowledgeState = 'hinted' | 'discovered' | 'investigating' | 'understood' | 'prototyped' | 'adopted';
@@ -289,6 +299,13 @@ export interface DepositView {
   remaining: number;
   quality_bp: number;
   epistemic: Epistemic;
+  /** Gas fields: helium per 10,000 t of gas, to a seat that understands cryogenics. */
+  helium_bp?: number | null;
+}
+
+export interface BonusView {
+  kind: Bonus;
+  bp: number;
 }
 
 export interface SurveyView {
@@ -300,6 +317,9 @@ export interface SurveyView {
   water: number;
   hydro: number;
   deposits: DepositView[];
+  /** Levels of land fit for spice plantations (bts-protocol/2.0). */
+  spice_land?: number;
+  bonuses?: BonusView[];
   surveyed_month: Month;
   detailed: boolean;
 }
@@ -624,6 +644,10 @@ export interface FacilityType {
   build_power?: number;
   /** Minimum months of construction before any first-of-kind surcharge. (serde default) */
   build_months?: number;
+  /** Building line, stage and era (bts-protocol/2.0; design chapter 37, section 8.2). */
+  line?: string;
+  stage?: number;
+  era?: number;
 }
 
 export interface CourseType {
@@ -652,6 +676,10 @@ export interface UnitTier {
   training_months: number;
   requirements: KnownRequirement[];
   available: boolean;
+  /** Equipment generation G0-G7 (bts-protocol/2.0). */
+  generation?: number;
+  maneuver_extra?: GoodQty[];
+  alternative?: GoodQty[];
 }
 
 export interface CatalogView {

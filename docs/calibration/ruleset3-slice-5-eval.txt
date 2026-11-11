@@ -1,0 +1,134 @@
+Ruleset 3.0 slice 5 (merged plan, design chapter 37 section 11): resources and goods.
+Ruleset bts-rules/3.0.0-s5, content bts-content/3.0.0-s5, generator bts-worldgen/2.0.0-s5,
+protocol bts-protocol/2.0. Fifty goods, seventeen deposits (two off-world, unplaced), deposits by
+geology, revelation by knowledge, the new chains and facilities, real fertilizer and horses,
+substitute methods, unit equipment per generation, building lines. Productivity unchanged (slice 6).
+Standard calendar, --ai hard,medium,medium,easy, eval-0..15, 16 matches on all cores
+(1 min 12 s wall; 43-49 s per match under contention). Release build, Apple M5 Pro.
+   target/release/bts run --matches 16 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+   python3 scripts/curve_summary.py eval.csv --years -5000,-3000,...,2500
+
+match  0  winner None  month 89988 (AD 2500)  28.3s  0:47503853p/13r/117t  1:71377530p/15r/117t  2:97820723p/10r/117t  3:58315224p/10r/108t
+match  1  winner None  month 89988 (AD 2500)  45.0s  0:89260359p/19r/121t  1:71041481p/15r/118t  2:73177083p/5r/116t  3:54663486p/9r/110t
+match  2  winner None  month 89988 (AD 2500)  47.2s  0:77086452p/16r/120t  1:224215159p/12r/126t  2:45283646p/12r/123t  3:308581194p/8r/119t
+match  3  winner None  month 89988 (AD 2500)  48.1s  0:103731976p/17r/117t  1:79297418p/9r/117t  2:141417336p/14r/116t  3:70298558p/8r/127t
+match  4  winner None  month 89988 (AD 2500)  46.7s  0:87433189p/17r/116t  1:135403161p/7r/123t  2:78847814p/11r/122t  3:396258373p/13r/125t
+match  5  winner None  month 89988 (AD 2500)  48.0s  0:108313310p/12r/117t  1:34394493p/13r/123t  2:321186796p/11r/121t  3:128920530p/12r/134t
+match  6  winner None  month 89988 (AD 2500)  48.8s  0:96306743p/14r/118t  1:36791118p/10r/121t  2:58889355p/16r/85t  3:102146230p/8r/116t
+match  7  winner None  month 89988 (AD 2500)  45.9s  0:46489115p/13r/118t  1:112909987p/13r/117t  2:53782181p/9r/117t  3:89783858p/13r/90t
+match  8  winner None  month 89988 (AD 2500)  48.8s  0:64087401p/17r/118t  1:51740814p/11r/117t  2:147171985p/10r/116t  3:313242293p/9r/126t
+match  9  winner None  month 89988 (AD 2500)  47.5s  0:789825528p/48r/138t  1:0p/0r/116t  2:0p/0r/104t  3:0p/0r/118t
+match 10  winner None  month 89988 (AD 2500)  48.7s  0:51467523p/14r/117t  1:62655007p/15r/123t  2:44872520p/9r/116t  3:30984364p/10r/51t
+match 11  winner None  month 89988 (AD 2500)  48.7s  0:58912854p/17r/123t  1:95392359p/10r/117t  2:99245120p/10r/126t  3:9328033p/11r/138t
+match 12  winner None  month 89988 (AD 2500)  47.2s  0:50339987p/14r/118t  1:60763773p/9r/116t  2:2175015p/15r/123t  3:62274514p/10r/116t
+match 13  winner None  month 89988 (AD 2500)  46.6s  0:54327918p/13r/116t  1:131553200p/19r/134t  2:93589960p/3r/115t  3:121996718p/12r/88t
+match 14  winner None  month 89988 (AD 2500)  43.4s  0:32928731p/12r/117t  1:57587646p/15r/120t  2:46777476p/8r/120t  3:174015366p/13r/114t
+match 15  winner None  month 89988 (AD 2500)  45.7s  0:46343172p/11r/117t  1:181205875p/16r/121t  2:168642218p/11r/120t  3:99531144p/10r/117t
+
+
+Population (median seat excludes seats without land; largest and world are medians over matches)
+      date  median seat    largest      world  regions (median)
+   5000 BC        242 k      246 k      968 k               1.0
+   4000 BC       1.06 M     1.27 M     3.67 M               4.0
+   3000 BC       1.98 M     3.47 M     9.23 M               4.0
+   2000 BC       3.89 M     5.62 M    15.45 M               4.0
+   1000 BC       4.14 M     5.18 M    16.55 M               8.0
+     AD 10       5.06 M     6.84 M    21.17 M              10.5
+   AD 1000       7.73 M    16.55 M    39.97 M              11.0
+   AD 1500      21.32 M    44.88 M   102.08 M              12.0
+   AD 1700      41.07 M    74.23 M   152.94 M              12.0
+   AD 1800      52.32 M   141.97 M   269.78 M              12.0
+   AD 1900      67.68 M   180.98 M   363.20 M              12.0
+   AD 1950      94.17 M   174.44 M   385.89 M              12.0
+   AD 2000      81.42 M   143.53 M   340.90 M              12.0
+   AD 2100      75.38 M   156.54 M   351.67 M              12.0
+   AD 2200      68.58 M   141.34 M   347.32 M              12.0
+   AD 2300      73.00 M   118.74 M   302.87 M                12
+   AD 2500      77.09 M   136.49 M   353.03 M                12
+
+Era milestones: first sampled decade at which a seat had it
+  node  median seat  reached  leader (median)  leader (earliest)
+  T007      4590 BC   64/64           4680 BC            4690 BC
+  T008      4640 BC   64/64           4780 BC            4780 BC
+  T010      4455 BC   64/64           4550 BC            4560 BC
+  T011      4230 BC   64/64           4430 BC            4470 BC
+  T015      4090 BC   64/64           4245 BC            4330 BC
+  T025      2100 BC   64/64           2870 BC            2980 BC
+  T022      1760 BC   64/64           2000 BC            2370 BC
+  T023       650 BC   64/64            885 BC            1040 BC
+  T024      2715 BC   64/64           2960 BC            3390 BC
+  T027      1140 BC   64/64           1270 BC            1470 BC
+  T028        AD 20   64/64            725 BC            1580 BC
+  T029      1605 BC   64/64           2135 BC            2290 BC
+  T030       AD 505   64/64            165 BC             520 BC
+  T036       AD 620   64/64            AD 360              AD 50
+  T048      AD 1375   64/64           AD 1080             AD 580
+   SCI      AD 1515   64/64           AD 1250             AD 650
+  T080      AD 1700   63/64           AD 1545            AD 1030
+  T060      AD 1610   63/64           AD 1390             AD 690
+  T061      AD 1650   63/64           AD 1470             AD 960
+  T100      AD 1740   63/64           AD 1590            AD 1100
+  T111      AD 1835   62/64           AD 1705            AD 1290
+  T142      AD 2055   54/64           AD 1960            AD 1810
+  T147      AD 2090   27/64           AD 2070            AD 1960
+  T162      AD 2220    4/64           AD 2220            AD 2160
+  T167      AD 2330    2/64           AD 2330            AD 2290
+ALL138      AD 2330    2/64           AD 2330            AD 2290
+
+highest seat-decade growth: 2.65%/yr at ('eval-3', '1', '2070', '2080')
+pre-1700 500-year seat growth: min -0.082%/yr, median 0.049%/yr, max 0.517%/yr (39680 windows)
+
+Goods chains: first sampled decade at which a seat had made the good
+          good  median seat  reached  leader (median)
+        timber      4990 BC   64/64           4990 BC
+           tin      3740 BC   49/64           4290 BC
+        horses      4640 BC   64/64           4790 BC
+          salt      4490 BC   64/64           4640 BC
+     saltpetre       AD 620   52/64            AD 430
+     munitions       AD 710   64/64            AD 430
+    fertilizer      AD 1735   62/64           AD 1575
+           gas      AD 1770   57/64           AD 1620
+        helium      AD 1860   54/64           AD 1700
+     aluminium      AD 1810   57/64           AD 1695
+       magnets      AD 1815   54/64           AD 1670
+     batteries      AD 1815   62/64           AD 1705
+  nuclear_fuel      AD 2145   22/64           AD 2105
+       lattice      AD 2330    1/64           AD 2330
+
+Food sector (median seat with land): share of working age in food, rations per food worker-month
+   5000 BC    0.0%      0.0
+   4000 BC   47.7%      3.0
+   3000 BC   29.0%      5.0
+   2000 BC   29.6%      5.0
+   1000 BC   23.0%      7.0
+     AD 10   22.3%      7.0
+   AD 1000   24.3%      6.0
+   AD 1500   26.7%      6.0
+   AD 1700   25.1%      6.0
+   AD 1800   21.4%      7.0
+   AD 1900   11.2%     16.0
+   AD 1950   11.7%     14.0
+   AD 2000   11.7%     14.0
+   AD 2100   15.0%     13.0
+   AD 2200   15.4%     13.0
+   AD 2300   18.6%     12.0
+   AD 2500   16.9%      7.0
+
+Against slice 4 (docs/calibration/ruleset3-slice-4-eval.txt):
+- Goods chains come into use in historical order: timber, horses and salt in the first
+  centuries; tin (bronze) median 3740 BC (49 of 64 seats; the design's "bronze by 2500 BC"
+  holds for the median seat that has tin within reach; 15 seats never find or reach tin and
+  use copper tools); saltpetre and munitions AD 620-710 (design: by 1600); fertilizer, gas,
+  aluminium, magnets and batteries 1735-1820; helium 1860 (design: by 2100); nuclear fuel 2145
+  (22 seats); lattice once (the one seat that reached the jump tier).
+- Knowledge arrives earlier than in slice 4 (bronze 1760 BC instead of 1400; the scientific
+  method AD 1515 instead of 1810; steam 1700 instead of 1870): bronze tools and the second
+  extraction camp free labour in antiquity, and the knowledge pace of slice 3 responds to
+  the activity of more practitioners. The median seat's writing (2100 BC) and iron (650 BC)
+  are close to slice 3.
+- Population: higher from AD 1000 to 1950 (the earlier industrial nodes), the world near
+  0.39 B in 1950; flat to slightly falling after 1950 as before. The fertilizer works were
+  scaled to ten times the design's per-level output (same ratios) after a first batch in
+  which intensive fields lacked fertilizer (median seat 59 M in 2100 against 94 M in slice 4);
+  with them the median seat holds 75 M in 2100.
+- Late-population gap: unchanged in kind; examined with the productivity slice (slice 6).

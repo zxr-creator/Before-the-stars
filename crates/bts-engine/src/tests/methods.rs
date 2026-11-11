@@ -156,7 +156,7 @@ fn the_new_methods_trade_one_real_thing_for_another() {
     assert!(amount(nc, Good::Tools) < amount(hand, Good::Tools) && nc.elec > 0 && nc.compute > 0 && nc.general_bp < 10_000);
     assert!(nc.extra_skilled.iter().any(|(qs, _)| qs[0] == Qual::Programmer));
     // mechanized workings raise what deep workings raise and draw as much from the deposit
-    for mine in ["mine_copper", "mine_iron", "mine_coal", "mine_minerals"] {
+    for mine in ["mine_copper", "mine_iron", "mine_coal", "mine_tin", "mine_bauxite", "mine_quartz"] {
         let (deep, mech) = (rec(mine, "deep"), rec(mine, "mechanized"));
         assert_eq!(mech.outputs, deep.outputs, "{mine}");
         assert_eq!((mech.depletes, mech.disturb_bp), (deep.depletes, 10_000), "{mine}");
@@ -214,7 +214,8 @@ fn unknown_and_undiscovered_methods_fail_like_nonexistent_ones_and_change_nothin
     let capital = m.world.civs[0].capital;
     let home = capital as usize;
     put_works(&mut m.world.regions[home], "fields", 2);
-    // cultivation is understood, and animal traction too, but nobody keeps herds
+    // cultivation is understood, and animal traction too (it draws horses, which the
+    // works report missing when there are none: the method itself may be chosen)
     m.world.civs[0].tech[c.t("T005")].state = ST_ADOPTED;
     m.world.civs[0].tech[c.t("T020")].state = ST_ADOPTED;
     let before = serde_json::to_string(&m.world.regions[home].facilities).unwrap();
@@ -223,7 +224,7 @@ fn unknown_and_undiscovered_methods_fail_like_nonexistent_ones_and_change_nothin
     };
     // the catalog names only what the seat has discovered
     assert_eq!(keys(&m, "workshop"), vec![("stone_tools".to_string(), true)]);
-    assert_eq!(keys(&m, "fields"), vec![("hand".to_string(), true), ("traction".to_string(), false)]);
+    assert_eq!(keys(&m, "fields"), vec![("hand".to_string(), true), ("traction".to_string(), true)]);
     assert!(keys(&m, "steelworks").is_empty());
 
     let attempts: Vec<(&str, Option<&str>)> = vec![
@@ -234,7 +235,6 @@ fn unknown_and_undiscovered_methods_fail_like_nonexistent_ones_and_change_nothin
         ("workshop", Some("iron_tools")),      // a real method whose knowledge is undiscovered
         ("fields", Some("restorative")),       // the same for fields
         ("fields", Some("nonsense")),
-        ("fields", Some("traction")),          // known, but its requirement (herds) is not met
     ];
     let receipts: Vec<Receipt> = attempts.iter().map(|(fac, method)| set_method(&mut m, capital, fac, *method)).collect();
     for (r, attempt) in receipts.iter().zip(attempts.iter()) {
@@ -301,7 +301,7 @@ fn field_world() -> (Match, RegionId, usize, RegionId, usize) {
         put_works(r, "fields", levels);
     }
     put_works(&mut m.world.regions[home], "pasture", 1);
-    for (g, n) in [(Good::Food, 5_000_000), (Good::Chemicals, 100_000), (Good::Fuel, 100_000)] {
+    for (g, n) in [(Good::Food, 5_000_000), (Good::Fertilizer, 100_000), (Good::Fuel, 100_000), (Good::Horses, 100_000)] {
         m.world.civs[0].stock[g.index()] = n;
     }
     (m, capital, home, far as RegionId, far)
@@ -310,7 +310,7 @@ fn field_world() -> (Match, RegionId, usize, RegionId, usize) {
 #[test]
 fn field_methods_are_held_by_region_and_a_region_on_traction_burns_no_fuel() {
     let fields = content().f("fields");
-    let (chem, fuel) = (Good::Chemicals.index(), Good::Fuel.index());
+    let (chem, fuel) = (Good::Fertilizer.index(), Good::Fuel.index());
     let (mut m, capital, home, far_id, far) = field_world();
     let method = |m: &Match, ri: usize| {
         let run = m.world.regions[ri].fac(fields).unwrap().field_run.clone().expect("the fields were worked");
@@ -372,12 +372,12 @@ fn field_methods_are_held_by_region_and_a_region_on_traction_burns_no_fuel() {
     let line = |key: &str| {
         let r = ft.recipes.iter().find(|r| r.key == key).unwrap_or_else(|| panic!("{key}"));
         let input = |g: Good| r.inputs.iter().find(|i| i.good == g).map(|i| i.amount).unwrap_or(0);
-        (r.outputs[0].good, r.outputs[0].amount, input(Good::Chemicals), input(Good::Fuel), r.general_posts, r.available)
+        (r.outputs[0].good, r.outputs[0].amount, input(Good::Fertilizer), input(Good::Fuel), r.general_posts, r.available)
     };
-    // design chapter 36, table 3.3: one level's rations, inputs (fertilizer drawn as
-    // chemicals until the resources slice) and posts
+    // design chapter 36, table 3.3: one level's rations, inputs and posts
     assert_eq!(line("hand"), (Good::Food, 30_000, 0, 0, 10_000, true));
     assert_eq!(line("traction"), (Good::Food, 46_000, 0, 0, 8_000, true));
+    assert_eq!(ft.recipes.iter().find(|r| r.key == "traction").unwrap().inputs.iter().map(|i| (i.good, i.amount)).collect::<Vec<_>>(), vec![(Good::Horses, 30)]);
     assert_eq!(line("inputs"), (Good::Food, 120_000, 150, 0, 6_000, true));
     assert_eq!(line("mechanized"), (Good::Food, 110_000, 0, 100, 3_000, true));
     assert_eq!(line("intensive"), (Good::Food, 250_000, 300, 150, 2_000, true));
@@ -462,7 +462,7 @@ fn camps_world(idle_works: u16) -> (Match, RegionId, usize) {
     let r = &mut m.world.regions[home];
     r.blocks[0].ages[30] += 3_000_000;
     r.forest = 30;
-    put_works(r, "camp", 10);
+    put_works(r, "quarry", 10);
     if idle_works > 0 {
         put_works(r, "parts_works", idle_works);
     }
@@ -474,7 +474,7 @@ fn camps_world(idle_works: u16) -> (Match, RegionId, usize) {
 
 #[test]
 fn shared_support_saves_posts_only_and_shrinks_when_freight_is_congested() {
-    let camp = content().f("camp");
+    let camp = content().f("quarry");
     let (mat, tools) = (Good::Materials.index(), Good::Tools.index());
     let def = &content().facilities[camp];
 
@@ -513,7 +513,7 @@ fn shared_support_saves_posts_only_and_shrinks_when_freight_is_congested() {
     assert_eq!(scale_saving_bp(def, &Facility { condition_bp: 7_000, ..Facility::new(camp, 40) }, 10_000), 0);
     // the seat is told: the saving as it applies, and the cap after congestion
     let own = own_view(&b, capital);
-    assert_eq!(own.facilities.iter().find(|f| f.kind == "camp").unwrap().scale_saving_bp, 180);
+    assert_eq!(own.facilities.iter().find(|f| f.kind == "quarry").unwrap().scale_saving_bp, 180);
     let i = &own.infrastructure;
     assert_eq!((i.freight_capacity, i.freight_load, i.infra_bp, i.support_saving_cap_bp, i.congestion_loss_bp), (10, 100, 1_000, 200, 1_800));
     let i = own_view(&a, capital).infrastructure;
@@ -526,7 +526,7 @@ fn pooling_world() -> (Match, RegionId, usize) {
     let (mut m, capital, home) = plant_world("pooling");
     {
         let r = &mut m.world.regions[home];
-        put_works(r, "camp", 10);
+        put_works(r, "quarry", 10);
         put_works(r, "waterwheel", 1);
         put_works(r, "parts_works", 1);
         put_works(r, "roads", 1);
@@ -586,7 +586,7 @@ fn maintenance_pooling_cuts_upkeep_by_at_most_fifteen_percent_and_only_while_the
     assert_eq!((region_infra(&r).capacity, region_infra(&r).load, saving(&r)), (150, 41, 1_500));
     // one shop among many works serves twelve levels' worth: 12 of 111 here
     put_works(&mut r, "parts_works", 1);
-    put_works(&mut r, "camp", 109);
+    put_works(&mut r, "quarry", 109);
     run(&mut r, 10_000);
     assert_eq!((region_infra(&r).load, saving(&r)), (111, 1_500 * 12 / 111));
     // without the transport to carry the parts about, the saving shrinks with the freight served
@@ -612,7 +612,7 @@ fn chain_world(camps: u16, workshops: u16) -> (Match, RegionId, usize) {
     settle_fixture(&mut m.world, far, 600_000);
     m.world.regions[far].forest = 20;
     m.world.regions[far].wild = 5_000_000;
-    put_works(&mut m.world.regions[far], "camp", camps);
+    put_works(&mut m.world.regions[far], "quarry", camps);
     if workshops > 0 {
         put_works(&mut m.world.regions[far], "workshop", workshops);
         endow(&mut m.world, far, Qual::Artisan, 2_000 * workshops as u32);
@@ -631,7 +631,7 @@ fn output_used_in_the_same_region_pays_no_carriage_and_nothing_else_is_spared() 
     assert_eq!(link, 9_000, "one link from the capital, no road");
     month(&mut m);
     let i = m.world.regions[far].last.infra.clone();
-    let (camp_rate, shop_rate) = (run_of(&m, far, "camp").1.rate_bp as i64, run_of(&m, far, "workshop").1.rate_bp as i64);
+    let (camp_rate, shop_rate) = (run_of(&m, far, "quarry").1.rate_bp as i64, run_of(&m, far, "workshop").1.rate_bp as i64);
     assert_eq!(run_of(&m, far, "workshop").0, "stone_tools");
     assert!(camp_rate > 0 && shop_rate > 0);
     assert_eq!((i.made[mat], i.used[mat]), (16_000 * 2 * camp_rate / 10_000, 4_000 * 2 * shop_rate / 10_000));
@@ -667,7 +667,7 @@ fn output_used_in_the_same_region_pays_no_carriage_and_nothing_else_is_spared() 
 #[test]
 fn a_congested_region_loses_more_in_carriage_until_transport_is_added() {
     let mat = Good::Materials.index();
-    let camp = content().f("camp");
+    let camp = content().f("quarry");
     // twelve levels on the freight capacity of a region without roads (ten)
     let (mut m, far_id, far) = chain_world(12, 0);
     month(&mut m);
@@ -695,7 +695,7 @@ fn a_congested_region_loses_more_in_carriage_until_transport_is_added() {
 
     // the penalty is capped at twenty points however far the load outruns the capacity
     let mut r = m.world.regions[far].clone();
-    put_works(&mut r, "camp", 10_000);
+    put_works(&mut r, "quarry", 10_000);
     let i = region_infra(&r);
     assert_eq!((i.infra_bp, i.congestion_bp), (24, 1_995));
     assert!(i.congestion_bp <= economy::CONGESTION_LOSS_CAP_BP);
@@ -706,7 +706,7 @@ fn a_congested_region_loses_more_in_carriage_until_transport_is_added() {
     for key in ["fields", "pasture", "fishery", "granary", "irrigation", "roads", "port", "rail", "depot", "waterworks", "hospital", "admin", "school", "laboratory", "institute"] {
         assert!(!loads.contains(&key), "{key} loads freight");
     }
-    for key in ["camp", "mine_iron", "oilwell", "workshop", "steelworks", "parts_works", "waterwheel", "steam", "generator", "grid", "fission"] {
+    for key in ["quarry", "mine_iron", "oilwell", "workshop", "steelworks", "parts_works", "waterwheel", "steam", "generator", "grid", "fission"] {
         assert!(loads.contains(&key), "{key} does not load freight");
     }
 }

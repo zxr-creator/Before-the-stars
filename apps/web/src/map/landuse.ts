@@ -20,7 +20,7 @@ export const SECTOR_COLOR: Record<Sector, string> = {
 
 const KIND_SECTOR: Record<string, Sector> = {
   fields: 'food', pasture: 'food', fishery: 'food', granary: 'food', irrigation: 'food',
-  camp: 'extraction', mine_copper: 'extraction', mine_iron: 'extraction', mine_coal: 'extraction', mine_minerals: 'extraction',
+  camp: 'extraction', mine_copper: 'extraction', mine_iron: 'extraction', mine_coal: 'extraction', mine_tin: 'extraction', mine_precious: 'extraction', mine_bauxite: 'extraction', mine_uranium: 'extraction', mine_rare_earths: 'extraction', mine_cobalt_nickel: 'extraction', mine_quartz: 'extraction', quarry: 'extraction', salt_works: 'extraction', nitre_works: 'extraction', brine_works: 'extraction', gas_well: 'extraction',
   oilwell: 'extraction',
   workshop: 'industry', kiln: 'industry', copper_smelter: 'industry', bloomery: 'industry', steelworks: 'industry',
   machine_shop: 'industry', parts_works: 'industry', wire_works: 'industry', chem_plant: 'industry', insulation_works: 'industry',
@@ -52,7 +52,9 @@ export function sectorOf(kind: string, category?: string): Sector | null {
 const CRAFT = new Set(['workshop', 'kiln', 'press', 'instrument_shop']);
 const SCHOOLS = new Set(['lodge', 'school', 'college', 'tech_institute']);
 const MINE_DEPOSIT: Record<string, Deposit> = {
-  mine_copper: 'copper_ore', mine_iron: 'iron_ore', mine_coal: 'coal', mine_minerals: 'minerals', oilwell: 'crude',
+  mine_copper: 'copper_ore', mine_iron: 'iron_ore', mine_coal: 'coal', oilwell: 'crude', mine_tin: 'tin', mine_precious: 'precious', mine_bauxite: 'bauxite', mine_uranium: 'uranium_ore',
+  mine_rare_earths: 'rare_earths', mine_cobalt_nickel: 'cobalt_nickel', mine_quartz: 'quartz', nitre_works: 'saltpetre',
+  salt_works: 'salt', brine_works: 'lithium', gas_well: 'gas',
 };
 export type PowerKind = 'mill' | 'thermal' | 'hydro' | 'nuclear' | 'fusion' | 'beamed';
 const POWER_KIND: Record<string, PowerKind> = {
@@ -66,7 +68,7 @@ const ERA_OF: Record<string, number> = {
   workshop: 1, kiln: 1, copper_smelter: 1, bloomery: 1, school: 1, archive: 1, granary: 1, irrigation: 1, port: 1, roads: 1,
   waterworks: 1, admin: 1, barracks: 1, mine_copper: 1, mine_iron: 1, waterwheel: 1, press: 1, clinic: 1, holy_site: 1,
   steam: 2, steelworks: 2, machine_shop: 2, parts_works: 2, rail: 2, mine_coal: 2, oilwell: 2, laboratory: 2, institute: 2,
-  college: 2, sewers: 2, instrument_shop: 2, hospital: 2, mine_minerals: 2,
+  college: 2, sewers: 2, instrument_shop: 2, hospital: 2, mine_rare_earths: 2,
   generator: 3, grid: 3, hydro: 3, fission: 3, fab: 3, computer_works: 3, datacenter: 3, refinery: 3, chem_plant: 3, diesel: 3,
   depot: 3, purifier: 3, pharma: 3, advanced_lab: 3, auto_lab: 3, high_energy: 3, synfuel: 3, insulation_works: 3, wire_works: 3,
   water_treatment: 3, tech_institute: 3,

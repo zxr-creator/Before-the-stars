@@ -91,16 +91,7 @@ pub struct LedgerSnapshot {
     pub people: u64,
 }
 
-/// The good a deposit yields.
-pub fn deposit_good(d: Deposit) -> Good {
-    match d {
-        Deposit::CopperOre => Good::CopperOre,
-        Deposit::IronOre => Good::IronOre,
-        Deposit::Coal => Good::Coal,
-        Deposit::Crude => Good::Crude,
-        Deposit::Minerals => Good::Minerals,
-    }
-}
+pub use crate::content::deposit_good;
 
 pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
     let c = content();
@@ -159,8 +150,12 @@ pub fn snapshot(w: &World, before_month: bool) -> LedgerSnapshot {
                 let mut cap = vec![0i64; NG];
                 for f in &r.facilities {
                     if let Some(rec) = f.run.as_ref().and_then(|run| c.facilities[f.kind].recipes.get(run.recipe).map(|rec| (rec, run.rate_bp as i64))) {
+                        // a land works grows up to the land's yield on its recipe, never
+                        // more than twice it (design chapter 36, section 4.1)
+                        let def = &c.facilities[f.kind];
+                        let land_bp = if def.land { crate::sim::economy::land_yield_bp(r, def).min(20_000) } else { 10_000 };
                         for (g, a) in &rec.0.outputs {
-                            cap[g.index()] += a * f.level as i64 * rec.1 / 10_000;
+                            cap[g.index()] += a * f.level as i64 * rec.1 / 10_000 * land_bp / 10_000;
                         }
                     }
                 }
@@ -445,7 +440,9 @@ pub fn violations(prev: &LedgerSnapshot, cur: &LedgerSnapshot) -> Vec<String> {
     }
     for d in Deposit::ALL {
         let g = deposit_good(*d).index();
-        if made[g] != delivered[g] {
+        // salt also comes from coastal pans (renewable): there the deposits are only part of it
+        let mismatch = if *d == Deposit::Salt { made[g] < delivered[g] } else { made[g] != delivered[g] };
+        if mismatch {
             out.push(format!("{at}: {:?}: {} was booked as produced but the deposits delivered {}", Good::from_index(g), made[g], delivered[g]));
         }
     }
