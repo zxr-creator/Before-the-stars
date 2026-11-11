@@ -6,7 +6,7 @@
 //! workers, stop the process).
 
 use crate::portable::{self, Reason, Refusal};
-use crate::session::{AgentConfig, Session};
+use crate::session::{limits, AgentConfig, Session};
 use crate::turn;
 use bts_engine::MatchConfig;
 use bts_protocol::*;
@@ -25,6 +25,19 @@ pub struct AgentProvider {
     pub default_model: &'static str,
 }
 
+/// What a token presented for a driven seat means to that seat's agent slot.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AgentAccess {
+    /// Not this slot's credential.
+    None,
+    /// The private credential of a consultation the slot is running now: the agent
+    /// it started may read and command its own seat until the consultation ends.
+    Live,
+    /// The credential of a consultation that has ended (the phase moved on, or the
+    /// slot took the seat back). Nothing is accepted any more.
+    Ended,
+}
+
 /// What a seat driven by a worker in the transport's own process looks like to the
 /// host. The host keeps one slot per agent seat, uses it for the permission rules
 /// (a driven seat takes no orders from outside) and for the match summary; the
@@ -38,6 +51,21 @@ pub trait AgentSlot: Sized {
     fn summary(&self) -> AgentSummary;
     /// The seat's consultation log, as the JSON array served by `GET /api/agent-log`.
     fn log(&self) -> serde_json::Value;
+    /// Whether `token` lets the agent this slot started read and command its seat.
+    /// A slot whose agent works through the seat API (an agent CLI with the game's
+    /// MCP server) answers `Live` for the private token of the consultation it is
+    /// running; every other slot never admits anybody.
+    fn access(&self, _token: &str) -> AgentAccess {
+        AgentAccess::None
+    }
+    /// A control request from the client (`POST /api/agent/control`), for example
+    /// "resume" for a seat that stopped after repeated failures.
+    fn control(&mut self, _op: &str) -> Result<(), String> {
+        Err("this seat cannot be controlled".into())
+    }
+    /// The receipts of a submission made with , so a slot can tell what the
+    /// agent it started ordered. Called for every accepted exchange on its seat.
+    fn record(&mut self, _token: &str, _receipts: &[Receipt]) {}
 }
 
 /// The slot type of a host that has no agent workers at all.
@@ -67,7 +95,19 @@ pub struct AgentSummary {
     pub last_note: String,
     pub calls: u32,
     pub last_error: Option<String>,
+    /// A fix for the last error the person can apply, when it is one the transport recognises.
+    pub last_hint: Option<String>,
     pub thinking_seconds: Option<u64>,
+    /// "agent" (a CLI agent that plays through the seat API) or "oneshot" (one reply per consultation).
+    pub mode: String,
+    /// Consecutive failed consultations, and how many stop the seat.
+    pub errors_in_row: u32,
+    pub max_failures: u32,
+    /// What the seat's consultations have cost so far, as the providers reported it.
+    pub spent_usd: f64,
+    pub tokens: u64,
+    /// Seconds one consultation may take.
+    pub budget_seconds: u32,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -221,6 +261,18 @@ struct AgentOptions {
     base_url: Option<String>,
     #[serde(default)]
     effort: Option<String>,
+    #[serde(default)]
+    auth: Option<String>,
+    #[serde(default)]
+    budget_seconds: Option<u32>,
+    #[serde(default)]
+    max_calls: Option<u32>,
+    #[serde(default)]
+    max_usd: Option<f64>,
+    #[serde(default)]
+    max_tokens: Option<u32>,
+    #[serde(default)]
+    max_failures: Option<u32>,
 }
 
 /// Agent seats named in a new-match request, by seat.
@@ -237,7 +289,13 @@ fn agents_from<A: AgentSlot>(n: &NewMatch) -> Vec<Option<AgentConfig>> {
                     consult_every: o.consult_every.unwrap_or(1).clamp(1, 60),
                     api_key: o.api_key.filter(|k| !k.trim().is_empty()),
                     base_url: o.base_url.filter(|k| !k.trim().is_empty()),
-                    effort: o.effort.filter(|k| !k.trim().is_empty()),
+                    effort: o.effort.map(|k| k.trim().to_lowercase()).filter(|k| ["low", "medium", "high", "xhigh", "max"].contains(&k.as_str())),
+                    auth: o.auth.filter(|a| a == "login" || a == "api_key"),
+                    budget_seconds: o.budget_seconds.map(|v| v.clamp(limits::BUDGET_SECONDS.1, limits::BUDGET_SECONDS.2)),
+                    max_calls: o.max_calls.map(|v| v.clamp(limits::MAX_CALLS.1, limits::MAX_CALLS.2)),
+                    max_usd: o.max_usd.filter(|v| v.is_finite()).map(|v| v.clamp(limits::MAX_USD.1, limits::MAX_USD.2)),
+                    max_tokens: o.max_tokens.map(|v| v.clamp(limits::MAX_TOKENS.1, limits::MAX_TOKENS.2)),
+                    max_failures: o.max_failures.map(|v| v.clamp(limits::MAX_FAILURES.1, limits::MAX_FAILURES.2)),
                 });
             }
         }
@@ -457,6 +515,10 @@ fn leak() -> Failure {
     (500, "INTERNAL", "the save would contain an API key; nothing was exported".into())
 }
 
+fn turn_over() -> Failure {
+    (409, "TURN_OVER", "this consultation has ended: the phase moved on or the referee took the seat back. Stop now; you will be called again when it is your turn.".into())
+}
+
 fn unauthorized() -> Failure {
     (403, "UNAUTHORIZED", "unknown seat or token".into())
 }
@@ -544,7 +606,16 @@ impl<A: AgentSlot> Host<A> {
     pub(crate) fn seat_access(&self, seat: SeatId, token: &str, write: bool) -> Result<&Session, Failure> {
         let s = self.session.as_ref().ok_or_else(no_match)?;
         let idx = seat as usize;
-        if idx >= s.m.seats() || (self.cfg.require_tokens && s.tokens[idx] != token) {
+        if idx >= s.m.seats() {
+            return Err(unauthorized());
+        }
+        // the agent an agent slot started plays its own seat with the consultation's private token
+        match self.agents.get(idx).and_then(|a| a.as_ref()).map(|a| a.access(token)) {
+            Some(AgentAccess::Live) => return Ok(s),
+            Some(AgentAccess::Ended) => return Err(turn_over()),
+            _ => {}
+        }
+        if self.cfg.require_tokens && s.tokens[idx] != token {
             return Err(unauthorized());
         }
         // a driven seat takes no orders from outside, and its view is open only to an observer
@@ -852,7 +923,8 @@ impl<A: AgentSlot> Host<A> {
             ("POST", "/api/match") => self.new_match(req.body, req.entropy),
             ("GET", "/api/turn") => {
                 let seat = arg("seat").and_then(|x| x.parse().ok()).unwrap_or(0);
-                turn::get(self, seat, arg("token").unwrap_or("")).map(|v| Reply::json(v.to_string()))
+                let view = turn::View::parse(arg("view"), arg("sections").map(percent_decode).as_deref());
+                turn::get(self, seat, &percent_decode(arg("token").unwrap_or("")), &view).map(|v| Reply::json(v.to_string()))
             }
             ("POST", "/api/turn") => match serde_json::from_str::<turn::Submission>(req.body) {
                 // every applied exchange is saved, including within-round orders, rather than only ready
@@ -877,6 +949,7 @@ impl<A: AgentSlot> Host<A> {
                     None => Ok(Reply::json("{\"entries\":[]}".into())),
                 }
             }
+            ("POST", "/api/agent/control") => self.agent_control(req.body),
             ("POST", "/api/actions") => self.actions(req.body),
             ("POST", "/api/ready") => self.ready(req.body),
             ("POST", "/api/delegate") => self.delegate(req.body),
@@ -953,6 +1026,27 @@ impl<A: AgentSlot> Host<A> {
             }
         }
         Ok(self.summary_reply(false).with(Effects { changed: true, autosave: settle, ..Default::default() }))
+    }
+
+    /// Resume (or otherwise control) an agent seat this process runs. Open on a
+    /// referee that does not require seat tokens: the person at this machine set the
+    /// seat up and may restart it.
+    fn agent_control(&mut self, body: &str) -> Result<Reply, Failure> {
+        #[derive(Deserialize)]
+        struct ControlBody {
+            seat: SeatId,
+            op: String,
+        }
+        let b: ControlBody = serde_json::from_str(body).map_err(|e| (400, "INVALID_SCHEMA", e.to_string()))?;
+        if self.session.is_none() {
+            return Err(no_match());
+        }
+        if self.cfg.require_tokens {
+            return Err((403, "UNAUTHORIZED", "agent seats cannot be controlled on a referee that requires seat tokens".into()));
+        }
+        let slot = self.agents.get_mut(b.seat as usize).and_then(|a| a.as_mut()).ok_or((404, "NOT_FOUND", "that seat is not an agent seat of this referee".to_string()))?;
+        slot.control(b.op.trim()).map_err(|e| (400, "INVALID_SCHEMA", e))?;
+        Ok(self.summary_reply(false).with(Effects { changed: true, ..Default::default() }))
     }
 
     fn actions(&mut self, body: &str) -> Result<Reply, Failure> {

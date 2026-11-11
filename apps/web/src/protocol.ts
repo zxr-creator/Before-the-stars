@@ -1146,8 +1146,20 @@ export interface AgentInfo {
   calls: number;
   /** "error" = the agent failed and will be tried again next round; "stopped" = the steward carries on alone. */
   last_error: string | null;
+  /** A fix for the last error the person can apply, when the referee recognises it. */
+  last_hint?: string | null;
   /** Seconds the agent has been thinking, while `state` is "thinking". */
   thinking_seconds?: number | null;
+  /** "agent": a CLI agent playing through the game's MCP server; "oneshot": one reply per consultation. */
+  mode?: 'agent' | 'oneshot';
+  /** Consecutive failed consultations, and how many stop the seat. */
+  errors_in_row?: number;
+  max_failures?: number;
+  /** What the seat's consultations have cost so far, as the providers reported it. */
+  spent_usd?: number;
+  tokens?: number;
+  /** Seconds one consultation may take. */
+  budget_seconds?: number;
 }
 
 export interface MatchSummary {
@@ -1192,6 +1204,45 @@ export interface AgentOptions {
   api_key?: string;
   base_url?: string;
   effort?: string;
+  /** CLI agents: "login" (the CLI's own sign-in) or "api_key" (the key above, given to the CLI's environment only). */
+  auth?: 'login' | 'api_key';
+  /** Cost guard: seconds per consultation, game tool calls per consultation, dollars per consultation (Claude Code), output tokens per reply (APIs), failures in a row before the seat stops. */
+  budget_seconds?: number;
+  max_calls?: number;
+  max_usd?: number;
+  max_tokens?: number;
+  max_failures?: number;
+}
+
+/** GET /api/agents/providers: what this machine offers for agent seats (no model is called). */
+export interface CliStatus {
+  installed: boolean;
+  version?: string;
+  logged_in?: boolean | null;
+  auth_method?: string | null;
+  login?: 'chatgpt' | 'api_key' | null;
+  models?: { id: string; name: string; description: string; efforts: string[] }[];
+  hint?: string | null;
+}
+export interface ProviderDetection {
+  claude_code: CliStatus;
+  codex: CliStatus;
+  env: Record<'ANTHROPIC_API_KEY' | 'OPENAI_API_KEY' | 'CODEX_API_KEY', boolean>;
+  /** The command that serves the game's MCP server for one seat: [program, "mcp"]. */
+  mcp_command: string[];
+}
+/** POST /api/agents/test: one tiny real call with a seat's settings. */
+export interface AgentTestResult {
+  ok: boolean;
+  reply?: string;
+  exact?: boolean;
+  error?: string;
+  hint?: string | null;
+  seconds?: number;
+  cost_usd?: number | null;
+  tokens?: number;
+  /** Agent CLIs: whether the game's MCP server came up. */
+  mcp?: 'connected' | 'failed' | null;
 }
 
 export interface NewMatchRequest {
@@ -1308,6 +1359,16 @@ export interface AgentLogEntry {
   rejected: number;
   duration_ms: number;
   error: string | null;
+  /** Newer referees: the historical date, a fix for the error, retries, tool calls, cost. */
+  date?: string;
+  hint?: string | null;
+  attempts?: number;
+  tool_calls?: number;
+  turns?: number;
+  cost_usd?: number | null;
+  tokens?: number;
+  /** The steward ran this round in the seat's place. */
+  steward_took_over?: boolean;
 }
 
 export interface ApiErrorBody {

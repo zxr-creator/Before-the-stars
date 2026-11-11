@@ -12,6 +12,7 @@
 
 pub mod portable;
 mod referee;
+mod brief;
 mod session;
 mod turn;
 
@@ -19,8 +20,9 @@ mod turn;
 mod tests;
 
 pub use referee::{
-    controller, AgentProvider, AgentSlot, AgentSummary, Body, Config, Description, Effects, Host, MatchSummary, NoAgents, Reply, Request, SeatSummary, Tick,
+    controller, AgentAccess, AgentProvider, AgentSlot, AgentSummary, Body, Config, Description, Effects, Host, MatchSummary, NoAgents, Reply, Request, SeatSummary, Tick,
     AGENT_CONTROLLERS,
 };
-pub use session::{scrub_url, AgentConfig, Session, SAVE_FORMAT};
-pub use turn::{Advance, Submission};
+pub use brief::{briefing, directive_line};
+pub use session::{limits, scrub_url, AgentConfig, Session, SAVE_FORMAT};
+pub use turn::{Advance, Submission, View, SECTIONS};

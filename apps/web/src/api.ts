@@ -9,7 +9,7 @@
 // so the rest of the client does not care which one is in use. What only a server
 // can do is listed in `api.features`.
 import type {
-  Action, AgentLogEntry, ApiErrorBody, MatchSummary, NewMatchRequest, Observation, Receipt, SeatId, SpectatorView,
+  Action, AgentLogEntry, AgentTestResult, ApiErrorBody, MatchSummary, ProviderDetection, NewMatchRequest, Observation, Receipt, SeatId, SpectatorView,
 } from './protocol';
 import { EngineFailure, localAvailable, localCall, localFailure, localRestart, onLocalChange, onLocalFailure } from './local/transport';
 import type { LocalChange } from './local/transport';
@@ -269,6 +269,13 @@ export const api = {
   /** App mode only: save and stop the local referee. */
   shutdown: () => request<unknown>('POST', '/api/shutdown', {}),
   agentLog: (seat: SeatId) => request<{ entries: AgentLogEntry[] }>('GET', `/api/agent-log?seat=${seat}`),
+  /** Resume an agent seat that stopped after repeated failures, or stop one. */
+  agentControl: (seat: SeatId, op: 'resume' | 'stop') => request<MatchSummary>('POST', '/api/agent/control', { seat, op }),
+  /** Which agent CLIs are installed and signed in here (cheap status checks; cached for half a minute). */
+  agentProviders: (refresh = false) => request<ProviderDetection>('GET', `/api/agents/providers${refresh ? '?refresh=1' : ''}`),
+  /** One tiny real call with a seat's settings. A typed key is sent once and not kept. */
+  agentTest: (req: { provider: string; model?: string; effort?: string; auth?: string; api_key?: string; base_url?: string }) =>
+    request<AgentTestResult>('POST', '/api/agents/test', req),
 
   /** The names of the saves the player can load by name (in the server-backed game, the autosave among them). */
   saves: async (): Promise<{ saves: string[] }> => {
