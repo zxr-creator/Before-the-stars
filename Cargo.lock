@@ -95,6 +95,7 @@ dependencies = [
  "bts-engine",
  "bts-protocol",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

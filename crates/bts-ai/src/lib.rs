@@ -6,17 +6,22 @@
 //! graph, other seats' ledgers or future random draws.
 
 mod policy;
+pub mod tables;
 
 use bts_protocol::*;
 use serde::{Deserialize, Serialize};
 
-pub const POLICY_VERSION: &str = "bts-native/1.1.0";
+pub const POLICY_VERSION: &str = "bts-native/1.2.0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Difficulty {
     Easy,
     Medium,
     Hard,
+    /// The Expert test policy (design chapter 39, section 8.3): the Hard policy that
+    /// plays the critical path, using only its own observation and the public
+    /// tables. A verification tool, not offered in the setup.
+    Expert,
 }
 
 impl Difficulty {
@@ -25,6 +30,7 @@ impl Difficulty {
             ControllerKind::NativeEasy => Some(Difficulty::Easy),
             ControllerKind::NativeMedium => Some(Difficulty::Medium),
             ControllerKind::NativeHard => Some(Difficulty::Hard),
+            ControllerKind::NativeExpert => Some(Difficulty::Expert),
             _ => None,
         }
     }
@@ -33,7 +39,7 @@ impl Difficulty {
         match self {
             Difficulty::Easy => 12,
             Difficulty::Medium => 24,
-            Difficulty::Hard => 48,
+            Difficulty::Hard | Difficulty::Expert => 48,
         }
     }
     /// Planning lookahead in decision rounds.
@@ -41,7 +47,7 @@ impl Difficulty {
         match self {
             Difficulty::Easy => 2,
             Difficulty::Medium => 6,
-            Difficulty::Hard => 12,
+            Difficulty::Hard | Difficulty::Expert => 12,
         }
     }
 }

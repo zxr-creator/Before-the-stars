@@ -1314,6 +1314,8 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             war_policy: vec![None; seats],
             tallies: Vec::new(),
             round_start_pop: 0,
+            revisit_until: Vec::new(),
+            diag: CivDiag::default(),
         });
     }
 

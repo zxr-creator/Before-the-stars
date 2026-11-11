@@ -175,6 +175,8 @@ pub fn controller(s: &str) -> Option<ControllerKind> {
         "easy" | "native_easy" => ControllerKind::NativeEasy,
         "medium" | "native_medium" => ControllerKind::NativeMedium,
         "hard" | "native_hard" => ControllerKind::NativeHard,
+        // the Expert test policy (design chapter 39, section 8.3): not offered in setup
+        "expert" | "native_expert" => ControllerKind::NativeExpert,
         _ => return None,
     })
 }

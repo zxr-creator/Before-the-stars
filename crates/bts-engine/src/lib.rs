@@ -72,6 +72,22 @@ impl Match {
         };
     }
 
+    /// Record node timings as well as the curve (starts the curve if needed).
+    pub fn record_node_months(&mut self) {
+        if self.curve.is_none() {
+            self.record_curve(true);
+        }
+        if let Some(c) = self.curve.as_mut() {
+            c.track_nodes(&self.world);
+        }
+    }
+
+    /// First months each seat's technologies became ready, leads, discovered and
+    /// understood, while the curve is recorded (referee-side; `bts critical-path`).
+    pub fn node_months(&self) -> Option<&Vec<Vec<[Month; 4]>>> {
+        self.curve.as_ref().map(|c| &c.nodes)
+    }
+
     /// The curve rows recorded since the last call, oldest first.
     pub fn take_curve(&mut self) -> Vec<curve::CurveRow> {
         match self.curve.as_mut() {

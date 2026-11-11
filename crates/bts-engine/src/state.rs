@@ -550,6 +550,10 @@ pub struct TechSt {
     pub source: String,
     pub disc_month: Month,
     pub und_month: Month,
+    /// Last month operating works or formations used the node (fragile know-how,
+    /// design chapter 39, section 1.5).
+    #[serde(default)]
+    pub used_month: Month,
 }
 
 pub const ST_UNKNOWN: u8 = 0;
@@ -591,6 +595,10 @@ pub enum ProjKind {
     Resettle { from: RegionId, to: RegionId, people: u32 },
     Recruit { role: Role, soldiers: u32, tier: u8 },
     Reform { practice: usize },
+    /// A revisit study of a rival family's locked question (design chapter 39, 1.4).
+    Revisit { family: usize, tech: usize },
+    /// Repeal of an established or enacted practice (design chapter 39, 2.2).
+    Repeal { practice: usize },
     Religion { beliefs: Vec<String>, name: Option<String> },
     FtlTrial,
     FtlDeployment,
@@ -1137,6 +1145,28 @@ pub struct Civ {
     /// People at the start of the round being resolved (for its era summary).
     #[serde(default)]
     pub round_start_pop: u64,
+    /// For each rival family (`Content::families`), the month until which a revisit
+    /// study lifts its evidence lock and discovery cap (design chapter 39, 1.4).
+    #[serde(default)]
+    pub revisit_until: Vec<Month>,
+    /// Calibration diagnostics of the last month (referee-side, never served to a
+    /// seat, never saved).
+    #[serde(skip)]
+    pub diag: CivDiag,
+}
+
+/// Population-weighted averages of last month's fertility factors and land
+/// pressure, read only by the calibration curve (`crate::curve`).
+#[derive(Clone, Debug, Default)]
+pub struct CivDiag {
+    /// The food factor of fertility (household food security), basis points.
+    pub fert_food_bp: i64,
+    /// Birth intensity before the nine-month lag, basis points.
+    pub fert_intensity_bp: i64,
+    /// Residents over the land's carrying capacity, basis points.
+    pub cap_ratio_bp: i64,
+    /// The land factor of fertility, basis points.
+    pub land_bp: i64,
 }
 
 /// One standing order and what it did when last evaluated.
@@ -1205,7 +1235,7 @@ impl Civ {
         self.flows.traded_in[g.index()] += amount;
     }
     pub fn is_native(&self) -> bool {
-        matches!(self.controller, ControllerKind::NativeEasy | ControllerKind::NativeMedium | ControllerKind::NativeHard)
+        matches!(self.controller, ControllerKind::NativeEasy | ControllerKind::NativeMedium | ControllerKind::NativeHard | ControllerKind::NativeExpert)
     }
     pub fn tag(&self, t: Tag) -> i64 {
         self.tag_activity[t as usize]

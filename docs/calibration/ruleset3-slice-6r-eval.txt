@@ -1,0 +1,201 @@
+Ruleset 3.0 slice 6r: calibration repair (no new features).
+Ruleset bts-rules/3.0.0-s6r, content bts-content/3.0.0-s6r, generator bts-worldgen/2.0.0-s5,
+protocol bts-protocol/2.1 (additions only; see docs/implementation-status.md).
+Standard calendar, 60-region Earth-like world, --ai hard,medium,medium,easy, eval-0..31
+(32 matches; 16-seed batches were found to shift milestones by a century). Release build,
+Apple M5 Pro, all cores (about 2 min 45 s - 3 min 30 s wall per batch).
+   target/release/bts run --matches 32 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+   python3 scripts/calib_report.py eval.csv
+"Median seat" is the median over all 128 seats with land; a seat that never reached a
+milestone counts as later than any date (scripts/curve_summary.py, used for the earlier
+slices, took the median over the seats that reached it only). IQR = interquartile range
+over seats. The world and every seed's world differ between the two batches because the
+world label contains the ruleset version.
+
+What changed
+1. Fertility's food factor is the households' own food security, not the state's reserve
+   policy: access = the region's food history over the past year; security = access x
+   (0.7 + 0.3 x max(store term, supply term)), where the store term is months in store over
+   a fixed household buffer of two months (at most what the stores can hold, at least a
+   tenth of a month) and the supply term is full when this month's fields and works raised
+   105% of what everyone eats. The quadratic ratio to the AI's 4-8 month reserve target is
+   gone (sim::population, HOUSEHOLD_BUFFER_MONTHS, FOOD_SECURE_BASE).
+2. The pre-industrial ceiling: the land factor of fertility is neutral at 46.5% of the
+   land's carrying capacity (was 80%), changes 15% per neutral span (was 6.25% per 0.8) and
+   is bounded 0.60-1.05 (was 0.80-1.0625); it fades out as children survive (fully gone
+   5,000 points of child survival gain above 2,500, i.e. with germ theory and clean water),
+   because a modern family is not planned by the land. The development factor's literacy
+   term is 1,500 (was 1,800) and its floor 6,800 (was 6,200), a modern fertility a little
+   above replacement until prosperity joins it (slice 11).
+3. The native AI sizes its supply orders: for each wanted good it orders the levels that
+   close the gap between its standing demand (every works at its running method, the fields
+   at the best method the seat can use, upkeep, never less than its use) plus a tenth (and
+   2% a year of the round's length) and what it makes and receives, up to 12 levels an
+   order, halving until the order can be supplied, crewed and powered; works that run well
+   but cannot grow where they stand are joined by works elsewhere; the fields' horses,
+   fertilizer, fuel and chemicals are wanted as soon as their standing demand exceeds supply
+   (before the fields fall back); granaries are sized to the reserve the seat aims for.
+   Long rounds keep these as standing build targets (as before).
+4. content/pacing.json: a new pacing era "bronze_age" (lead threshold 1.6 M, target 3500-2300
+   BC) for writing (T025) and alloy casting (T022); because writing is the first channel step,
+   the later eras were re-tuned: late antiquity 24 M (was 20 M), medieval 15.4 M (14 M),
+   high medieval 11.5 M (10 M); tier 4 and 5 thresholds x1.5 (0.9 M, 0.96 M), tier 6 x1.25
+   (1.0 M). Renaissance, early modern and the scientific method unchanged.
+
+The knowledge-population loop is steep: one variant with the medieval thresholds 1.15-1.5 x
+higher pushed printing to AD 2170 and left the median seat at 10 M in 2000 (population
+falls, so evidence falls, so knowledge stalls); another with the land factor neutral at 50%
+put industry 100-190 years early and the 1800 median at 95 M. The values recorded sit
+between them; the late figures move by a third between two sets of 32 worlds (see the
+2100-2200 rows of the two last batches below), because the late distribution is bimodal:
+a quarter of seats (mostly Easy) stay below 10-20 M while the leaders pass 300 M.
+
+Remaining gaps (not fixed here)
+- 3000 BC median about 1.9x the target (four regions settled early hold more than the target
+  allows; tightening the land factor strangled one-region starts instead).
+- 2000-2200 median 0.3-0.5 of the target and the world peak 0.95-1.2 B (target 1.9-3.75 B on
+  60 regions): late food stays tight (the food factor of the median seat falls to 0.78 in
+  some decades because production only just meets need), seats diverge widely, and
+  prosperity (consumption slice 11) and cities (slice 9a) are still 0 / stubs.
+- T024 masonry stays some 1,400 years before table 2.7's classical window (unchanged from
+  earlier slices; it is a prerequisite of writing's chain); T029 water mills 170 years early.
+- T142 orbital transport about 60 years late; T147 and the jump tier rarely reached (slice 17).
+
+Timing (single match, contention-free, measured after slice 6c; see the 6c file).
+
+================================ BEFORE (slice 6 build, 32 seeds) ================================
+curve base.csv: 32 matches, 96000 seat-decade rows; targets scaled by 60/48 for the world
+
+Population of the median seat (IQR over seats with land) and the world (median over matches)
+    date    median                 IQR   target  ratio |     world    target  ratio
+ 5000 BC     242 k     239 k-245 k        240 k   1.01 |     967 k     1.2 M   0.80
+ 3000 BC     2.0 M     1.8 M-2.5 M        800 k   2.53 |     8.8 M     3.8 M   2.34
+ 1000 BC     4.2 M     3.7 M-4.7 M        2.5 M   1.69 |    17.1 M    12.5 M   1.37
+    AD 1     5.5 M     4.4 M-6.8 M        5.0 M   1.10 |    23.1 M    25.0 M   0.93
+ AD 1000     9.9 M     5.3 M-15.0 M       8.0 M   1.23 |    48.7 M    40.0 M   1.22
+ AD 1500    25.2 M     7.3 M-41.3 M      11.0 M   2.29 |   105.5 M    56.2 M   1.88
+ AD 1700    40.0 M    10.2 M-61.5 M      15.0 M   2.67 |   155.4 M    75.0 M   2.07
+ AD 1800    49.8 M    19.1 M-85.8 M      20.0 M   2.49 |   236.3 M   106.2 M   2.22
+ AD 1900    62.2 M    34.6 M-124.7 M     60.0 M   1.04 |   306.8 M   312.5 M   0.98
+ AD 1950    69.0 M    42.7 M-139.2 M    110.0 M   0.63 |   373.7 M   562.5 M   0.66
+ AD 2000    85.5 M    43.6 M-159.1 M    230.0 M   0.37 |   429.2 M    1.25 B   0.34
+ AD 2100    84.8 M    51.9 M-132.9 M    400.0 M   0.21 |   382.6 M    2.12 B   0.18
+ AD 2200    84.6 M    55.9 M-125.5 M    480.0 M   0.18 |   388.3 M    2.50 B   0.16
+ AD 2300    81.5 M    57.9 M-121.2 M          -      - |   429.4 M    2.50 B   0.17
+world peak (median over matches): 557.6 M; target 1.88 B-3.75 B
+
+Era milestones: first sampled decade at which a seat had it (median seat; IQR over seats that reached it)
+ node    median                   IQR  reached              window verdict
+ T007   4595 BC    4640 BC-4437 BC     128/128   4800 BC-4000 BC   in window
+ T008   4600 BC    4712 BC-4570 BC     128/128   4800 BC-4000 BC   in window
+ T010   4495 BC    4540 BC-4200 BC     128/128   4800 BC-4000 BC   in window
+ T011   4170 BC    4430 BC-3990 BC     128/128   4500 BC-3500 BC   in window
+ T015   4105 BC    4207 BC-3947 BC     128/128   4500 BC-3500 BC   in window
+ T025   2055 BC    2362 BC-1760 BC     128/128   3500 BC-2500 BC   late by 445
+ T022   1760 BC    1932 BC-1620 BC     128/128   3300 BC-2300 BC   late by 540
+ T023    760 BC     920 BC-530 BC      128/128   1500 BC-600 BC    in window
+ T024   2730 BC    3010 BC-2212 BC     128/128   1500 BC-AD 300    early by 1230
+ T027   1185 BC    1310 BC-930 BC      128/128   1500 BC-AD 300    in window
+ T028    145 BC     572 BC-AD 235      128/128   1500 BC-AD 300    in window
+ T029   1650 BC    1900 BC-1115 BC     128/128   1500 BC-AD 300    early by 150
+ T030    AD 435     AD 210-AD 682      128/128    AD 500-AD 1300   early by 65
+ T036    AD 660     AD 447-AD 910      128/128    AD 500-AD 1300   in window
+ T048   AD 1380    AD 1200-AD 1632     128/128   AD 1350-AD 1550   in window
+  SCI   AD 1610    AD 1357-AD 1815     128/128   AD 1550-AD 1700   in window
+ T080   AD 1730    AD 1525-AD 1890     123/128   AD 1750-AD 1850   early by 20
+ T060   AD 1735    AD 1480-AD 1890     124/128   AD 1750-AD 1850   early by 15
+ T061   AD 1655    AD 1430-AD 1840     124/128   AD 1750-AD 1850   early by 95
+ T100   AD 1770    AD 1575-AD 1905     123/128   AD 1850-AD 1920   early by 80
+ T111   AD 1885    AD 1745-AD 1990     119/128   AD 1940-AD 2000   early by 55
+ T142   AD 2145    AD 1990-AD 2220     105/128   AD 2000-AD 2080   late by 65
+ T147     never    AD 2030-AD 2285      47/128   AD 2060-AD 2140   median seat never
+ T162     never    AD 2195-AD 2305       2/128   AD 2150-AD 2220   median seat never
+ T167     never    AD 2440-AD 2440       1/128   AD 2180-AD 2260   median seat never
+
+================================ AFTER (slice 6r, 32 seeds) ================================
+curve s6r.csv: 32 matches, 96000 seat-decade rows; targets scaled by 60/48 for the world
+
+Population of the median seat (IQR over seats with land) and the world (median over matches)
+    date    median                 IQR   target  ratio |     world    target  ratio
+ 5000 BC     242 k     239 k-245 k        240 k   1.01 |     968 k     1.2 M   0.80
+ 3000 BC     1.5 M     836 k-1.9 M        800 k   1.93 |     5.9 M     3.8 M   1.56
+ 1000 BC     2.6 M     1.9 M-3.3 M        2.5 M   1.05 |    10.1 M    12.5 M   0.81
+    AD 1     3.5 M     2.3 M-4.7 M        5.0 M   0.70 |    13.6 M    25.0 M   0.55
+ AD 1000     6.2 M     2.9 M-9.1 M        8.0 M   0.78 |    25.0 M    40.0 M   0.63
+ AD 1500     9.5 M     3.9 M-23.4 M      11.0 M   0.86 |    60.4 M    56.2 M   1.07
+ AD 1700    14.2 M     5.0 M-72.8 M      15.0 M   0.94 |   155.9 M    75.0 M   2.08
+ AD 1800    22.2 M     5.7 M-136.6 M     20.0 M   1.11 |   261.8 M   106.2 M   2.46
+ AD 1900    54.5 M     6.7 M-179.7 M     60.0 M   0.91 |   425.7 M   312.5 M   1.36
+ AD 1950    74.2 M     7.0 M-203.7 M    110.0 M   0.67 |   477.4 M   562.5 M   0.85
+ AD 2000    88.5 M     8.3 M-257.6 M    230.0 M   0.38 |   582.8 M    1.25 B   0.47
+ AD 2100   128.4 M    11.8 M-355.3 M    400.0 M   0.32 |   717.1 M    2.12 B   0.34
+ AD 2200   129.2 M    17.3 M-357.2 M    480.0 M   0.27 |   809.1 M    2.50 B   0.32
+ AD 2300   172.7 M    42.4 M-379.2 M          -      - |   819.4 M    2.50 B   0.33
+world peak (median over matches): 948.2 M; target 1.88 B-3.75 B
+
+Era milestones: first sampled decade at which a seat had it (median seat; IQR over seats that reached it)
+ node    median                   IQR  reached              window verdict
+ T007   4530 BC    4640 BC-4367 BC     128/128   4800 BC-4000 BC   in window
+ T008   4600 BC    4705 BC-4530 BC     128/128   4800 BC-4000 BC   in window
+ T010   4395 BC    4530 BC-4177 BC     128/128   4800 BC-4000 BC   in window
+ T011   4095 BC    4280 BC-3920 BC     128/128   4500 BC-3500 BC   in window
+ T015   4030 BC    4180 BC-3917 BC     128/128   4500 BC-3500 BC   in window
+ T025   2940 BC    3085 BC-2677 BC     128/128   3500 BC-2500 BC   in window
+ T022   2930 BC    3090 BC-2790 BC     128/128   3300 BC-2300 BC   in window
+ T023   1210 BC    1362 BC-1010 BC     128/128   1500 BC-600 BC    in window
+ T024   2890 BC    2972 BC-2597 BC     128/128   1500 BC-AD 300    early by 1390
+ T027   1470 BC    1560 BC-1255 BC     128/128   1500 BC-AD 300    in window
+ T028    385 BC     802 BC-AD 137      128/128   1500 BC-AD 300    in window
+ T029   1670 BC    1860 BC-1330 BC     128/128   1500 BC-AD 300    early by 170
+ T030    AD 510     AD 335-AD 805      123/128    AD 500-AD 1300   in window
+ T036    AD 700     AD 570-AD 940      123/128    AD 500-AD 1300   in window
+ T048   AD 1540    AD 1230-AD 1842     120/128   AD 1350-AD 1550   in window
+  SCI   AD 1630    AD 1320-AD 2010     119/128   AD 1550-AD 1700   in window
+ T080   AD 1770    AD 1500-AD 2050     113/128   AD 1750-AD 1850   in window
+ T060   AD 1770    AD 1460-AD 2060     113/128   AD 1750-AD 1850   in window
+ T061   AD 1650    AD 1430-AD 2015     116/128   AD 1750-AD 1850   early by 100
+ T100   AD 1795    AD 1570-AD 2082     112/128   AD 1850-AD 1920   early by 55
+ T111   AD 1965    AD 1752-AD 2160     102/128   AD 1940-AD 2000   in window
+ T142   AD 2140    AD 1990-AD 2185      91/128   AD 2000-AD 2080   late by 60
+ T147     never    AD 2025-AD 2185      47/128   AD 2060-AD 2140   median seat never
+ T162     never    AD 2137-AD 2277      16/128   AD 2150-AD 2220   median seat never
+ T167     never    AD 2240-AD 2340       7/128   AD 2180-AD 2260   median seat never
+
+technologies understood at AD 2300: leading seat median 125.5, median seat 115.0, highest ever 138
+practices established at AD 2300: leading seat median 63.0, median seat 59.75, highest ever 64
+
+Fertility diagnostics of the median seat (population-weighted, last month before the sample)
+    date   food  intens  pop/cap   land
+ 5000 BC      0       0        0      0
+ 3000 BC  10000    3997     3557  10255
+ 1000 BC  10000    4012     1892  10424
+    AD 1  10000    3877     4023  10101
+ AD 1000  10000    3905     3726  10193
+ AD 1500  10000    3781     4665   9921
+ AD 1700  10000    3858     4351  10073
+ AD 1800  10000    3716     6398  10000
+ AD 1900   8396    3118     8350  10000
+ AD 1950   7802    2932     6203  10000
+ AD 2000  10000    3668     8524  10000
+ AD 2100   7669    2817    12866  10000
+ AD 2200   7824    2888     5778  10000
+ AD 2300   7991    2951     7423  10000
+
+-------- an earlier batch with the same rules and the slice 6 world labels (variant f9, for the spread between world sets) --------
+Population of the median seat (IQR over seats with land) and the world (median over matches)
+    date    median                 IQR   target  ratio |     world    target  ratio
+ 5000 BC     242 k     239 k-245 k        240 k   1.01 |     967 k     1.2 M   0.80
+ 3000 BC     1.5 M     798 k-1.9 M        800 k   1.84 |     6.1 M     3.8 M   1.62
+ 1000 BC     2.5 M     1.8 M-3.2 M        2.5 M   1.00 |    10.0 M    12.5 M   0.80
+    AD 1     3.6 M     2.1 M-4.8 M        5.0 M   0.72 |    14.2 M    25.0 M   0.57
+ AD 1000     6.7 M     2.4 M-9.3 M        8.0 M   0.84 |    24.7 M    40.0 M   0.62
+ AD 1500    10.3 M     3.5 M-22.8 M      11.0 M   0.94 |    74.6 M    56.2 M   1.33
+ AD 1700    16.3 M     4.6 M-76.2 M      15.0 M   1.09 |   163.8 M    75.0 M   2.18
+ AD 1800    23.0 M     4.8 M-145.2 M     20.0 M   1.15 |   250.7 M   106.2 M   2.36
+ AD 1900    52.4 M     5.8 M-189.8 M     60.0 M   0.87 |   393.1 M   312.5 M   1.26
+ AD 1950    84.4 M     6.6 M-227.7 M    110.0 M   0.77 |   489.7 M   562.5 M   0.87
+ AD 2000   102.4 M     7.5 M-297.6 M    230.0 M   0.45 |   630.2 M    1.25 B   0.50
+ AD 2100   176.2 M    11.2 M-388.1 M    400.0 M   0.44 |   906.4 M    2.12 B   0.43
+ AD 2200   248.6 M    22.1 M-399.0 M    480.0 M   0.52 |   942.4 M    2.50 B   0.38
+ AD 2300   238.7 M    45.0 M-417.5 M          -      - |    1.03 B    2.50 B   0.41
+world peak (median over matches): 1.16 B; target 1.88 B-3.75 B
