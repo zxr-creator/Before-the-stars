@@ -126,6 +126,11 @@ fn action_reference(obs: &Observation) -> Value {
         json!({"kind":"set_policy","setting":{"kind":"camp_policy","subjugate":false}}),
         json!({"kind":"set_policy","setting":{"kind":"market_order","good":"metal","side":"sell","per_month":10000,"limit_price":null,"keep_stock":0}}),
         json!({"kind":"set_policy","setting":{"kind":"embargo","seat":0,"on":true}}),
+        json!({"kind":"space","order":{"op":"launch","good":"metal","amount":1000}}),
+        json!({"kind":"space","order":{"op":"place","orbit":"leo","part":"k1"}}),
+        json!({"kind":"space","order":{"op":"found_outpost","site":"shackleton_rim","propulsion":null}}),
+        json!({"kind":"space","order":{"op":"ship","from_zone":null,"to_zone":"moon","goods":[{"good":"food","amount":12000}],"people":0,"site":"shackleton_rim","propulsion":null}}),
+        json!({"kind":"space","order":{"op":"site_build","site":"shackleton_rim","works":"ice_works"}}),
     ];
     if obs.culture.movement.is_some() {
         examples.push(json!({"kind":"start_project","spec":{"kind":"religion","beliefs":[],"name":null},"priority":5}));

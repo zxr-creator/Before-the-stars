@@ -116,9 +116,8 @@ export interface Observation {
   /** Ruleset 3.0: this seat's standing orders, in the order they are evaluated. */
   directives?: DirectiveView[];
   /**
-   * The off-world layer (design chapters 37 §6 and 39 §4–5). Not sent yet: the engine will supply
-   * it with the space slices (14–15). Until then the client draws static astronomy and shows every
-   * site as unclaimed and unsurveyed. Every field is optional.
+   * The off-world layer (design chapters 37 §6 and 39 §4–5). bts-protocol/2.5: sent once the seat
+   * understands rocket propulsion or holds anything off the Earth; absent before.
    */
   space?: SpaceView | null;
   /** bts-protocol/2.2: era, charters, golden or dark age and traditions. */
@@ -278,7 +277,7 @@ export interface MigrationView {
   refugees: number;
 }
 
-// --- Off-world layer (supplied by the engine in a later slice) --------------------------------
+// --- Off-world layer (bts-protocol/2.5) ----------------------------------------------------
 
 /** What this seat knows of the Solar System beyond its own planet. */
 export interface SpaceView {
@@ -294,6 +293,17 @@ export interface SpaceView {
   windows?: WindowView[];
   /** Bodies this seat has observed (chapter 37 §6.1); absent = all are drawn. */
   known_bodies?: string[];
+  /** bts-protocol/2.5: what this seat holds in each zone store (zones holding anything). */
+  stores?: ZoneStoreView[];
+  /** bts-protocol/2.5: keys of the cores ("k1"–"k4"), modules and site works this seat may place or build now. */
+  available?: string[];
+  /** bts-protocol/2.5: propulsion families this seat flies, by key ("chemical", "nuclear_thermal", "electric", "nuclear_electric", "fusion"). */
+  propulsion?: string[];
+}
+
+export interface ZoneStoreView {
+  zone: string;
+  goods: GoodQty[];
 }
 
 /** Boost (chapter 39 §4.7): a national stock that does not decay; launch sites stand down at the cap. */
@@ -307,8 +317,10 @@ export interface BoostView {
   /** Tonnes spent last month. */
   spent_last: number;
   by_stage?: BoostStageView[];
-  /** Launch failure risk per 1,000 t spent, basis points. */
+  /** Launch failure risk per 1,000 t spent, basis points (not modelled: lean scope). */
   failure_rate_bp?: number;
+  /** bts-protocol/2.5: consecutive months a launch complex or later stage made boost or stood down at the cap (check 13 wants 12). */
+  streak?: number;
 }
 
 export interface BoostStageView {
@@ -323,6 +335,9 @@ export interface BoostStageView {
 export interface SpaceSiteView {
   /** Site key, for example "shackleton_rim" or "arcadia_planitia" (or its number 1–19 as text). */
   site: string;
+  /** bts-protocol/2.5: display name and logistics zone key. */
+  name?: string;
+  zone?: string;
   /** The site's region id, once sites are regions. */
   region?: RegionId | null;
   owner: SeatId | null;
@@ -335,12 +350,16 @@ export interface SpaceSiteView {
   population_high?: number | null;
   /** Housing built (residents the habitats hold). */
   housing?: number | null;
-  /** Works at the site (facility kind and levels), where visible. */
-  works?: { kind: string; level: number }[];
+  /** Works at the site (facility kind and levels), where visible; `ready` = month a level under construction completes. */
+  works?: { kind: string; level: number; ready?: Month | null }[];
   /** Deposits, after a survey. */
   deposits?: DepositView[];
-  /** Autonomy pressure, 0–10,000 (own sites). */
+  /** Autonomy pressure, 0–10,000 (own sites; not modelled: lean scope). */
   autonomy_bp?: number | null;
+  /** bts-protocol/2.5 (own sites): share of residents housed, fed, watered and powered last month, bp; births and deaths last month. */
+  served_bp?: number | null;
+  births_last?: number | null;
+  deaths_last?: number | null;
 }
 
 /** A station in one of chapter 39's ten orbits. */
@@ -355,6 +374,10 @@ export interface StationView {
   modules?: { kind: string; level?: number }[];
   /** Crew aboard. */
   aboard?: number | null;
+  /** bts-protocol/2.5 (own stations): posts filled, power and crew supplies, bp. */
+  staffed_bp?: number | null;
+  power_bp?: number | null;
+  supplied_bp?: number | null;
 }
 
 /** A shipment between logistics zones (chapter 37 §6.5). */
@@ -370,6 +393,9 @@ export interface TransferView {
   propulsion?: string | null;
   departed: Month;
   arrives: Month;
+  /** bts-protocol/2.5: "lift", "cargo", "outpost", "settlers", "core" or "module", and the site or orbit key. */
+  purpose?: string;
+  target?: string | null;
 }
 
 export interface WindowView {
@@ -1505,6 +1531,8 @@ export type Action =
   | { kind: 'choose_charter'; charter: string }
   /** bts-protocol/2.2: commit a slot ("machine" | "frontier") to a path ("steam" | "engine" | "wire" | "atom" | "network" | "living" | "synthetic"). */
   | { kind: 'choose_tradition'; slot: string; path: string }
+  /** bts-protocol/2.5: an order of the off-world layer. */
+  | { kind: 'space'; order: SpaceOrder }
   /** bts-protocol/1.3: add, remove or reorder a standing order. */
   | { kind: 'directive'; op: DirectiveOp; id?: number | null; directive?: Directive | null; position?: number | null };
 
@@ -1954,3 +1982,21 @@ export interface InfraView {
   /** The carriage loss that exemption avoided last month, base units by good. */
   chain_loss_saved: GoodQty[];
 }
+
+/**
+ * bts-protocol/2.5: orders of the off-world layer. Every use of boost is paid from the stock
+ * month by month; a shipment waits on the pad until paid, then for its window and a berth.
+ */
+export type SpaceOrder =
+  /** Lift goods from the national stores to the Earth-orbit store (1 t of boost per tonne). */
+  | { op: 'launch'; good: Good; amount: number }
+  /** Bring goods down from the Earth-orbit store (no boost). */
+  | { op: 'land'; good: Good; amount: number }
+  /** Place a core ("k1"–"k4"; a higher one upgrades for 60% of its mass) or a module in an orbit. */
+  | { op: 'place'; orbit: string; part: string }
+  /** Found an outpost at an unclaimed site: the outpost bill, a year of supplies and 1,000 people. */
+  | { op: 'found_outpost'; site: string; propulsion?: string | null }
+  /** Ship goods (and, to an own site from the Earth, settlers) between zone stores. */
+  | { op: 'ship'; from_zone?: string | null; to_zone: string; goods?: GoodQty[]; people?: number; site?: string | null; propulsion?: string | null }
+  /** Build one level of a works at an own site from the zone store. */
+  | { op: 'site_build'; site: string; works: string };
