@@ -51,10 +51,10 @@ const PROVIDER_LABEL: Record<string, string> = {
   codex: 'Codex', 'openai-api': 'OpenAI-compatible', openai_api: 'OpenAI-compatible', mock: 'Mock agent',
 };
 const NATIVE_LABEL: Record<string, string> = {
-  native_easy: 'Built-in AI · Easy', native_medium: 'Built-in AI · Medium', native_hard: 'Built-in AI · Hard',
+  native_easy: 'Built-in AI · Easy', native_medium: 'Built-in AI · Medium', native_hard: 'Built-in AI · Hard', native_expert: 'Built-in AI · Expert (test)',
   human: 'Human', external: 'External agent',
 };
-const NATIVE_LEVEL: Record<string, string> = { native_easy: 'Easy', native_medium: 'Medium', native_hard: 'Hard' };
+const NATIVE_LEVEL: Record<string, string> = { native_easy: 'Easy', native_medium: 'Medium', native_hard: 'Hard', native_expert: 'Expert (test)' };
 
 function providerName(agent: AgentInfo): string {
   return t(PROVIDER_LABEL[agent.provider] ?? agent.provider);

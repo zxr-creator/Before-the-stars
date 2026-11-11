@@ -13,6 +13,7 @@ import { getLocale, t, tc } from './i18n';
 import { Emblem } from './theme/emblem';
 import { GoodIcon } from './theme/goods';
 import { PerspectiveSwitch } from './observer/controls';
+import { EraBanner } from './era';
 
 const BASIC: Good[] = ['food', 'materials', 'tools'];
 const ADVANCED: Good[] = ['metal', 'components', 'electronics', 'fuel'];
@@ -195,6 +196,8 @@ export function TopBar() {
         <span class="date-year" data-testid="year">{fmtNow(obs)}</span>
         <span class="date-round">{t('Round {r} of {n}', { r: int(obs.round), n: int(totalRounds(obs)) })}</span>
       </div>
+
+      <EraBanner obs={obs} />
 
       {watching ? <PerspectiveSwitch compact /> : null}
 

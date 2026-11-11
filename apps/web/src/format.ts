@@ -86,7 +86,7 @@ export const PHASE_LABEL: Record<Phase, string> = {
 export const STATUS_LABEL: Record<SeatStatus, string> = { active: 'Active', eliminated: 'Eliminated', forfeited: 'Forfeited' };
 export const CONTROLLER_LABEL: Record<ControllerKind, string> = {
   human: 'Human', external: 'External agent', native_easy: 'Native AI (Easy)', native_medium: 'Native AI (Medium)',
-  native_hard: 'Native AI (Hard)',
+  native_hard: 'Native AI (Hard)', native_expert: 'Native AI (Expert test policy)',
 };
 export const VIS_LABEL: Record<Visibility, string> = { own: 'Governed', visible: 'Observed', remembered: 'Remembered' };
 export const SETTLEMENT_LABEL: Record<SettlementKind, string> = {

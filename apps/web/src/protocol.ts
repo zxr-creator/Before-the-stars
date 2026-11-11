@@ -63,10 +63,10 @@ export interface ProductivityView {
 }
 export type Phase = 'contact' | 'negotiate' | 'plan' | 'finished';
 export type SeatStatus = 'active' | 'eliminated' | 'forfeited';
-// The referee also knows 'native_expert' (bts-protocol/2.1): the Expert test policy of
-// design chapter 39, section 8.3, used by headless calibration only and never offered
-// in setup or seen by the client, so it is left out of this union.
-export type ControllerKind = 'human' | 'external' | 'native_easy' | 'native_medium' | 'native_hard';
+// 'native_expert' (bts-protocol/2.1) is the Expert test policy of design chapter 39,
+// section 8.3: used by headless calibration and never offered in setup, but a saved or
+// spectated match may carry it, so the client labels it.
+export type ControllerKind = 'human' | 'external' | 'native_easy' | 'native_medium' | 'native_hard' | 'native_expert';
 export type Visibility = 'own' | 'visible' | 'remembered';
 export type SettlementKind = 'wilderness' | 'camp' | 'village' | 'town' | 'city' | 'metropolis' | 'megalopolis';
 export type Intent = 'inquiry' | 'quotation' | 'counteroffer' | 'claim' | 'need' | 'warning' | 'alliance_proposal';
@@ -115,6 +115,68 @@ export interface Observation {
   calendar?: CalendarView | null;
   /** Ruleset 3.0: this seat's standing orders, in the order they are evaluated. */
   directives?: DirectiveView[];
+  /**
+   * Eras, charters and traditions (design chapter 37, sections 3-4). NOT YET SENT by the
+   * referee: defined ahead so the era banner and the era screen light up when the engine
+   * adds them. The client renders nothing while these are absent.
+   */
+  era?: EraView | null;
+  traditions?: TraditionSlotView[];
+}
+
+/** This seat's place on the era ladder (design chapter 37, section 3.6). Not yet sent. */
+export interface EraView {
+  /** 0 Ancient .. 9 Interstellar (9 only once the objective is revealed). */
+  era: number;
+  since: Month;
+  /** The transition period after entering the era, while it runs. */
+  transition?: EraTransition | null;
+  /** A golden or dark age, while it lasts. */
+  age?: { kind: 'golden' | 'dark'; until: Month } | null;
+  /** Charter options of the current era; `held` marks the ones in force. */
+  charters?: CharterOption[];
+  /** Whether a charter may be chosen or changed now, and why not. */
+  can_choose_charter?: boolean;
+  charter_note?: string | null;
+  /** The next era and its conditions (undiscovered technologies are described, never named). */
+  next?: { era: number; conditions: KnownRequirement[] } | null;
+}
+
+export interface EraTransition {
+  until: Month;
+  /** Stability lost in every governed region while it runs. */
+  strain: number;
+  /** Score so far, 0-100, and its four parts. */
+  score?: number | null;
+  parts?: { label: string; points: number; max: number }[];
+}
+
+export interface CharterOption {
+  key: string;
+  name: string;
+  effect: string;
+  cost: string;
+  held: boolean;
+}
+
+/** One tradition slot, machine or frontier (design chapter 37, section 4.1). Not yet sent. */
+export interface TraditionSlotView {
+  slot: 'machine' | 'frontier';
+  /** Whether the slot has been offered (Industrial and Information eras). */
+  offered: boolean;
+  /** Path held, null when Unaligned. Paths: steam, engine, wire, atom, network, living, synthetic. */
+  path: string | null;
+  mastery_bp: number;
+  /** A tradition reform under way to another path. */
+  switching?: { path: string; until: Month | null } | null;
+  options: TraditionOption[];
+}
+
+export interface TraditionOption {
+  path: string;
+  available: boolean;
+  /** Why it cannot be chosen now, when it cannot. */
+  reason?: string | null;
 }
 
 /** A historical year: negative is BC, positive AD; there is no year zero. */
@@ -499,6 +561,9 @@ export interface ForeignCiv {
   observed_tier: number | null;
   trust: number;
   notes: string[];
+  /** Era and held tradition paths of a met seat (design chapter 37, section 3.6). Not yet sent. */
+  era?: number | null;
+  traditions?: string[];
 }
 
 export interface KnownRequirement {
@@ -1084,6 +1149,9 @@ export type Action =
   | { kind: 'propose_reform'; practice: string }
   /** Repeal an enacted practice (bts-protocol/2.1). */
   | { kind: 'repeal'; practice: string }
+  /** Eras and traditions (design chapter 37): offered only once the observation carries `era` / `traditions`. */
+  | { kind: 'choose_charter'; charter: string }
+  | { kind: 'choose_tradition'; slot: 'machine' | 'frontier'; path: string | null }
   | { kind: 'start_program'; region: RegionId; course: string; seats: number }
   | { kind: 'manage_program'; program: number; op: ManageOp; seats: number | null }
   | { kind: 'demolish'; region: RegionId; facility: string; levels: number }
