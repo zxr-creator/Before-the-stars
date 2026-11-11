@@ -113,3 +113,13 @@ before slice 12b (intelligence); items 13-14 before doc 39's graph merge (slice 
 **Resolved by the lead (2026-11-10):** all recommendations above are adopted, consistent
 with the user's earlier choices; the orbital tether of doc 38 is renumbered T326 so that
 doc 39's T183 (fermentation and brewing) keeps its id.
+
+**User change (2026-11-10):** every map preset is 1.25× larger — Small 30, Standard 60,
+Large 120, Huge 200 regions (seat ranges unchanged: 2–3, 2–5, 4–8, 6–10); the 72-region
+test map becomes 90. World population scales with region count as before
+(about 2 billion × regions/48 → ~2.5 B on Standard). Technology and practice requirements
+(evidence thresholds and research/reform work) are raised to match: they scale with the
+map's expected research capacity so that era dates and the completion and victory-timing
+targets of docs 36, 39 and 40 hold on every preset — in effect about +25% on Standard
+relative to the 48-region calibration, re-calibrated per preset rather than one constant.
+Performance budgets for Large/Huge are re-measured at 120/200 regions in slice 4b.
