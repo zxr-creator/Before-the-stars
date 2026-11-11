@@ -1,0 +1,15 @@
+{
+ "Install Claude Code (https://claude.com/claude-code), then reopen setup.": "请安装 Claude Code（https://claude.com/claude-code），然后重新打开设置页面。",
+ "Install the Codex CLI (npm install -g @openai/codex, or brew install codex), then reopen setup.": "请安装 Codex 命令行（npm install -g @openai/codex，或 brew install codex），然后重新打开设置页面。",
+ "The program could not be started.": "程序无法启动。",
+ "Your Codex sign-in does not include that model. Pick another model for this seat (the list shows the models your Codex offers), or leave it on the default.": "你的 Codex 登录不包含这个模型。请为此席位换一个模型（列表中是你的 Codex 提供的模型），或保持默认。",
+ "Sign Claude Code in again: in a terminal run `claude`, then type /login (or run `claude auth login`). Or switch this seat to an Anthropic API key.": "请重新登录 Claude Code：在终端运行 `claude`，然后输入 /login（或运行 `claude auth login`）。也可以把此席位改为使用 Anthropic API 密钥。",
+ "Sign Codex in: in a terminal run `codex login`. Or switch this seat to an OpenAI API key.": "请登录 Codex：在终端运行 `codex login`。也可以把此席位改为使用 OpenAI API 密钥。",
+ "The account behind this seat has no usage left. Add credit or use another sign-in.": "此席位所用的账户已没有可用额度。请充值或换一个登录。",
+ "The provider is rate-limiting this account. Consult less often (every 2 or 5 rounds) or wait and resume.": "服务方正在对此账户限流。请降低咨询频率（每 2 或 5 回合一次），或稍后再恢复。",
+ "Raise the time budget for this seat, lower the effort, or pick a faster model.": "请提高此席位的时限、降低思考强度，或换一个更快的模型。",
+ "Enter an API key for this seat, or set the environment variable before starting the game.": "请为此席位输入 API 密钥，或在启动游戏前设置相应的环境变量。",
+ "agent seats are set up only on a referee that does not require seat tokens": "只有在不要求席位令牌的裁判上才能设置智能体席位",
+ "another test is running; try again when it has finished": "另一项测试正在进行；请等它结束后再试",
+ "the test request could not be read": "无法读取这次测试的请求"
+}

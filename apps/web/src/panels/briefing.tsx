@@ -43,6 +43,7 @@ const ACTION_LABEL: Record<string, string> = {
   'start_project:ftl_deployment': 'Deployment exercise', 'start_project:ftl_replacement': 'Replacement and relief',
   manage_project: 'Manage project', investigate: 'Follow up lead', propose_reform: 'Propose reform', start_program: 'Open programme',
   manage_program: 'Manage programme', demolish: 'Demolish', military_order: 'Military order', forfeit: 'Withdraw',
+  directive: 'Standing order', repeal: 'Repeal',
 };
 
 export function actionLabel(action: string): string {

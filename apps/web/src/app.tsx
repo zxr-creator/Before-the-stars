@@ -29,6 +29,7 @@ import { MilitaryPanel } from './panels/military';
 import { ObjectivesPanel } from './panels/objectives';
 import { ChronicleSheet, ChronicleTab } from './panels/chronicle';
 import { GameMenu } from './menu';
+import { ConnectHost } from './agents/connect';
 import { fmtYear, yearOf } from './format';
 import { StandingOrders } from './panels/orders';
 import { t, tc, useLocale } from './i18n';
@@ -215,6 +216,8 @@ export function App() {
         {s.overlay === 'almanac' ? <div class="world-overlay"><Almanac /></div> : null}
         <Toasts state={s} />
         {s.menuOpen ? <GameMenu /> : null}
+      <ConnectHost />
+        <ConnectHost />
       </div>
     );
   }
@@ -275,6 +278,7 @@ export function App() {
         <Toasts state={s} />
       </div>
       {s.menuOpen ? <GameMenu /> : null}
+      <ConnectHost />
       {s.handover !== null ? (
         <div class="overlay" role="dialog" aria-modal="true" aria-label={t('Hand over')}>
           <div class="overlay-card">

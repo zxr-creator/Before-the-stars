@@ -346,7 +346,7 @@ fn detect_cached(exe: &Path, refresh: bool) -> serde_json::Value {
 fn agent_test(body: &[u8], exe: &Path, url: &str) -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
     static BUSY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     let Ok(req) = serde_json::from_slice::<providers::TestRequest>(body) else {
-        return err(400, "INVALID_SCHEMA", "expected {provider, model?, effort?, auth?, api_key?, base_url?}");
+        return err(400, "INVALID_SCHEMA", "the test request could not be read");
     };
     if BUSY.swap(true, std::sync::atomic::Ordering::SeqCst) {
         return err(429, "BUSY", "another test is running; try again when it has finished");

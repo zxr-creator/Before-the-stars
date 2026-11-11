@@ -9,6 +9,7 @@ import { t, tc, useLocale } from './i18n';
 import { LanguageSwitch } from './setup';
 import { BrandMark } from './theme/brand';
 import { startTutorial } from './tutorial';
+import { externalSeats, openConnect } from './agents/connect';
 import { SoundSettings } from './audio/SoundSettings';
 
 export function GameMenu() {
@@ -151,6 +152,7 @@ export function GameMenu() {
             <div class="row wrap">
               <Btn nav icon="almanac" testid="menu-almanac" onClick={() => openOverlay('almanac')}>{t('Almanac')}</Btn>
               {playing ? <Btn nav icon="compass" testid="menu-tutorial" onClick={() => { setMenu(false); startTutorial(); }}>{t('Restart the tutorial')}</Btn> : null}
+              {externalSeats(summary?.seats).length ? <Btn nav icon="external" testid="menu-connect" onClick={() => { setMenu(false); openConnect(); }}>{t('Connect your agent…')}</Btn> : null}
             </div>
           </Section>
           <Section title={t('Match')}>

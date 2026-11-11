@@ -60,6 +60,7 @@ pub struct AgentSeat {
     pub last_note: String,
     pub calls: u32,
     pub last_error: Option<String>,
+    pub last_hint: Option<String>,
     pub log: Vec<LogEntry>,
     pub errors_in_row: u32,
     /// (round, phase, window) already handled, so one call is made per decision point.
@@ -88,6 +89,7 @@ impl AgentSeat {
             last_note: String::new(),
             calls: 0,
             last_error: None,
+            last_hint: None,
             log: Vec::new(),
             errors_in_row: 0,
             handled: (0, Phase::Finished, 0),
@@ -135,6 +137,7 @@ impl AgentSlot for AgentSeat {
             last_note: self.last_note.clone(),
             calls: self.calls,
             last_error: self.last_error.clone(),
+            last_hint: self.last_hint.clone(),
             thinking_seconds: self.thinking_since.map(|t| t.elapsed().as_secs()),
             mode: if self.provider().is_agent() { "agent".into() } else { "oneshot".into() },
             errors_in_row: self.errors_in_row,
@@ -168,6 +171,7 @@ impl AgentSlot for AgentSeat {
                 }
                 self.errors_in_row = 0;
                 self.last_error = None;
+                self.last_hint = None;
                 Ok(())
             }
             "stop" => {
@@ -335,7 +339,7 @@ fn agent_note(text: &str) -> (String, Option<Vec<String>>) {
 fn action_label(a: &Action) -> String {
     let v = serde_json::to_value(a).unwrap_or_default();
     let kind = v["kind"].as_str().unwrap_or("?").to_string();
-    match v["spec"]["kind"].as_str().or_else(|| v["directive"]["kind"].as_str()).or_else(|| v["setting"]["kind"].as_str()) {
+    match v["spec"]["kind"].as_str() {
         Some(k) => format!("{kind}:{k}"),
         None => kind,
     }
@@ -579,6 +583,7 @@ fn worker(shared: Shared, seat: SeatId, generation: u64) {
             Ok(reply) => {
                 agent.errors_in_row = 0;
                 agent.last_error = None;
+                agent.last_hint = None;
                 if agent.state != "stopped" {
                     agent.state = "idle".into();
                 }
@@ -628,10 +633,8 @@ fn worker(shared: Shared, seat: SeatId, generation: u64) {
                 let e = providers::redact(&e, key.as_deref());
                 agent.errors_in_row += 1;
                 entry.hint = providers::hint(provider, &e);
-                agent.last_error = Some(match &entry.hint {
-                    Some(h) => format!("{e} — {h}"),
-                    None => e.clone(),
-                });
+                agent.last_error = Some(e.clone());
+                agent.last_hint = entry.hint.clone();
                 let max = agent.cfg.max_failures();
                 // the steward takes this round; after repeated failures it runs the seat alone until resumed
                 agent.state = if agent.errors_in_row >= max { "stopped".into() } else { "error".into() };
@@ -681,7 +684,7 @@ mod tests {
         // a standing order is an ordinary action
         let d = parse_reply(r#"{"note":"","actions":[{"kind":"directive","op":"add","directive":{"kind":"auto_research","on":true}}]}"#).unwrap();
         assert_eq!(d.actions.len(), 1);
-        assert_eq!(action_label(&d.actions[0]), "directive:auto_research");
+        assert_eq!(action_label(&d.actions[0]), "directive");
     }
 
     #[test]

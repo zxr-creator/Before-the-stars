@@ -95,6 +95,8 @@ pub struct AgentSummary {
     pub last_note: String,
     pub calls: u32,
     pub last_error: Option<String>,
+    /// A fix for the last error the person can apply, when it is one the transport recognises.
+    pub last_hint: Option<String>,
     pub thinking_seconds: Option<u64>,
     /// "agent" (a CLI agent that plays through the seat API) or "oneshot" (one reply per consultation).
     pub mode: String,

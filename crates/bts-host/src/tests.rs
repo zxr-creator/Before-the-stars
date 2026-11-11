@@ -32,6 +32,7 @@ impl AgentSlot for StubAgent {
             last_note: String::new(),
             calls: 0,
             last_error: None,
+            last_hint: None,
             thinking_seconds: None,
             mode: "oneshot".into(),
             errors_in_row: 0,
