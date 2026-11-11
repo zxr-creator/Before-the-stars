@@ -52,6 +52,8 @@ export interface RecStats {
   started: number;
   supported: boolean;
   paused: boolean;
+  /** Each deck: idle, loading, playing or fading, and its recording. */
+  decks: string[];
 }
 
 export class RecordPlayer {
@@ -325,6 +327,7 @@ export class RecordPlayer {
       started: this.started,
       supported: this.supported,
       paused: this.paused,
+      decks: this.decks.map((d) => `${d.phase}${d.track ? ' ' + d.track.id : ''}`),
     };
   }
 }
