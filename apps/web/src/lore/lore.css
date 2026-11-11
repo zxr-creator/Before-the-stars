@@ -1,0 +1,31 @@
+/* Encyclopedia passage: a printed entry set into the parchment of the card details. */
+.lore {
+  position: relative; margin: 0 0 15px; padding: 10px 13px 12px;
+  background: linear-gradient(180deg, rgba(255, 252, 242, 0.78), rgba(247, 239, 218, 0.6));
+  border: 1px solid rgba(138, 106, 38, 0.38); border-radius: 3px;
+  box-shadow: inset 0 0 0 3px rgba(255, 252, 242, 0.65), inset 0 0 0 4px rgba(201, 162, 77, 0.24), 0 1px 2px rgba(60, 45, 20, 0.08);
+}
+.lore-kicker { margin: 0 0 6px; display: flex; align-items: center; gap: 6px; font: 600 9.5px/1.3 var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass-lo, #8a6a26); }
+.lore-kicker::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(138, 106, 38, 0.45), transparent); }
+.lore-intro { margin: 0; font: 13.5px/1.6 var(--serif); color: var(--ink); text-wrap: pretty; }
+.lore.is-latin .lore-intro { hyphens: auto; }
+.lore.is-latin .lore-intro::first-letter { float: left; font: 600 2.75em/0.8 var(--serif); margin: 0.07em 0.07em 0 0; color: var(--brass-deep, #5c4514); }
+.lore:not(.is-latin) .lore-intro { font-size: 13.5px; line-height: 1.8; text-align: justify; letter-spacing: 0.02em; }
+.lore-quote { margin: 10px 0 0; padding: 8px 2px 0 14px; position: relative; border-top: 1px solid rgba(138, 106, 38, 0.22); }
+.lore-quote::before { content: "“"; position: absolute; left: -1px; top: 3px; font: 600 26px/1 var(--serif); color: rgba(138, 106, 38, 0.55); }
+.lore-quote p { margin: 0; font: italic 13px/1.5 var(--serif); color: var(--ink-2); }
+.lore-quote footer { margin-top: 4px; text-align: right; font: 11.5px/1.35 var(--serif); color: var(--ink-3); }
+.lore-quote cite { font-style: normal; }
+.lore.is-latin .lore-quote cite { font-variant-caps: small-caps; letter-spacing: 0.02em; font-size: 12px; }
+/* Chinese: no slanted characters; quotations in a brush-like face where one is installed */
+.lore:not(.is-latin) .lore-quote::before { content: ""; }
+.lore:not(.is-latin) .lore-quote { padding-left: 2px; }
+.lore:not(.is-latin) .lore-quote p { font-style: normal; font-family: "Kaiti SC", STKaiti, KaiTi, "BiauKai", "DFKai-SB", var(--serif); font-size: 14px; line-height: 1.65; }
+/* folded variant used in lists */
+.lore-fold { margin: 6px 0 8px; }
+.lore-fold > summary { cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font: 600 11px/1.4 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--brass-lo, #8a6a26); list-style: none; }
+.lore-fold > summary::-webkit-details-marker { display: none; }
+.lore-fold > summary::before { content: "▸"; font-size: 10px; transition: transform 0.15s; }
+.lore-fold[open] > summary::before { transform: rotate(90deg); }
+.lore-fold[open] > summary { margin-bottom: 6px; }
+.lore-fold > .lore { margin-bottom: 4px; }

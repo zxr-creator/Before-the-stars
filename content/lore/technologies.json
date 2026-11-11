@@ -1,0 +1,1982 @@
+[
+ {
+  "id": "T001",
+  "en": {
+   "intro": "A flint blade set into a haft of bone, antler or wood with resin and sinew is a small piece of engineering: two materials, each doing what the other cannot. Composite tools let a hand cut harder and waste less good stone, and they could be repaired rather than thrown away. Every failure taught something. A haft that split or a glue that softened in the sun said something about grain, heat and strain. Ötzi, the man found frozen in the Alps, carried a flint dagger in an ash handle and a little tool for retouching worn edges: a kit kept working by constant mending.",
+   "quote": {
+    "text": "A craftsman who wants to do his work well must first sharpen his tools.",
+    "source": "Confucius, Analects, Book XV"
+   }
+  },
+  "zh-Hans": {
+   "intro": "把燧石刃用树脂和筋腱固定在骨、角或木柄上，是一桩小小的工程：两种材料各补对方之短。复合工具让人切得更狠，也更省好石料；坏了可以修，不必整件丢弃。每一次失手都有所教益：柄裂了，说明木纹选错了方向；胶在日头下变软，说明温度另有讲究。阿尔卑斯山冰川中发现的“冰人奥茨”，随身带着一把装在白蜡木柄上的燧石短刀，还有一件专门修整刃口的小工具——一套靠不断修补才维持运转的家当。",
+   "quote": {
+    "text": "工欲善其事，必先利其器。",
+    "source": "《论语·卫灵公》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "把燧石刃用樹脂和筋腱固定在骨、角或木柄上，是一樁小小的工程：兩種材料各補對方之短。複合工具讓人切得更狠，也更省好石料；壞了可以修，不必整件丟棄。每一次失手都有所教益：柄裂了，說明木紋選錯了方向；膠在日頭下變軟，說明溫度另有講究。阿爾卑斯山冰川中發現的「冰人奧茨」，隨身帶著一把裝在白蠟木柄上的燧石短刀，還有一件專門修整刃口的小工具——一套靠不斷修補才維持運轉的家當。",
+   "quote": {
+    "text": "工欲善其事，必先利其器。",
+    "source": "《論語·衛靈公》"
+   }
+  }
+ },
+ {
+  "id": "T002",
+  "en": {
+   "intro": "Fire kept is fire owned. What mattered was not making a blaze once but holding one: banking embers overnight, carrying them between camps, judging fuel and draught. Cooked food is softer and safer, so less of the day went to chewing and more to everything else, and the hearth became the place where people talked after dark. Heat was also a tool. At Pinnacle Point on the South African coast, people were heating stone to make it flake more cleanly well over a hundred thousand years ago. Too cool and nothing changed; too hot and the stone cracked. The lessons were in the failures."
+  },
+  "zh-Hans": {
+   "intro": "能生一次火不算本事，能把火守住才算。把余烬埋好过夜，带着火种迁往新营地，掂量柴薪与风口，这些看似琐碎的功夫，才让火真正归人所有。熟食更软、更安全，人们花在咀嚼上的时间少了，入夜后的火塘边成了说话的地方。火也是一种工具：南非海岸的尖峰角遗址表明，早在十多万年前，人们就懂得加热石料，让它剥片更利落。火候不足，石头不变；火候太过，石头开裂。门道都藏在失败里。"
+  },
+  "zh-Hant": {
+   "intro": "能生一次火不算本事，能把火守住才算。把餘燼埋好過夜，帶著火種遷往新營地，掂量柴薪與風口，這些看似瑣碎的功夫，才讓火真正歸人所有。熟食更軟、更安全，人們花在咀嚼上的時間少了，入夜後的火塘邊成了說話的地方。火也是一種工具：南非海岸的尖峰角遺址表明，早在十多萬年前，人們就懂得加熱石料，讓它剝片更利落。火候不足，石頭不變；火候太過，石頭開裂。門道都藏在失敗裡。"
+  }
+ },
+ {
+  "id": "T003",
+  "en": {
+   "intro": "Hunters and fishers are, of necessity, careful naturalists. They know when the salmon run, which hillside the deer favour after rain, how many birds a marsh can lose before it falls silent. Combining hunting with fishing and gathering spread the risk: when one source failed, another might hold. Knowledge like this was carried in heads and taught on the move, and it was precise. At Budj Bim in south-eastern Australia, the Gunditjmara built stone channels and traps to manage eels for thousands of years. Yet even good observers could take too much, and an emptied valley forced hard questions about why."
+  },
+  "zh-Hans": {
+   "intro": "以渔猎为生的人，必然是细心的博物学者。他们知道鲑鱼何时洄游，雨后的鹿偏爱哪面山坡，一片沼泽能少掉多少水鸟而不至于沉寂。把狩猎、捕鱼和采集结合起来，等于分散风险：一样落空，另一样或许还能指望。这些知识装在脑子里，边走边教，却精确得惊人。在澳大利亚东南部的布季比姆，古迪吉马拉人垒石筑起水渠和鱼栅来管理鳗鱼，延续了数千年。然而再好的观察者也会取之过度，一条被掏空的山谷，会逼人追问其中的缘由。"
+  },
+  "zh-Hant": {
+   "intro": "以漁獵為生的人，必然是細心的博物學者。他們知道鮭魚何時洄游，雨後的鹿偏愛哪面山坡，一片沼澤能少掉多少水鳥而不至於沉寂。把狩獵、捕魚和採集結合起來，等於分散風險：一樣落空，另一樣或許還能指望。這些知識裝在腦子裡，邊走邊教，卻精確得驚人。在澳大利亞東南部的布季比姆，古迪吉馬拉人壘石築起水渠和魚柵來管理鰻魚，延續了數千年。然而再好的觀察者也會取之過度，一條被掏空的山谷，會逼人追問其中的緣由。"
+  }
+ },
+ {
+  "id": "T004",
+  "en": {
+   "intro": "Twist a handful of plant fibre and it becomes stronger than any single strand; twist two cords against each other and they hold their shape. From that trick came lines, snares, bags, mats, nets and clothing, most of which rot away and leave archaeologists to guess. A few survive: in Dzudzuana Cave in Georgia, wild flax fibres some thirty thousand years old turned up, a few of them apparently dyed. Cordage tied the material world together, literally lashing blade to handle and load to back. It also demanded endless hours of retting, stripping and spinning, work so constant it rarely made it into stories."
+  },
+  "zh-Hans": {
+   "intro": "抓一把植物纤维捻一捻，就比任何单根都结实；两股绳反向相绞，便能定住形状。线绳、套索、袋子、席子、渔网和衣物都由此而来，可惜大多早已朽烂，只留给考古学家猜测。也有少数幸存：格鲁吉亚的祖祖阿纳洞穴里，出土了约三万年前的野生亚麻纤维，其中几根似乎还染过色。绳索把物质世界真正地捆在一起：把刃绑上柄，把担子绑上背。它也要求无穷无尽的沤麻、剥皮和纺捻，这些活计如此日常，以至于很少被讲进故事里。"
+  },
+  "zh-Hant": {
+   "intro": "抓一把植物纖維捻一捻，就比任何單根都結實；兩股繩反向相絞，便能定住形狀。線繩、套索、袋子、席子、漁網和衣物都由此而來，可惜大多早已朽爛，只留給考古學家猜測。也有少數倖存：喬治亞的祖祖阿納洞穴裡，出土了約三萬年前的野生亞麻纖維，其中幾根似乎還染過色。繩索把物質世界真正地捆在一起：把刃綁上柄，把擔子綁上背。它也要求無窮無盡的漚麻、剝皮和紡捻，這些活計如此日常，以至於很少被講進故事裡。"
+  }
+ },
+ {
+  "id": "T005",
+  "en": {
+   "intro": "Nobody set out to invent farming. People who gathered wild grasses kept favouring the plants that suited them, and the plants slowly changed. In wild wheat the ripe ear shatters and scatters its seed; in the cultivated kinds that spread across the Fertile Crescent some ten thousand years ago, the ear holds on and waits for the sickle. That one small change tied people to fields. Cultivation fed more mouths per acre than foraging, but it asked for months of labour in advance, a gamble on rain, and a settled life that was harder to walk away from when the harvest failed."
+  },
+  "zh-Hans": {
+   "intro": "没有人立志去发明农业。采集野草籽的人，一次次偏爱合用的植株，植物也就慢慢变了样。野生小麦成熟后穗轴碎裂，种子四散；而大约一万年前在新月沃地传开的栽培品种，穗子牢牢长在秆上，静候镰刀。这一个小小的变化，把人拴在了田地上。同样一块地，耕种能比采集养活更多的人，却要求人提前付出数月劳作，赌一场雨水，并过上一种歉收时也难以抽身离去的定居生活。"
+  },
+  "zh-Hant": {
+   "intro": "沒有人立志去發明農業。採集野草籽的人，一次次偏愛合用的植株，植物也就慢慢變了樣。野生小麥成熟後穗軸碎裂，種子四散；而大約一萬年前在新月沃地傳開的栽培品種，穗子牢牢長在稈上，靜候鐮刀。這一個小小的變化，把人拴在了田地上。同樣一塊地，耕種能比採集養活更多的人，卻要求人提前付出數月勞作，賭一場雨水，並過上一種歉收時也難以抽身離去的定居生活。"
+  }
+ },
+ {
+  "id": "T006",
+  "en": {
+   "intro": "Keeping animals instead of chasing them turned meat into a stored, walking asset. Sheep and goats in the hills of western Asia, cattle descended from the formidable aurochs, llamas in the Andes: each species took generations of patient choice, favouring the calm, the fertile and the useful. Herds gave milk, wool, hides and dung as well as meat, and they gave their owners something to lend, trade and fight over. They also brought disease to close quarters and competed with people for fodder. The wild aurochs itself did not survive the arrangement; the last known cow died in a Polish forest in 1627."
+  },
+  "zh-Hans": {
+   "intro": "把动物圈养起来，而不是追着它们跑，肉便成了一笔可以储存、还会走路的财产。西亚山地的绵羊和山羊，由凶悍的原牛驯育而来的家牛，安第斯山的美洲驼……每个物种都要经过许多代耐心的挑选，留下温顺的、多产的、合用的。畜群提供奶、毛、皮、粪和肉，也让主人有了可以出借、交换乃至争夺的东西。它们同时把疫病带到人身边，还与人争抢草料。野生原牛本身没能熬过这场安排：已知的最后一头母原牛，1627年死在波兰的一片森林里。"
+  },
+  "zh-Hant": {
+   "intro": "把動物圈養起來，而不是追著它們跑，肉便成了一筆可以儲存、還會走路的財產。西亞山地的綿羊和山羊，由兇悍的原牛馴育而來的家牛，安第斯山的美洲駝……每個物種都要經過許多代耐心的挑選，留下溫順的、多產的、合用的。畜群提供奶、毛、皮、糞和肉，也讓主人有了可以出借、交換乃至爭奪的東西。它們同時把疫病帶到人身邊，還與人爭搶草料。野生原牛本身沒能熬過這場安排：已知的最後一頭母原牛，1627年死在波蘭的一片森林裡。"
+  }
+ },
+ {
+  "id": "T007",
+  "en": {
+   "intro": "Food that keeps is time that can be spent elsewhere. Drying fish in the wind, smoking meat over a slow fire, salting, packing grain into lined pits or raised stores: each method trades labour now for security later, and each fails in its own way, to damp, mould, mice or theft. Near the Dead Sea, at Dhra', people built raised storehouses for wild grain some eleven thousand years ago, with floors lifted clear of pests. Stores changed social life too. Whoever guarded the stock decided who ate in the lean months, and a spoiled store was a hard lesson in the habits of insects."
+  },
+  "zh-Hans": {
+   "intro": "能存得住的粮食，就是能省出来用在别处的时间。风干鱼、慢火熏肉、腌制、把谷物装进铺垫好的窖穴或架高的仓房，每一种办法都是用眼下的劳作换取日后的安心，也各有各的失败方式：受潮、发霉、鼠啮、失窃。在死海附近的德拉遗址，约一万一千年前的人已经建起地板架高、防虫防鼠的仓房，储存野生谷物。储藏也改变了社会：谁看管存粮，谁就决定青黄不接时谁能吃上饭；而一仓坏粮，则是关于虫豸习性的一堂苦课。"
+  },
+  "zh-Hant": {
+   "intro": "能存得住的糧食，就是能省出來用在別處的時間。風乾魚、慢火燻肉、醃製、把穀物裝進鋪墊好的窖穴或架高的倉房，每一種辦法都是用眼下的勞作換取日後的安心，也各有各的失敗方式：受潮、發黴、鼠齧、失竊。在死海附近的德拉遺址，約一萬一千年前的人已經建起地板架高、防蟲防鼠的倉房，儲存野生穀物。儲藏也改變了社會：誰看管存糧，誰就決定青黃不接時誰能吃上飯；而一倉壞糧，則是關於蟲豸習性的一堂苦課。"
+  }
+ },
+ {
+  "id": "T008",
+  "en": {
+   "intro": "Clay is forgiving until it meets fire, and then it is honest. Shaped, dried and fired hot enough, it becomes a vessel that holds water, survives the hearth and lets food simmer for hours. Some of the oldest known pots, from Xianrendong Cave in southern China, are around twenty thousand years old, made by people who still lived by hunting and gathering. A kiln traps heat that an open fire wastes, so the same clay could be fired harder and more evenly. Potters learned the hard way that hidden air pockets burst and that cooling too fast cracks a week's work."
+  },
+  "zh-Hans": {
+   "intro": "黏土在遇火之前百依百顺，一旦入火便原形毕露。成形、阴干、烧到足够的温度，它就成了能盛水、耐得住火塘、可以让食物慢炖几个小时的器皿。已知最古老的陶器之一出自中国江西的仙人洞，约有两万年历史，制作者还过着渔猎采集的生活。窑能留住明火白白散失的热量，同样的黏土因此烧得更硬、更匀。陶工们吃尽苦头才明白：坯里藏着的气泡会炸裂，冷却太快会让一周的心血裂成碎片。"
+  },
+  "zh-Hant": {
+   "intro": "黏土在遇火之前百依百順，一旦入火便原形畢露。成形、陰乾、燒到足夠的溫度，它就成了能盛水、耐得住火塘、可以讓食物慢燉幾個小時的器皿。已知最古老的陶器之一出自中國江西的仙人洞，約有兩萬年曆史，製作者還過著漁獵採集的生活。窯能留住明火白白散失的熱量，同樣的黏土因此燒得更硬、更勻。陶工們吃盡苦頭才明白：坯裡藏著的氣泡會炸裂，冷卻太快會讓一週的心血裂成碎片。"
+  }
+ },
+ {
+  "id": "T009",
+  "en": {
+   "intro": "A notch on a stick is a promise that memory need not carry everything. Tallies let a hunter count days, a band keep track of shares, two traders agree on what was owed. The Ishango bone from the Congo basin, about twenty thousand years old, carries groups of carved notches whose purpose is still argued over; nobody doubts they were meant to be counted. Marks like these are not yet writing. They record how many, not of what or why, and they make sense only to people who already know the story. Still, a mark can be checked, and that is a new kind of honesty."
+  },
+  "zh-Hans": {
+   "intro": "木棍上刻一道痕，等于向记忆许诺：不必什么都靠脑子记。刻痕让猎人数日子，让一群人记清各自的份额，让两个交换东西的人对欠下的数目达成一致。刚果盆地出土的伊尚戈骨约有两万年历史，上面成组的刻痕用途至今众说纷纭，但没有人怀疑它们是用来数的。这样的记号还不是文字：它记下“多少”，却记不下“什么”和“为什么”，只有本就知道来龙去脉的人才看得懂。不过，记号可以核对，这本身就是一种新的诚实。"
+  },
+  "zh-Hant": {
+   "intro": "木棍上刻一道痕，等於向記憶許諾：不必什麼都靠腦子記。刻痕讓獵人數日子，讓一群人記清各自的份額，讓兩個交換東西的人對欠下的數目達成一致。剛果盆地出土的伊尚戈骨約有兩萬年曆史，上面成組的刻痕用途至今眾說紛紜，但沒有人懷疑它們是用來數的。這樣的記號還不是文字：它記下「多少」，卻記不下「什麼」和「為什麼」，只有本就知道來龍去脈的人才看得懂。不過，記號可以核對，這本身就是一種新的誠實。"
+  }
+ },
+ {
+  "id": "T010",
+  "en": {
+   "intro": "The sky is the one dial everyone can see. Watching where the sun rose on the horizon, when a certain star first reappeared before dawn, how many moons passed between the geese leaving and returning, people learned to anticipate the year rather than merely suffer it. At Newgrange in Ireland, built some five thousand years ago, a narrow opening above the entrance lets the midwinter sunrise reach the inner chamber. Calendars set the timing of sowing, migration and festivals, and whoever kept the count gained authority. The moon and sun refuse to divide evenly into each other, so every calendar drifted, and somebody had to notice.",
+   "quote": {
+    "text": "To every thing there is a season, and a time to every purpose under the heaven.",
+    "source": "Ecclesiastes 3:1, King James Version (1611)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "天空是人人都看得见的表盘。观察太阳从地平线哪一点升起，某颗星何时在黎明前重新露面，大雁去而复返之间隔了几个月亮，人们学会了预见一年的节律，而不只是被动承受。爱尔兰的纽格莱奇墓建于约五千年前，入口上方开有一道窄窗，冬至的晨光恰好能沿着通道照进内室。历法决定播种、迁徙和节庆的时机，掌管计数的人也因此获得权威。月亮和太阳的周期总是除不尽，所以每一部历法都会慢慢走偏，总得有人察觉。",
+   "quote": {
+    "text": "凡事都有定期，天下万务都有定时。",
+    "source": "《传道书》3:1，和合本（1919）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "天空是人人都看得見的錶盤。觀察太陽從地平線哪一點升起，某顆星何時在黎明前重新露面，大雁去而復返之間隔了幾個月亮，人們學會了預見一年的節律，而不只是被動承受。愛爾蘭的紐格萊奇墓建於約五千年前，入口上方開有一道窄窗，冬至的晨光恰好能沿著通道照進內室。曆法決定播種、遷徙和節慶的時機，掌管計數的人也因此獲得權威。月亮和太陽的週期總是除不盡，所以每一部曆法都會慢慢走偏，總得有人察覺。",
+   "quote": {
+    "text": "凡事都有定期，天下萬務都有定時。",
+    "source": "《傳道書》3:1，和合本（1919）"
+   }
+  }
+ },
+ {
+  "id": "T011",
+  "en": {
+   "intro": "Rain falls where it likes; ditches put water where people need it. Digging channels, levelling plots, draining marshes and building up banks turned uncertain ground into fields that could be relied on, and it also turned neighbours into partners and rivals. Water taken upstream is water denied downstream, and silt fills every channel that is not cleared. Around 256 BC the governor Li Bing split the Min River at Dujiangyan with an artificial island and weirs of stone-filled bamboo baskets; the scheme still waters the Chengdu plain. Most works were humbler, and all of them needed people to turn out every season and dig."
+  },
+  "zh-Hans": {
+   "intro": "雨落在哪里由不得人，沟渠却能把水引到需要的地方。开渠、平整地块、排干沼泽、筑起堤岸，把靠不住的土地变成指望得上的田，也把邻居变成了伙伴和对手：上游多取一分，下游就少一分；渠道不年年清淤，就会被泥沙填满。约公元前256年，李冰在都江堰以人工江心洲和装满卵石的竹笼分流岷江，至今仍灌溉着成都平原。更多的水利工程平凡得多，但无一例外，都需要人们每季出工去挖。"
+  },
+  "zh-Hant": {
+   "intro": "雨落在哪裡由不得人，溝渠卻能把水引到需要的地方。開渠、平整地塊、排幹沼澤、築起堤岸，把靠不住的土地變成指望得上的田，也把鄰居變成了夥伴和對手：上游多取一分，下游就少一分；渠道不年年清淤，就會被泥沙填滿。約公元前256年，李冰在都江堰以人工江心洲和裝滿卵石的竹籠分流岷江，至今仍灌溉著成都平原。更多的水利工程平凡得多，但無一例外，都需要人們每季出工去挖。"
+  }
+ },
+ {
+  "id": "T012",
+  "en": {
+   "intro": "Wood is strong along the grain, weak across it, and it moves as it dries. Learning to cut joints that lock pieces together, so that a frame carries its load without collapsing or pulling apart, turned timber from a heap of logs into houses, bridges, frames and gear. At Hemudu, near the coast of eastern China, builders some seven thousand years ago raised houses on piles and fixed their timbers with carved mortise-and-tenon joints. Carpentry rewards patience and punishes haste: a badly seated joint works loose in a season. And every collapse leaves evidence, if someone is willing to look at the broken pieces."
+  },
+  "zh-Hans": {
+   "intro": "木头顺纹结实、横纹脆弱，晾干时还会变形。学会开凿能把构件锁在一起的榫卯，让框架扛得住荷载、既不坍塌也不散架，木头才从一堆原木变成房屋、桥梁、架子和器具。在中国东部沿海的河姆渡，约七千年前的人们已在桩柱上架起干栏式房屋，用凿出的榫卯固定木构。木作奖励耐心、惩罚急躁：榫头没装严实，一季就会松动。而每一次坍塌都会留下证据，只要有人肯去端详那些断裂的木件。"
+  },
+  "zh-Hant": {
+   "intro": "木頭順紋結實、橫紋脆弱，晾乾時還會變形。學會開鑿能把構件鎖在一起的榫卯，讓框架扛得住荷載、既不坍塌也不散架，木頭才從一堆原木變成房屋、橋樑、架子和器具。在中國東部沿海的河姆渡，約七千年前的人們已在樁柱上架起幹欄式房屋，用鑿出的榫卯固定木構。木作獎勵耐心、懲罰急躁：榫頭沒裝嚴實，一季就會鬆動。而每一次坍塌都會留下證據，只要有人肯去端詳那些斷裂的木件。"
+  }
+ },
+ {
+  "id": "T013",
+  "en": {
+   "intro": "A hull is a promise kept against water. The Pesse canoe, hollowed from a Scots pine log and found in the Netherlands, is roughly ten thousand years old and still plainly a boat. Later builders learned to join planks, seal the seams and paddle or row along coasts, never far from a familiar headland. Water was the cheapest way to move anything heavy: one crew could shift what a hundred porters could not, and coasts became corridors of trade and marriage. But the sea sets its own terms. Squalls, reefs and strange shores taught every coastal people that a route is learned at a price, paid in boats and sometimes in lives."
+  },
+  "zh-Hans": {
+   "intro": "船体是一份在水面上兑现的承诺。荷兰出土的佩瑟独木舟由一整根欧洲赤松掏空而成，约有一万年历史，至今一眼就能认出是条船。后来的造船人学会拼接船板、填塞缝隙，沿着海岸划桨前行，从不远离熟悉的岬角。水运是搬运重物最省力的办法：一船人能运走上百个脚夫扛不动的东西，海岸线也成了贸易与通婚的走廊。但大海有自己的规矩。暴风、暗礁和陌生的海岸教会每个沿海民族：航路是要付学费的，付的是船，有时还有人命。"
+  },
+  "zh-Hant": {
+   "intro": "船體是一份在水面上兌現的承諾。荷蘭出土的佩瑟獨木舟由一整根歐洲赤松掏空而成，約有一萬年曆史，至今一眼就能認出是條船。後來的造船人學會拼接船板、填塞縫隙，沿著海岸划槳前行，從不遠離熟悉的岬角。水運是搬運重物最省力的辦法：一船人能運走上百個腳伕扛不動的東西，海岸線也成了貿易與通婚的走廊。但大海有自己的規矩。暴風、暗礁和陌生的海岸教會每個沿海民族：航路是要付學費的，付的是船，有時還有人命。"
+  }
+ },
+ {
+  "id": "T014",
+  "en": {
+   "intro": "Before anyone could use a stone's hidden properties, someone had to learn to see them. Prospectors read colour, weight, streak, grain and the plants that grew above a vein, and they tested what they found in the fire. At Grimes Graves in eastern England, Neolithic miners sank hundreds of shafts through chalk, using antler picks, to reach a seam of especially fine black flint. Concentration came next: crushing, washing and sorting so that the worthwhile part could travel and the waste could stay. None of this enlarges what the ground contains. It only changes what people know about it, which is often the scarcer thing."
+  },
+  "zh-Hans": {
+   "intro": "要利用石头里隐藏的性质，先得有人学会看出来。找矿的人辨颜色、掂分量、看条痕和纹理，留意矿脉上方长着什么草木，再把找到的东西放到火里试一试。在英格兰东部的格兰姆斯墓坑，新石器时代的矿工用鹿角镐在白垩层中凿出数百个竖井，只为采到一层格外细密的黑色燧石。接下来是富集：破碎、淘洗、分拣，让值钱的部分运走，把废石留下。这一切都不会让地下多出什么来，改变的只是人们对它的认识，而认识往往才是更稀缺的东西。"
+  },
+  "zh-Hant": {
+   "intro": "要利用石頭裡隱藏的性質，先得有人學會看出來。找礦的人辨顏色、掂分量、看條痕和紋理，留意礦脈上方長著什麼草木，再把找到的東西放到火裡試一試。在英格蘭東部的格蘭姆斯墓坑，新石器時代的礦工用鹿角鎬在白堊層中鑿出數百個豎井，只為採到一層格外細密的黑色燧石。接下來是富集：破碎、淘洗、分揀，讓值錢的部分運走，把廢石留下。這一切都不會讓地下多出什麼來，改變的只是人們對它的認識，而認識往往才是更稀缺的東西。"
+  }
+ },
+ {
+  "id": "T015",
+  "en": {
+   "intro": "Smelting is a transformation performed without a theory. Green and blue stones, heated in a charcoal fire hot enough and starved of air, give up beads of a soft red metal that can be hammered, annealed and hammered again. At Belovode in Serbia, people were smelting copper ore about seven thousand years ago. The first metal objects were rare and prized: awls, pins, ornaments, a few axes. Their real novelty was that a broken metal tool could be melted down and made again. Output depended on good ore, a well-built furnace, steady bellows or blowpipes, and a lot of charcoal, which is to say on cut forests."
+  },
+  "zh-Hans": {
+   "intro": "冶炼是一场没有理论指导的转化。绿色、蓝色的石头放进足够炽热、又隔绝空气的炭火中，会析出一粒粒柔软的红色金属，可以锤打、退火、再锤打。在塞尔维亚的贝洛沃德，约七千年前就已有人冶炼铜矿石。最早的金属器物稀少而珍贵：锥子、别针、饰物，还有几把斧头。它真正的新奇之处在于，金属工具坏了可以熔掉重做。产量取决于好矿石、筑得好的炉子、持续鼓风的皮囊或吹管，以及大量木炭，也就是说，取决于被砍掉的森林。"
+  },
+  "zh-Hant": {
+   "intro": "冶煉是一場沒有理論指導的轉化。綠色、藍色的石頭放進足夠熾熱、又隔絕空氣的炭火中，會析出一粒粒柔軟的紅色金屬，可以錘打、退火、再錘打。在塞爾維亞的貝洛沃德，約七千年前就已有人冶煉銅礦石。最早的金屬器物稀少而珍貴：錐子、別針、飾物，還有幾把斧頭。它真正的新奇之處在於，金屬工具壞了可以熔掉重做。產量取決於好礦石、築得好的爐子、持續鼓風的皮囊或吹管，以及大量木炭，也就是說，取決於被砍掉的森林。"
+  }
+ },
+ {
+  "id": "T016",
+  "en": {
+   "intro": "A measure is a social agreement made physical. Until a length, a volume and a weight mean the same thing in two villages, every exchange carries a hidden argument. Standards settled the argument in advance: a marked rod, a vessel of fixed size, a set of carefully shaped weights kept somewhere safe and checked against each other. The cities of the Indus valley used polished stone cubes in a consistent series of weights across hundreds of kilometres. Standards also drift, wear and get quietly shaved by the dishonest, so they need keepers, and the keepers need watching.",
+   "quote": {
+    "text": "Even with the keen sight of Li Lou and the skill of Gongshu, no one can make true squares and circles without the compass and the carpenter's square.",
+    "source": "Mencius, Book IV (Li Lou), Part I"
+   }
+  },
+  "zh-Hans": {
+   "intro": "度量衡是变成实物的社会约定。只要一段长度、一斗容量、一份重量在两个村子里还不是一回事，每一笔交换就都暗藏着一场争执。标准把争执提前了结：一根刻了分度的尺杆，一只固定大小的量器，一套精心打磨、妥善保存并相互比对的砝码。印度河流域的城市在方圆数百公里内使用同一套磨光的石质立方砝码，重量依固定的比例递进。标准也会走样、磨损，还会被不老实的人悄悄刮薄，所以需要有人保管，而保管的人也需要有人盯着。",
+   "quote": {
+    "text": "离娄之明，公输子之巧，不以规矩，不能成方圆。",
+    "source": "《孟子·离娄上》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "度量衡是變成實物的社會約定。只要一段長度、一斗容量、一份重量在兩個村子裡還不是一回事，每一筆交換就都暗藏著一場爭執。標準把爭執提前了結：一根刻了分度的尺杆，一隻固定大小的量器，一套精心打磨、妥善保存並相互比對的砝碼。印度河流域的城市在方圓數百公里內使用同一套磨光的石質立方砝碼，重量依固定的比例遞進。標準也會走樣、磨損，還會被不老實的人悄悄刮薄，所以需要有人保管，而保管的人也需要有人盯著。",
+   "quote": {
+    "text": "離婁之明，公輸子之巧，不以規矩，不能成方圓。",
+    "source": "《孟子·離婁上》"
+   }
+  }
+ },
+ {
+  "id": "T020",
+  "en": {
+   "intro": "Hitching an ox to a plough multiplied what a family could ask of the land, at the price of feeding the ox. The simple scratch plough, or ard, broke soil that a hoe would take days to turn, and a yoke spread the animal's pull across its neck or horns. At Kalibangan in north-western India, archaeologists found a field ploughed about 2800 BC in a criss-cross pattern that farmers in the region still use. More land per worker meant surpluses, and surpluses meant someone else might claim them. Water, soil and weather did not change their minds because the plough was new."
+  },
+  "zh-Hans": {
+   "intro": "给牛套上犁，一户人家能向土地讨要的收成成倍增加，代价是还得喂饱这头牛。简单的划犁能翻开锄头要刨上几天的土，轭则把牲口的拉力分散到颈部或牛角上。在印度西北部的卡利班甘，考古学家发现了一块约公元前2800年耕过的田地，犁沟纵横交错，当地农民至今仍用这种耕法。每个劳力能种的地多了，就有了余粮；有了余粮，就会有别人想来分一份。至于水、土壤和天气，并不因为犁是新的就改变脾气。"
+  },
+  "zh-Hant": {
+   "intro": "給牛套上犁，一戶人家能向土地討要的收成成倍增加，代價是還得餵飽這頭牛。簡單的劃犁能翻開鋤頭要刨上幾天的土，軛則把牲口的拉力分散到頸部或牛角上。在印度西北部的卡利班甘，考古學家發現了一塊約公元前2800年耕過的田地，犁溝縱橫交錯，當地農民至今仍用這種耕法。每個勞力能種的地多了，就有了餘糧；有了餘糧，就會有別人想來分一份。至於水、土壤和天氣，並不因為犁是新的就改變脾氣。"
+  }
+ },
+ {
+  "id": "T021",
+  "en": {
+   "intro": "Water runs downhill without help; lifting it even a few feet is work, and somebody has to do it. The shaduf, a pole pivoted on a post with a bucket at one end and a counterweight of clay or stone at the other, appears in Egyptian tomb paintings and is still used along the Nile. One person with a shaduf can water a garden plot through a dry season. Wells, buckets, ropes and channels to share out the lifted water followed, and so did questions that could be measured: how high, how much, how often. A well that ran dry in August settled many of them."
+  },
+  "zh-Hans": {
+   "intro": "水往低处流不用人管，往上提哪怕几尺，都是要有人出力的活计。桔槔是一根架在立柱上的长杆，一头挂桶，一头坠着泥块或石头作配重，古埃及墓室壁画中已有描绘，尼罗河边至今仍有人使用。一个人守着一架桔槔，就能让一块菜园熬过旱季。随后有了水井、吊桶、绳索和分配提上来的水的沟渠，也有了可以测量的问题：提多高、提多少、隔多久提一次。八月里一口干涸的井，往往就把许多问题定了案。"
+  },
+  "zh-Hant": {
+   "intro": "水往低處流不用人管，往上提哪怕幾尺，都是要有人出力的活計。桔槔是一根架在立柱上的長杆，一頭掛桶，一頭墜著泥塊或石頭作配重，古埃及墓室壁畫中已有描繪，尼羅河邊至今仍有人使用。一個人守著一架桔槔，就能讓一塊菜園熬過旱季。隨後有了水井、吊桶、繩索和分配提上來的水的溝渠，也有了可以測量的問題：提多高、提多少、隔多久提一次。八月裡一口乾涸的井，往往就把許多問題定了案。"
+  }
+ },
+ {
+  "id": "T022",
+  "en": {
+   "intro": "Copper alone is soft; add a little tin and it becomes bronze, harder, easier to pour and sharper at the edge. Getting the mix right was a matter of recipe, and getting the tin was a matter of long-distance trade, since copper and tin rarely lie in the same hills. Casting let workshops pour shapes that no hammer could make: socketed axes, mirrors, bells and vessels. The Houmuwu ding, cast in Shang China, weighs over eight hundred kilograms and needed hundreds of workers pouring from many crucibles at once. Alloys gave power to whoever controlled the scarce metal, and plenty of reasons to fight over it."
+  },
+  "zh-Hans": {
+   "intro": "单是铜太软；掺进少量锡，便成了青铜，更硬，更易浇铸，刃口也更锋利。配比靠的是方子，锡料靠的却是远途贸易，因为铜和锡很少出在同一片山里。铸造让作坊浇出锤子打不出来的形状：带銎的斧、镜子、钟和礼器。商代的后母戊鼎重八百余公斤，需要数百名工匠同时用许多坩埚浇注。合金把权力交给掌握稀缺金属的人，也给了人们大量争夺它的理由。"
+  },
+  "zh-Hant": {
+   "intro": "單是銅太軟；摻進少量錫，便成了青銅，更硬，更易澆鑄，刃口也更鋒利。配比靠的是方子，錫料靠的卻是遠途貿易，因為銅和錫很少出在同一片山裡。鑄造讓作坊澆出錘子打不出來的形狀：帶銎的斧、鏡子、鍾和禮器。商代的後母戊鼎重八百餘公斤，需要數百名工匠同時用許多坩堝澆注。合金把權力交給掌握稀缺金屬的人，也給了人們大量爭奪它的理由。"
+  }
+ },
+ {
+  "id": "T023",
+  "en": {
+   "intro": "Iron ore is almost everywhere; that was the revolution. Unlike the rarer metals, it could be dug in most regions, but it gave itself up grudgingly. Early smiths reduced it in small clay furnaces to a spongy bloom, then hammered out the slag at red heat, again and again, before any tool appeared. The result was laborious to make and good to own: axes, nails, sickles and blades that ordinary households could eventually afford. The iron pillar at Delhi, forged some sixteen hundred years ago, still stands with remarkably little rust. Each smithy also ate charcoal by the cartload, and forests paid for it."
+  },
+  "zh-Hans": {
+   "intro": "铁矿几乎处处都有，这正是它的革命性所在。与稀少的金属不同，它在大多数地方都挖得到，却极不情愿交出自己。早期的铁匠在小小的黏土炉里把矿石还原成海绵状的块铁，再趁红热一遍遍锤打，挤出熔渣，然后才谈得上打制工具。造起来辛苦，用起来却好：斧头、钉子、镰刀和刀刃，寻常人家终于也用得起。德里的铁柱锻造于约一千六百年前，至今矗立，几乎不见锈蚀。每座铁匠铺也要成车地吞掉木炭，代价由森林来付。"
+  },
+  "zh-Hant": {
+   "intro": "鐵礦幾乎處處都有，這正是它的革命性所在。與稀少的金屬不同，它在大多數地方都挖得到，卻極不情願交出自己。早期的鐵匠在小小的黏土爐裡把礦石還原成海綿狀的塊鐵，再趁紅熱一遍遍錘打，擠出熔渣，然後才談得上打製工具。造起來辛苦，用起來卻好：斧頭、釘子、鐮刀和刀刃，尋常人家終於也用得起。德里的鐵柱鍛造於約一千六百年前，至今矗立，幾乎不見鏽蝕。每座鐵匠鋪也要成車地吞掉木炭，代價由森林來付。"
+  }
+ },
+ {
+  "id": "T024",
+  "en": {
+   "intro": "Stone and brick do not bend; they carry weight by being stacked so that every load finds its way down to the ground. Learning which courses to bond, how thick a wall must be at its base, and how a corbel or arch turns sideways thrust into downward weight let builders put up granaries, temples, walls and halls meant to outlast their makers. At Jericho, a round stone tower more than eight metres high was raised some ten thousand years ago, and nobody is sure why. Masonry rewards experience and buries mistakes; many early walls survive only as the rubble that taught the next builders.",
+   "quote": {
+    "text": "All these must be built with due reference to durability, convenience, and beauty.",
+    "source": "Vitruvius, The Ten Books on Architecture, I.3 (tr. M. H. Morgan, 1914)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "石头和砖不会弯曲，它们承重的方式是层层叠放，让每一份荷载都找到通往地面的去处。懂得怎样错缝砌筑、墙基该有多厚、叠涩与拱券如何把侧推力转为向下的重量，人们才建得起要比建造者活得更久的仓廪、神庙、城墙和厅堂。耶利哥一座八米多高的圆形石塔，建于约一万年前，至今没人说得清它的用途。砌筑奖励经验，也掩埋错误：许多早期的墙只以瓦砾的形式留存下来，成了下一代工匠的教材。",
+   "quote": {
+    "text": "凡此种种，建造时都应兼顾坚固、实用与美观。",
+    "source": "维特鲁威《建筑十书》第一书第三章"
+   }
+  },
+  "zh-Hant": {
+   "intro": "石頭和磚不會彎曲，它們承重的方式是層層疊放，讓每一份荷載都找到通往地面的去處。懂得怎樣錯縫砌築、牆基該有多厚、疊澀與拱券如何把側推力轉為向下的重量，人們才建得起要比建造者活得更久的倉廩、神廟、城牆和廳堂。耶利哥一座八米多高的圓形石塔，建於約一萬年前，至今沒人說得清它的用途。砌築獎勵經驗，也掩埋錯誤：許多早期的牆只以瓦礫的形式留存下來，成了下一代工匠的教材。",
+   "quote": {
+    "text": "凡此種種，建造時都應兼顧堅固、實用與美觀。",
+    "source": "維特魯威《建築十書》第一書第三章"
+   }
+  }
+ },
+ {
+  "id": "T025",
+  "en": {
+   "intro": "Writing let words outlive the speaker and travel without a messenger. In Mesopotamia, Egypt, China and Mesoamerica, people found separate routes to systems of signs that could record not just quantities but names, verbs and sentences. The earliest tablets from Uruk, written around 3200 BC, are mostly lists of grain, beer, livestock and workers; poetry came later. Reproducible signs made it possible to issue orders across distance, keep promises across generations and settle arguments by pointing to a text. For a long time only a trained few could read, and that monopoly was itself a kind of power.",
+   "quote": {
+    "text": "In high antiquity, affairs were managed with knotted cords. The sages of a later age replaced them with written tallies; with these the officials did their work and the people were kept under view.",
+    "source": "Book of Changes (Yijing), Great Commentary, Part II"
+   }
+  },
+  "zh-Hans": {
+   "intro": "文字让话语比说话的人活得更久，也不必托人捎带就能远行。美索不达米亚、埃及、中国和中美洲，各自摸索出一套符号，不仅能记数量，还能记下名字、动作和句子。乌鲁克出土的最早泥板约写成于公元前3200年，内容大多是谷物、啤酒、牲畜和劳力的清单，诗歌是后来的事。可复现的符号让命令得以远传，让承诺得以跨越世代，也让争执可以指着一段文本来了断。很长时间里，只有少数受过训练的人识字，而这种垄断本身就是一种权力。",
+   "quote": {
+    "text": "上古结绳而治，后世圣人易之以书契，百官以治，万民以察。",
+    "source": "《周易·系辞下》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "文字讓話語比說話的人活得更久，也不必託人捎帶就能遠行。美索不達米亞、埃及、中國和中美洲，各自摸索出一套符號，不僅能記數量，還能記下名字、動作和句子。烏魯克出土的最早泥板約寫成於公元前3200年，內容大多是穀物、啤酒、牲畜和勞力的清單，詩歌是後來的事。可復現的符號讓命令得以遠傳，讓承諾得以跨越世代，也讓爭執可以指著一段文字來了斷。很長時間裡，只有少數受過訓練的人識字，而這種壟斷本身就是一種權力。",
+   "quote": {
+    "text": "上古結繩而治，後世聖人易之以書契，百官以治，萬民以察。",
+    "source": "《周易·繫辭下》"
+   }
+  }
+ },
+ {
+  "id": "T026",
+  "en": {
+   "intro": "Once quantities could be written down, they could be added, divided and checked by someone who was not there. Temple and palace scribes in Mesopotamia worked in base sixty, which divides neatly by two, three, four, five and six, and which survives in every hour of sixty minutes. Accounting turned a storehouse into a set of obligations: what came in, what went out, who still owed. That made theft harder and taxation easier, depending on which side of the ledger you stood. Arithmetic itself has no opinion about fairness; it only makes the consequences of a rule impossible to ignore."
+  },
+  "zh-Hans": {
+   "intro": "数量一旦能写下来，不在场的人也能对它加减乘除、逐项核对。美索不达米亚神庙和王宫里的书吏用六十进制计数，六十可以被二、三、四、五、六整除，这一习惯至今仍藏在每小时的六十分钟里。记账把一座仓库变成了一组义务：进了什么，出了什么，谁还欠着。这让偷窃更难，征税更易，取决于你站在账簿的哪一边。算术本身对公平毫无主张，它只是让一条规则的后果再也无法视而不见。"
+  },
+  "zh-Hant": {
+   "intro": "數量一旦能寫下來，不在場的人也能對它加減乘除、逐項核對。美索不達米亞神廟和王宮裡的書吏用六十進位制計數，六十可以被二、三、四、五、六整除，這一習慣至今仍藏在每小時的六十分鐘裡。記賬把一座倉庫變成了一組義務：進了什麼，出了什麼，誰還欠著。這讓偷竊更難，徵稅更易，取決於你站在賬簿的哪一邊。算術本身對公平毫無主張，它只是讓一條規則的後果再也無法視而不見。"
+  }
+ },
+ {
+  "id": "T027",
+  "en": {
+   "intro": "A road is a standing agreement about where people will go. Clearing, grading and bridging a route, then spacing rest stops a day's travel apart, made overland journeys something that could be planned rather than merely survived. The Inca built tens of thousands of kilometres of roads across the Andes without wheeled vehicles, with way stations stocked with food and relay runners who could carry a message hundreds of kilometres in a few days. Roads move armies as easily as goods, which rulers understood perfectly well. They also crumble without upkeep, and a washed-out bridge returns a valley to isolation in one storm."
+  },
+  "zh-Hans": {
+   "intro": "一条路，是关于人们往哪里去的长期约定。开辟、平整、架桥，再每隔一天的路程设一处歇脚点，陆路远行才从听天由命变成可以筹划的事。印加人在安第斯山间修筑了数万公里的道路，却没有用过带轮的车辆；沿途的驿站储备粮食，接力的信使几天之内就能把口信送到数百公里之外。道路运兵和运货一样方便，统治者对此心知肚明。没人维护，道路也会崩坏，一场暴雨冲垮一座桥，就能让一条山谷重回与世隔绝。"
+  },
+  "zh-Hant": {
+   "intro": "一條路，是關於人們往哪裡去的長期約定。開闢、平整、架橋，再每隔一天的路程設一處歇腳點，陸路遠行才從聽天由命變成可以籌劃的事。印加人在安第斯山間修築了數萬公里的道路，卻沒有用過帶輪的車輛；沿途的驛站儲備糧食，接力的信使幾天之內就能把口信送到數百公里之外。道路運兵和運貨一樣方便，統治者對此心知肚明。沒人維護，道路也會崩壞，一場暴雨沖垮一座橋，就能讓一條山谷重回與世隔絕。"
+  }
+ },
+ {
+  "id": "T028",
+  "en": {
+   "intro": "A sail lets the wind do the rowing, and with it the horizon stops being the edge of the world. Sailing farther meant knowing where you were without landmarks: dead reckoning from speed, heading and elapsed time, the height of stars above the horizon, the shape of swells, the flight of birds at dusk. Polynesian navigators used such methods to find and settle islands scattered across thousands of kilometres of open Pacific, reaching New Zealand around seven or eight centuries ago. Every voyage added to a body of knowledge kept in memory, chants and charts. Unknown waters stayed unknown until someone came back."
+  },
+  "zh-Hans": {
+   "intro": "帆让风替人划桨，地平线也从此不再是世界的尽头。航行得更远，就得在看不见陆标时知道自己身在何处：根据航速、航向和时间推算船位，看星辰离海平线有多高，辨涌浪的形状，望黄昏时海鸟的去向。波利尼西亚的航海者凭借这些方法，在数千公里的开阔太平洋上找到并定居了星散的岛屿，约七八百年前抵达新西兰。每一次远航都充实了一套靠记忆、吟诵和海图传承的知识。未知的水域，在有人归来之前，始终是未知。"
+  },
+  "zh-Hant": {
+   "intro": "帆讓風替人划槳，地平線也從此不再是世界的盡頭。航行得更遠，就得在看不見陸標時知道自己身在何處：根據航速、航向和時間推算船位，看星辰離海平線有多高，辨湧浪的形狀，望黃昏時海鳥的去向。波利尼西亞的航海者憑藉這些方法，在數千公里的開闊太平洋上找到並定居了星散的島嶼，約七八百年前抵達紐西蘭。每一次遠航都充實了一套靠記憶、吟誦和海圖傳承的知識。未知的水域，在有人歸來之前，始終是未知。"
+  }
+ },
+ {
+  "id": "T029",
+  "en": {
+   "intro": "A waterwheel or a windmill is a tireless worker that eats nothing. Turning the push of a stream or the wind into rotation, through shafts and gears of wood, freed people and animals from the most grinding labour of all: grinding. The power was real but fussy. A drought, a frozen race, a calm week or a shifted channel stopped everything, and the best sites were few and fiercely held. At Nashtifan in eastern Iran, vertical-axis windmills built of clay, timber and straw still turn in the fierce summer winds. Whoever owned the mill set the toll, and millers rarely enjoyed a reputation for generosity."
+  },
+  "zh-Hans": {
+   "intro": "水车和风车是不吃饭、不知疲倦的劳力。借木制的轴和齿轮，把溪流或风的推力变成转动，人和牲口终于从最磨人的劳作——磨粉——中解脱出来。这股动力是实在的，却也娇气：一场干旱、一道封冻的水渠、一周无风、一次河道改道，都能让一切停摆，好的地点屈指可数，人人必争。伊朗东部的纳什蒂凡，用黏土、木材和麦秆建成的立轴风车，至今仍在夏季的狂风中转动。谁拥有磨坊，谁就定收费，磨坊主向来难得有慷慨的名声。"
+  },
+  "zh-Hant": {
+   "intro": "水車和風車是不吃飯、不知疲倦的勞力。借木製的軸和齒輪，把溪流或風的推力變成轉動，人和牲口終於從最磨人的勞作——磨粉——中解脫出來。這股動力是實在的，卻也嬌氣：一場乾旱、一道封凍的水渠、一週無風、一次河道改道，都能讓一切停擺，好的地點屈指可數，人人必爭。伊朗東部的納什蒂凡，用黏土、木材和麥稈建成的立軸風車，至今仍在夏季的狂風中轉動。誰擁有磨坊，誰就定收費，磨坊主向來難得有慷慨的名聲。"
+  }
+ },
+ {
+  "id": "T030",
+  "en": {
+   "intro": "Words need something to live on. Clay tablets, bamboo slips, papyrus, parchment and finally paper each made different bargains between cost, weight, durability and how easily a text could be copied. In China, the court official Cai Lun is traditionally credited with presenting improved paper in AD 105, though rougher paper is older. A cheaper surface meant more copies, more teachers working from the same text and more students who could own a book. Copying still meant a person with a brush or pen, hour after hour, and every copy introduced fresh mistakes for the next copyist to inherit."
+  },
+  "zh-Hans": {
+   "intro": "文字需要栖身之处。泥板、竹简、莎草纸、羊皮纸，最后是纸，每一种都在成本、重量、耐久和抄写难易之间做出不同的取舍。在中国，东汉宦官蔡伦传统上被认为在公元105年献上了改良的纸，不过更粗糙的纸出现得还要早。书写面更便宜，意味着抄本更多，更多教师可以依据同一个文本授课，更多学生能拥有一本书。但抄写仍旧要靠一个人握着笔，一小时又一小时；每份抄本都会添上新的错误，留给下一个抄写者继承。"
+  },
+  "zh-Hant": {
+   "intro": "文字需要棲身之處。泥板、竹簡、莎草紙、羊皮紙，最後是紙，每一種都在成本、重量、耐久和抄寫難易之間做出不同的取捨。在中國，東漢宦官蔡倫傳統上被認為在公元105年獻上了改良的紙，不過更粗糙的紙出現得還要早。書寫面更便宜，意味著抄本更多，更多教師可以依據同一個文字授課，更多學生能擁有一本書。但抄寫仍舊要靠一個人握著筆，一小時又一小時；每份抄本都會添上新的錯誤，留給下一個抄寫者繼承。"
+  }
+ },
+ {
+  "id": "T031",
+  "en": {
+   "intro": "Sand, ash or natron and enough heat produce a material that is liquid, then stiff, then hard and transparent, a strange enough sequence that glassmakers long guarded their recipes. Glazes, related mixtures fused onto a fired surface, sealed pots against seepage and coloured them brilliantly. Early glass was coloured, opaque and precious, built up around cores. Then, around the first century BC on the eastern Mediterranean coast, someone learned to inflate a gather of molten glass on a blowpipe, and cups and bottles became cheap enough to break. Clear vessels let people watch what happened inside them, which mattered more than it first seemed."
+  },
+  "zh-Hans": {
+   "intro": "沙子、草木灰或泡碱，加上足够的热量，就能得到一种先是液体、继而发黏、最后坚硬透明的材料。这番变化奇特到让玻璃匠长期把配方当作秘密。釉是与之相近的混合料，熔附在烧过的器表，让陶器不再渗漏，并披上绚丽的颜色。早期玻璃有色、不透明而珍贵，是绕着泥芯一层层做出来的。约公元前一世纪，地中海东岸有人学会用吹管把一团熔融的玻璃吹胀，杯子和瓶子从此便宜到可以随手打碎。透明的器皿让人看得见里面发生的事，这一点比看上去要紧得多。"
+  },
+  "zh-Hant": {
+   "intro": "沙子、草木灰或泡鹼，加上足夠的熱量，就能得到一種先是液體、繼而發黏、最後堅硬透明的材料。這番變化奇特到讓玻璃匠長期把配方當作秘密。釉是與之相近的混合料，熔附在燒過的器表，讓陶器不再滲漏，並披上絢麗的顏色。早期玻璃有色、不透明而珍貴，是繞著泥芯一層層做出來的。約公元前一世紀，地中海東岸有人學會用吹管把一團熔融的玻璃吹脹，杯子和瓶子從此便宜到可以隨手打碎。透明的器皿讓人看得見裡面發生的事，這一點比看上去要緊得多。"
+  }
+ },
+ {
+  "id": "T032",
+  "en": {
+   "intro": "Every community has its healers, and most of what they knew was learned the hard way: which bark eased fever, which leaf soothed a burn, how to splint a limb, close a wound and keep it clean. Some of it worked, some did nothing and some did harm, and telling which was which took careful watching over many patients. Neolithic skulls from Europe to Peru show holes deliberately cut through the bone, with edges that healed, so the patient lived for years afterwards. Trauma care was the part of medicine that could be judged most quickly: a set bone either knits straight or it does not.",
+   "quote": {
+    "text": "Life is short, and Art long; the crisis fleeting; experience perilous, and decision difficult.",
+    "source": "Hippocrates, Aphorisms, I.1 (tr. Francis Adams, 1849)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "每个群体都有自己的医者，他们所知的大多是吃了苦头才学来的：哪种树皮能退热，哪种叶子能缓解烫伤，怎样给断肢上夹板，怎样合拢伤口并保持洁净。有的法子管用，有的毫无作用，有的反而有害，要分辨清楚，得在许多病人身上细心观察。从欧洲到秘鲁出土的古代头骨上，有人为凿开的孔洞，边缘已经愈合，说明病人术后又活了许多年。创伤救治是医术中最快见分晓的部分：接好的骨头，要么长直，要么长歪。",
+   "quote": {
+    "text": "生命短促，技艺长久；时机稍纵即逝，经验靠不住，判断殊为不易。",
+    "source": "希波克拉底《箴言》第一卷第一条"
+   }
+  },
+  "zh-Hant": {
+   "intro": "每個群體都有自己的醫者，他們所知的大多是吃了苦頭才學來的：哪種樹皮能退熱，哪種葉子能緩解燙傷，怎樣給斷肢上夾板，怎樣合攏傷口並保持潔淨。有的法子管用，有的毫無作用，有的反而有害，要分辨清楚，得在許多病人身上細心觀察。從歐洲到秘魯出土的古代頭骨上，有人為鑿開的孔洞，邊緣已經癒合，說明病人術後又活了許多年。創傷救治是醫術中最快見分曉的部分：接好的骨頭，要麼長直，要麼長歪。",
+   "quote": {
+    "text": "生命短促，技藝長久；時機稍縱即逝，經驗靠不住，判斷殊為不易。",
+    "source": "希波克拉底《箴言》第一卷第一條"
+   }
+  }
+ },
+ {
+  "id": "T033",
+  "en": {
+   "intro": "Living close together has a smell, and eventually a death rate. Settlements that grew past a certain size had to bring in clean water, carry waste out and keep the two apart, or watch their children sicken every summer. In Mohenjo-daro, more than four thousand years ago, many houses had bathing floors and latrines draining into covered brick channels that ran beneath the streets. Such works were never finished. Drains silt, wells are fouled, cesspits overflow, and someone, usually poorly paid and rarely thanked, has to clean them. Hygiene is less an invention than a habit a city must keep paying for."
+  },
+  "zh-Hans": {
+   "intro": "人挤在一起住，就会有气味，迟早还会有死亡率。聚落一旦长过某个规模，就必须引进净水、运走污物，并让两者井水不犯河水，否则每到夏天就只能眼看着孩子们病倒。四千多年前的摩亨佐-达罗，许多房屋设有沐浴间和厕所，污水流入街道下方加盖的砖砌暗渠。这类工程永远没有竣工的一天：沟渠会淤塞，水井会被污染，粪坑会满溢，总得有人去清理，这些人通常报酬微薄，也少有人道谢。卫生与其说是一项发明，不如说是一座城市必须一直付费维持的习惯。"
+  },
+  "zh-Hant": {
+   "intro": "人擠在一起住，就會有氣味，遲早還會有死亡率。聚落一旦長過某個規模，就必須引進淨水、運走汙物，並讓兩者井水不犯河水，否則每到夏天就只能眼看著孩子們病倒。四千多年前的摩亨佐-達羅，許多房屋設有沐浴間和廁所，汙水流入街道下方加蓋的磚砌暗渠。這類工程永遠沒有竣工的一天：溝渠會淤塞，水井會被汙染，糞坑會滿溢，總得有人去清理，這些人通常報酬微薄，也少有人道謝。衛生與其說是一項發明，不如說是一座城市必須一直付費維持的習慣。"
+  }
+ },
+ {
+  "id": "T034",
+  "en": {
+   "intro": "A clock does not measure time so much as divide it into units that strangers can agree on. The essential trick is the escapement, which lets a falling weight or turning wheel release its energy in small, regular steps instead of all at once. In the 1090s Su Song built a towering water-driven clock at Kaifeng, with an escapement and puppets that announced the hours. Mechanical clocks began as marvels and ended as managers: they rang bells for prayer, markets and shifts, and made lateness a thing that could be proved. Friction, wear and temperature kept every early clock honest by making it wrong.",
+   "quote": {
+    "text": "Remember that time is money.",
+    "source": "Benjamin Franklin, Advice to a Young Tradesman (1748)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "钟表与其说测量时间，不如说把时间切成陌生人也能认同的单位。关键的窍门是擒纵机构：它让下坠的重锤或转动的轮子一小步一小步、有节奏地释放能量，而不是一泄到底。11世纪90年代，苏颂在开封建成高大的水运仪象台，内有擒纵装置，还有按时报刻的木偶。机械钟起初是奇物，后来成了管事的：它为祈祷、集市和换班敲响钟声，让迟到成了可以证明的事。摩擦、磨损和冷热变化让每一台早期钟表都走不准，也正因如此，它们从不假装完美。",
+   "quote": {
+    "text": "记住，时间就是金钱。",
+    "source": "本杰明·富兰克林《给一位年轻商人的忠告》（1748）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "鐘錶與其說測量時間，不如說把時間切成陌生人也能認同的單位。關鍵的竅門是擒縱機構：它讓下墜的重錘或轉動的輪子一小步一小步、有節奏地釋放能量，而不是一洩到底。11世紀90年代，蘇頌在開封建成高大的水運儀象臺，內有擒縱裝置，還有按時報刻的木偶。機械鐘起初是奇物，後來成了管事的：它為祈禱、集市和換班敲響鐘聲，讓遲到成了可以證明的事。摩擦、磨損和冷熱變化讓每一臺早期鐘錶都走不準，也正因如此，它們從不假裝完美。",
+   "quote": {
+    "text": "記住，時間就是金錢。",
+    "source": "本傑明·富蘭克林《給一位年輕商人的忠告》（1748）"
+   }
+  }
+ },
+ {
+  "id": "T035",
+  "en": {
+   "intro": "Muscles tire, but twisted sinew, bent wood and a raised weight store effort and give it back all at once. Bows, torsion catapults and counterweighted throwing machines turned that principle into range and force, and the same stored energy drove pile drivers, presses and hoists. Getting them right meant measured parts, trial shots and a crew that knew its drill. During the Roman siege of Syracuse in 214 to 212 BC, engines attributed to Archimedes kept the attackers at bay for many months. Such machines were specific recipes, not magic: a badly matched spring or a cracked arm wasted the work of a whole workshop.",
+   "quote": {
+    "text": "Give me a place to stand, and I will move the earth.",
+    "source": "Archimedes, as reported by Pappus of Alexandria, Collection, Book VIII"
+   }
+  },
+  "zh-Hans": {
+   "intro": "肌肉会累，但绞紧的筋绳、弯曲的木材和吊起的重物能把力气存起来，再一下子还回去。弓、扭力抛石机和配重抛石机把这个原理变成了射程与威力，同样储存起来的能量也驱动着打桩机、压榨机和起重装置。要造得好，就得有尺寸合度的部件、反复的试射，以及训练有素的操作班组。公元前214至前212年罗马人围攻叙拉古时，据说出自阿基米德之手的器械让攻城者数月不得近前。这类机械是具体的工艺，而非魔法：弹力不匹配或一根臂杆开裂，就会白费整个作坊的工夫。",
+   "quote": {
+    "text": "给我一个立足之处，我就能移动大地。",
+    "source": "阿基米德语，见亚历山大的帕普斯《数学汇编》第八卷"
+   }
+  },
+  "zh-Hant": {
+   "intro": "肌肉會累，但絞緊的筋繩、彎曲的木材和吊起的重物能把力氣存起來，再一下子還回去。弓、扭力拋石機和配重拋石機把這個原理變成了射程與威力，同樣儲存起來的能量也驅動著打樁機、壓榨機和起重灌置。要造得好，就得有尺寸合度的部件、反覆的試射，以及訓練有素的操作班組。公元前214至前212年羅馬人圍攻敘拉古時，據說出自阿基米德之手的器械讓攻城者數月不得近前。這類機械是具體的工藝，而非魔法：彈力不匹配或一根臂杆開裂，就會白費整個作坊的工夫。",
+   "quote": {
+    "text": "給我一個立足之處，我就能移動大地。",
+    "source": "阿基米德語，見亞歷山大的帕普斯《數學彙編》第八卷"
+   }
+  }
+ },
+ {
+  "id": "T036",
+  "en": {
+   "intro": "Saltpetre, sulphur and charcoal, ground fine and mixed in the right proportions, burn fiercely without needing air from outside. Chinese alchemists looking for elixirs stumbled on the mixture, and one early text warns that careless experimenters singed their beards and burned down their houses. By 1044 the military compendium Wujing Zongyao recorded several gunpowder recipes for incendiary weapons. Making it reliably was the hard part: saltpetre had to be refined, batches measured and checked, and the dangerous steps separated from everything else. Controlled combustion is a craft of patience in which the penalty for carelessness is immediate, and workshops learned to keep their mixing sheds far from home."
+  },
+  "zh-Hans": {
+   "intro": "硝石、硫磺和木炭研细后按合适的比例混合，无需外界的空气也能猛烈燃烧。中国的炼丹家在寻求丹药时偶然得到这种混合物，早期的一部丹书就告诫说，有人因此烧了胡须，甚至焚毁了房屋。到1044年，兵书《武经总要》已收录了数种用于燃烧武器的火药配方。真正难的是稳定地造出来：硝石要提纯，每一批都要称量和检验，危险的工序要与其他一切隔开。受控燃烧是一门讲究耐心的手艺，对粗心的惩罚来得立竿见影，作坊也学会了把配药的棚屋建得离住处远远的。"
+  },
+  "zh-Hant": {
+   "intro": "硝石、硫磺和木炭研細後按合適的比例混合，無需外界的空氣也能猛烈燃燒。中國的煉丹家在尋求丹藥時偶然得到這種混合物，早期的一部丹書就告誡說，有人因此燒了鬍鬚，甚至焚燬了房屋。到1044年，兵書《武經總要》已收錄了數種用於燃燒武器的火藥配方。真正難的是穩定地造出來：硝石要提純，每一批都要稱量和檢驗，危險的工序要與其他一切隔開。受控燃燒是一門講究耐心的手藝，對粗心的懲罰來得立竿見影，作坊也學會了把配藥的棚屋建得離住處遠遠的。"
+  }
+ },
+ {
+  "id": "T037",
+  "en": {
+   "intro": "A barrel weapon is a controlled explosion with one way out. Early hand cannons from thirteenth-century China were crude bronze tubes, but they established the principle, and by the fifteenth century cast bronze and wrought iron guns were reshaping sieges across Eurasia. The weak point was always the barrel. A flaw in the metal could turn a weapon into a bomb in the gunner's hands, so makers learned to proof every barrel with an overcharge before sale; London's Gunmakers' Company has been proving barrels since the seventeenth century. Soldiers learned to trust the proof mark more than the maker's boasting."
+  },
+  "zh-Hans": {
+   "intro": "管形火器是一场只留一个出口的受控爆炸。13世纪中国的早期火铳不过是粗糙的铜管，却确立了原理；到15世纪，铸造的青铜炮和锻铁炮已在欧亚大陆各地改变攻城战的面貌。薄弱环节始终是身管：金属里的一处瑕疵，就能让武器在射手手中变成炸弹。于是匠人学会在出售前用超额装药逐一试射验证；伦敦的枪炮制造商公会自17世纪起便一直在为枪管做验证试射。士兵们渐渐学会，相信验证印记胜过相信匠人的自夸。"
+  },
+  "zh-Hant": {
+   "intro": "管形火器是一場只留一個出口的受控爆炸。13世紀中國的早期火銃不過是粗糙的銅管，卻確立了原理；到15世紀，鑄造的青銅炮和鍛鐵炮已在歐亞大陸各地改變攻城戰的面貌。薄弱環節始終是身管：金屬裡的一處瑕疵，就能讓武器在射手手中變成炸彈。於是匠人學會在出售前用超額裝藥逐一試射驗證；倫敦的槍炮製造商公會自17世紀起便一直在為槍管做驗證試射。士兵們漸漸學會，相信驗證印記勝過相信匠人的自誇。"
+  }
+ },
+ {
+  "id": "T038",
+  "en": {
+   "intro": "Flight was not achieved by flapping harder but by understanding lift, drag and control well enough to balance them. On 17 December 1903, near Kitty Hawk in North Carolina, the Wright brothers' engine-driven flyer stayed aloft for twelve seconds and covered about thirty-seven metres. Their real advantage was method: a homemade wind tunnel, measured wing sections and a way to steer by warping the wings. Within a generation aircraft carried mail, passengers, cameras and bombs, and maps of the world began to look smaller. Every type was paid for in test flights, broken airframes and pilots who did not walk away."
+  },
+  "zh-Hans": {
+   "intro": "人能飞起来，靠的不是更用力地扑腾，而是把升力、阻力和操纵弄得足够明白，好让它们彼此平衡。1903年12月17日，在美国北卡罗来纳州基蒂霍克附近，莱特兄弟装有发动机的飞行器在空中停留了12秒，飞了约37米。他们真正的优势在于方法：自制的风洞、经过测量的翼型，以及靠扭转机翼来操纵的办法。不到一代人的时间，飞机就运载起邮件、乘客、相机和炸弹，世界地图也仿佛变小了。每一种机型都是用试飞、摔坏的机体和没能生还的飞行员换来的。"
+  },
+  "zh-Hant": {
+   "intro": "人能飛起來，靠的不是更用力地撲騰，而是把升力、阻力和操縱弄得足夠明白，好讓它們彼此平衡。1903年12月17日，在美國北卡羅來納州基蒂霍克附近，萊特兄弟裝有發動機的飛行器在空中停留了12秒，飛了約37米。他們真正的優勢在於方法：自制的風洞、經過測量的翼型，以及靠扭轉機翼來操縱的辦法。不到一代人的時間，飛機就運載起郵件、乘客、相機和炸彈，世界地圖也彷彿變小了。每一種機型都是用試飛、摔壞的機體和沒能生還的飛行員換來的。"
+  }
+ },
+ {
+  "id": "T040",
+  "en": {
+   "intro": "A measurement is a promise that two people, in two places, will get the same answer. Calibration is how that promise is kept: readings checked against a reference, the reference checked against a better one, and every result reported with its likely error. It sounds pedantic until a granary, a tax office and a builder disagree about the same quantity. When the British standard yard and pound were lost in the fire that gutted Parliament in 1834, it took years of patient comparison with surviving copies to rebuild them. The lesson stuck: one reading is an anecdote; repeated, cross-checked readings are knowledge.",
+   "quote": {
+    "text": "When you can measure what you are speaking about, and express it in numbers, you know something about it; but when you cannot measure it, when you cannot express it in numbers, your knowledge is of a meagre and unsatisfactory kind.",
+    "source": "William Thomson (Lord Kelvin), lecture at the Institution of Civil Engineers, 3 May 1883"
+   }
+  },
+  "zh-Hans": {
+   "intro": "测量是一种承诺：两个人在两个地方量同一样东西，应当得到同一个结果。校准就是兑现这个承诺的办法——读数要与基准比对，基准还要与更好的基准比对，每个结果都要注明可能的误差。听上去吹毛求疵，可一旦仓吏、税官和工匠对同一个数量各执一词，人们就明白它的分量了。1834年，英国议会大火烧毁了标准码尺和标准磅，此后花了多年时间，靠与幸存副本反复比对才把它们重新确立起来。教训由此深入人心：单次读数只是传闻，反复核对过的读数才算知识。",
+   "quote": {
+    "text": "当你能够测量你所谈论的东西，并用数字把它表达出来，你对它才算有所了解；当你无法测量它、无法用数字表达它时，你的知识就是贫乏而不能令人满意的。",
+    "source": "开尔文勋爵（威廉·汤姆森）1883年5月3日在英国土木工程师学会的讲演"
+   }
+  },
+  "zh-Hant": {
+   "intro": "測量是一種承諾：兩個人在兩個地方量同一樣東西，應當得到同一個結果。校準就是兌現這個承諾的辦法——讀數要與基準比對，基準還要與更好的基準比對，每個結果都要註明可能的誤差。聽上去吹毛求疵，可一旦倉吏、稅官和工匠對同一個數量各執一詞，人們就明白它的分量了。1834年，英國議會大火燒燬了標準碼尺和標準磅，此後花了多年時間，靠與倖存副本反覆比對才把它們重新確立起來。教訓由此深入人心：單次讀數只是傳聞，反覆核對過的讀數才算知識。",
+   "quote": {
+    "text": "當你能夠測量你所談論的東西，並用數字把它表達出來，你對它才算有所瞭解；當你無法測量它、無法用數字表達它時，你的知識就是貧乏而不能令人滿意的。",
+    "source": "開爾文勳爵（威廉·湯姆森）1883年5月3日在英國土木工程師學會的講演"
+   }
+  }
+ },
+ {
+  "id": "T041",
+  "en": {
+   "intro": "Grinding a lump of glass or metal until it bends or returns light exactly where you want is slow, dusty work, and the difference between a good lens and a useless one is invisible until you look through it. Spectacles appeared in Italy around the end of the thirteenth century and quietly gave scholars and craftsmen another twenty years of close work. Later polishers turned the same skills outward and inward, to the mountains of the Moon and the fine structure of a fly's eye. Glass routes fight bubbles and coloured fringes; mirror routes fight tarnish. Either way, the instrument is only as good as its maker's patience.",
+   "quote": {
+    "text": "By the means of Telescopes, there is nothing so far distant but may be represented to our view; and by the help of Microscopes, there is nothing so small, as to escape our inquiry.",
+    "source": "Robert Hooke, Micrographia, Preface (1665)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "把一块玻璃或金属磨到恰好能让光线拐向或折回想要的地方，是又慢又满是粉尘的活计；好镜片和废镜片的差别，不凑到眼前根本看不出来。13世纪末，眼镜在意大利出现，悄悄地让学者和工匠多做了二十年的细活。后来的磨镜人把同样的手艺转向远处和近处：月亮上的山脉，苍蝇复眼的细密结构。玻璃路线要对付气泡和色边，反射镜路线要对付锈暗失光。无论走哪条路，仪器的好坏都取决于制作者的耐心。",
+   "quote": {
+    "text": "借助望远镜，再遥远的东西也能呈现在我们眼前；借助显微镜，再微小的东西也逃不过我们的探究。",
+    "source": "罗伯特·胡克《显微图谱》序言（1665）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "把一塊玻璃或金屬磨到恰好能讓光線拐向或折回想要的地方，是又慢又滿是粉塵的活計；好鏡片和廢鏡片的差別，不湊到眼前根本看不出來。13世紀末，眼鏡在義大利出現，悄悄地讓學者和工匠多做了二十年的細活。後來的磨鏡人把同樣的手藝轉向遠處和近處：月亮上的山脈，蒼蠅複眼的細密結構。玻璃路線要對付氣泡和色邊，反射鏡路線要對付鏽暗失光。無論走哪條路，儀器的好壞都取決於製作者的耐心。",
+   "quote": {
+    "text": "藉助望遠鏡，再遙遠的東西也能呈現在我們眼前；藉助顯微鏡，再微小的東西也逃不過我們的探究。",
+    "source": "羅伯特·胡克《顯微圖譜》序言（1665）"
+   }
+  }
+ },
+ {
+  "id": "T042",
+  "en": {
+   "intro": "For centuries the learned agreed that nature abhors a vacuum, which conveniently explained why a well pump could lift water only so far. Then people started measuring instead of agreeing. In the 1650s Otto von Guericke pumped the air out of two joined metal hemispheres and let teams of horses fail to pull them apart. Pressure, it turned out, was the weight of the air itself, pressing on everything. Working with fluids under force means seals that weep, joints that corrode and vessels that burst, and every leak is a measurement waiting to be taken."
+  },
+  "zh-Hans": {
+   "intro": "许多世纪里，学者们一致认为“自然厌恶真空”，这恰好也能解释，为什么井里的抽水筒只能把水提到一定高度。后来人们不再只是附和，而是动手测量。17世纪50年代，奥托·冯·居里克抽空了两个扣合在一起的金属半球，让几队马拼命拉扯，却怎么也拉不开。原来压力就是空气自身的重量，时时压在万物之上。与受力的流体打交道，意味着渗水的密封、锈蚀的接头和会爆裂的容器；每一处泄漏，都是一次有待记录的测量。"
+  },
+  "zh-Hant": {
+   "intro": "許多世紀裡，學者們一致認為「自然厭惡真空」，這恰好也能解釋，為什麼井裡的抽水筒只能把水提到一定高度。後來人們不再只是附和，而是動手測量。17世紀50年代，奧托·馮·居里克抽空了兩個扣合在一起的金屬半球，讓幾隊馬拼命拉扯，卻怎麼也拉不開。原來壓力就是空氣自身的重量，時時壓在萬物之上。與受力的流體打交道，意味著滲水的密封、鏽蝕的接頭和會爆裂的容器；每一處洩漏，都是一次有待記錄的測量。"
+  }
+ },
+ {
+  "id": "T043",
+  "en": {
+   "intro": "Is this silver pure, this salt clean, this dye the same as last year's? For most of history the answers came from smell, colour and reputation. Separating a mixture into its parts and weighing each one turned those quarrels into questions with numbers attached. Antoine Lavoisier, a wealthy tax collector with a superb set of balances, showed that matter is neither gained nor lost in a sealed reaction; the Revolution guillotined him in 1794 anyway. The work needs vessels that will not dissolve, crack or contaminate the sample, and glass, glazed ceramic and good metal each fail in their own way."
+  },
+  "zh-Hans": {
+   "intro": "这块银纯不纯？这批盐干不干净？今年的染料和去年的是不是一样？在漫长的岁月里，回答这些问题靠的是气味、颜色和名声。把混合物拆成各个组分、再逐一称量，才让这些争执变成了带数字的问题。拉瓦锡是个包税人，拥有一套极精良的天平，他证明了物质在密闭的反应中既不增加也不减少——可1794年，大革命还是把他送上了断头台。这门功夫需要不溶、不裂、不污染样品的器皿；玻璃、施釉陶器和好金属，各有各的毛病。"
+  },
+  "zh-Hant": {
+   "intro": "這塊銀純不純？這批鹽乾不乾淨？今年的染料和去年的是不是一樣？在漫長的歲月裡，回答這些問題靠的是氣味、顏色和名聲。把混合物拆成各個組分、再逐一稱量，才讓這些爭執變成了帶數字的問題。拉瓦錫是個包稅人，擁有一套極精良的天平，他證明了物質在密閉的反應中既不增加也不減少——可1794年，大革命還是把他送上了斷頭臺。這門功夫需要不溶、不裂、不汙染樣品的器皿；玻璃、施釉陶器和好金屬，各有各的毛病。"
+  }
+ },
+ {
+  "id": "T044",
+  "en": {
+   "intro": "A clock that keeps time and a pump that does not leak both depend on parts that fit, and fit is something you can only promise if you can measure it. Precision transmission is the slow craft of cutting gears and screws that mesh the same way every time, and of checking them with gauges rather than a craftsman's thumb. Around 1800 Henry Maudslay's screw-cutting lathe in London made accurate, repeatable threads an ordinary product instead of a feat. Precision does not belong to an era; it belongs to whoever owns good tools, measures honestly and keeps both in repair."
+  },
+  "zh-Hans": {
+   "intro": "走时准确的钟表、不漏水的水泵，靠的都是严丝合缝的零件；而“合缝”只有在能够测量时才敢承诺。精密传动是一门慢功夫：切出每次都以同样方式啮合的齿轮和螺纹，并用量规而不是工匠的拇指去检验。1800年前后，莫兹利在伦敦造出螺纹车床，让精确而可重复的螺纹从绝活变成了寻常货。精度不属于哪个时代，它属于那些拥有好工具、诚实测量、并把两者都维护妥当的人。"
+  },
+  "zh-Hant": {
+   "intro": "走時準確的鐘表、不漏水的水泵，靠的都是嚴絲合縫的零件；而「合縫」只有在能夠測量時才敢承諾。精密傳動是一門慢功夫：切出每次都以同樣方式齧合的齒輪和螺紋，並用量規而不是工匠的拇指去檢驗。1800年前後，莫茲利在倫敦造出螺紋車床，讓精確而可重複的螺紋從絕活變成了尋常貨。精度不屬於哪個時代，它屬於那些擁有好工具、誠實測量、並把兩者都維護妥當的人。"
+  }
+ },
+ {
+  "id": "T045",
+  "en": {
+   "intro": "The simplest way to learn whether something works is to try it on some cases and not on others, and then compare honestly. It is harder than it sounds: the two groups must start out alike, the records must be kept apart, and the person hoping for a result must not quietly tilt it. The Book of Daniel already describes a steward feeding one set of young men vegetables and water for ten days and comparing them with those who ate from the king's table. Farmers testing seed and craftsmen testing recipes did the same, long before anyone built institutions around it.",
+   "quote": {
+    "text": "On the 20th of May 1747, I took twelve patients in the scurvy, on board the Salisbury at sea.",
+    "source": "James Lind, A Treatise of the Scurvy (1753)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "要知道一样东西管不管用，最简单的办法是：一部分对象用它，另一部分不用，然后老老实实地比较。这比听上去难得多——两组起初必须相当，记录必须分开保存，盼着某个结果的人不能暗中把天平往自己那边压。《但以理书》里就写过一位总管，让几个少年十天只吃素菜、喝清水，再与吃王膳的少年相比。试种子的农人、试配方的工匠早就这样做了，远在有人为此建立制度之前。",
+   "quote": {
+    "text": "1747年5月20日，我在海上的“索尔兹伯里号”上选了十二名坏血病患者。",
+    "source": "詹姆斯·林德《论坏血病》（1753）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "要知道一樣東西管不管用，最簡單的辦法是：一部分對象用它，另一部分不用，然後老老實實地比較。這比聽上去難得多——兩組起初必須相當，記錄必須分開儲存，盼著某個結果的人不能暗中把天平往自己那邊壓。《但以理書》裡就寫過一位總管，讓幾個少年十天只吃素菜、喝清水，再與吃王膳的少年相比。試種子的農人、試配方的工匠早就這樣做了，遠在有人為此建立制度之前。",
+   "quote": {
+    "text": "1747年5月20日，我在海上的「索爾茲伯裡號」上選了十二名壞血病患者。",
+    "source": "詹姆斯·林德《論壞血病》（1753）"
+   }
+  }
+ },
+ {
+  "id": "T046",
+  "en": {
+   "intro": "Bodies keep their secrets behind skin, custom and grief. Learning how they actually work meant opening the dead, measuring the living and writing down what happened to patients in ways others could check. In 1628 William Harvey reckoned how much blood the heart pushes out with each beat, multiplied it by the beats in an hour, and found far more than the body could possibly make from food. The blood, he concluded, must go round. Such reasoning won slowly; who may be examined, and who consents, remains a question for law and conscience, not only for physicians."
+  },
+  "zh-Hans": {
+   "intro": "身体的秘密藏在皮肤、习俗和哀伤之后。要弄清它究竟如何运作，就得解剖死者、测量生者，并把病人的经过记成别人可以核对的样子。1628年，威廉·哈维估算心脏每跳一下推出多少血，再乘上一小时的心跳次数，发现这个数量远远超过身体能从食物中造出的血。他由此断定：血液必定是循环往复的。这样的推理赢得认可很慢；谁可以被检查、谁表示同意，至今仍是法律与良知的问题，而不只是医生的事。"
+  },
+  "zh-Hant": {
+   "intro": "身體的秘密藏在皮膚、習俗和哀傷之後。要弄清它究竟如何運作，就得解剖死者、測量生者，並把病人的經過記成別人可以核對的樣子。1628年，威廉·哈維估算心臟每跳一下推出多少血，再乘上一小時的心跳次數，發現這個數量遠遠超過身體能從食物中造出的血。他由此斷定：血液必定是循環往復的。這樣的推理贏得認可很慢；誰可以被檢查、誰表示同意，至今仍是法律與良知的問題，而不只是醫生的事。"
+  }
+ },
+ {
+  "id": "T047",
+  "en": {
+   "intro": "Long before anyone wrote equations, scribes in Mesopotamia kept tables of where the Moon and planets appeared, night after night, and noticed that the errors had patterns of their own. Geometry and algebra are what you get when such patterns are pursued for their own sake. Around 820, al-Khwarizmi in Baghdad wrote a handbook on restoring and balancing equations whose title gave algebra its name. A good model predicts an eclipse or the size of an inheritance share; a slightly wrong model, faithfully computed, is even more useful, because the place where it fails is where the next question begins.",
+   "quote": {
+    "text": "There is no royal road to geometry.",
+    "source": "Euclid to King Ptolemy, as told by Proclus, Commentary on the First Book of Euclid's Elements"
+   }
+  },
+  "zh-Hans": {
+   "intro": "早在有人写出方程之前，美索不达米亚的书吏就一夜接一夜地记下月亮和行星出现的位置，并且发现误差本身也有规律。几何与代数，正是人们为了规律本身去追究它们的结果。820年前后，巴格达的花拉子米写了一本讲“还原与对消”的算书，书名里的一个词后来成了“代数”在西方的名字。好的模型能预报日食，也能算清遗产该怎么分；而一个稍有偏差、却被忠实计算的模型更有用，因为它出错的地方，正是下一个问题开始的地方。",
+   "quote": {
+    "text": "几何学里没有王者之路。",
+    "source": "欧几里得答托勒密王语，见普罗克洛斯《欧几里得〈几何原本〉第一卷评注》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "早在有人寫出方程之前，美索不達米亞的書吏就一夜接一夜地記下月亮和行星出現的位置，並且發現誤差本身也有規律。幾何與代數，正是人們為了規律本身去追究它們的結果。820年前後，巴格達的花拉子米寫了一本講「還原與對消」的算書，書名裡的一個詞後來成了「代數」在西方的名字。好的模型能預報日食，也能算清遺產該怎麼分；而一個稍有偏差、卻被忠實計算的模型更有用，因為它出錯的地方，正是下一個問題開始的地方。",
+   "quote": {
+    "text": "幾何學裡沒有王者之路。",
+    "source": "歐幾里得答托勒密王語，見普羅克洛斯《歐幾里得〈幾何原本〉第一卷評註》"
+   }
+  }
+ },
+ {
+  "id": "T048",
+  "en": {
+   "intro": "Copying a book by hand took months, and every copy introduced new mistakes. Printing changed the sums: carve or set a page once, and the hundredth copy costs little more than ink, paper and labour. The Diamond Sutra found at Dunhuang, dated 868, is the oldest surviving printed book that carries a date. In Mainz in the 1450s, Gutenberg's workshop combined metal type with a screw press and oil-based ink. Cheap pages spread knowledge, rumour and dispute with equal speed. They still needed people who could read them, and someone to carry them there.",
+   "quote": {
+    "text": "In the Qingli reign there was a commoner, Bi Sheng, who went further and made movable type.",
+    "source": "Shen Kuo, Dream Pool Essays, ch. 18 (1088)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "手抄一本书要几个月，而且每抄一遍都会添上新的错误。印刷改变了这笔账：一页雕好或排好之后，第一百份的成本也不过是墨、纸和人工。敦煌发现的《金刚经》刻本，题有868年的日期，是现存最早的有明确纪年的印本。15世纪50年代，美因茨的谷登堡作坊把金属活字、螺旋压印机和油性墨结合到了一起。便宜的纸页让知识、谣言和争论以同样的速度传开。不过，它们仍然需要识字的人来读，也需要有人把它们送到读者手中。",
+   "quote": {
+    "text": "庆历中，有布衣毕昇，又为活板。",
+    "source": "沈括《梦溪笔谈·技艺》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "手抄一本書要幾個月，而且每抄一遍都會添上新的錯誤。印刷改變了這筆賬：一頁雕好或排好之後，第一百份的成本也不過是墨、紙和人工。敦煌發現的《金剛經》刻本，題有868年的日期，是現存最早的有明確紀年的印本。15世紀50年代，美因茨的谷登堡作坊把金屬活字、螺旋壓印機和油性墨結合到了一起。便宜的紙頁讓知識、謠言和爭論以同樣的速度傳開。不過，它們仍然需要識字的人來讀，也需要有人把它們送到讀者手中。",
+   "quote": {
+    "text": "慶曆中，有布衣畢昇，又為活板。",
+    "source": "沈括《夢溪筆談·技藝》"
+   }
+  }
+ },
+ {
+  "id": "T049",
+  "en": {
+   "intro": "A method is reproducible when a stranger, following your notes, can get your result or show that you were wrong. That simple standard turns lucky discoveries into a programme of work: record the conditions, keep the raw observations, invite others to check. The Royal Society, founded in London in 1660, began publishing its Philosophical Transactions in 1665 so that claims could be read, repeated and argued over. The method has no single home; monasteries, courts, guilds and merchant academies have all organized it. What it cannot do is run without patient people, funding and the freedom to be contradicted.",
+   "quote": {
+    "text": "Knowledge itself is power.",
+    "source": "Francis Bacon, Meditationes Sacrae (1597)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "所谓方法可以重复，就是一个素不相识的人照着你的记录做下去，能得到你的结果，或者证明你错了。这条朴素的标准，把碰运气的发现变成了有章法的工作：记下条件，保留原始观察，请别人来核查。1660年在伦敦成立的皇家学会，从1665年起刊行《哲学汇刊》，让各种主张都能被阅读、复做和争辩。这种方法没有唯一的故乡，修道院、宫廷、行会和商人办的学社都曾把它组织起来。它做不到的，是离开耐心的人、经费和被人反驳的自由而独自运转。",
+   "quote": {
+    "text": "知识本身就是力量。",
+    "source": "弗朗西斯·培根《神圣沉思录》（1597）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "所謂方法可以重複，就是一個素不相識的人照著你的記錄做下去，能得到你的結果，或者證明你錯了。這條樸素的標準，把碰運氣的發現變成了有章法的工作：記下條件，保留原始觀察，請別人來核查。1660年在倫敦成立的皇家學會，從1665年起刊行《哲學彙刊》，讓各種主張都能被閱讀、復做和爭辯。這種方法沒有唯一的故鄉，修道院、宮廷、行會和商人辦的學社都曾把它組織起來。它做不到的，是離開耐心的人、經費和被人反駁的自由而獨自運轉。",
+   "quote": {
+    "text": "知識本身就是力量。",
+    "source": "弗朗西斯·培根《神聖沉思錄》（1597）"
+   }
+  }
+ },
+ {
+  "id": "T050",
+  "en": {
+   "intro": "Every beam, chain and axle has a load at which it gives way, and before anyone tested systematically the only way to find it was to wait. Material testing makes failure deliberate: pull, bend, twist and crush specimens until they break, record exactly how, and design with a margin. In 1866 David Kirkaldy opened a testing works in London around a huge hydraulic machine; over the door of his Southwark premises the words 'Facts not Opinions' are carved in stone. Each broken sample costs real metal and labour, which is precisely why its evidence is worth more than a confident drawing."
+  },
+  "zh-Hans": {
+   "intro": "每一根梁、每一条链、每一根轴，都有一个让它屈服的载荷；在人们系统地试验之前，要知道它只能等着出事。材料试验让失效变成有意为之：把试件拉、弯、扭、压，直到断裂，精确记下它是怎么断的，再留出余量去设计。1866年，戴维·柯卡尔迪在伦敦开办了一家试验所，围绕一台巨大的液压试验机运转；他在南华克的那座房子门楣上，刻着“事实，而非意见”。每一个断裂的试件都要耗费真实的金属和人工，正因如此，它提供的证据比一张自信的设计图更值钱。"
+  },
+  "zh-Hant": {
+   "intro": "每一根梁、每一條鏈、每一根軸，都有一個讓它屈服的載荷；在人們系統地試驗之前，要知道它只能等著出事。材料試驗讓失效變成有意為之：把試件拉、彎、扭、壓，直到斷裂，精確記下它是怎麼斷的，再留出餘量去設計。1866年，戴維·柯卡爾迪在倫敦開辦了一家試驗所，圍繞一臺巨大的液壓試驗機運轉；他在南華克的那座房子門楣上，刻著「事實，而非意見」。每一個斷裂的試件都要耗費真實的金屬和人工，正因如此，它提供的證據比一張自信的設計圖更值錢。"
+  }
+ },
+ {
+  "id": "T051",
+  "en": {
+   "intro": "Why does a thrown stone curve, a pendulum keep its beat and a beam sag where it does? Mechanics answers with a few laws of motion and the mathematics of quantities that change continuously, which Newton and Leibniz developed independently in the later seventeenth century. Newton's Principia of 1687 used the same rules for falling apples and wandering planets. Edmond Halley then predicted that a comet would return in 1758; it did, after both men had died. The calculus gives exact answers to well-posed questions. It does not build the machine, and it is merciless about questions posed carelessly.",
+   "quote": {
+    "text": "If I have seen further it is by standing on the shoulders of Giants.",
+    "source": "Isaac Newton, letter to Robert Hooke (5 February 1676)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "抛出的石头为什么走弧线，摆为什么守着节拍，梁为什么在那个位置下垂？力学用几条运动定律，加上处理连续变化量的数学来回答——这种数学是牛顿和莱布尼茨在17世纪后期各自独立发展出来的。牛顿1687年的《自然哲学的数学原理》用同一套规则解释坠落的苹果和游走的行星。哈雷据此预言一颗彗星将在1758年回归；它果然回来了，而那时牛顿和哈雷都已去世。微积分对提得好的问题给出精确的答案。它不会替你造出机器，对草率提出的问题也毫不留情。",
+   "quote": {
+    "text": "如果说我看得更远，那是因为我站在巨人的肩膀上。",
+    "source": "艾萨克·牛顿致罗伯特·胡克的信（1676年2月5日）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "丟擲的石頭為什麼走弧線，擺為什麼守著節拍，梁為什麼在那個位置下垂？力學用幾條運動定律，加上處理連續變化量的數學來回答——這種數學是牛頓和萊布尼茨在17世紀後期各自獨立發展出來的。牛頓1687年的《自然哲學的數學原理》用同一套規則解釋墜落的蘋果和遊走的行星。哈雷據此預言一顆彗星將在1758年迴歸；它果然回來了，而那時牛頓和哈雷都已去世。微積分對提得好的問題給出精確的答案。它不會替你造出機器，對草率提出的問題也毫不留情。",
+   "quote": {
+    "text": "如果說我看得更遠，那是因為我站在巨人的肩膀上。",
+    "source": "艾薩克·牛頓致羅伯特·胡克的信（1676年2月5日）"
+   }
+  }
+ },
+ {
+  "id": "T052",
+  "en": {
+   "intro": "Heat can be turned into work, but never all of it, and the shortfall is not carelessness: it is a law. In 1824 a young French engineer, Sadi Carnot, asked how much motive power fire could possibly yield and showed that the answer depends on the temperatures between which an engine runs. Two decades later James Joule, son of a Salford brewer, stirred water with falling weights and measured how much it warmed. Energy is conserved; useful energy is not. Every furnace, workshop and kitchen pays that toll, and no clever label lets an engine deliver more than its fuel contains.",
+   "quote": {
+    "text": "The energy of the world is constant. The entropy of the world tends towards a maximum.",
+    "source": "Rudolf Clausius, on the mechanical theory of heat (1865)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "热可以变成功，但永远不能全部变成功；这份短缺不是粗心，而是定律。1824年，法国青年工程师萨迪·卡诺追问火究竟能产生多少动力，并证明答案取决于发动机工作时的高低两个温度。二十年后，萨尔福德一位酿酒商的儿子焦耳，用下落的重物带动叶片搅水，测出水温升高了多少。能量守恒，可用的能量却不守恒。每一座炉子、每一间作坊、每一个灶台都要付这笔过路费；任何巧妙的名号，都不能让热机交出比燃料所含更多的能量。",
+   "quote": {
+    "text": "世界的能量是恒定的。世界的熵趋向极大。",
+    "source": "鲁道夫·克劳修斯，1865年论热的力学理论"
+   }
+  },
+  "zh-Hant": {
+   "intro": "熱可以變成功，但永遠不能全部變成功；這份短缺不是粗心，而是定律。1824年，法國青年工程師薩迪·卡諾追問火究竟能產生多少動力，並證明答案取決於發動機工作時的高低兩個溫度。二十年後，薩爾福德一位釀酒商的兒子焦耳，用下落的重物帶動葉片攪水，測出水溫升高了多少。能量守恆，可用的能量卻不守恆。每一座爐子、每一間作坊、每一個灶臺都要付這筆過路費；任何巧妙的名號，都不能讓熱機交出比燃料所含更多的能量。",
+   "quote": {
+    "text": "世界的能量是恆定的。世界的熵趨向極大。",
+    "source": "魯道夫·克勞修斯，1865年論熱的力學理論"
+   }
+  }
+ },
+ {
+  "id": "T053",
+  "en": {
+   "intro": "For most of history, disease seemed to come from bad air, bad luck or bad living. The idea that tiny living things cause particular illnesses had to be proved organism by organism, with microscopes, cultures and careful exclusion of other causes. In 1847 Ignaz Semmelweis noticed that women died far more often on the Vienna maternity ward staffed by doctors fresh from the dissecting room, and that making them wash their hands cut the deaths sharply. His colleagues largely ignored him. Knowing the cause makes cleaning purposeful; it does not, by itself, cure anyone.",
+   "quote": {
+    "text": "In the fields of observation, chance favours only the prepared mind.",
+    "source": "Louis Pasteur, lecture at Lille (1854)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "在漫长的岁月里，疾病似乎来自瘴气、厄运或不检点的生活。“微小的活物引起特定的疾病”这一想法，必须借助显微镜、培养和对其他原因的仔细排除，一种病一种病地去证明。1847年，塞麦尔维斯注意到，在维也纳一家医院里，由刚从解剖室出来的医生接生的那间产科病房，产妇死亡率远高于另一间；他要求医生先洗手，死亡人数便急剧下降。同行们大多对他置之不理。知道了病因，清洁才有了方向；但光是知道，并不能治好任何人。",
+   "quote": {
+    "text": "在观察的领域里，机遇只偏爱有准备的头脑。",
+    "source": "路易·巴斯德，1854年在里尔的演讲"
+   }
+  },
+  "zh-Hant": {
+   "intro": "在漫長的歲月裡，疾病似乎來自瘴氣、厄運或不檢點的生活。「微小的活物引起特定的疾病」這一想法，必須藉助顯微鏡、培養和對其他原因的仔細排除，一種病一種病地去證明。1847年，塞麥爾維斯注意到，在維也納一家醫院裡，由剛從解剖室出來的醫生接生的那間產科病房，產婦死亡率遠高於另一間；他要求醫生先洗手，死亡人數便急劇下降。同行們大多對他置之不理。知道了病因，清潔才有了方向；但光是知道，並不能治好任何人。",
+   "quote": {
+    "text": "在觀察的領域裡，機遇只偏愛有準備的頭腦。",
+    "source": "路易·巴斯德，1854年在里爾的演講"
+   }
+  }
+ },
+ {
+  "id": "T054",
+  "en": {
+   "intro": "Amber that attracts straw and lodestones that point north were curiosities for thousands of years. They became a subject when people could produce the effects on demand and measure them. In 1800 Alessandro Volta stacked discs of two metals with brine-soaked cloth between them and got a steady current. In 1820 Hans Christian Ørsted, lecturing in Copenhagen, saw a compass needle twitch beside a current-carrying wire: electricity and magnetism were one subject, not two. Michael Faraday, a bookbinder's apprentice with little schooling, went on to map their fields. None of it yet lit a room.",
+   "quote": {
+    "text": "Nothing is too wonderful to be true, if it be consistent with the laws of nature.",
+    "source": "Michael Faraday, laboratory diary (19 March 1849)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "能吸起草屑的琥珀、会指向北方的磁石，几千年来都只是奇物。只有当人们能随时造出这些效应并加以测量，它们才成为一门学问。1800年，伏打把两种金属圆片层层相叠，中间夹上浸过盐水的布，得到了持续的电流。1820年，奥斯特在哥本哈根讲课时看到，通电导线旁的磁针抖了一下：电与磁原来是一回事。出身装订学徒、几乎没上过学的法拉第，随后描绘出了它们的场。不过，这些都还没能点亮一间屋子。",
+   "quote": {
+    "text": "只要符合自然规律，就没有什么奇妙到不可能是真的。",
+    "source": "迈克尔·法拉第实验日记（1849年3月19日）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "能吸起草屑的琥珀、會指向北方的磁石，幾千年來都只是奇物。只有當人們能隨時造出這些效應並加以測量，它們才成為一門學問。1800年，伏打把兩種金屬圓片層層相疊，中間夾上浸過鹽水的布，得到了持續的電流。1820年，奧斯特在哥本哈根講課時看到，通電導線旁的磁針抖了一下：電與磁原來是一回事。出身裝訂學徒、幾乎沒上過學的法拉第，隨後描繪出了它們的場。不過，這些都還沒能點亮一間屋子。",
+   "quote": {
+    "text": "只要符合自然規律，就沒有什麼奇妙到不可能是真的。",
+    "source": "邁克爾·法拉第實驗日記（1849年3月19日）"
+   }
+  }
+ },
+ {
+  "id": "T055",
+  "en": {
+   "intro": "Probability began at the gaming table. In 1654 Blaise Pascal and Pierre de Fermat traded letters about how to divide the stakes of an unfinished game fairly, and in solving it built a mathematics of uncertainty. Eight years later John Graunt combed London's weekly bills of mortality for patterns in births and deaths. Statistics carries the idea from dice to harvests, ledgers and populations: how sure can we be, given what we have counted? Its most useful lesson is humility. Errors have sizes, samples can mislead, and a thousand observations that copy one another are worth little more than one.",
+   "quote": {
+    "text": "The theory of probabilities is at bottom nothing but common sense reduced to calculation.",
+    "source": "Pierre-Simon Laplace, A Philosophical Essay on Probabilities (1814)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "概率论起源于赌桌。1654年，帕斯卡和费马互相通信，讨论一局没下完的赌博该如何公平地分配赌注，在解题的过程中建立起一门关于不确定性的数学。八年后，约翰·格朗特从伦敦每周公布的死亡表里，梳理出出生与死亡的规律。统计把这个思路从骰子推广到收成、账簿和人口：根据我们已经数过的东西，究竟能有多大把握？它最有用的教诲是谦逊——误差有大小，样本会误导，一千个彼此照抄的观察，并不比一个高明多少。",
+   "quote": {
+    "text": "概率论说到底，不过是把常识归结为计算。",
+    "source": "皮埃尔-西蒙·拉普拉斯《概率的哲学随笔》（1814）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "機率論起源於賭桌。1654年，帕斯卡和費馬互相通訊，討論一局沒下完的賭博該如何公平地分配賭注，在解題的過程中建立起一門關於不確定性的數學。八年後，約翰·格朗特從倫敦每週公佈的死亡表裡，梳理出出生與死亡的規律。統計把這個思路從骰子推廣到收成、賬簿和人口：根據我們已經數過的東西，究竟能有多大把握？它最有用的教誨是謙遜——誤差有大小，樣本會誤導，一千個彼此照抄的觀察，並不比一個高明多少。",
+   "quote": {
+    "text": "機率論說到底，不過是把常識歸結為計算。",
+    "source": "皮埃爾-西蒙·拉普拉斯《機率的哲學隨筆》（1814）"
+   }
+  }
+ },
+ {
+  "id": "T056",
+  "en": {
+   "intro": "Every farmer has opinions about manure, rotation and soil, and most of them are partly right. Agricultural experiments find out which part. Divide a field into plots, treat them differently, repeat for many seasons, weigh the harvest and analyse what the plants took from the ground. At Rothamsted in England, John Bennet Lawes and Henry Gilbert began their Broadbalk wheat trial in 1843; it is still running, among the oldest field experiments anywhere. Its slow verdicts showed which nutrients mattered where. The land did not become larger, but its limits became visible, and visible limits can be managed."
+  },
+  "zh-Hans": {
+   "intro": "每个农人对粪肥、轮作和土壤都有自己的见解，而且大多只对了一部分。农业试验要找出的，正是对的那一部分。把一块地分成小区，分别施以不同的处理，连续做许多季，称量收成，再分析作物从土里带走了什么。1843年，劳斯和吉尔伯特在英国洛桑开始了布罗德巴克小麦试验，至今仍在进行，是世界上最古老的田间试验之一。它缓慢的结论揭示出哪些养分在哪里起作用。土地并没有变大，但它的极限变得看得见了，而看得见的极限才能管理。"
+  },
+  "zh-Hant": {
+   "intro": "每個農人對糞肥、輪作和土壤都有自己的見解，而且大多隻對了一部分。農業試驗要找出的，正是對的那一部分。把一塊地分成小區，分別施以不同的處理，連續做許多季，稱量收成，再分析作物從土裡帶走了什麼。1843年，勞斯和吉爾伯特在英國洛桑開始了布羅德巴克小麥試驗，至今仍在進行，是世界上最古老的田間試驗之一。它緩慢的結論揭示出哪些養分在哪裡起作用。土地並沒有變大，但它的極限變得看得見了，而看得見的極限才能管理。"
+  }
+ },
+ {
+  "id": "T057",
+  "en": {
+   "intro": "Around 1900 physics had a few small embarrassments: the colours of glowing hot bodies, the sharp lines in the light of heated gases, and metals that release charges only when light of the right colour strikes them. Max Planck resolved the first, reluctantly, by assuming that energy comes in discrete portions. The resulting theory is strange enough that its founders argued over what it meant for decades, yet its predictions keep passing every test laboratories can devise. It describes the very small with superb accuracy. It does not, by itself, hand anyone a single working device."
+  },
+  "zh-Hans": {
+   "intro": "1900年前后，物理学有几处小小的尴尬：炽热物体发出的颜色，受热气体光谱中锐利的谱线，还有金属只在特定颜色的光照射下才放出电荷。普朗克勉强地假定能量是一份一份的，解决了第一个难题。由此发展出的理论古怪得连它的创立者们都为其含义争论了几十年，可它的预言一次又一次通过了实验室所能设计的每一项检验。它以极高的精度描述微观世界；但单凭它本身，并不会交给任何人一件能用的器件。"
+  },
+  "zh-Hant": {
+   "intro": "1900年前後，物理學有幾處小小的尷尬：熾熱物體發出的顏色，受熱氣體光譜中銳利的譜線，還有金屬只在特定顏色的光照射下才放出電荷。普朗克勉強地假定能量是一份一份的，解決了第一個難題。由此發展出的理論古怪得連它的創立者們都為其含義爭論了幾十年，可它的預言一次又一次通過了實驗室所能設計的每一項檢驗。它以極高的精度描述微觀世界；但單憑它本身，並不會交給任何人一件能用的元件。"
+  }
+ },
+ {
+  "id": "T058",
+  "en": {
+   "intro": "Why does copper conduct and glass insulate? Why does water freeze all at once at one temperature, and why does iron lose its magnetism when heated past a certain point? Statistical physics explains the behaviour of matter in bulk from the behaviour of countless particles, and condensed-matter physics applies it to solids and liquids. In 1913 William and Lawrence Bragg, father and son, began using X-rays to read the arrangement of atoms in crystals; the son shared a Nobel Prize at twenty-five. Theory now predicts properties before anyone makes the material. Making it remains another matter."
+  },
+  "zh-Hans": {
+   "intro": "铜为什么导电，玻璃为什么绝缘？水为什么会在某个温度一下子结冰，铁为什么加热过某一点就失去磁性？统计物理从无数粒子的行为出发，解释大块物质的性质；凝聚态物理则把它用于固体和液体。1913年，布拉格父子开始用X射线解读晶体中原子的排列，儿子劳伦斯25岁就分享了诺贝尔奖。如今理论常常能在材料造出来之前预言它的性质。至于真把它造出来，那是另一回事了。"
+  },
+  "zh-Hant": {
+   "intro": "銅為什麼導電，玻璃為什麼絕緣？水為什麼會在某個溫度一下子結冰，鐵為什麼加熱過某一點就失去磁性？統計物理從無數粒子的行為出發，解釋大塊物質的性質；凝聚態物理則把它用於固體和液體。1913年，布拉格父子開始用X射線解讀晶體中原子的排列，兒子勞倫斯25歲就分享了諾貝爾獎。如今理論常常能在材料造出來之前預言它的性質。至於真把它造出來，那是另一回事了。"
+  }
+ },
+ {
+  "id": "T060",
+  "en": {
+   "intro": "Iron was old; iron in quantity was new. Charcoal furnaces ate forests, so in 1709 Abraham Darby at Coalbrookdale tried coke made from coal instead, and cheap cast iron followed. Steel, harder and tougher, stayed a costly specialty until Henry Bessemer, in 1856, blew air through molten iron to burn out the excess carbon in minutes. Control mattered as much as heat: the wrong ore or a careless blow made brittle metal that failed without warning. Towns grew black around the works, and the bridges, frames and tools they produced carried the bill for every ton of fuel."
+  },
+  "zh-Hans": {
+   "intro": "铁是古老的，大量的铁却是新鲜事。木炭炉吃掉了一片片森林，于是1709年，亚伯拉罕·达比在科尔布鲁克代尔改用煤炼成的焦炭炼铁，廉价的铸铁随之而来。钢更硬也更韧，却一直是昂贵的稀罕物，直到1856年贝塞麦把空气吹过铁水，几分钟内就烧掉多余的碳。控制和火力同样要紧：矿石不对或吹炼失手，就会得到毫无征兆便断裂的脆铁。工厂周围的城镇被熏得漆黑，而从这里运出的桥梁、框架和工具，每一吨都背着燃料的账。"
+  },
+  "zh-Hant": {
+   "intro": "鐵是古老的，大量的鐵卻是新鮮事。木炭爐吃掉了一片片森林，於是1709年，亞伯拉罕·達比在科爾布魯克代爾改用煤煉成的焦炭鍊鐵，廉價的鑄鐵隨之而來。鋼更硬也更韌，卻一直是昂貴的稀罕物，直到1856年貝塞麥把空氣吹過鐵水，幾分鐘內就燒掉多餘的碳。控制和火力同樣要緊：礦石不對或吹煉失手，就會得到毫無徵兆便斷裂的脆鐵。工廠周圍的城鎮被燻得漆黑，而從這裡運出的橋樑、框架和工具，每一噸都揹著燃料的賬。"
+  }
+ },
+ {
+  "id": "T061",
+  "en": {
+   "intro": "A lathe in a master's hands can make one superb part. A machine tool is built so that ordinary skilled workers can make the hundredth part like the first. At Portsmouth, from about 1803, a set of machines designed by Marc Brunel and built by Henry Maudslay turned out the Royal Navy's rigging blocks with a small fraction of the hand labour once needed. In 1841 Joseph Whitworth proposed standard screw threads so that a bolt from one shop would fit a nut from another. One gleaming prototype impresses visitors; a hall full of maintained, measured tools is what actually changes output."
+  },
+  "zh-Hans": {
+   "intro": "车床在名匠手里能做出一件绝佳的零件；机床的设计目标，却是让寻常的熟练工人把第一百件做得和第一件一样。约1803年起，朴次茅斯一组由马克·布鲁内尔设计、莫兹利制造的机器，开始为皇家海军成批生产滑车，所需的手工劳动只剩从前的零头。1841年，惠特沃思提出统一的螺纹标准，让这家作坊的螺栓能拧进那家作坊的螺母。一台锃亮的样机能让参观者赞叹；真正改变产量的，是满满一车间经过维护和测量的机器。"
+  },
+  "zh-Hant": {
+   "intro": "車床在名匠手裡能做出一件絕佳的零件；機床的設計目標，卻是讓尋常的熟練工人把第一百件做得和第一件一樣。約1803年起，樸次茅斯一組由馬克·布魯內爾設計、莫茲利製造的機器，開始為皇家海軍成批生產滑車，所需的手工勞動只剩從前的零頭。1841年，惠特沃思提出統一的螺紋標準，讓這家作坊的螺栓能擰進那家作坊的螺母。一臺鋥亮的樣機能讓參觀者讚歎；真正改變產量的，是滿滿一車間經過維護和測量的機器。"
+  }
+ },
+ {
+  "id": "T062",
+  "en": {
+   "intro": "Spinning and weaving once filled the evenings of nearly every household. Powered textile machinery moved that work into mills by the river, where water turned the shafts and one attendant minded many spindles. In 1771 Richard Arkwright opened his water-powered spinning mill at Cromford in Derbyshire, with workers' housing built alongside and children among the hands. Cloth grew cheap; hand-weavers' earnings collapsed, and between 1811 and 1816 the Luddites broke machines at night in protest. The machines paid only when someone bought the cloth, and the people they displaced did not disappear when their work did."
+  },
+  "zh-Hans": {
+   "intro": "纺纱和织布，曾占满几乎每户人家的夜晚。动力纺织机械把这份活计搬进了河边的工场：水流转动传动轴，一个看工能照管许多纱锭。1771年，阿克莱特在德比郡的克罗姆福德开办水力纺纱厂，厂旁盖起工人住房，干活的人里还有孩子。布匹变得便宜，手织工的收入却一落千丈；1811年到1816年间，卢德派趁夜捣毁机器以示抗议。机器只有在有人买布时才划算，而被它取代的人，并不会随着工作一同消失。"
+  },
+  "zh-Hant": {
+   "intro": "紡紗和織布，曾佔滿幾乎每戶人家的夜晚。動力紡織機械把這份活計搬進了河邊的工場：水流轉動傳動軸，一個看工能照管許多紗錠。1771年，阿克萊特在德比郡的克羅姆福德開辦水力紡紗廠，廠旁蓋起工人住房，幹活的人裡還有孩子。布匹變得便宜，手織工的收入卻一落千丈；1811年到1816年間，盧德派趁夜搗毀機器以示抗議。機器只有在有人買布時才划算，而被它取代的人，並不會隨著工作一同消失。"
+  }
+ },
+ {
+  "id": "T063",
+  "en": {
+   "intro": "The richest ores often lie below the water table, and a mine that floods is just an expensive pond. Deep extraction is the long contest against water, bad air and falling rock: pumps and drainage tunnels, timbered supports, ventilation, and people trained to notice danger first. Georgius Agricola's De re metallica of 1556 shows the German mines of his day with waterwheel-driven pumps, chain hoists and men climbing endless ladders. Deeper workings reach harder deposits, but they do not improve the ore, shorten the haul to market or make the work safe; they only make it possible."
+  },
+  "zh-Hans": {
+   "intro": "最富的矿脉往往埋在地下水位以下，一口被淹的矿井不过是个昂贵的水塘。深部开采，是与水、浊气和落石的长期较量：水泵和排水巷道、木料支护、通风，还有受过训练、能最先察觉危险的人。阿格里科拉1556年的《论矿冶》画出了当时德意志矿山的景象：水车带动的水泵、链式提升机，以及爬着无尽梯子的矿工。更深的巷道能触及更难采的矿藏，但它不会提高矿石品位，不会缩短运往市场的路程，也不会让这份工作变得安全；它只是让开采成为可能。"
+  },
+  "zh-Hant": {
+   "intro": "最富的礦脈往往埋在地下水位以下，一口被淹的礦井不過是個昂貴的水塘。深部開採，是與水、濁氣和落石的長期較量：水泵和排水巷道、木料支護、通風，還有受過訓練、能最先察覺危險的人。阿格里科拉1556年的《論礦冶》畫出了當時德意志礦山的景象：水車帶動的水泵、鏈式提升機，以及爬著無盡梯子的礦工。更深的巷道能觸及更難採的礦藏，但它不會提高礦石品位，不會縮短運往市場的路程，也不會讓這份工作變得安全；它只是讓開採成為可能。"
+  }
+ },
+ {
+  "id": "T064",
+  "en": {
+   "intro": "Soap, glass, dyes and cloth all needed alkali, and for centuries it came from burning seaweed and wood ash. In the 1790s Nicolas Leblanc found a way to make soda ash from common salt, and soon works along the Tyne and the Mersey were producing it by the thousand tons. They also produced clouds of hydrochloric acid that killed crops for miles around. Britain's Alkali Act of 1863 made the makers capture most of it, an early lesson that waste does not vanish because nobody owns it. Process control replaced recipe and nerve with measured temperatures, concentrations and flows."
+  },
+  "zh-Hans": {
+   "intro": "肥皂、玻璃、染料和布匹都离不开碱，几百年来，碱靠烧海藻和草木灰得来。18世纪90年代，勒布朗找到了用普通食盐制取纯碱的方法；不久，泰恩河和默西河沿岸的工厂便以千吨计生产纯碱。它们同时排出成团的盐酸气，毒死了方圆数里的庄稼。英国1863年的《制碱法》要求厂家回收其中绝大部分——这是早期的一课：废物不会因为无人认领就自行消失。过程控制用测量到的温度、浓度和流量，取代了配方和胆量。"
+  },
+  "zh-Hant": {
+   "intro": "肥皂、玻璃、染料和布匹都離不開鹼，幾百年來，鹼靠燒海藻和草木灰得來。18世紀90年代，勒布朗找到了用普通食鹽製取純鹼的方法；不久，泰恩河和默西河沿岸的工廠便以千噸計生產純鹼。它們同時排出成團的鹽酸氣，毒死了方圓數里的莊稼。英國1863年的《制鹼法》要求廠家回收其中絕大部分——這是早期的一課：廢物不會因為無人認領就自行消失。過程控制用測量到的溫度、濃度和流量，取代了配方和膽量。"
+  }
+ },
+ {
+  "id": "T065",
+  "en": {
+   "intro": "Learning at a master's elbow works well but slowly, a few learners at a time, and it teaches whatever that master happens to know. Vocational teaching breaks a trade into graded exercises that any qualified instructor can set and any diligent student can repeat. At the Imperial Technical School in Moscow, Victor Della-Vos built such a sequence of workshop tasks; shown at the Philadelphia Centennial Exhibition in 1876, it inspired manual-training programmes across America. Benches, tools and materials cost money, and someone still decides who may enrol and whose certificate counts."
+  },
+  "zh-Hans": {
+   "intro": "跟在师傅身边学手艺，学得扎实却学得慢：一次只能带几个徒弟，而且师傅会什么就教什么。职业教育把一门手艺拆成循序渐进的练习，任何合格的教员都能布置，任何勤勉的学员都能照做。莫斯科帝国技术学校的德拉-沃斯编排出这样一套车间作业；1876年它在费城百年博览会上展出，启发了美国各地的手工训练。工位、工具和材料都要花钱，而谁能入学、谁的证书算数，仍然要由某个人说了算。"
+  },
+  "zh-Hant": {
+   "intro": "跟在師傅身邊學手藝，學得紮實卻學得慢：一次只能帶幾個徒弟，而且師傅會什麼就教什麼。職業教育把一門手藝拆成循序漸進的練習，任何合格的教員都能佈置，任何勤勉的學員都能照做。莫斯科帝國技術學校的德拉-沃斯編排出這樣一套車間作業；1876年它在費城百年博覽會上展出，啟發了美國各地的手工訓練。工位、工具和材料都要花錢，而誰能入學、誰的證書算數，仍然要由某個人說了算。"
+  }
+ },
+ {
+  "id": "T066",
+  "en": {
+   "intro": "A part is interchangeable when it fits any machine of its kind without filing, fiddling or a craftsman's private adjustments. That needs agreed tolerances, independent gauges and the discipline to reject parts that are almost right. In 1806 Eli Terry contracted to make four thousand clock movements in three years, an order so large his neighbours thought it absurd; he built water-powered machinery and delivered. Interchangeability made repair possible far from the maker, and let many suppliers serve one product. A specification, though, is only a claim until the part in hand has been measured."
+  },
+  "zh-Hans": {
+   "intro": "所谓零件可以互换，就是它无须锉磨、摆弄或工匠私下调整，就能装进同类的任何一台机器。这需要商定的公差、独立的量规，以及把“差一点就合格”的零件判为不合格的纪律。1806年，伊莱·特里签约在三年内造四千套钟芯，订单之大让邻居们觉得荒唐；他造起水力驱动的机器，如期交了货。互换性让维修可以在远离制造者的地方进行，也让众多供应商能为同一种产品供货。不过，标称的规格只是一种声称，要等手里的零件被实际测量过才算数。"
+  },
+  "zh-Hant": {
+   "intro": "所謂零件可以互換，就是它無須銼磨、擺弄或工匠私下調整，就能裝進同類的任何一臺機器。這需要商定的公差、獨立的量規，以及把「差一點就合格」的零件判為不合格的紀律。1806年，伊萊·特里簽約在三年內造四千套鍾芯，訂單之大讓鄰居們覺得荒唐；他造起水力驅動的機器，如期交了貨。互換性讓維修可以在遠離製造者的地方進行，也讓眾多供應商能為同一種產品供貨。不過，標稱的規格只是一種聲稱，要等手裡的零件被實際測量過才算數。"
+  }
+ },
+ {
+  "id": "T067",
+  "en": {
+   "intro": "Contain gas or hot water at high pressure and you store a great deal of energy in a small space, which is useful right up to the moment the vessel splits. Through the nineteenth century, boiler explosions killed workers, passengers and bystanders with grim regularity. In 1905 one destroyed the Grover shoe factory in Brockton, Massachusetts, and the state soon wrote binding rules for how such vessels were made and inspected. Safe pressure work depends on good metal, proof tests with water, inspections that do not take the maker's word for it, and the admission that there is always a limit."
+  },
+  "zh-Hans": {
+   "intro": "把气体或热水封在高压之下，就能在很小的空间里储存大量能量；这很有用，直到容器裂开的那一刻。整个19世纪，锅炉爆炸以令人沮丧的规律夺走工人、乘客和路人的性命。1905年，一次爆炸摧毁了马萨诸塞州布罗克顿的格罗弗制鞋厂，该州随即制定了有约束力的规则，规定这类容器如何制造、如何检验。安全的高压作业，靠的是好钢材、用水做的耐压试验、不轻信制造商一面之词的检验，以及承认压力总有上限。"
+  },
+  "zh-Hant": {
+   "intro": "把氣體或熱水封在高壓之下，就能在很小的空間裡儲存大量能量；這很有用，直到容器裂開的那一刻。整個19世紀，鍋爐爆炸以令人沮喪的規律奪走工人、乘客和路人的性命。1905年，一次爆炸摧毀了馬薩諸塞州布羅克頓的格羅弗製鞋廠，該州隨即制定了有約束力的規則，規定這類容器如何製造、如何檢驗。安全的高壓作業，靠的是好鋼材、用水做的耐壓試驗、不輕信製造商一面之詞的檢驗，以及承認壓力總有上限。"
+  }
+ },
+ {
+  "id": "T068",
+  "en": {
+   "intro": "A horse on a good road can pull only so much; the same horse on smooth rails pulls several times more. Put an engine at the front and the whole geography of trade changes. When the Liverpool and Manchester Railway opened in 1830, it carried passengers as well as freight to a fixed timetable, and on opening day the politician William Huskisson was killed by a locomotive. Railways pushed towns to agree on clock time and countries to agree on track gauges. Armies noticed too: the lines that moved coal also moved soldiers, and in wartime both had to share them."
+  },
+  "zh-Hans": {
+   "intro": "一匹马在好路上能拉动的货物有限，同一匹马在平滑的轨道上却能拉动好几倍。再在最前头装上一台发动机，整个贸易的地理格局就变了。1830年利物浦—曼彻斯特铁路开通，按固定时刻表同时运送旅客和货物；通车当天，政治家赫斯基森被机车撞倒身亡。铁路逼着各个城镇统一钟点，逼着各国统一轨距。军队也看在眼里：运煤的线路同样能运兵，一到战时，两者只能共用这有限的运力。"
+  },
+  "zh-Hant": {
+   "intro": "一匹馬在好路上能拉動的貨物有限，同一匹馬在平滑的軌道上卻能拉動好幾倍。再在最前頭裝上一臺發動機，整個貿易的地理格局就變了。1830年利物浦—曼徹斯特鐵路開通，按固定時刻表同時運送旅客和貨物；通車當天，政治家赫斯基森被機車撞倒身亡。鐵路逼著各個城鎮統一鐘點，逼著各國統一軌距。軍隊也看在眼裡：運煤的線路同樣能運兵，一到戰時，兩者只能共用這有限的運力。"
+  }
+ },
+ {
+  "id": "T069",
+  "en": {
+   "intro": "In the hot summer of 1858 the Thames stank so badly that Parliament, sitting beside it, finally voted for Joseph Bazalgette's intercepting sewers. Cholera had already shown that clean water and the removal of waste are not comforts but matters of life and death. Urban water treatment adds filtration through sand, chemical dosing and constant testing: in 1908 Jersey City became one of the first cities to chlorinate its supply continuously. None of it runs itself. Pipes crack, filters clog, operators must be paid, and every neighbourhood left off the network is recorded in its funerals."
+  },
+  "zh-Hans": {
+   "intro": "1858年炎夏，泰晤士河臭不可闻，紧挨着河的议会终于投票通过了巴泽尔杰特的截污下水道工程。霍乱早已表明，清洁的水和废物的清除不是享受，而是生死攸关。城市水处理又加上了砂滤、投加药剂和不间断的检测：1908年，泽西城成为最早对供水连续加氯消毒的城市之一。这一切都不会自己运转。管道会破裂，滤池会堵塞，操作工要发工资；每一个被落在管网之外的街区，都会记在它的葬礼上。"
+  },
+  "zh-Hant": {
+   "intro": "1858年炎夏，泰晤士河臭不可聞，緊挨著河的議會終於投票通過了巴澤爾杰特的截汙下水道工程。霍亂早已表明，清潔的水和廢物的清除不是享受，而是生死攸關。城市水處理又加上了砂濾、投加藥劑和不間斷的檢測：1908年，澤西城成為最早對供水連續加氯消毒的城市之一。這一切都不會自己運轉。管道會破裂，濾池會堵塞，操作工要發工資；每一個被落在管網之外的街區，都會記在它的葬禮上。"
+  }
+ },
+ {
+  "id": "T070",
+  "en": {
+   "intro": "Long before anyone could explain it, people noticed that survivors of smallpox did not catch it twice. Variolation, deliberately giving a mild case, was practised in China and the Ottoman world, and Lady Mary Wortley Montagu promoted it in England in the 1720s. In 1796 Edward Jenner inoculated a boy, James Phipps, with cowpox and showed that he resisted smallpox. Each protection works against its own disease, must be made to a consistent standard and has to reach real arms. Pharmaceutical manufacture brought the same discipline to medicines: in 1899 Bayer began selling aspirin, the same dose every time."
+  },
+  "zh-Hans": {
+   "intro": "早在有人能解释之前，人们就注意到，出过天花的人不会再得第二次。人痘法——故意让人染上轻症——在中国和奥斯曼世界早有施行，18世纪20年代，玛丽·沃特利·蒙塔古夫人又在英国大力提倡。1796年，詹纳给一个叫詹姆斯·菲普斯的男孩接种牛痘，证明他能抵御天花。每一种防护只对付它自己的那种病，必须按统一的标准生产，并真正送到人们的手臂上。制药工业把同样的纪律带给了药品：1899年，拜耳开始出售阿司匹林，每一剂都一模一样。"
+  },
+  "zh-Hant": {
+   "intro": "早在有人能解釋之前，人們就注意到，出過天花的人不會再得第二次。人痘法——故意讓人染上輕症——在中國和奧斯曼世界早有施行，18世紀20年代，瑪麗·沃特利·蒙塔古夫人又在英國大力提倡。1796年，詹納給一個叫詹姆斯·菲普斯的男孩接種牛痘，證明他能抵禦天花。每一種防護只對付它自己的那種病，必須按統一的標準生產，並真正送到人們的手臂上。製藥工業把同樣的紀律帶給了藥品：1899年，拜耳開始出售阿司匹林，每一劑都一模一樣。"
+  }
+ },
+ {
+  "id": "T071",
+  "en": {
+   "intro": "Twenty factories each making one part of a machine are only as reliable as their worst batch. Quality engineering replaces trust with evidence: sample the production, chart its variation, hunt down causes, and keep records of who checked what. In May 1924 Walter Shewhart, an engineer at a large American manufacturer, sketched the first control chart in a one-page memo, separating ordinary variation from signs that something had changed. After 1950 W. Edwards Deming carried such methods to Japanese industry. The figures help only if they are honest: a sample chosen to look good hides the defects that customers find later."
+  },
+  "zh-Hans": {
+   "intro": "二十家工厂各造机器的一个部件，整台机器的可靠程度只取决于最差的那一批。质量工程用证据代替信任：抽检产品，画出波动，追查原因，并记下谁检查了什么。1924年5月，美国一家大制造企业的工程师休哈特在一页备忘录里画出了第一张控制图，把寻常的波动与“情况变了”的信号区分开来。1950年以后，戴明把这类方法带到了日本工业界。数字只有诚实才有用：挑得好看的样本只会把缺陷藏起来，留给日后的顾客去发现。"
+  },
+  "zh-Hant": {
+   "intro": "二十家工廠各造機器的一個部件，整臺機器的可靠程度只取決於最差的那一批。品質工程用證據代替信任：抽檢產品，畫出波動，追查原因，並記下誰檢查了什麼。1924年5月，美國一家大製造企業的工程師休哈特在一頁備忘錄裡畫出了第一張控制圖，把尋常的波動與「情況變了」的訊號區分開來。1950年以後，戴明把這類方法帶到了日本工業界。數字只有誠實才有用：挑得好看的樣本只會把缺陷藏起來，留給日後的顧客去發現。"
+  }
+ },
+ {
+  "id": "T080",
+  "en": {
+   "intro": "For most of history heat and work lived apart: fire cooked food and hardened clay, while muscle, water and wind did the lifting. The steam engine joined them. Thomas Newcomen's engine of 1712 near Dudley Castle pumped water from flooded coal workings, burning fuel so greedily that it paid only at the pithead. James Watt's separate condenser cut that appetite sharply, and engines left the coalfields for breweries, ironworks and workshops that no river could reach. Power became something you could install wherever fuel arrived. So did its tyrants: boilers that burst, firemen on long shifts, and the coal bill.",
+   "quote": {
+    "text": "I sell here, Sir, what all the world desires to have — POWER.",
+    "source": "Matthew Boulton to James Boswell at the Soho works, in Boswell's Life of Samuel Johnson (1791)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "在漫长的岁月里，火与功各干各的：火用来烹煮和烧陶，提举搬运则靠人力、水力和风力。蒸汽机把二者接在了一起。1712年，纽科门在达德利城堡附近装起一台机器，为积水的煤矿抽水；它烧煤极凶，只有在矿口才划算。瓦特的分离式冷凝器大大压低了煤耗，机器于是走出煤田，进了酿酒坊、铁工场和远离河流的作坊。动力从此可以安装在燃料运得到的任何地方。随之而来的还有爆裂的锅炉、轮班守炉的司炉工，以及一张张煤炭账单。",
+   "quote": {
+    "text": "先生，我这里出售的，是全世界都想要的东西——动力。",
+    "source": "马修·博尔顿在索霍工厂对詹姆斯·鲍斯韦尔所言，见鲍斯韦尔《约翰逊传》（1791）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "在漫長的歲月裡，火與功各幹各的：火用來烹煮和燒陶，提舉搬運則靠人力、水力和風力。蒸汽機把二者接在了一起。1712年，紐科門在達德利城堡附近裝起一臺機器，為積水的煤礦抽水；它燒煤極兇，只有在礦口才划算。瓦特的分離式冷凝器大大壓低了煤耗，機器於是走出煤田，進了釀酒坊、鐵工場和遠離河流的作坊。動力從此可以安裝在燃料運得到的任何地方。隨之而來的還有爆裂的鍋爐、輪班守爐的司爐工，以及一張張煤炭賬單。",
+   "quote": {
+    "text": "先生，我這裡出售的，是全世界都想要的東西——動力。",
+    "source": "馬修·博爾頓在索霍工廠對詹姆斯·鮑斯韋爾所言，見鮑斯韋爾《約翰遜傳》（1791）"
+   }
+  }
+ },
+ {
+  "id": "T081",
+  "en": {
+   "intro": "James Watt distrusted 'strong steam' and kept his engines close to atmospheric pressure, wary of what a bursting boiler could do. Around 1800 the Cornish engineer Richard Trevithick took the risk anyway, building compact high-pressure engines that blew their exhaust straight into the air. Arthur Woolf went further and let the steam work twice, first in a small high-pressure cylinder and then in a larger one, wringing more from every shovel of coal. Compounding rewarded better metal, tighter joints and proof tests, and punished every shortcut. Each gain was real, and each had a ceiling set by what plates and rivets could bear."
+  },
+  "zh-Hans": {
+   "intro": "瓦特不信任“强蒸汽”，宁可让机器在接近大气压的条件下运转，因为他清楚锅炉爆裂意味着什么。1800年前后，康沃尔工程师特里维西克偏要冒这个险：他造出紧凑的高压机器，废汽直接排进空气，一路突突作响。伍尔夫更进一步，让蒸汽做两次功：先在小的高压汽缸里推一回，再到大汽缸里推一回，每一铲煤都被榨得更干净。复式机奖励更好的金属、更严密的接缝和耐压试验，也惩罚一切偷工减料。每一点提升都是真的，而上限始终由钢板和铆钉能承受多少来决定。"
+  },
+  "zh-Hant": {
+   "intro": "瓦特不信任「強蒸汽」，寧可讓機器在接近大氣壓的條件下運轉，因為他清楚鍋爐爆裂意味著什麼。1800年前後，康沃爾工程師特里維西克偏要冒這個險：他造出緊湊的高壓機器，廢汽直接排進空氣，一路突突作響。伍爾夫更進一步，讓蒸汽做兩次功：先在小的高壓汽缸裡推一回，再到大汽缸裡推一回，每一剷煤都被榨得更乾淨。複式機獎勵更好的金屬、更嚴密的接縫和耐壓試驗，也懲罰一切偷工減料。每一點提升都是真的，而上限始終由鋼板和鉚釘能承受多少來決定。"
+  }
+ },
+ {
+  "id": "T082",
+  "en": {
+   "intro": "An engine left to itself races when the load drops and labours when it rises. Millwrights had long used spinning weights to ease millstones together or apart; in 1788 James Watt's firm fitted a pair of whirling iron balls to a steam engine, linked so that rising speed throttled the steam and falling speed opened it again. Nobody had to stand watching the shaft. The device became an emblem of the age, yet it sometimes 'hunted', swinging back and forth until the whole engine shook, and that misbehaviour puzzled engineers for decades until mathematicians treated it as a problem in its own right.",
+   "quote": {
+    "text": "A Governor is a part of a machine by means of which the velocity of the machine is kept nearly uniform, notwithstanding variations in the driving-power or the resistance.",
+    "source": "James Clerk Maxwell, On Governors (1868)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "机器若无人看管，负荷一轻就飞转，负荷一重就吃力。磨坊匠早就用旋转的重锤来调节两扇磨盘的间距；1788年，瓦特的工厂把一对飞旋的铁球装到蒸汽机上：转得越快，铁球张得越开，汽门便关小一些；转慢了，汽门又开大。从此不必有人守着转轴。这个装置成了那个时代的象征，可它偶尔也会来回“摆荡”，把整台机器晃得直颤。工程师们为此困惑了几十年，直到数学家把它当作一门学问来研究。",
+   "quote": {
+    "text": "调速器是机器的一个部件，借助它，即使驱动力或阻力有所变化，机器的速度也能保持近乎均匀。",
+    "source": "詹姆斯·克拉克·麦克斯韦《论调速器》（1868）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "機器若無人看管，負荷一輕就飛轉，負荷一重就吃力。磨坊匠早就用旋轉的重錘來調節兩扇磨盤的間距；1788年，瓦特的工廠把一對飛旋的鐵球裝到蒸汽機上：轉得越快，鐵球張得越開，汽門便關小一些；轉慢了，汽門又開大。從此不必有人守著轉軸。這個裝置成了那個時代的象徵，可它偶爾也會來回「擺盪」，把整臺機器晃得直顫。工程師們為此困惑了幾十年，直到數學家把它當作一門學問來研究。",
+   "quote": {
+    "text": "調速器是機器的一個部件，藉助它，即使驅動力或阻力有所變化，機器的速度也能保持近乎均勻。",
+    "source": "詹姆斯·克拉克·麥克斯韋《論調速器》（1868）"
+   }
+  }
+ },
+ {
+  "id": "T083",
+  "en": {
+   "intro": "A piston engine shoves, stops and shoves back; every stroke wastes effort reversing heavy metal. A turbine simply spins. Charles Parsons's first steam turbine of 1884 turned at some 18,000 revolutions a minute, so fast that the hard problems were no longer about heat but about the machine itself: blades that crept and cracked in hot steam, rotors that had to be balanced to a hair or tear themselves apart, bearings that had to survive it all. Turbines rewarded size, and one machine could soon do the work of many piston engines. They also tied every operator to the few workshops able to make a true blade."
+  },
+  "zh-Hans": {
+   "intro": "活塞机推一下、停一下、再拉回来，每个冲程都在白白折腾沉重的金属。涡轮却只管旋转。1884年，帕森斯的第一台汽轮机每分钟转约一万八千转，快到难题已不在热学，而在机械：叶片在高温蒸汽里蠕变、开裂，转子必须平衡得分毫不差，否则会把自己撕碎，轴承还得经受这一切。汽轮机越大越划算，一台很快就能顶许多台活塞机。它也把所有用户拴在了少数几家能造出合格叶片的工场上。"
+  },
+  "zh-Hant": {
+   "intro": "活塞機推一下、停一下、再拉回來，每個衝程都在白白折騰沉重的金屬。渦輪卻只管旋轉。1884年，帕森斯的第一臺汽輪機每分鐘轉約一萬八千轉，快到難題已不在熱學，而在機械：葉片在高溫蒸汽裡蠕變、開裂，轉子必須平衡得分毫不差，否則會把自己撕碎，軸承還得經受這一切。汽輪機越大越划算，一臺很快就能頂許多臺活塞機。它也把所有使用者拴在了少數幾家能造出合格葉片的工場上。"
+  }
+ },
+ {
+  "id": "T084",
+  "en": {
+   "intro": "Why should every building keep its own fire? In 1877 Birdsill Holly, an inventor in Lockport, New York, sent steam from a central boiler through buried pipes to nearby houses, and within a few years districts of larger cities were buying heat by the meter rather than coal by the ton. Industrial estates followed with shared steam mains. The gains were real: fewer chimneys, less ash in the street, fuel bought in bulk. So were the costs: insulation that decayed underground, pipes that lost heat with every block, and a single failure that left a whole neighbourhood cold at once."
+  },
+  "zh-Hans": {
+   "intro": "为什么每栋楼都得自己生一炉火？1877年，纽约州洛克波特的发明家霍利用一台中央锅炉产汽，经埋在地下的管道送到附近住户；没过几年，大城市的一些街区也开始按表计价买热，而不是按吨买煤。工业区随后铺设了共用的蒸汽总管。好处实实在在：烟囱少了，街上的煤灰少了，燃料可以成批采购。代价也实实在在：埋在地下的保温层会老化，管道每过一个街区就散掉一些热，一处故障就能让整片街区同时挨冻。"
+  },
+  "zh-Hant": {
+   "intro": "為什麼每棟樓都得自己生一爐火？1877年，紐約州洛克波特的發明家霍利用一臺中央鍋爐產汽，經埋在地下的管道送到附近住戶；沒過幾年，大城市的一些街區也開始按表計價買熱，而不是按噸買煤。工業區隨後鋪設了共用的蒸汽總管。好處實實在在：煙囪少了，街上的煤灰少了，燃料可以成批採購。代價也實實在在：埋在地下的保溫層會老化，管道每過一個街區就散掉一些熱，一處故障就能讓整片街區同時挨凍。"
+  }
+ },
+ {
+  "id": "T085",
+  "en": {
+   "intro": "Every furnace throws away much of what it burns as hot gas up the chimney. Recovering it is less a single invention than a habit of mind: measure where the heat goes, then make the outgoing stream warm the incoming one. In the 1850s the Siemens brothers built regenerative furnaces whose flues ran through chequered stacks of brick; the brick soaked up exhaust heat and, with the flow reversed, gave it back to the incoming air, letting glassworks reach higher temperatures on less fuel. The catch is patience: exchangers foul and corrode, and heat is worth recovering only where something nearby needs it at that temperature."
+  },
+  "zh-Hans": {
+   "intro": "每座炉子烧掉的燃料，有不少随热烟气从烟囱里溜走。回收它与其说是一项发明，不如说是一种习惯：先测出热量去了哪里，再让出去的热流去温暖进来的冷流。19世纪50年代，西门子兄弟造出蓄热式炉：烟道穿过层层砖格，砖吸足了废气的热，气流一换向，又把热还给进炉的空气，玻璃厂因此用更少的燃料烧到更高的温度。难处在于耐心：换热器会结垢、会腐蚀，而且只有附近恰好需要这个温度的热时，回收才划得来。"
+  },
+  "zh-Hant": {
+   "intro": "每座爐子燒掉的燃料，有不少隨熱煙氣從煙囪裡溜走。回收它與其說是一項發明，不如說是一種習慣：先測出熱量去了哪裡，再讓出去的熱流去溫暖進來的冷流。19世紀50年代，西門子兄弟造出蓄熱式爐：煙道穿過層層磚格，磚吸足了廢氣的熱，氣流一換向，又把熱還給進爐的空氣，玻璃廠因此用更少的燃料燒到更高的溫度。難處在於耐心：換熱器會結垢、會腐蝕，而且只有附近恰好需要這個溫度的熱時，回收才划得來。"
+  }
+ },
+ {
+  "id": "T086",
+  "en": {
+   "intro": "Push steam hotter and harder and each lump of coal yields more electricity; that is the whole argument, and it took generations of metallurgy to pay for it. Past a critical point water stops boiling altogether and passes smoothly into a dense, hot fluid, and in 1957 the Philo plant in Ohio put the first commercial unit built on that principle into service. Such plants live or die by their materials, which creep slowly under heat and stress, and by their water, which must be purer than anything drunk in the town outside. A single burst tube can idle a station for weeks."
+  },
+  "zh-Hans": {
+   "intro": "让蒸汽更热、压力更高，每一块煤就能多发一些电——道理只有这一条，为它买单的却是几代人的冶金功夫。越过临界点，水干脆不再沸腾，而是平滑地变成一种又热又密的流体；1957年，俄亥俄州的菲洛电厂投运了第一台按此原理建造的商用机组。这样的电厂成败系于材料：金属在高温和应力下会缓慢蠕变；也系于水：锅炉给水必须比城里人喝的水还要纯净。一根管子爆裂，整座电厂就可能停转数周。"
+  },
+  "zh-Hant": {
+   "intro": "讓蒸汽更熱、壓力更高，每一塊煤就能多發一些電——道理只有這一條，為它買單的卻是幾代人的冶金功夫。越過臨界點，水乾脆不再沸騰，而是平滑地變成一種又熱又密的流體；1957年，俄亥俄州的菲洛電廠投運了第一臺按此原理建造的商用機組。這樣的電廠成敗繫於材料：金屬在高溫和應力下會緩慢蠕變；也繫於水：鍋爐給水必須比城裡人喝的水還要純淨。一根管子爆裂，整座電廠就可能停轉數週。"
+  }
+ },
+ {
+  "id": "T087",
+  "en": {
+   "intro": "Heat is easy to make and hard to keep. Ice-houses once carried winter's cold into summer; modern thermal storage does the same with hot water, molten salt, rock and soil, so that heat made when it is cheap or plentiful can be used when it is needed. At Drake Landing in Alberta, a small housing estate stores summer sunshine in boreholes drilled into the ground and draws on it through the Canadian winter. Storage lets one network blend many sources, from waste heat to solar collectors. It never removes the arithmetic: every day in the tank leaks a little warmth away."
+  },
+  "zh-Hans": {
+   "intro": "热容易造，却难留住。古时的冰窖把冬天的寒意存到夏天；如今的储热，则用热水、熔盐、岩石和土壤做同样的事：在热量便宜或富余时存起来，需要时再取出。加拿大艾伯塔省的德雷克兰丁社区，把夏天的阳光热存进钻入地下的一排排钻孔，靠它熬过整个加拿大的冬天。有了储存，一张热网就能把余热、太阳能集热器等多种热源调和在一起。账却永远要算：热在罐里每存一天，就悄悄漏掉一些。"
+  },
+  "zh-Hant": {
+   "intro": "熱容易造，卻難留住。古時的冰窖把冬天的寒意存到夏天；如今的儲熱，則用熱水、熔鹽、岩石和土壤做同樣的事：在熱量便宜或富餘時存起來，需要時再取出。加拿大艾伯塔省的德雷克蘭丁社區，把夏天的陽光熱存進鑽入地下的一排排鑽孔，靠它熬過整個加拿大的冬天。有了儲存，一張熱網就能把餘熱、太陽能集熱器等多種熱源調和在一起。賬卻永遠要算：熱在罐裡每存一天，就悄悄漏掉一些。"
+  }
+ },
+ {
+  "id": "T090",
+  "en": {
+   "intro": "Crude oil had seeped from the ground for millennia, daubed on walls as bitumen and burned in smoky lamps. Refining made it a product with a specification. After Edwin Drake's well struck oil at Titusville, Pennsylvania, in 1859, refiners competed to make a kerosene that burned brightly without exploding in the parlour, and testers checked its flash point batch by batch. The lighter fractions, too volatile to sell, were often simply dumped. Refining turned geology into chemistry and chemistry into logistics: tanks, barrels, inspectors and contracts. It never turned a finite field into an endless one."
+  },
+  "zh-Hans": {
+   "intro": "原油从地下渗出已有几千年，人们拿沥青抹墙，或在灯里烧出呛人的黑烟。炼制让它变成了有规格的产品。1859年，德雷克在宾夕法尼亚州泰特斯维尔打出油井，此后各家炼油商竞相生产一种煤油：要点得亮，又不能在客厅里爆燃；检验员逐批测量它的闪点。那些太易挥发、卖不出去的轻质馏分，常常干脆倒掉。炼制把地质变成了化学，又把化学变成了物流：油罐、油桶、检验员和合同。它从未把有限的油田变成无穷的油田。"
+  },
+  "zh-Hant": {
+   "intro": "原油從地下滲出已有幾千年，人們拿瀝青抹牆，或在燈裡燒出嗆人的黑煙。煉製讓它變成了有規格的產品。1859年，德雷克在賓夕法尼亞州泰特斯維爾打出油井，此後各家煉油商競相生產一種煤油：要點得亮，又不能在客廳裡爆燃；檢驗員逐批測量它的閃點。那些太易揮發、賣不出去的輕質餾分，常常乾脆倒掉。煉製把地質變成了化學，又把化學變成了物流：油罐、油桶、檢驗員和合同。它從未把有限的油田變成無窮的油田。"
+  }
+ },
+ {
+  "id": "T091",
+  "en": {
+   "intro": "Burn the fuel inside the cylinder, and the machine needs no separate furnace at all. Nikolaus Otto's four-stroke engine of 1876 made the idea dependable, and within a decade engines were light enough to carry themselves. In 1888 Bertha Benz drove her husband's motor carriage about a hundred kilometres from Mannheim to Pforzheim without telling him, buying fuel at a pharmacy in Wiesloch on the way. Dense, portable power changed who could move goods and how far. It also brought a new trade of fitters, the smell of exhaust, and machines that fail at the worst possible moment."
+  },
+  "zh-Hans": {
+   "intro": "把燃料直接在汽缸里烧掉，机器就不再需要另外一座炉子。1876年，奥托的四冲程发动机让这个想法变得可靠，不到十年，发动机已经轻到可以载着自己跑。1888年，贝尔塔·本茨没告诉丈夫，就开着他造的机动车从曼海姆跑到普福尔茨海姆，全程约一百公里，半路在维斯洛赫的药店里买燃料。紧凑而强劲的移动动力，改变了谁能运货、能运多远。它也带来了新的修理行当、排气的气味，以及总在最要命的时候抛锚的机器。"
+  },
+  "zh-Hant": {
+   "intro": "把燃料直接在汽缸裡燒掉，機器就不再需要另外一座爐子。1876年，奧托的四衝程發動機讓這個想法變得可靠，不到十年，發動機已經輕到可以載著自己跑。1888年，貝爾塔·本茨沒告訴丈夫，就開著他造的機動車從曼海姆跑到普福爾茨海姆，全程約一百公里，半路在維斯洛赫的藥店裡買燃料。緊湊而強勁的移動動力，改變了誰能運貨、能運多遠。它也帶來了新的修理行當、排氣的氣味，以及總在最要命的時候拋錨的機器。"
+  }
+ },
+ {
+  "id": "T092",
+  "en": {
+   "intro": "Rudolf Diesel wanted an engine that lit its fuel by compression alone, squeezing air until it was hot enough to ignite whatever was sprayed into it. His patent of 1892 promised high efficiency; the hardware took years and broken prototypes to catch up, because such pressures demanded heavy, strong engine blocks, precise injection and fuel of steady quality. Once it worked, it worked stubbornly, turning ships, pumps and excavators for decades on modest fuel and an unglamorous appetite for maintenance. Diesel himself vanished overboard from a night ferry to England in 1913, and his engine outlived every argument about its inventor."
+  },
+  "zh-Hans": {
+   "intro": "鲁道夫·狄塞尔想要一种只靠压缩点火的发动机：把空气压到足够热，喷进去的燃料便自行燃烧。他在1892年申请的专利许诺了很高的效率，可硬件花了好几年、毁了好几台样机才跟上来，因为那样的压力需要厚重的铸件、精确的喷油和品质稳定的燃料。一旦成功，它便格外耐用：几十年如一日地驱动船舶、水泵和挖掘机，耗油不多，只是离不开踏实的保养。1913年，狄塞尔在开往英国的夜渡轮上落水失踪，这台机器比所有关于他的争论都活得更久。"
+  },
+  "zh-Hant": {
+   "intro": "魯道夫·狄塞爾想要一種只靠壓縮點火的發動機：把空氣壓到足夠熱，噴進去的燃料便自行燃燒。他在1892年申請的專利許諾了很高的效率，可硬體花了好幾年、毀了好幾臺樣機才跟上來，因為那樣的壓力需要厚重的鑄件、精確的噴油和品質穩定的燃料。一旦成功，它便格外耐用：幾十年如一日地驅動船舶、水泵和挖掘機，耗油不多，只是離不開踏實的保養。1913年，狄塞爾在開往英國的夜渡輪上落水失蹤，這臺機器比所有關於他的爭論都活得更久。"
+  }
+ },
+ {
+  "id": "T093",
+  "en": {
+   "intro": "Billiard balls were once cut from elephant tusks, and the hunt for a substitute helped bring celluloid into use in the 1860s and 1870s. In 1907 Leo Baekeland made Bakelite from phenol and formaldehyde, a resin that set hard, resisted burning and could be moulded into almost anything. Chemists slowly learned that such materials were long chains of repeated units, and that the chain could be designed. Seals, insulation, cheap combs and durable housings followed. Each formula still had to be tested for its use: a plastic that is perfect for a handle may crack in the cold or soften in the sun."
+  },
+  "zh-Hans": {
+   "intro": "台球曾用象牙制成，寻找替代品的努力，推动了赛璐珞在19世纪六七十年代投入使用。1907年，贝克兰用苯酚和甲醛制出酚醛树脂：它固化后坚硬、不易燃烧，几乎能模压成任何形状。化学家们逐渐弄明白，这类材料是由重复单元连成的长链，而长链是可以设计的。密封件、绝缘件、廉价的梳子和耐用的外壳随之而来。可每种配方仍得针对用途去检验：做把手正合适的塑料，到了严寒里可能开裂，在烈日下可能发软。"
+  },
+  "zh-Hant": {
+   "intro": "檯球曾用象牙製成，尋找替代品的努力，推動了賽璐珞在19世紀六七十年代投入使用。1907年，貝克蘭用苯酚和甲醛製出酚醛樹脂：它固化後堅硬、不易燃燒，幾乎能模壓成任何形狀。化學家們逐漸弄明白，這類材料是由重複單元連成的長鏈，而長鏈是可以設計的。密封件、絕緣件、廉價的梳子和耐用的外殼隨之而來。可每種配方仍得針對用途去檢驗：做把手正合適的塑膠，到了嚴寒裡可能開裂，在烈日下可能發軟。"
+  }
+ },
+ {
+  "id": "T094",
+  "en": {
+   "intro": "An engine on wheels turns a road into a supply line. In the autumn of 1944 the Allied Red Ball Express kept thousands of trucks running day and night across France, hauling fuel, food and ammunition from the Normandy beaches to armies that had outrun their depots. Its real limits were drivers' sleep, spare parts and the state of the roads, not the engines' horsepower. Peacetime mechanized work follows the same logic on farms and building sites: one machine can replace many hands, but only while somebody keeps it fuelled, repaired and scheduled, and military and civilian users draw on the same network."
+  },
+  "zh-Hans": {
+   "intro": "装上轮子的发动机，能把一条道路变成补给线。1944年秋，盟军的“红球快递”让成千上万辆卡车昼夜不停地穿越法国，把燃料、食品和弹药从诺曼底海滩运往早已跑到补给站前面的部队。真正的限制不是马力，而是司机的睡眠、备件和路况。和平年代的农场和工地遵循同样的逻辑：一台机器能顶许多双手，前提是有人给它加油、修理和排班；而军用和民用，挤在同一张网络上。"
+  },
+  "zh-Hant": {
+   "intro": "裝上輪子的發動機，能把一條道路變成補給線。1944年秋，盟軍的「紅球快遞」讓成千上萬輛卡車晝夜不停地穿越法國，把燃料、食品和彈藥從諾曼底海灘運往早已跑到補給站前面的部隊。真正的限制不是馬力，而是司機的睡眠、備品和路況。和平年代的農場和工地遵循同樣的邏輯：一臺機器能頂許多雙手，前提是有人給它加油、修理和排班；而軍用和民用，擠在同一張網路上。"
+  }
+ },
+ {
+  "id": "T095",
+  "en": {
+   "intro": "For most of history a field's nitrogen came from manure, fallow years and beans, and in the nineteenth century from cargoes of seabird guano dug on islands off Peru. Then chemists learned to take it from the air. In 1913 the BASF works at Oppau began making ammonia from atmospheric nitrogen and hydrogen under high pressure, a process worked out by Fritz Haber and scaled up by Carl Bosch. Manufactured fertilizer let the same land feed far more people. It also tied harvests to factories, fuel and supply chains, and sent surplus nutrients into rivers that had never asked for them."
+  },
+  "zh-Hans": {
+   "intro": "在大部分历史里，田地的氮来自粪肥、休耕和豆类，到了19世纪，还有从秘鲁外海岛屿上挖来的海鸟粪。后来，化学家学会了从空气里取氮。1913年，巴斯夫公司在奥保的工厂开始用空气中的氮和氢在高压下合成氨，这套工艺由哈伯摸索出来，再由博施放大到工业规模。化肥让同样的土地养活了多得多的人，也把收成拴在了工厂、燃料和供应链上，多余的养分则流进了本不需要它们的河流。"
+  },
+  "zh-Hant": {
+   "intro": "在大部分歷史裡，田地的氮來自糞肥、休耕和豆類，到了19世紀，還有從秘魯外海島嶼上挖來的海鳥糞。後來，化學家學會了從空氣裡取氮。1913年，巴斯夫公司在奧保的工廠開始用空氣中的氮和氫在高壓下合成氨，這套工藝由哈伯摸索出來，再由博施放大到工業規模。化肥讓同樣的土地養活了多得多的人，也把收成拴在了工廠、燃料和供應鏈上，多餘的養分則流進了本不需要它們的河流。"
+  }
+ },
+ {
+  "id": "T096",
+  "en": {
+   "intro": "Coal and gas can be taken apart and reassembled as liquid fuel; so, in principle, can carbon dioxide and hydrogen. Franz Fischer and Hans Tropsch worked out a route in the 1920s, and South Africa, short of oil and long on coal, built a synthetic fuel industry at Sasolburg from the 1950s. The chemistry is honest about one thing: you get out less energy than you put in. Synthetic fuels make sense where liquid fuel is precious, other energy is plentiful, and someone will pay for catalysts, hydrogen and the electricity behind them. Their emissions depend entirely on where the carbon and the power come from."
+  },
+  "zh-Hans": {
+   "intro": "煤和天然气可以拆开，再重新组装成液体燃料；原则上，二氧化碳和氢也行。20世纪20年代，费歇尔和托罗普施找到了一条路线；石油短缺而煤炭充足的南非，从50年代起在萨索尔堡建起了合成燃料工业。这门化学在一件事上很诚实：得到的能量总比投进去的少。合成燃料只在液体燃料金贵、其他能源充裕，并且有人肯为催化剂、氢气和背后的电力买单时才划算。排放多少，全看碳和电从哪里来。"
+  },
+  "zh-Hant": {
+   "intro": "煤和天然氣可以拆開，再重新組裝成液體燃料；原則上，二氧化碳和氫也行。20世紀20年代，費歇爾和託羅普施找到了一條路線；石油短缺而煤炭充足的南非，從50年代起在薩索爾堡建起了合成燃料工業。這門化學在一件事上很誠實：得到的能量總比投進去的少。合成燃料只在液體燃料金貴、其他能源充裕，並且有人肯為催化劑、氫氣和背後的電力買單時才划算。排放多少，全看碳和電從哪裡來。"
+  }
+ },
+ {
+  "id": "T097",
+  "en": {
+   "intro": "Industry usually waits for materials to come to it; modular industry goes to the work. In 1944 the Allies built two artificial harbours in sections along the British coast, towed them across the Channel and began assembling them off Normandy the day after the landings. Since then field workshops, containerised power units and portable plants have followed armies into disaster zones and out to remote mines. The appeal is speed and reach; the price is that everything must be moved and nothing comes free. A crane, generator set or repair crew working at a distant site is, by definition, not working at home."
+  },
+  "zh-Hans": {
+   "intro": "工业通常等着材料运上门，模块化工业却主动走向工地。1944年，盟军在英国沿海分段建造了两座人工港，拖过英吉利海峡，在诺曼底登陆次日便开始在外海组装。此后，野战修理所、集装箱式动力单元和可移动的工厂，一路跟随军队，走进灾区和偏远矿场。它的长处是快、能到达远处；代价是凡事都得搬运，没有白来的东西。一台起重机、一套发电机组或一支维修队在远方干活，就意味着它不在家里干活。"
+  },
+  "zh-Hant": {
+   "intro": "工業通常等著材料運上門，模組化工業卻主動走向工地。1944年，盟軍在英國沿海分段建造了兩座人工港，拖過英吉利海峽，在諾曼底登陸次日便開始在外海組裝。此後，野戰修理所、集裝箱式動力單元和可移動的工廠，一路跟隨軍隊，走進災區和偏遠礦場。它的長處是快、能到達遠處；代價是凡事都得搬運，沒有白來的東西。一臺起重機、一套發電機組或一支維修隊在遠方幹活，就意味著它不在家裡幹活。"
+  }
+ },
+ {
+  "id": "T100",
+  "en": {
+   "intro": "Michael Faraday showed in 1831 that moving a conductor through a magnetic field drives a current. For half a century it remained a laboratory wonder; then the water wheels, steam engines and turbines of the day were coupled to dynamos, and mechanical work became something that could be sent down a wire. In 1881 the small town of Godalming in Surrey lit its streets from a generator turned by a water wheel. A year later Edison's Pearl Street station began supplying lower Manhattan. Both taught the same lesson: a machine's rating means little unless water, fuel and attendants keep it turning."
+  },
+  "zh-Hans": {
+   "intro": "1831年，法拉第证明：让导体在磁场中运动，就能产生电流。此后半个世纪，这只是实验室里的奇观；后来，当时的水车、蒸汽机和汽轮机被接上了发电机，机械功从此可以顺着一根导线送出去。1881年，英国萨里郡的小镇戈德尔明用水车带动的发电机点亮了街道。一年后，爱迪生的珍珠街电站开始向曼哈顿下城供电。两者给出的教训是一样的：机器的额定功率说明不了什么，除非有水、有燃料、有人看管，让它一直转下去。"
+  },
+  "zh-Hant": {
+   "intro": "1831年，法拉第證明：讓導體在磁場中運動，就能產生電流。此後半個世紀，這只是實驗室裡的奇觀；後來，當時的水車、蒸汽機和汽輪機被接上了發電機，機械功從此可以順著一根導線送出去。1881年，英國薩里郡的小鎮戈德爾明用水車帶動的發電機點亮了街道。一年後，愛迪生的珍珠街電廠開始向曼哈頓下城供電。兩者給出的教訓是一樣的：機器的額定功率說明不了什麼，除非有水、有燃料、有人看管，讓它一直轉下去。"
+  }
+ },
+ {
+  "id": "T101",
+  "en": {
+   "intro": "Early factories hung every machine from one long rotating shaft, driven by one big engine through a forest of belts. Electric motors cut the belts. A small motor could sit on each machine, so workshops were laid out by the flow of work rather than the line of a shaft, and one broken belt no longer stopped the whole floor. Frank Sprague's electric streetcars, climbing the hills of Richmond, Virginia, in 1888, showed that the same power could move people. The full benefit came slowly, because buildings, habits and skills all had to be redesigned around the new drive."
+  },
+  "zh-Hans": {
+   "intro": "早期的工厂把所有机器挂在一根长长的转轴上，由一台大机器通过密密麻麻的皮带带动。电动机剪断了这些皮带。小电机可以装在每台机器上，车间于是按工序流程来布置，而不必顺着一根轴排开；一条皮带断了，也不再让整个车间停工。1888年，斯普拉格的有轨电车在弗吉尼亚州里士满的山坡上往来，证明同样的动力也能载人。全部好处来得很慢，因为厂房、习惯和技能都得围着新的传动方式重新设计。"
+  },
+  "zh-Hant": {
+   "intro": "早期的工廠把所有機器掛在一根長長的轉軸上，由一臺大機器通過密密麻麻的皮帶帶動。電動機剪斷了這些皮帶。小電機可以裝在每臺機器上，車間於是按工序流程來佈置，而不必順著一根軸排開；一條皮帶斷了，也不再讓整個車間停工。1888年，斯普拉格的有軌電車在弗吉尼亞州里士滿的山坡上往來，證明同樣的動力也能載人。全部好處來得很慢，因為廠房、習慣和技能都得圍著新的傳動方式重新設計。"
+  }
+ },
+ {
+  "id": "T102",
+  "en": {
+   "intro": "A single generating station serves its neighbours; a grid lets many stations serve everyone, and lets everyone fail together. Interconnection smooths out breakdowns and peaks, but it demands constant balancing, protective relays that cut faulty lines in a fraction of a second, and dispatchers who decide whose lights stay on when supply runs short. On 14 August 2003, overloaded lines sagging into trees in Ohio began a cascade that left some fifty million people in North America without power. A grid is less a machine than an institution: it runs on rules, priorities and operators as much as on copper."
+  },
+  "zh-Hans": {
+   "intro": "一座电站只能照顾邻近的用户；电网让许多电站服务所有人，也让所有人一起停电。联网可以平抑故障和高峰，但它需要时刻不停地平衡供需，需要在零点几秒内切除故障线路的保护继电器，还需要调度员在电力不足时决定谁家的灯继续亮着。2003年8月14日，俄亥俄州几条过载下垂的线路碰到树木，引发连锁故障，北美约五千万人陷入黑暗。与其说电网是一台机器，不如说是一种制度：它靠规则、优先级和值班的人运转，正如靠铜线运转。"
+  },
+  "zh-Hant": {
+   "intro": "一座電廠只能照顧鄰近的使用者；電網讓許多電廠服務所有人，也讓所有人一起停電。聯網可以平抑故障和高峰，但它需要時刻不停地平衡供需，需要在零點幾秒內切除故障線路的保護繼電器，還需要調度員在電力不足時決定誰家的燈繼續亮著。2003年8月14日，俄亥俄州幾條過載下垂的線路碰到樹木，引發連鎖故障，北美約五千萬人陷入黑暗。與其說電網是一臺機器，不如說是一種制度：它靠規則、優先順序和值班的人運轉，正如靠銅線運轉。"
+  }
+ },
+ {
+  "id": "T103",
+  "en": {
+   "intro": "Electricity can pull apart compounds that fire cannot. Aluminium, abundant in ordinary clay, was once rare enough to serve as a showpiece cap on the Washington Monument in 1884; two years later Charles Martin Hall and Paul Héroult independently found how to extract it by electrolysis, and the price collapsed. The same principle plates metal, refines copper to high purity and makes caustic soda. Electrochemistry trades electricity for purity at a fixed, unforgiving rate, so its works gather beside cheap power: waterfalls, dams, and later any steady supply a plant can buy around the clock."
+  },
+  "zh-Hans": {
+   "intro": "电能拆开火拆不开的化合物。铝在普通黏土里随处可见，却一度稀罕到在1884年被做成华盛顿纪念碑的顶尖，以示炫耀；两年后，霍尔和埃鲁各自找到了用电解提铝的办法，价格随之暴跌。同样的原理可以给金属镀层、把铜精炼到高纯，还能生产烧碱。电化学用电力换纯度，兑换率固定而且毫不留情，所以这类工厂总扎堆在廉价电力旁边：瀑布边、水坝下，后来则是任何能全天候买到稳定电力的地方。"
+  },
+  "zh-Hant": {
+   "intro": "電能拆開火拆不開的化合物。鋁在普通黏土裡隨處可見，卻一度稀罕到在1884年被做成華盛頓紀念碑的頂尖，以示炫耀；兩年後，霍爾和埃魯各自找到了用電解提鋁的辦法，價格隨之暴跌。同樣的原理可以給金屬鍍層、把銅精煉到高純，還能生產燒鹼。電化學用電力換純度，兌換率固定而且毫不留情，所以這類工廠總扎堆在廉價電力旁邊：瀑布邊、水壩下，後來則是任何能全天候買到穩定電力的地方。"
+  }
+ },
+ {
+  "id": "T104",
+  "en": {
+   "intro": "Signals that need no wire changed the meaning of distance. Heinrich Hertz produced and detected electromagnetic waves in his laboratory in the late 1880s; on 12 December 1901 Guglielmo Marconi, listening on Signal Hill in Newfoundland, believed he heard the three faint clicks of the letter S sent from Cornwall. Vacuum tubes soon made weak signals strong enough to hear, and then to broadcast. News, orders and music could reach anyone with a receiver. What arrived was still only what someone chose to send, late, garbled or wrong; speed is not the same as truth.",
+   "quote": {
+    "text": "What hath God wrought",
+    "source": "First message on Samuel Morse's Washington–Baltimore telegraph line (24 May 1844), from Numbers 23:23"
+   }
+  },
+  "zh-Hans": {
+   "intro": "无需导线的信号，改变了距离的含义。19世纪80年代末，赫兹在实验室里产生并探测到了电磁波；1901年12月12日，马可尼在纽芬兰的信号山上侧耳倾听，相信自己听到了从康沃尔发来的字母S——三下微弱的嘀声。不久，真空管把微弱的信号放大到能听清，继而能向四方广播。新闻、命令和音乐可以抵达任何一台接收机。但抵达的仍只是有人选择发送的内容，可能迟了、乱了，也可能错了；快，并不等于真。",
+   "quote": {
+    "text": "神为他行了何等的大事！",
+    "source": "1844年5月24日莫尔斯华盛顿—巴尔的摩电报线路的第一条电文，语出《民数记》23:23（和合本）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "無需導線的訊號，改變了距離的含義。19世紀80年代末，赫茲在實驗室裡產生並探測到了電磁波；1901年12月12日，馬可尼在紐芬蘭的訊號山上側耳傾聽，相信自己聽到了從康沃爾發來的字母S——三下微弱的嘀聲。不久，真空管把微弱的訊號放大到能聽清，繼而能向四方廣播。新聞、命令和音樂可以抵達任何一臺接收機。但抵達的仍只是有人選擇傳送的內容，可能遲了、亂了，也可能錯了；快，並不等於真。",
+   "quote": {
+    "text": "神為他行了何等的大事！",
+    "source": "1844年5月24日莫爾斯華盛頓—巴爾的摩電報線路的第一條電文，語出《民數記》23:23（和合本）"
+   }
+  }
+ },
+ {
+  "id": "T105",
+  "en": {
+   "intro": "The first sources of steady current used themselves up as they worked, and then they were finished. Gaston Planté's lead-acid cell of 1859 could be recharged, and in heavier form it still starts engines today. A battery stores energy chemically and returns it later, with losses each way and a slow decline every cycle. The hard work lies less in the idea than in the details: materials that do not crumble, separators that do not short, heat that must be drawn off, and lifetime tests that cannot be hurried. Stored energy is borrowed time, never extra energy."
+  },
+  "zh-Hans": {
+   "intro": "最早的稳定电源一边工作一边耗尽自己，用完便只能报废。1859年，普兰特发明的铅酸电池可以反复充电，做得更厚重之后，至今仍在发动引擎。电池以化学的方式储存能量，日后再交还，存取都有损耗，每一次循环都在缓慢衰退。难处不在原理，而在细节：材料不能粉化，隔膜不能短路，热量必须导出，寿命试验急不得。储存的能量只是借来的时间，从来不是多出来的能量。"
+  },
+  "zh-Hant": {
+   "intro": "最早的穩定電源一邊工作一邊耗盡自己，用完便只能報廢。1859年，普蘭特發明的鉛酸電池可以反覆充電，做得更厚重之後，至今仍在發動引擎。電池以化學的方式儲存能量，日後再交還，存取都有損耗，每一次循環都在緩慢衰退。難處不在原理，而在細節：材料不能粉化，隔膜不能短路，熱量必須匯出，壽命試驗急不得。儲存的能量只是借來的時間，從來不是多出來的能量。"
+  }
+ },
+ {
+  "id": "T106",
+  "en": {
+   "intro": "Some crystals conduct electricity only a little, and how much depends on traces of impurity measured in parts per million or less. In December 1947 John Bardeen and Walter Brattain, working in William Shockley's group at Bell Laboratories, made a germanium device that amplified a signal: the first transistor. The physics was elegant; the industry was not. Making millions of identical devices meant purifying silicon beyond any earlier standard, drawing patterns with light, building rooms cleaner than operating theatres, and fighting for yield every day. Knowing how a junction works does not make a single good one."
+  },
+  "zh-Hans": {
+   "intro": "有些晶体只能微弱地导电，导电多少取决于百万分之一甚至更低的杂质。1947年12月，在贝尔实验室肖克利的小组里，巴丁和布拉顿用锗做出了一个能放大信号的器件——第一只晶体管。物理是优雅的，产业却不。要造出成百万个一模一样的器件，就得把硅提纯到前所未有的程度，用光刻出图形，建造比手术室还干净的车间，每天都在和良率较劲。懂得一个结如何工作，并不能造出一个合格的结。"
+  },
+  "zh-Hant": {
+   "intro": "有些晶體只能微弱地導電，導電多少取決於百萬分之一甚至更低的雜質。1947年12月，在貝爾實驗室肖克利的小組裡，巴丁和布拉頓用鍺做出了一個能放大訊號的元件——第一隻電晶體。物理是優雅的，產業卻不。要造出成百萬個一模一樣的元件，就得把矽提純到前所未有的程度，用光刻出圖形，建造比手術室還乾淨的車間，每天都在和良率較勁。懂得一個結如何工作，並不能造出一個合格的結。"
+  }
+ },
+ {
+  "id": "T107",
+  "en": {
+   "intro": "Raw electricity is clumsy: the wrong voltage, the wrong frequency, all or nothing. Power electronics uses semiconductor switches that open and close thousands of times a second to shape it precisely. From the late 1950s thyristors and their successors began replacing mercury-arc valves and rotating converters, giving dimmers, variable-speed drives, steady supplies for laboratories, and links that carry direct current over long distances between grids. Precision control rests on sensors and calibration as much as on switches; a perfectly shaped current still has to move a real valve, magnet or arm, and someone still has to test what happens when it fails."
+  },
+  "zh-Hans": {
+   "intro": "原始的电能很笨拙：电压不对，频率不对，只有通和断。电力电子用半导体开关每秒通断成千上万次，把电能精确地塑造成需要的样子。从20世纪50年代末起，晶闸管及其后继者逐步取代了汞弧阀和旋转变流机，带来了调光器、变速驱动、供实验室用的稳定电源，以及在电网之间远距离输送直流电的线路。精密控制既靠开关，也同样靠传感器和校准；电流塑造得再完美，也还得去推动真实的阀门、磁铁或机械臂，而且总得有人测试它失灵时会发生什么。"
+  },
+  "zh-Hant": {
+   "intro": "原始的電能很笨拙：電壓不對，頻率不對，只有通和斷。電力電子用半導體開關每秒通斷成千上萬次，把電能精確地塑造成需要的樣子。從20世紀50年代末起，閘流體及其後繼者逐步取代了汞弧閥和旋轉變流機，帶來了調光器、變速驅動、供實驗室用的穩定電源，以及在電網之間遠距離輸送直流電的線路。精密控制既靠開關，也同樣靠感測器和校準；電流塑造得再完美，也還得去推動真實的閥門、磁鐵或機械臂，而且總得有人測試它失靈時會發生什麼。"
+  }
+ },
+ {
+  "id": "T108",
+  "en": {
+   "intro": "Cold is a technology in its own right. In 1908 Heike Kamerlingh Onnes liquefied helium in Leiden, a few degrees above absolute zero, and three years later found that mercury cooled in it lost all electrical resistance. Superconductivity proved real, strange and demanding: it survives only below a critical temperature, field and current, and the cryostats that keep it there need constant refrigeration, insulation and care. Superconducting magnets made possible fields no ordinary coil could sustain. Every one of them depends on a cold chain that, if it falters, can turn stored energy into a sudden, violent warming."
+  },
+  "zh-Hans": {
+   "intro": "低温本身就是一门技术。1908年，卡末林·昂内斯在莱顿液化了氦，温度只比绝对零度高几度；三年后，他发现用它冷却的汞完全失去了电阻。超导被证明是真实的、奇特的，也是苛刻的：只有低于临界温度、临界磁场和临界电流时它才存在，而维持低温的恒温器需要持续制冷、绝热和照料。超导磁体造出了普通线圈维持不了的强磁场。每一台都依赖一条低温链，一旦出问题，储存的能量就可能化作突然而剧烈的升温。"
+  },
+  "zh-Hant": {
+   "intro": "低溫本身就是一門技術。1908年，卡末林·昂內斯在萊頓液化了氦，溫度只比絕對零度高几度；三年後，他發現用它冷卻的汞完全失去了電阻。超導被證明是真實的、奇特的，也是苛刻的：只有低於臨界溫度、臨界磁場和臨界電流時它才存在，而維持低溫的恆溫器需要持續製冷、絕熱和照料。超導磁體造出了普通線圈維持不了的強磁場。每一臺都依賴一條低溫鏈，一旦出問題，儲存的能量就可能化作突然而劇烈的升溫。"
+  }
+ },
+ {
+  "id": "T109",
+  "en": {
+   "intro": "On 16 May 1960 Theodore Maiman fired a flash lamp around a small ruby rod at Hughes Research Laboratories and got a beam of red light purer and more tightly focused than anything before it. For a while the laser was teased as a solution looking for a problem. The problems arrived: cutting, welding, reading and writing optical discs, and above all measurement. In 1983 the metre itself was redefined through the speed of light, and reflectors left on the Moon let timed laser pulses measure its distance to within centimetres. Light became a ruler, with real limits of power, noise and safety."
+  },
+  "zh-Hans": {
+   "intro": "1960年5月16日，梅曼在休斯研究实验室用闪光灯照射一根小小的红宝石棒，得到一束红光，其纯净与集中前所未见。有一阵子，激光被戏称为“找不到问题的答案”。问题很快找上门来：切割、焊接、光盘读写，而最重要的是测量。1983年，米的定义改为以光速为基准；留在月球上的反射器，让计时的激光脉冲能把地月距离测到厘米级。光成了一把尺子，而功率、噪声和安全的限制都是真实的。"
+  },
+  "zh-Hant": {
+   "intro": "1960年5月16日，梅曼在休斯研究實驗室用閃光燈照射一根小小的紅寶石棒，得到一束紅光，其純淨與集中前所未見。有一陣子，雷射被戲稱為「找不到問題的答案」。問題很快找上門來：切割、焊接、光碟讀寫，而最重要的是測量。1983年，米的定義改為以光速為基準；留在月球上的反射器，讓計時的雷射脈衝能把地月距離測到釐米級。光成了一把尺子，而功率、噪聲和安全的限制都是真實的。"
+  }
+ },
+ {
+  "id": "T110",
+  "en": {
+   "intro": "Long before any machine could follow one, a procedure could be written so plainly that anyone who obeyed it step by step would reach the same answer. Euclid's method for the greatest common divisor works that way; so do the reckoning manuals of al-Khwarizmi, the ninth-century Baghdad scholar whose Latinized name gave us the word algorithm. The idea changed what counted as knowing how: a method became a thing that could be checked, taught and handed to a clerk without handing over judgment. The catch is plain too. A procedure on paper computes nothing. Someone, or something, still has to carry it out."
+  },
+  "zh-Hans": {
+   "intro": "早在任何机器能照着执行之前，人们就已懂得把一套步骤写得足够明白：谁只要一步步照做，都会得到同一个答案。欧几里得求最大公约数的辗转相除法便是如此；九世纪巴格达学者花拉子米的算书也是如此，“算法”一词在西方语言中正是由他的名字演变而来。这种思想改变了“会做”的含义：方法成了可以核对、可以传授、可以交给书吏去执行的东西，而无须把判断也一并交出。代价同样明白：写在纸上的步骤自己算不出任何东西，总得有人——或者有什么——去实际执行它。"
+  },
+  "zh-Hant": {
+   "intro": "早在任何機器能照著執行之前，人們就已懂得把一套步驟寫得足夠明白：誰只要一步步照做，都會得到同一個答案。歐幾里得求最大公約數的輾轉相除法便是如此；九世紀巴格達學者花拉子米的算書也是如此，「演算法」一詞在西方語言中正是由他的名字演變而來。這種思想改變了「會做」的含義：方法成了可以核對、可以傳授、可以交給書吏去執行的東西，而無須把判斷也一併交出。代價同樣明白：寫在紙上的步驟自己算不出任何東西，總得有人——或者有什麼——去實際執行它。"
+  }
+ },
+ {
+  "id": "T111",
+  "en": {
+   "intro": "In June 1948 a room-sized machine at Manchester, nicknamed the Baby, ran a short program held in its own memory, and computation became something you could change without rewiring. Earlier machines had been built for one job, or set up for each new one with plugs and cables over days. A programmable computer turned instructions into stored data, so the same hardware could total payrolls in the morning and model the weather by night. That flexibility reorganized offices, laboratories and arsenals. It also created new trades: people who wrote instructions, and people who kept valves, cooling and power alive, because a fast machine that is down computes nothing.",
+   "quote": {
+    "text": "The Analytical Engine weaves algebraical patterns just as the Jacquard-loom weaves flowers and leaves.",
+    "source": "Ada Lovelace, notes on Menabrea's Sketch of the Analytical Engine (1843)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "1948年6月，曼彻斯特一台占满整间屋子、绰号“宝贝”的机器，运行了一段存放在它自己存储器里的小程序。从此，改变计算不必再重新接线。更早的机器要么只为一项工作而造，要么每换一项任务就得花上几天插拔线缆。可编程计算机把指令也变成存储起来的数据，同一套硬件上午算工资，晚上算天气。这种灵活性重组了办公室、实验室和军工厂，也造就了新的行当：有人专门编写指令，有人专门伺候电子管、冷却和电源——因为一台停了机的快机器，什么也算不出来。",
+   "quote": {
+    "text": "分析机编织代数的图案，正如提花织机编织花朵与叶子。",
+    "source": "埃达·洛夫莱斯为梅纳布雷亚《分析机概论》所作的注释（1843）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "1948年6月，曼徹斯特一臺佔滿整間屋子、綽號「寶貝」的機器，運行了一段存放在它自己儲存器裡的小程序。從此，改變計算不必再重新接線。更早的機器要麼只為一項工作而造，要麼每換一項任務就得花上幾天插拔線纜。可程式化電腦把指令也變成儲存起來的資料，同一套硬體上午算工資，晚上算天氣。這種靈活性重組了辦公室、實驗室和軍工廠，也造就了新的行當：有人專門編寫指令，有人專門伺候電子管、冷卻和電源——因為一臺停了機的快機器，什麼也算不出來。",
+   "quote": {
+    "text": "分析機編織代數的圖案，正如提花織機編織花朵與葉子。",
+    "source": "埃達·洛夫萊斯為梅納佈雷亞《分析機概論》所作的註釋（1843）"
+   }
+  }
+ },
+ {
+  "id": "T112",
+  "en": {
+   "intro": "On 29 October 1969 a student at UCLA tried to log in to a machine at Stanford Research Institute and the link failed after two letters, so the first message over the new network was \"LO\". Digital networks break messages into small numbered packets that find their own way and are reassembled at the far end, which lets many conversations share one line and survive a broken route. For the people using them, distance began to matter less than latency, bandwidth and who held the permissions. Collaboration across a continent became routine, and so did a new kind of failure: everything working perfectly except the one link you needed."
+  },
+  "zh-Hans": {
+   "intro": "1969年10月29日，加州大学洛杉矶分校的一名学生试图登录斯坦福研究所的一台机器，连接只传了两个字母就中断了，于是这个新网络上的第一条消息是“LO”。数字网络把消息切成带编号的小包，各自寻路，到终点再重新拼合，于是许多通话可以共用一条线路，某条路由断了也能绕行。对使用者来说，距离不再那么要紧，要紧的是时延、带宽，以及权限握在谁手里。横跨大陆的协作成了日常，一种新的故障也成了日常：一切运转正常，偏偏你需要的那一段不通。"
+  },
+  "zh-Hant": {
+   "intro": "1969年10月29日，加州大學洛杉磯分校的一名學生試圖登入斯坦福研究所的一臺機器，連線只傳了兩個字母就中斷了，於是這個新網路上的第一條訊息是「LO」。數字網路把訊息切成帶編號的小包，各自尋路，到終點再重新拼合，於是許多通話可以共用一條線路，某條路由斷了也能繞行。對使用者來說，距離不再那麼要緊，要緊的是時延、頻寬，以及權限握在誰手裡。橫跨大陸的協作成了日常，一種新的故障也成了日常：一切運轉正常，偏偏你需要的那一段不通。"
+  }
+ },
+ {
+  "id": "T113",
+  "en": {
+   "intro": "Herman Hollerith's punched cards let the 1890 United States census be tabulated far faster than the 1880 count had been, and the lesson stuck: records are only as useful as your ability to find, sort and trust them. A database keeps facts in agreed structures, with labels, keys and a trail of where each entry came from, so that a clerk, an auditor or a judge can ask the same question and get the same answer. That traceability shifted power toward whoever kept the records well. It did not make them right. A careless entry, faithfully stored, is still careless.",
+   "quote": {
+    "text": "On two occasions I have been asked, — “Pray, Mr. Babbage, if you put into the machine wrong figures, will the right answers come out?” … I am not able rightly to apprehend the kind of confusion of ideas that could provoke such a question.",
+    "source": "Charles Babbage, Passages from the Life of a Philosopher (1864)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "赫尔曼·霍勒里斯发明的穿孔卡片，让美国1890年人口普查的汇总比1880年那次快得多。教训从此留了下来：记录有多大用处，取决于你能不能找到它、排序它、信任它。数据库把事实存放在约定好的结构里，配上标签、键值和每条记录的来源线索，于是书吏、审计员或法官提出同一个问题，都能得到同一个答案。可追溯性让权力向善于保管记录的一方倾斜，却不能保证记录正确。一条马虎的录入，忠实地保存下来，依然是马虎的。",
+   "quote": {
+    "text": "曾有两次，有人问我：“请问巴贝奇先生，如果把错误的数字输进机器，出来的会是正确的答案吗？”……我实在无法理解，是怎样的思想混乱才会引出这样的问题。",
+    "source": "查尔斯·巴贝奇《一位哲学家的生活片段》（1864）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "赫爾曼·霍勒里斯發明的穿孔卡片，讓美國1890年人口普查的彙總比1880年那次快得多。教訓從此留了下來：記錄有多大用處，取決於你能不能找到它、排序它、信任它。資料庫把事實存放在約定好的結構裡，配上標籤、鍵值和每條記錄的來源線索，於是書吏、審計員或法官提出同一個問題，都能得到同一個答案。可追溯性讓權力向善於保管記錄的一方傾斜，卻不能保證記錄正確。一條馬虎的錄入，忠實地儲存下來，依然是馬虎的。",
+   "quote": {
+    "text": "曾有兩次，有人問我：「請問巴貝奇先生，如果把錯誤的數字輸進機器，出來的會是正確的答案嗎？」……我實在無法理解，是怎樣的思想混亂才會引出這樣的問題。",
+    "source": "查爾斯·巴貝奇《一位哲學家的生活片段》（1864）"
+   }
+  }
+ },
+ {
+  "id": "T114",
+  "en": {
+   "intro": "In 1961 a hydraulic arm called Unimate began lifting hot die-cast parts on a General Motors line in New Jersey, a job that was dangerous, tedious and, until then, done by people. Numerical control had already let punched tape guide machine tools through cuts no hand could repeat as exactly. Together they made precision and endurance something a factory could program. Workers felt it two ways: fewer burns and crushed fingers, and fewer jobs of a certain kind. The robots were narrower than the headlines. Each did one task in one cell, behind a fence, and every odd job they could not handle still needed a person."
+  },
+  "zh-Hans": {
+   "intro": "1961年，一台名为“尤尼梅特”的液压机械臂在美国新泽西州通用汽车的生产线上开始搬运刚压铸出来的炽热零件——这份活儿危险、枯燥，此前一直由人来干。在此之前，数控已经能让穿孔纸带引导机床完成人手无法精确重复的切削。两者合在一起，让精度和耐力成了工厂可以编程的东西。工人从两方面感受到它：烫伤和压断手指的事少了，某一类工作岗位也少了。机器人其实比报纸上说的窄得多：每台只在围栏后的一个工位里干一件事，凡是它应付不来的零碎活，仍然要人来做。"
+  },
+  "zh-Hant": {
+   "intro": "1961年，一臺名為「尤尼梅特」的液壓機械臂在美國新澤西州通用汽車的生產線上開始搬運剛壓鑄出來的熾熱零件——這份活兒危險、枯燥，此前一直由人來幹。在此之前，數控已經能讓穿孔紙帶引導機床完成人手無法精確重複的切削。兩者合在一起，讓精度和耐力成了工廠可以程式設計的東西。工人從兩方面感受到它：燙傷和壓斷手指的事少了，某一類工作崗位也少了。機器人其實比報紙上說的窄得多：每臺只在圍欄後的一個工位裡幹一件事，凡是它應付不來的零碎活，仍然要人來做。"
+  }
+ },
+ {
+  "id": "T115",
+  "en": {
+   "intro": "Between 1985 and 1987 a radiotherapy machine called the Therac-25 gave several patients massive overdoses, partly because a rare race condition in its control code went unnoticed once the old hardware interlocks had been removed. Episodes like that turned software from a craft of clever programmers into a discipline of evidence: specifications, independent review, testing that tries to break things, and fault logs kept even when they embarrass someone. Verification never proves a system perfect. It states what was checked, under which assumptions, at what cost, and what was not covered, which is less glamorous than a promise and considerably more useful."
+  },
+  "zh-Hans": {
+   "intro": "1985至1987年间，一台名为特拉克-25的放射治疗机让数名病人受到严重过量的照射，部分原因在于：旧有的硬件联锁被拆除之后，控制代码里一个罕见的竞争条件一直无人察觉。这类事件让软件从聪明程序员的手艺，变成一门讲证据的学问：写明规格，独立评审，专门想办法把系统弄坏的测试，以及哪怕让人难堪也要如实保留的故障记录。验证从来证明不了系统完美。它说明检查了什么、基于哪些假设、花了多少代价、哪些没有覆盖——不如一句承诺好听，却有用得多。"
+  },
+  "zh-Hant": {
+   "intro": "1985至1987年間，一臺名為特拉克-25的放射治療機讓數名病人受到嚴重過量的照射，部分原因在於：舊有的硬體聯鎖被拆除之後，控制程式碼裡一個罕見的競爭條件一直無人察覺。這類事件讓軟體從聰明程式設計師的手藝，變成一門講證據的學問：寫明規格，獨立評審，專門想辦法把系統弄壞的測試，以及哪怕讓人難堪也要如實保留的故障記錄。驗證從來證明不了系統完美。它說明檢查了什麼、基於哪些假設、花了多少代價、哪些沒有覆蓋——不如一句承諾好聽，卻有用得多。"
+  }
+ },
+ {
+  "id": "T116",
+  "en": {
+   "intro": "In 1958 Frank Rosenblatt's perceptron learned to tell simple shapes apart by adjusting its own weights, and newspapers promptly predicted thinking machines. Statistical learning is more modest and more useful than that: fit a model to many examples, then use it to predict or generate what similar data would look like. Read postcodes, flag fraud, translate a menu. Its power came from compute and data, so it raised sharp questions about who owned the examples and who was blamed for the errors. A model is only tested on the cases somebody checked. Outside them it can be confident, fluent and wrong, all at once.",
+   "quote": {
+    "text": "The Analytical Engine has no pretensions whatever to originate anything. It can do whatever we know how to order it to perform.",
+    "source": "Ada Lovelace, Note G on Menabrea's Sketch of the Analytical Engine (1843)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "1958年，弗兰克·罗森布拉特的感知机通过自行调整权重，学会了分辨简单的图形，报纸随即预言会思考的机器就要来了。统计学习其实比这更朴素，也更有用：用大量样例拟合一个模型，再用它去预测或生成类似数据该有的样子——识别邮政编码，标记欺诈交易，翻译一份菜单。它的力量来自算力和数据，因此也尖锐地提出了问题：样例归谁所有？出了错该怪谁？模型只在有人核查过的情形里接受过检验；出了这个范围，它可以同时做到自信、流畅而又错误。",
+   "quote": {
+    "text": "分析机丝毫不自命能创造任何东西。凡是我们知道如何命令它去做的事，它都能做。",
+    "source": "埃达·洛夫莱斯为梅纳布雷亚《分析机概论》所作的注释G（1843）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "1958年，弗蘭克·羅森布拉特的感知機通過自行調整權重，學會了分辨簡單的圖形，報紙隨即預言會思考的機器就要來了。統計學習其實比這更樸素，也更有用：用大量樣例擬合一個模型，再用它去預測或生成類似資料該有的樣子——識別郵政編碼，標記欺詐交易，翻譯一份選單。它的力量來自算力和資料，因此也尖銳地提出了問題：樣例歸誰所有？出了錯該怪誰？模型只在有人核查過的情形裡接受過檢驗；出了這個範圍，它可以同時做到自信、流暢而又錯誤。",
+   "quote": {
+    "text": "分析機絲毫不自命能創造任何東西。凡是我們知道如何命令它去做的事，它都能做。",
+    "source": "埃達·洛夫萊斯為梅納佈雷亞《分析機概論》所作的註釋G（1843）"
+   }
+  }
+ },
+ {
+  "id": "T117",
+  "en": {
+   "intro": "When the Cray-1 arrived at Los Alamos in 1976, its famous C-shaped frame hid a Freon cooling system, and that detail says more than its speed. Large-scale computing has always been a plumbing problem as much as a logic one: power in, heat out, parts that fail on schedule, and jobs queued so nothing sits idle. Today's clusters link thousands of accelerators that each do one kind of arithmetic very fast. They made weather, materials and simulation work routine. They also made computing an industrial utility, with electricity bills, maintenance crews and recovery plans, and with throughput that is real only while the machines are running."
+  },
+  "zh-Hans": {
+   "intro": "1976年，克雷一号运抵洛斯阿拉莫斯。它那著名的C形机柜里藏着一套氟利昂冷却系统——这个细节比它的速度更能说明问题。大规模计算从来既是逻辑问题，也是管道问题：电要送进去，热要排出来，零件迟早会坏，任务要排好队，免得机器闲着。如今的计算集群把成千上万个加速器连在一起，每个都极快地做某一类运算。它们让天气、材料和模拟计算成了日常工作，也让计算变成一种工业公用事业：有电费账单，有维护班组，有恢复预案；而吞吐量只有在机器真的运转时才是真实的。"
+  },
+  "zh-Hant": {
+   "intro": "1976年，克雷一號運抵洛斯阿拉莫斯。它那著名的C形機櫃裡藏著一套氟利昂冷卻系統——這個細節比它的速度更能說明問題。大規模計算從來既是邏輯問題，也是管道問題：電要送進去，熱要排出來，零件遲早會壞，任務要排好隊，免得機器閒著。如今的運算叢集把成千上萬個加速器連在一起，每個都極快地做某一類運算。它們讓天氣、材料和模擬計算成了日常工作，也讓計算變成一種工業公用事業：有電費賬單，有維護班組，有恢復預案；而吞吐量只有在機器真的運轉時才是真實的。"
+  }
+ },
+ {
+  "id": "T118",
+  "en": {
+   "intro": "In 2009 a laboratory robot called Adam, built at Aberystwyth University, was reported to have formed hypotheses about yeast metabolism, run the experiments itself and confirmed some of its own conclusions. The striking part was not the arm but the loop: plan, pipette, measure, update, repeat, all night. Orchestrated instruments let a small team run far more physical trials than people could by hand, with every step logged. They did not make evidence cheap. Reagents, samples and calibration still cost money, a miscalibrated sensor can automate a mistake at scale, and somebody has to decide which questions are worth asking."
+  },
+  "zh-Hans": {
+   "intro": "2009年，阿伯里斯特威斯大学研制的实验机器人“亚当”据报道能就酵母的代谢提出假设，自己动手做实验，并证实了其中一部分结论。引人注目的不是那条机械臂，而是那个循环：设计、移液、测量、更新、再来一遍，通宵不停。经过编排的仪器让一个小团队完成远超人手所能的实体实验，每一步都有记录。但证据并没有因此变得便宜：试剂、样本和校准照样花钱，一个没校准好的传感器能把错误成批地自动化，而哪些问题值得去问，仍然得有人来定。"
+  },
+  "zh-Hant": {
+   "intro": "2009年，阿伯里斯特威斯大學研製的實驗機器人「亞當」據報道能就酵母的代謝提出假設，自己動手做實驗，並證實了其中一部分結論。引人注目的不是那條機械臂，而是那個循環：設計、移液、測量、更新、再來一遍，通宵不停。經過編排的儀器讓一個小團隊完成遠超人手所能的實體實驗，每一步都有記錄。但證據並沒有因此變得便宜：試劑、樣本和校準照樣花錢，一個沒校準好的感測器能把錯誤成批地自動化，而哪些問題值得去問，仍然得有人來定。"
+  }
+ },
+ {
+  "id": "T119",
+  "en": {
+   "intro": "In 1958 the Swedish engineer Rune Elmqvist and the surgeon Åke Senning implanted a pacemaker in Arne Larsson. The first unit failed within hours; Larsson went on to receive more than twenty replacements and outlived both of the men who had operated on him. That story captures the field: real benefit, real repairs, follow-up for life. Implants and assistive devices restore specific functions, a steady heartbeat, some hearing, a grip, a step, by joining electronics and precise materials to living tissue. They changed what disability meant in daily life without making anyone superhuman, and they made patients dependent on spare parts and clinics."
+  },
+  "zh-Hans": {
+   "intro": "1958年，瑞典工程师鲁内·埃尔姆奎斯特与外科医生奥克·森宁为阿尔内·拉松植入了一台心脏起搏器。第一台几个小时就失灵了；此后拉松先后换过二十多台，比当年为他动手术的两人都活得更久。这个故事道出了这一领域的本色：真实的好处，真实的维修，终身的随访。植入物和辅助器具把电子器件与精密材料接到活体组织上，恢复某一项具体功能——平稳的心跳、一部分听力、一只能握的手、一步能迈出的路。它们改变了残障在日常生活里的意义，却没有把谁变成超人；病人也从此离不开备件和诊所。"
+  },
+  "zh-Hant": {
+   "intro": "1958年，瑞典工程師魯內·埃爾姆奎斯特與外科醫生奧克·森寧為阿爾內·拉松植入了一臺心臟起搏器。第一臺幾個小時就失靈了；此後拉松先後換過二十多臺，比當年為他動手術的兩人都活得更久。這個故事道出了這一領域的本色：真實的好處，真實的維修，終身的隨訪。植入物和輔助器具把電子元件與精密材料接到活體組織上，恢復某一項具體功能——平穩的心跳、一部分聽力、一隻能握的手、一步能邁出的路。它們改變了殘障在日常生活裡的意義，卻沒有把誰變成超人；病人也從此離不開備品和診所。"
+  }
+ },
+ {
+  "id": "T120",
+  "en": {
+   "intro": "Early research arrays were blunt but telling: in 2006 Matthew Nagle, paralysed from the neck down, moved a cursor on a screen by intending to. High-bandwidth interfaces extended that into steadier, finer cooperation, letting someone steer an assistive arm, type at conversational speed or supervise a machine without a keyboard. What they never did was read minds. The system decodes trained patterns for a bounded task, for one fitted person, and it drifts as the brain and the electrodes change. The hard parts were long-term safety, clinicians to adjust the fit, and laws on who may keep the neural records."
+  },
+  "zh-Hans": {
+   "intro": "早期的研究电极阵列粗糙，却很能说明问题：2006年，颈部以下瘫痪的马修·内格尔仅凭意念就移动了屏幕上的光标。高带宽接口把这一步扩展为更稳定、更精细的协作：使用者能操纵辅助机械臂，以说话般的速度打字，或者不用键盘就监督一台机器。它从来做不到读心。系统只是针对某一个经过适配的人、某一项有限的任务，解码训练出来的模式；随着大脑和电极的变化，它还会漂移。真正的难处在于长期安全、需要临床医师不断调整，以及法律如何规定谁有权保存这些神经记录。"
+  },
+  "zh-Hant": {
+   "intro": "早期的研究電極陣列粗糙，卻很能說明問題：2006年，頸部以下癱瘓的馬修·內格爾僅憑意念就移動了螢幕上的游標。高頻寬介面把這一步擴展為更穩定、更精細的協作：使用者能操縱輔助機械臂，以說話般的速度打字，或者不用鍵盤就監督一臺機器。它從來做不到讀心。系統只是針對某一個經過適配的人、某一項有限的任務，解碼訓練出來的模式；隨著大腦和電極的變化，它還會漂移。真正的難處在於長期安全、需要臨床醫師不斷調整，以及法律如何規定誰有權儲存這些神經記錄。"
+  }
+ },
+ {
+  "id": "T121",
+  "en": {
+   "intro": "When the Tacoma Narrows Bridge twisted itself apart in a moderate wind in November 1940, its engineers had calculations; what they lacked was a model that captured how the deck and the air would interact. Engineering digital models aim to close that gap: a calibrated simulation of a particular machine, plant or structure, fed by its own measurements and compared constantly with the real thing. Maintenance crews use them to predict wear; designers try a hundred variants before cutting metal. The discipline lies in validation. When the model and the hardware disagree, the hardware is right, and someone has to go and look."
+  },
+  "zh-Hans": {
+   "intro": "1940年11月，塔科马海峡大桥在一场并不算猛烈的风中扭曲解体。工程师并非没有计算，他们缺的是一个能刻画桥面与气流如何相互作用的模型。工程数字模型就是要弥补这道缺口：为某一台具体的机器、某一座工厂或某一处结构建立经过校准的仿真，用它自身的测量数据持续输入，并不断与实物比对。维护班组用它预测磨损，设计师在动刀切削金属之前先试上百种方案。这门功夫的关键在于验证：模型与实物对不上时，实物永远是对的，总得有人亲自去看一看。"
+  },
+  "zh-Hant": {
+   "intro": "1940年11月，塔科馬海峽大橋在一場並不算猛烈的風中扭曲解體。工程師並非沒有計算，他們缺的是一個能刻畫橋面與氣流如何相互作用的模型。工程數字模型就是要彌補這道缺口：為某一臺具體的機器、某一座工廠或某一處結構建立經過校準的模擬，用它自身的測量資料持續輸入，並不斷與實物比對。維護班組用它預測磨損，設計師在動刀切削金屬之前先試上百種方案。這門功夫的關鍵在於驗證：模型與實物對不上時，實物永遠是對的，總得有人親自去看一看。"
+  }
+ },
+ {
+  "id": "T122",
+  "en": {
+   "intro": "The label \"general\" had been claimed for decades before anyone could show what it should mean. The agents that earned it did so the slow way: sustained compute, long series of independent tests, fault isolation so one bad decision could not spread, and a human able to take over at any moment. Within those bounds they could plan and carry out complex authorized work, running a laboratory campaign, coordinating maintenance across many sites, drafting and checking engineering changes. Validation changed the argument from \"is it intelligent?\" to \"what has it been shown to do safely, and who answers when it fails?\""
+  },
+  "zh-Hans": {
+   "intro": "“通用”这个标签被人喊了几十年，却一直没人能说清它该意味着什么。真正配得上它的智能体走的是慢路：持续的算力，一轮又一轮独立的测试，故障隔离——让一个错误决定扩散不开——以及随时能够接手的人。在这些界限之内，它们可以规划并执行复杂的授权工作：主持一整轮实验，协调许多地点的设备维护，起草并核对工程变更。验证改变了争论的问题：不再是“它有没有智能”，而是“它被证明能安全地做哪些事，出了错由谁负责”。"
+  },
+  "zh-Hant": {
+   "intro": "「通用」這個標籤被人喊了幾十年，卻一直沒人能說清它該意味著什麼。真正配得上它的智慧體走的是慢路：持續的算力，一輪又一輪獨立的測試，故障隔離——讓一個錯誤決定擴散不開——以及隨時能夠接手的人。在這些界限之內，它們可以規劃並執行復雜的授權工作：主持一整輪實驗，協調許多地點的設備維護，起草並核對工程變更。驗證改變了爭論的問題：不再是「它有沒有智慧」，而是「它被證明能安全地做哪些事，出了錯由誰負責」。"
+  }
+ },
+ {
+  "id": "T123",
+  "en": {
+   "intro": "On 23 December 2015, operators at Ukrainian power distribution companies watched their own cursors move as intruders opened breakers, and about a quarter of a million customers lost electricity in winter. Critical-infrastructure security exists because the systems that run water, power and transport were built to be reliable, not suspicious. Its tools are unglamorous: separating networks, proving identities, keeping offline spares, rehearsing recovery, patching on schedule. No system is immune. The realistic aim is that an attack reaches less, is noticed sooner and is repaired faster, which is why the best security teams spend as much time on recovery as on prevention."
+  },
+  "zh-Hans": {
+   "intro": "2015年12月23日，乌克兰几家配电公司的操作员眼睁睁看着自己屏幕上的光标自行移动，入侵者一个个拉开断路器，二十多万用户在寒冬里断了电。关键基础设施网络安全之所以存在，是因为供水、供电和交通的系统当初是按可靠来设计的，而不是按多疑来设计的。它的手段并不光鲜：网络分区隔离、核验身份、保留离线备件、演练恢复、按时打补丁。没有哪个系统能够免疫。现实的目标是：攻击波及得更少，被发现得更早，修复得更快——所以最好的安全团队花在恢复上的工夫，不比花在防范上的少。"
+  },
+  "zh-Hant": {
+   "intro": "2015年12月23日，烏克蘭幾家配電公司的操作員眼睜睜看著自己螢幕上的游標自行移動，入侵者一個個拉開斷路器，二十多萬使用者在寒冬裡斷了電。關鍵基礎設施網路安全之所以存在，是因為供水、供電和交通的系統當初是按可靠來設計的，而不是按多疑來設計的。它的手段並不光鮮：網路分區隔離、核驗身份、保留離線備品、演練恢復、按時打補丁。沒有哪個系統能夠免疫。現實的目標是：攻擊波及得更少，被發現得更早，修復得更快——所以最好的安全團隊花在恢復上的工夫，不比花在防範上的少。"
+  }
+ },
+ {
+  "id": "T124",
+  "en": {
+   "intro": "Australia's automated debt-recovery scheme, later nicknamed Robodebt, matched annual tax records against fortnightly welfare payments and sent hundreds of thousands of people demands for money many did not owe; a royal commission called it crude and cruel. The case shows what auditable administrative computing is for. Governments run on rules and records, and software can apply them consistently and fast, issuing permits, calculating benefits, tracking cases. It must also show its working: which rule, which data, which version, and a route of appeal that reaches a human who can overrule it. Without that, speed only automates injustice."
+  },
+  "zh-Hans": {
+   "intro": "澳大利亚曾推行一套自动追讨债务的系统，后来臭名远扬：它拿全年的税务记录去比对按两周发放的福利，向数十万人发出催款通知，其中许多人根本不欠钱。皇家调查委员会称之为“粗糙而残忍”。这个案例说明了可审计的行政计算为何存在。政府靠规则和记录运转，软件能把规则快速而一致地执行下去：发放许可、核算补贴、跟踪案件。但它也必须亮出推导过程：依据哪条规则、哪些数据、哪个版本，并留出一条申诉渠道，通到一个有权推翻结果的人。缺了这些，速度只会让不公来得更快。"
+  },
+  "zh-Hant": {
+   "intro": "澳大利亞曾推行一套自動追討債務的系統，後來臭名遠揚：它拿全年的稅務記錄去比對按兩週發放的福利，向數十萬人發出催款通知，其中許多人根本不欠錢。皇家調查委員會稱之為「粗糙而殘忍」。這個案例說明了可審計的行政計算為何存在。政府靠規則和記錄運轉，軟體能把規則快速而一致地執行下去：發放許可、核算補貼、跟蹤案件。但它也必須亮出推導過程：依據哪條規則、哪些資料、哪個版本，並留出一條申訴渠道，通到一個有權推翻結果的人。缺了這些，速度只會讓不公來得更快。"
+  }
+ },
+ {
+  "id": "T125",
+  "en": {
+   "intro": "Once administrative systems could be audited and high-autonomy agents validated, the obvious question followed: how much of government's routine work could be handed over? The answer, where it was tried, was a layer of infrastructure rather than a ruler: redundant compute, execution interfaces into tax, permits and logistics, external auditors with real access, and rehearsed procedures for people to take back control. It could run scheduling, enforcement and service delivery at a scale no ministry could staff. Whether it held final authority was never a technical question. Charters, parties, customs and fear decided that, and the machines were only as legitimate as those choices."
+  },
+  "zh-Hans": {
+   "intro": "行政系统一旦能够审计，高自主智能体一旦得到验证，一个问题便顺理成章地冒了出来：政府的日常工作，究竟能交出去多少？在真正尝试过的地方，答案是一层基础设施，而不是一位统治者：冗余的算力，接入税收、许可和物流的执行接口，拥有真实访问权的外部审计，以及经过演练、让人收回控制权的规程。它能以任何部委都配不齐人手的规模，承担排程、执法和各项服务。至于它是否握有最终权威，从来就不是技术问题——那由章程、政党、习俗乃至恐惧来决定；机器有多少正当性，全看这些选择。"
+  },
+  "zh-Hant": {
+   "intro": "行政系統一旦能夠審計，高自主智慧體一旦得到驗證，一個問題便順理成章地冒了出來：政府的日常工作，究竟能交出去多少？在真正嘗試過的地方，答案是一層基礎設施，而不是一位統治者：冗餘的算力，接入稅收、許可和物流的執行介面，擁有真實訪問權的外部審計，以及經過演練、讓人收回控制權的規程。它能以任何部委都配不齊人手的規模，承擔排程、執法和各項服務。至於它是否握有最終權威，從來就不是技術問題——那由章程、政黨、習俗乃至恐懼來決定；機器有多少正當性，全看這些選擇。"
+  }
+ },
+ {
+  "id": "T130",
+  "en": {
+   "intro": "Ernst Haeckel coined the word ecology in 1866, but its working method is closer to bookkeeping than to poetry: follow the water, nitrogen and carbon through a field, a lake or a forest, and make the accounts balance. At Rothamsted in England, the Park Grass plots have received the same treatments since 1856, so changes in their plants can be read against more than a century and a half of records. Ecology taught farmers, engineers and governments that waste goes somewhere and that a resource used here is missing there. A green label on a project changes none of those sums.",
+   "quote": {
+    "text": "It is interesting to contemplate an entangled bank, clothed with many plants of many kinds, with birds singing on the bushes, with various insects flitting about, and with worms crawling through the damp earth",
+    "source": "Charles Darwin, On the Origin of Species (1859)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "1866年，恩斯特·海克尔造出了“生态学”这个词，但它的工作方法更像记账，而不是作诗：追踪水、氮和碳在一片田、一个湖或一处森林里的去向，让账目收支平衡。在英国洛桑试验站，“公园草地”样地自1856年起一直接受同样的处理，植物的变化因而可以对照一个半多世纪的记录来解读。生态学教会了农民、工程师和政府：废物总有去处，这里用掉的资源，那里就少了。给项目贴上一张绿色标签，这些算式一个也不会改变。",
+   "quote": {
+    "text": "凝视一处草木纠缠的河岸，是饶有趣味的事：岸上覆盖着种类繁多的植物，鸟儿在灌木间鸣唱，各色昆虫飞来飞去，蠕虫在湿润的泥土里爬行",
+    "source": "查尔斯·达尔文《物种起源》（1859）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "1866年，恩斯特·海克爾造出了「生態學」這個詞，但它的工作方法更像記賬，而不是作詩：追蹤水、氮和碳在一片田、一個湖或一處森林裡的去向，讓賬目收支平衡。在英國洛桑試驗站，「公園草地」樣地自1856年起一直接受同樣的處理，植物的變化因而可以對照一個半多世紀的記錄來解讀。生態學教會了農民、工程師和政府：廢物總有去處，這裡用掉的資源，那裡就少了。給專案貼上一張綠色標籤，這些算式一個也不會改變。",
+   "quote": {
+    "text": "凝視一處草木糾纏的河岸，是饒有趣味的事：岸上覆蓋著種類繁多的植物，鳥兒在灌木間鳴唱，各色昆蟲飛來飛去，蠕蟲在溼潤的泥土裡爬行",
+    "source": "查爾斯·達爾文《物種起源》（1859）"
+   }
+  }
+ },
+ {
+  "id": "T131",
+  "en": {
+   "intro": "In 1953 an X-ray diffraction photograph from Rosalind Franklin's laboratory helped James Watson and Francis Crick propose the double helix, and within two decades researchers could cut and splice DNA with bacterial enzymes. Molecular analysis lets people read biology in its own chemistry: sequence a strand, measure a protein, trace which molecule a drug binds. Bioengineering adds bounded intervention, moving a gene into a microbe so that it produces something useful. The field moved fast and argued in public; in 1975 its researchers met at Asilomar to set rules for their own experiments. Results still need replication, because living systems excel at surprising their investigators."
+  },
+  "zh-Hans": {
+   "intro": "1953年，罗莎琳德·富兰克林实验室拍下的一张Ｘ射线衍射照片，帮助詹姆斯·沃森和弗朗西斯·克里克提出了双螺旋结构；不到二十年，研究者已能用细菌的酶剪切、拼接DNA。分子分析让人用生命自己的化学语言来阅读生命：测出一条链的序列，测量一种蛋白质，追查药物与哪个分子结合。生物工程则加上有限度的干预，比如把一个基因移入微生物，让它生产有用的东西。这个领域进展迅速，也公开争论：1975年，研究者们齐聚阿西洛马，为自己的实验立规矩。结果仍需重复验证，因为活的系统最擅长让研究者大吃一惊。"
+  },
+  "zh-Hant": {
+   "intro": "1953年，羅莎琳德·富蘭克林實驗室拍下的一張Ｘ射線衍射照片，幫助詹姆斯·沃森和弗朗西斯·克里克提出了雙螺旋結構；不到二十年，研究者已能用細菌的酶剪下、拼接DNA。分子分析讓人用生命自己的化學語言來閱讀生命：測出一條鏈的序列，測量一種蛋白質，追查藥物與哪個分子結合。生物工程則加上有限度的干預，比如把一個基因移入微生物，讓它生產有用的東西。這個領域進展迅速，也公開爭論：1975年，研究者們齊聚阿西洛馬，為自己的實驗立規矩。結果仍需重複驗證，因為活的系統最擅長讓研究者大吃一驚。"
+  }
+ },
+ {
+  "id": "T132",
+  "en": {
+   "intro": "In 1982 human insulin made by engineered bacteria went on sale in the United States, and people with diabetes no longer depended on pancreases collected from slaughterhouses. Controlled biological manufacture turns living cells into small factories inside steel vessels: feed them, keep everything else out, hold temperature and acidity steady, and harvest a medicine, an enzyme, a food ingredient or a fibre. Every product has its own organism, recipe and failure modes, and a contaminated batch is lost entirely. The work looks less like farming than like a strict kitchen run by microbiologists, where cleanliness is the main skill and paperwork is how you prove you have it."
+  },
+  "zh-Hans": {
+   "intro": "1982年，由改造过的细菌生产的人胰岛素在美国上市，糖尿病患者从此不必再依赖从屠宰场收集来的胰脏。受控生物制造把活细胞变成钢罐里的小工厂：喂饱它们，把其他一切挡在外面，稳住温度和酸碱度，再收获一种药物、一种酶、一种食品配料或一种纤维。每种产品都有自己的菌种、工艺和失败方式，一批染了杂菌，就整批作废。这份工作与其说像种地，不如说像微生物学家掌勺的严格后厨：干净是头号本事，而文书记录是证明你干净的办法。"
+  },
+  "zh-Hant": {
+   "intro": "1982年，由改造過的細菌生產的人胰島素在美國上市，糖尿病患者從此不必再依賴從屠宰場收集來的胰臟。受控生物製造把活細胞變成鋼罐裡的小工廠：餵飽它們，把其他一切擋在外面，穩住溫度和酸鹼度，再收穫一種藥物、一種酶、一種食品配料或一種纖維。每種產品都有自己的菌種、工藝和失敗方式，一批染了雜菌，就整批作廢。這份工作與其說像種地，不如說像微生物學家掌勺的嚴格後廚：乾淨是頭號本事，而文書記錄是證明你乾淨的辦法。"
+  }
+ },
+ {
+  "id": "T133",
+  "en": {
+   "intro": "On China's Loess Plateau, where centuries of grazing and cultivation had cut hillsides into gullies, a programme begun in the 1990s terraced slopes, fenced out goats and replanted vegetation, and the silt washing into the Yellow River fell sharply. Environmental restoration treats damage as a process to be reversed: model where pollutants and soil are going, rebuild the cycles of water and nutrients, and pair it with farming that does not undo the work. It is slow; a rebuilt wetland takes decades to behave like one, and whatever is removed must go somewhere. Above all, the people living there must gain from it, or it will not last."
+  },
+  "zh-Hans": {
+   "intro": "中国黄土高原上，几百年的开垦和牲畜啃食把山坡切割得沟壑纵横。从20世纪90年代开始的一项治理工程修筑梯田、圈养山羊、重新种植植被，流入黄河的泥沙随之大幅减少。环境修复把破坏看作一个可以逆转的过程：用模型弄清污染物和土壤往哪里去，重建水与养分的循环，再配上不会把成果毁掉的耕作方式。它很慢：重建的湿地要几十年才真正像个湿地，清走的东西也总得有个去处。最要紧的是，住在这片土地上的人必须从中得益，否则成果留不住。"
+  },
+  "zh-Hant": {
+   "intro": "中國黃土高原上，幾百年的開墾和牲畜啃食把山坡切割得溝壑縱橫。從20世紀90年代開始的一項治理工程修築梯田、圈養山羊、重新種植植被，流入黃河的泥沙隨之大幅減少。環境修復把破壞看作一個可以逆轉的過程：用模型弄清汙染物和土壤往哪裡去，重建水與養分的循環，再配上不會把成果毀掉的耕作方式。它很慢：重建的溼地要幾十年才真正像個溼地，清走的東西也總得有個去處。最要緊的是，住在這片土地上的人必須從中得益，否則成果留不住。"
+  }
+ },
+ {
+  "id": "T134",
+  "en": {
+   "intro": "Since 1994 the CASP competition has asked research groups to predict protein structures that have been determined in the laboratory but not yet published, then scored the predictions against the answers. That blind test captures what makes biological design trustworthy: data with clear provenance and rights, computation that commits to a prediction in advance, and experiments that can embarrass it. With these, researchers can screen candidate enzymes, medicines or crop traits before growing a single cell. The models remain bounded. Biology has long timescales, rare side effects and messy environments, so computation narrows the search; samples, trials and patient observation still decide."
+  },
+  "zh-Hans": {
+   "intro": "自1994年起，一项名为“蛋白质结构预测关键评估”的竞赛，请各研究组预测那些已在实验室测定、但尚未公布的蛋白质结构，再拿答案为预测打分。这种盲测道出了生物设计值得信任的关键：来源清楚、权利明确的数据，事先就把预测说定的计算，以及能让预测当众出丑的实验。有了这些，研究者可以在培养一个细胞之前，先筛选候选的酶、药物或作物性状。模型依然是有限度的。生物学有漫长的时间尺度、罕见的副作用和杂乱的环境，所以计算只能缩小搜索范围，真正拍板的仍是样本、试验和耐心的观察。"
+  },
+  "zh-Hant": {
+   "intro": "自1994年起，一項名為「蛋白質結構預測關鍵評估」的競賽，請各研究組預測那些已在實驗室測定、但尚未公佈的蛋白質結構，再拿答案為預測打分。這種盲測道出了生物設計值得信任的關鍵：來源清楚、權利明確的資料，事先就把預測說定的計算，以及能讓預測當眾出醜的實驗。有了這些，研究者可以在培養一個細胞之前，先篩選候選的酶、藥物或作物性狀。模型依然是有限度的。生物學有漫長的時間尺度、罕見的副作用和雜亂的環境，所以計算只能縮小搜尋範圍，真正拍板的仍是樣本、試驗和耐心的觀察。"
+  }
+ },
+ {
+  "id": "T135",
+  "en": {
+   "intro": "Biosphere 2 in the Arizona desert was sealed with eight people inside in 1991, and before their two years were up the oxygen had fallen so low that more had to be pumped in: soil microbes had quietly consumed it, and fresh concrete had soaked up the carbon dioxide they made. High-closure life support learned from failures like that. It runs food, water and air through linked biological and mechanical cycles, monitored independently, with buffer stocks for the day a crop fails or a filter clogs. Closure is a percentage, never a perfect circle. Every cycle leaks a little, needs energy and repair, and works only while trained people keep watching it."
+  },
+  "zh-Hans": {
+   "intro": "1991年，亚利桑那沙漠中的“生物圈二号”把八个人封闭在内。两年的任务还没结束，里面的氧气就降到不得不从外面补充的地步：土壤里的微生物悄悄耗掉了氧气，新浇的混凝土又吸走了由此产生的二氧化碳。高闭合度生命保障正是从这类失败中学来的。它让食物、水和空气在相互衔接的生物与机械循环中流转，由独立的监测盯着，并备有缓冲储备，以防哪天庄稼歉收或滤网堵塞。闭合度是一个百分比，永远画不成完美的圆：每个循环都会漏一点，需要能源和维修，也只有在训练有素的人持续照看时才能运转。"
+  },
+  "zh-Hant": {
+   "intro": "1991年，亞利桑那沙漠中的「生物圈二號」把八個人封閉在內。兩年的任務還沒結束，裡面的氧氣就降到不得不從外面補充的地步：土壤裡的微生物悄悄耗掉了氧氣，新澆的混凝土又吸走了由此產生的二氧化碳。高閉合度生命保障正是從這類失敗中學來的。它讓食物、水和空氣在相互銜接的生物與機械循環中流轉，由獨立的監測盯著，並備有緩衝儲備，以防哪天莊稼歉收或濾網堵塞。閉合度是一個百分比，永遠畫不成完美的圓：每個循環都會漏一點，需要能源和維修，也只有在訓練有素的人持續照看時才能運轉。"
+  }
+ },
+ {
+  "id": "T136",
+  "en": {
+   "intro": "Bone marrow transplants, made reliably successful in the second half of the twentieth century, showed that the body could be rebuilt from cells rather than merely patched. Regenerative medicine went further only by going slowly: tissues grown from a patient's own cells, damaged nerves and organs coaxed into repair, implants that integrate rather than wear out, each approved for a specific use after years of follow-up. Lives became longer and healthier in particular, measurable ways. Nobody stopped ageing. The treatments needed clinics, materials and teams, which made them as much a question of distribution as of science."
+  },
+  "zh-Hans": {
+   "intro": "骨髓移植在二十世纪后半叶逐渐变得可靠，它表明身体可以用细胞来重建，而不只是修修补补。再生医学之所以能更进一步，全靠走得慢：用病人自己的细胞培育组织，引导受损的神经和器官自行修复，让植入物与身体长在一起而不是日渐磨损——每一项都要经过多年随访，才获准用于某一特定用途。人们的寿命和健康在一些具体、可测量的方面得到了延长。没有谁就此不再衰老。这些疗法需要诊所、材料和团队，因而它既是科学问题，也是分配问题。"
+  },
+  "zh-Hant": {
+   "intro": "骨髓移植在二十世紀後半葉逐漸變得可靠，它表明身體可以用細胞來重建，而不只是修修補補。再生醫學之所以能更進一步，全靠走得慢：用病人自己的細胞培育組織，引導受損的神經和器官自行修復，讓植入物與身體長在一起而不是日漸磨損——每一項都要經過多年隨訪，才獲准用於某一特定用途。人們的壽命和健康在一些具體、可測量的方面得到了延長。沒有誰就此不再衰老。這些療法需要診所、材料和團隊，因而它既是科學問題，也是分配問題。"
+  }
+ },
+ {
+  "id": "T137",
+  "en": {
+   "intro": "Antarctic winter-over crews have long known the rule: once the last flight out has gone, everything that breaks must be fixed with what is already on site. Adaptive closed habitats extended that discipline into structures that sense their own condition and respond, adjusting air, water, heat and growing systems as occupants, seasons and failures change the load. People could live far longer in deserts, under ice or underground, where outside help is slow to arrive. The engineering never removed dependence. Spare parts, power and skilled maintainers remained the real limits, and isolation was as hard on the people as on the machinery."
+  },
+  "zh-Hans": {
+   "intro": "南极越冬的队员早就懂得一条规矩：最后一班航班一走，坏了什么，都只能用站里现有的东西修。自适应封闭栖居地把这套纪律延伸到能感知自身状况并作出反应的结构里：随着居住者、季节和故障改变负荷，它自动调节空气、水、热量和种植系统。人们因此能在沙漠、冰层之下或地底长住得多，那些地方外援来得很慢。工程手段从未消除依赖：备件、电力和熟练的维护人员始终是真正的限度，而与世隔绝对人的折磨，并不比对机器的少。"
+  },
+  "zh-Hant": {
+   "intro": "南極越冬的隊員早就懂得一條規矩：最後一班航班一走，壞了什麼，都只能用站裡現有的東西修。自適應封閉棲居地把這套紀律延伸到能感知自身狀況並作出反應的結構裡：隨著居住者、季節和故障改變負荷，它自動調節空氣、水、熱量和種植系統。人們因此能在沙漠、冰層之下或地底長住得多，那些地方外援來得很慢。工程手段從未消除依賴：備品、電力和熟練的維護人員始終是真正的限度，而與世隔絕對人的折磨，並不比對機器的少。"
+  }
+ },
+ {
+  "id": "T140",
+  "en": {
+   "intro": "A rocket is a controlled explosion that has been persuaded to point one way. The difficulty was never the fire but the control: pumps that feed propellant faster than a fire hose, chambers that must survive heat that would melt their own walls, valves that open on time every time. On 16 March 1926, in a snowy field in Auburn, Massachusetts, Robert Goddard's liquid-fuelled rocket flew for about two and a half seconds and came down in a cabbage patch. Progress afterwards came less from inspiration than from test stands, logbooks and the long, unglamorous study of why things blew up."
+  },
+  "zh-Hans": {
+   "intro": "火箭说穿了，是一场被驯服、只朝一个方向喷发的燃烧。难处从来不在点火，而在控制：泵要以惊人的流量输送推进剂，燃烧室要扛住足以熔化自身器壁的高温，阀门每一次都得准时开合。1926年3月16日，在马萨诸塞州奥本一片积雪的田野上，戈达德的液体燃料火箭飞了约两秒半，落进一块卷心菜地。此后的进步，与其说来自灵感，不如说来自试车台、记录本，以及对“它为什么会炸”这个问题年复一年的枯燥追问。"
+  },
+  "zh-Hant": {
+   "intro": "火箭說穿了，是一場被馴服、只朝一個方向噴發的燃燒。難處從來不在點火，而在控制：泵要以驚人的流量輸送推進劑，燃燒室要扛住足以熔化自身器壁的高溫，閥門每一次都得準時開合。1926年3月16日，在馬薩諸塞州奧本一片積雪的田野上，戈達德的液體燃料火箭飛了約兩秒半，落進一塊捲心菜地。此後的進步，與其說來自靈感，不如說來自試車臺、記錄本，以及對「它為什麼會炸」這個問題年復一年的枯燥追問。"
+  }
+ },
+ {
+  "id": "T141",
+  "en": {
+   "intro": "An orbit is a fall that never finishes, and predicting one is an old art made newly urgent. In 1846 Urbain Le Verrier, reasoning from small irregularities in the motion of Uranus, told Johann Galle at Berlin where to point his telescope; Galle found Neptune that same night, close to the predicted spot. Modern navigation adds tracking stations, radio ranging and computers that integrate the equations faster than any clerk. The lesson stays the same, and so does the humility it demands: a trajectory worked out at a desk puts nothing in the sky. It only tells you, very exactly, where you would be if everything else went right."
+  },
+  "zh-Hans": {
+   "intro": "所谓轨道，是一场永远落不到底的坠落；预测它，是一门古老而又重新变得紧迫的学问。1846年，勒威耶根据天王星运行中细微的偏差，推算出一颗未知行星的位置，写信告诉柏林的伽勒该往哪里看；伽勒当晚就在预言位置附近找到了海王星。如今的导航又添了跟踪站、无线电测距，以及比任何算手都快的计算机。道理却没变，也照样要人谦卑：算出来的轨迹不会把任何东西送上天，它只是极其精确地告诉你，倘若其余一切都顺利，你会在哪里。"
+  },
+  "zh-Hant": {
+   "intro": "所謂軌道，是一場永遠落不到底的墜落；預測它，是一門古老而又重新變得緊迫的學問。1846年，勒威耶根據天王星運行中細微的偏差，推算出一顆未知行星的位置，寫信告訴柏林的伽勒該往哪裡看；伽勒當晚就在預言位置附近找到了海王星。如今的導航又添了跟蹤站、無線電測距，以及比任何算手都快的電腦。道理卻沒變，也照樣要人謙卑：算出來的軌跡不會把任何東西送上天，它只是極其精確地告訴你，倘若其餘一切都順利，你會在哪裡。"
+  }
+ },
+ {
+  "id": "T142",
+  "en": {
+   "intro": "Reaching orbit once is a feat; reaching it every week is a business, and a much harder one. The difference lies in everything that happens between flights: inspection, refurbishment, spare parts, weather holds, paperwork and the ground crews who do it all. The Space Shuttle was sold as a reusable workhorse to orbit, yet each turnaround took months of painstaking work. On 21 December 2015 a Falcon 9 first stage came back down and landed upright at Cape Canaveral, and the economics began to shift. Still, every trip burns real fuel, risks real hardware and carries a payload someone has paid to send."
+  },
+  "zh-Hans": {
+   "intro": "上一次轨道是壮举，每周都上一次才是生意，而且难得多。差别全在两次飞行之间：检查、翻修、备件、等天气、填表格，还有完成这一切的地面人员。美国那种带翼的可复用轨道器，当年被许诺为往返轨道的“班车”，实际上每次周转都要几个月的精细工作。2015年12月21日，一枚“猎鹰九号”的第一级从高空返回，竖直降落在卡纳维拉尔角，运费的账从此开始改写。但每一趟仍要烧掉真实的燃料，冒真实的硬件风险，运的是有人付了钱的货。"
+  },
+  "zh-Hant": {
+   "intro": "上一次軌道是壯舉，每週都上一次才是生意，而且難得多。差別全在兩次飛行之間：檢查、翻修、備品、等天氣、填表格，還有完成這一切的地面人員。美國那種帶翼的可複用軌道器，當年被許諾為往返軌道的「班車」，實際上每次週轉都要幾個月的精細工作。2015年12月21日，一枚「獵鷹九號」的第一級從高空返回，豎直降落在卡納維拉爾角，運費的賬從此開始改寫。但每一趟仍要燒掉真實的燃料，冒真實的硬體風險，運的是有人付了錢的貨。"
+  }
+ },
+ {
+  "id": "T143",
+  "en": {
+   "intro": "Above the air, ordinary materials misbehave in unfamiliar ways. Adhesives and coatings breathe out vapours that settle on cold lenses as a fog. Clean metal surfaces pressed together in vacuum can weld themselves with no heat at all. Charged particles flip bits in memory and slowly darken glass, and the swing between sunlight and shadow drives a surface through hundreds of degrees. So engineers learned to build the sky on the ground: near Sandusky, Ohio, NASA's Plum Brook Station houses one of the largest vacuum chambers ever built. A part that passes such tests is qualified for those conditions, and only those, which is the whole point of writing them down."
+  },
+  "zh-Hans": {
+   "intro": "到了大气层之外，寻常的材料会以陌生的方式出毛病。胶粘剂和涂层会缓缓放出气体，在冰冷的镜片上凝成一层雾；两块洁净的金属在真空里贴紧，不用加热也会自己焊在一起；带电粒子会让存储器里的比特翻转，让玻璃慢慢发暗；阳光与阴影交替，能让同一块表面经历数百度的温差。于是工程师学会在地面上造出“天空”：美国俄亥俄州桑达斯基附近的普拉姆布鲁克站，有一座世界上最大的真空舱之一。部件通过这样的试验，就只对试验的条件合格；把条件写清楚，意义正在于此。"
+  },
+  "zh-Hant": {
+   "intro": "到了大氣層之外，尋常的材料會以陌生的方式出毛病。膠粘劑和塗層會緩緩放出氣體，在冰冷的鏡片上凝成一層霧；兩塊潔淨的金屬在真空裡貼緊，不用加熱也會自己焊在一起；帶電粒子會讓儲存器裡的位元翻轉，讓玻璃慢慢發暗；陽光與陰影交替，能讓同一塊表面經歷數百度的溫差。於是工程師學會在地面上造出「天空」：美國俄亥俄州桑達斯基附近的普拉姆布魯克站，有一座世界上最大的真空艙之一。部件通過這樣的試驗，就只對試驗的條件合格；把條件寫清楚，意義正在於此。"
+  }
+ },
+ {
+  "id": "T144",
+  "en": {
+   "intro": "A crew in space carries its whole world along: air to breathe, water to drink, a way to scrub out the carbon dioxide that every breath adds, food, medicine, and the means to mend all of it. Apollo 13 made the point brutally in April 1970. With the crew sheltering in the lunar module, its round carbon-dioxide canisters were running out, and the spares from the command module were square. Engineers on the ground improvised an adapter from hoses, cardboard, bags and tape, then read the recipe up to the astronauts step by step. Life support is plumbing, chemistry and stock-keeping, and it is never optional."
+  },
+  "zh-Hans": {
+   "intro": "太空中的乘组要把整个世界随身带着：可呼吸的空气、可饮用的水、清除每次呼吸都在累积的二氧化碳的办法，还有食物、药品，以及修好这一切的手段。1970年4月，阿波罗13号把这个道理演示得惊心动魄：乘员躲进登月舱避难，舱里的圆形二氧化碳吸收罐眼看就要耗尽，而指令舱的备用罐却是方的。地面的工程师用软管、飞行手册的封皮、袋子和胶带拼出一个转接器，再把做法一步步念给宇航员听。生命保障就是管道、化学和库存管理，从来不是可有可无的东西。"
+  },
+  "zh-Hant": {
+   "intro": "太空中的乘組要把整個世界隨身帶著：可呼吸的空氣、可飲用的水、清除每次呼吸都在累積的二氧化碳的辦法，還有食物、藥品，以及修好這一切的手段。1970年4月，阿波羅13號把這個道理演示得驚心動魄：乘員躲進登月艙避難，艙裡的圓形二氧化碳吸收罐眼看就要耗盡，而指令艙的備用罐卻是方的。地面的工程師用軟管、飛行手冊的封皮、袋子和膠帶拼出一個轉接器，再把做法一步步念給宇航員聽。生命保障就是管道、化學和庫存管理，從來不是可有可無的東西。"
+  }
+ },
+ {
+  "id": "T145",
+  "en": {
+   "intro": "Building in orbit begins with an awkward truth: every bolt, beam and litre of coolant still has to be lifted from the ground or mined somewhere else at great cost. What changes is what can be made once it is up there. Structures too large or flimsy to survive the ride uphill can be assembled where there is no weight to carry; robots work through the long shifts, and people fly up to fix what the robots cannot. The early yards look less like factories than like building sites in a gale: tethered, slow, and run to a schedule set by the supply flights. Output counts only when it is delivered."
+  },
+  "zh-Hans": {
+   "intro": "在轨道上搞建设，先得面对一个尴尬的事实：每一颗螺栓、每一根梁、每一升冷却剂，仍然要从地面送上去，或者花大代价从别处开采。改变的是东西上去以后能造什么。那些太大、太单薄、经不起一路颠簸上天的结构，可以在没有重量负担的地方拼装起来；机器人值漫长的班，人再上去修机器人修不了的毛病。早期的轨道工场不像工厂，倒像狂风里的工地：处处系着绳索，进度缓慢，日程表由补给航班说了算。产品只有交付出去，才算真的产出。"
+  },
+  "zh-Hant": {
+   "intro": "在軌道上搞建設，先得面對一個尷尬的事實：每一顆螺栓、每一根梁、每一升冷卻劑，仍然要從地面送上去，或者花大代價從別處開採。改變的是東西上去以後能造什麼。那些太大、太單薄、經不起一路顛簸上天的結構，可以在沒有重量負擔的地方拼裝起來；機器人值漫長的班，人再上去修機器人修不了的毛病。早期的軌道工場不像工廠，倒像狂風裡的工地：處處繫著繩索，進度緩慢，日程表由補給航班說了算。產品只有交付出去，才算真的產出。"
+  }
+ },
+ {
+  "id": "T146",
+  "en": {
+   "intro": "In 1896 Henri Becquerel found that certain mineral salts, left in a drawer beside wrapped photographic plates, fogged them without any sunlight at all. Something inside matter was leaking energy. Within a few years Marie and Pierre Curie had isolated new radioactive elements by processing tonnes of ore residue, and in 1909 Hans Geiger and Ernest Marsden, working under Ernest Rutherford in Manchester, saw a few particles bounce straight back from thin gold foil. The atom had a tiny, dense heart. Measuring it took counters, cloud chambers, shielding and great patience; learning to handle the invisible with respect took longer."
+  },
+  "zh-Hans": {
+   "intro": "1896年，贝克勒尔发现，某些矿物盐放在抽屉里，挨着包得严严实实的照相底片，没见一丝阳光，底片却感了光。物质内部在往外漏能量。没过几年，居里夫妇从成吨的矿渣里提炼出新的放射性元素；1909年，盖革和马斯登在曼彻斯特卢瑟福的实验室里，看到少数粒子竟从薄薄的金箔上直直弹了回来——原子有一颗极小而致密的核心。测量它，需要计数器、云室、屏蔽和极大的耐心；而学会敬畏这些看不见的东西，花的时间还要更长。"
+  },
+  "zh-Hant": {
+   "intro": "1896年，貝克勒爾發現，某些礦物鹽放在抽屜裡，挨著包得嚴嚴實實的照相底片，沒見一絲陽光，底片卻感了光。物質內部在往外漏能量。沒過幾年，居里夫婦從成噸的礦渣裡提煉出新的放射性元素；1909年，蓋革和馬斯登在曼徹斯特盧瑟福的實驗室裡，看到少數粒子竟從薄薄的金箔上直直彈了回來——原子有一顆極小而緻密的核心。測量它，需要計數器、雲室、遮蔽和極大的耐心；而學會敬畏這些看不見的東西，花的時間還要更長。"
+  }
+ },
+ {
+  "id": "T147",
+  "en": {
+   "intro": "On 2 December 1942, beneath the stands of an abandoned football field at the University of Chicago, Enrico Fermi's team withdrew the last control rod from a pile of graphite and uranium and watched the counters climb without levelling off. The first self-sustaining chain reaction ran for a few minutes. Turning that into electricity took boilers, turbines, cooling water, shielding and decades of engineering, and every plant must still do something with its spent fuel. Safeguards grew alongside: inspectors, seals and material accounts, because the knowledge that boils water can be diverted to make weapons. Dense power arrives with very long obligations."
+  },
+  "zh-Hans": {
+   "intro": "1942年12月2日，在芝加哥大学一座废弃橄榄球场的看台下面，费米的团队从一堆石墨和铀块中抽出最后一根控制棒，看着计数器的读数一路攀升，不再趋平。人类第一次自持的链式反应持续了几分钟。要把它变成电，还需要锅炉、汽轮机、冷却水、屏蔽和几十年的工程积累，而每座电厂都得处置自己的乏燃料。核保障随之成长：核查员、封签、核材料账目，因为能把水烧开的知识，同样可能被挪去制造武器。高密度的动力，附带着极其漫长的责任。"
+  },
+  "zh-Hant": {
+   "intro": "1942年12月2日，在芝加哥大學一座廢棄橄欖球場的看臺下面，費米的團隊從一堆石墨和鈾塊中抽出最後一根控制棒，看著計數器的讀數一路攀升，不再趨平。人類第一次自持的鏈式反應持續了幾分鐘。要把它變成電，還需要鍋爐、汽輪機、冷卻水、遮蔽和幾十年的工程積累，而每座電廠都得處置自己的乏燃料。核保障隨之成長：核查員、封籤、核材料賬目，因為能把水燒開的知識，同樣可能被挪去製造武器。高密度的動力，附帶著極其漫長的責任。"
+  }
+ },
+ {
+  "id": "T148",
+  "en": {
+   "intro": "Heat a gas enough and its atoms come apart into a seething soup of ions and electrons that no material wall can touch. Holding it in place with magnetic fields proved fiendishly hard: early devices lost their plasma in thousandths of a second as it found every flaw in the field. In 1968 Soviet physicists reported that their tokamak in Moscow had reached temperatures many in the West doubted, and in 1969 a British team travelled to Moscow with its own instruments and confirmed them. Diagnostics, not declarations, settled it. Hot, confined plasma is a laboratory triumph; it is not yet a power station."
+  },
+  "zh-Hans": {
+   "intro": "气体加热到足够高的温度，原子就会散成一锅翻滚的离子和电子，任何材料做的器壁都碰不得它。用磁场把它圈住难得出奇：早期的装置里，等离子体总能找到磁场的每一处破绽，几千分之一秒就漏个精光。1968年，苏联物理学家宣布莫斯科的托卡马克达到了西方许多人不信的温度；1969年，一支英国团队带着自己的仪器来到莫斯科，测量证实了这一结果。一锤定音的是诊断数据，而不是宣言。被约束住的高温等离子体是实验室里的胜利，却还不是发电厂。"
+  },
+  "zh-Hant": {
+   "intro": "氣體加熱到足夠高的溫度，原子就會散成一鍋翻滾的離子和電子，任何材料做的器壁都碰不得它。用磁場把它圈住難得出奇：早期的裝置裡，電漿總能找到磁場的每一處破綻，幾千分之一秒就漏個精光。1968年，蘇聯物理學家宣佈莫斯科的託卡馬克達到了西方許多人不信的溫度；1969年，一支英國團隊帶著自己的儀器來到莫斯科，測量證實了這一結果。一錘定音的是診斷資料，而不是宣言。被約束住的高溫電漿是實驗室裡的勝利，卻還不是發電廠。"
+  }
+ },
+ {
+  "id": "T149",
+  "en": {
+   "intro": "On 5 December 2022 the National Ignition Facility in California fired its lasers at a peppercorn-sized capsule and got more fusion energy out than the laser light put in, though far less than the electricity the lasers had drawn from the grid. The gap between that shot and a power plant is the whole subject. A maintainable reactor must run for years, breed or buy its fuel, shed enormous heat and let crews replace walls battered by neutrons, all while an honest audit counts every watt it swallows. Each confinement route has to prove this separately. A record shot proves only itself."
+  },
+  "zh-Hans": {
+   "intro": "2022年12月5日，美国加州的国家点火装置用激光轰击一粒胡椒籽大小的靶丸，得到的聚变能量第一次超过了射入的激光能量——尽管远远少于那些激光从电网里吸走的电。从那一发打靶到一座发电厂之间的距离，就是这门学问的全部。可维护的反应堆要连续运行多年，要自己增殖或外购燃料，要排走巨量的热，还要让维修人员更换被中子轰得千疮百孔的内壁，同时接受一本诚实的账：它吞下的每一瓦都要记上。每条约束路线都得各自证明这一切。一次破纪录的打靶，只证明它自己。"
+  },
+  "zh-Hant": {
+   "intro": "2022年12月5日，美國加州的國家點火裝置用雷射轟擊一粒胡椒籽大小的靶丸，得到的核融合能量第一次超過了射入的雷射能量——儘管遠遠少於那些雷射從電網裡吸走的電。從那一發打靶到一座發電廠之間的距離，就是這門學問的全部。可維護的反應堆要連續運行多年，要自己增殖或外購燃料，要排走巨量的熱，還要讓維修人員更換被中子轟得千瘡百孔的內壁，同時接受一本誠實的賬：它吞下的每一瓦都要記上。每條約束路線都得各自證明這一切。一次破紀錄的打靶，只證明它自己。"
+  }
+ },
+ {
+  "id": "T150",
+  "en": {
+   "intro": "Sunlight above the atmosphere never hides behind clouds and, in the right orbit, hardly sets at all. In 1968 the engineer Peter Glaser proposed collecting it with vast arrays in orbit and sending it down as a microwave beam to receiving fields on the ground. For decades the sums never closed: the launches were too dear and the arrays too heavy. With orbital yards the arithmetic changes but does not vanish. Every stage loses something, from panel to transmitter to beam to receiver to grid, and an eclipse, a particle storm or a drifting beam interrupts the flow. Free sunlight is not free power."
+  },
+  "zh-Hans": {
+   "intro": "大气层之上的阳光不会被云遮住，在合适的轨道上几乎终日不落。1968年，工程师彼得·格拉泽提出：在轨道上铺开巨大的阵列收集阳光，再用微波波束把能量送到地面的接收场。几十年里这笔账始终算不平：发射太贵，阵列太重。有了轨道工场，算式变了，却没有消失。从光伏板到发射机，从波束到接收站，再到电网，每一环都有损耗；一次地影、一场粒子风暴、一回波束偏斜，都会让输送中断。白来的阳光，不等于白来的电。"
+  },
+  "zh-Hant": {
+   "intro": "大氣層之上的陽光不會被雲遮住，在合適的軌道上幾乎終日不落。1968年，工程師彼得·格拉澤提出：在軌道上鋪開巨大的陣列收集陽光，再用微波波束把能量送到地面的接收場。幾十年裡這筆賬始終算不平：發射太貴，陣列太重。有了軌道工場，算式變了，卻沒有消失。從光伏板到發射機，從波束到接收站，再到電網，每一環都有損耗；一次地影、一場粒子風暴、一回波束偏斜，都會讓輸送中斷。白來的陽光，不等於白來的電。"
+  }
+ },
+ {
+  "id": "T151",
+  "en": {
+   "intro": "Two telescopes far apart, their signals combined with exquisite timing, can resolve detail as fine as a single telescope as wide as the gap between them. In April 2019 the Event Horizon Telescope, a network of radio dishes spanning the Earth, released an image of the shadow around the black hole at the heart of the galaxy M87. Its data were too large to send over any network, so hard drives were shipped to the correlators instead. Moving such instruments into orbit stretches the baseline further, but the hard part stays the same: knowing every distance to a fraction of a wavelength, every moment, with lasers and clocks."
+  },
+  "zh-Hans": {
+   "intro": "两台相隔遥远的望远镜，若能把信号以极其精准的时间配合起来合成，看到的细节就相当于一台口径等于两者间距的望远镜。2019年4月，遍布全球的射电天线组成的“事件视界望远镜”，发布了M87星系中心黑洞阴影的影像。数据量大到无法经由任何网络传送，只好把硬盘一箱箱运到处理中心。把这类干涉仪器搬上轨道，基线可以拉得更长，难处却依旧：每时每刻都要借助激光和时钟，把每一段距离量准到波长的几分之一。"
+  },
+  "zh-Hant": {
+   "intro": "兩臺相隔遙遠的望遠鏡，若能把訊號以極其精準的時間配合起來合成，看到的細節就相當於一臺口徑等於兩者間距的望遠鏡。2019年4月，遍佈全球的射電天線組成的「事件視界望遠鏡」，釋出了M87星系中心黑洞陰影的影像。資料量大到無法經由任何網路傳送，只好把硬碟一箱箱運到處理中心。把這類干涉儀器搬上軌道，基線可以拉得更長，難處卻依舊：每時每刻都要藉助雷射和時鐘，把每一段距離量準到波長的幾分之一。"
+  }
+ },
+ {
+  "id": "T152",
+  "en": {
+   "intro": "Redundancy only helps if the backups fail differently. On 4 June 1996 a new European launcher veered off course less than a minute after lift-off and destroyed itself. Both of its navigation reference units ran identical software, met the same unexpected number, and shut down within milliseconds of each other. Two copies of one mistake are one mistake. The American shuttle programme had already taken the lesson to heart: four primary flight computers voted on every decision, while a fifth, running separately written software, stood by. Fault-tolerant control means diversity, radiation testing, spares, audit trails and a human who can take over."
+  },
+  "zh-Hans": {
+   "intro": "冗余要起作用，前提是备份会以不同的方式出错。1996年6月4日，欧洲一款新型运载器升空不到一分钟就偏离航向，随即自毁。它的两套导航基准装置运行着一模一样的软件，遇到同一个出乎意料的数值，几毫秒之内先后停机。同一个错误复制两份，仍然只是一个错误。美国的可复用轨道器早已吸取了这个道理：四台主飞行计算机对每个决定投票表决，第五台运行另行编写的软件，随时待命。容错控制意味着差异化的设计、辐射试验、备件、可追溯的记录，以及一个随时能接管的人。"
+  },
+  "zh-Hant": {
+   "intro": "冗餘要起作用，前提是備份會以不同的方式出錯。1996年6月4日，歐洲一款新型運載器升空不到一分鐘就偏離航向，隨即自毀。它的兩套導航基準裝置運行著一模一樣的軟體，遇到同一個出乎意料的數值，幾毫秒之內先後停機。同一個錯誤複製兩份，仍然只是一個錯誤。美國的可複用軌道器早已吸取了這個道理：四臺主飛行電腦對每個決定投票表決，第五臺運行另行編寫的軟體，隨時待命。容錯控制意味著差異化的設計、輻射試驗、備品、可追溯的記錄，以及一個隨時能接管的人。"
+  }
+ },
+ {
+  "id": "T153",
+  "en": {
+   "intro": "Living in orbit for a season is an expedition; living there for decades is a supply chain. Since 2 November 2000 the International Space Station has never been without a crew, and that unbroken record rests on a quieter one: a long procession of cargo craft, replacement crews, spare pumps, fresh food and medical checks arriving more or less on schedule. When a supply craft is lost, the station tightens its belt and waits for the next. Relief systems make long deployment ordinary by making nobody indispensable. Recycling helps, but whatever is not recycled must actually arrive, and every rotation needs someone trained to hand over."
+  },
+  "zh-Hans": {
+   "intro": "在轨道上住一季是探险，住几十年就是一条供应链。自2000年11月2日起，国际空间站从未断过人。这项纪录背后，是另一项更安静的纪录：货运舱、轮换乘组、备用水泵、新鲜食物和体检，一批接一批，大体按时抵达。一趟补给失手，站上的人就勒紧裤腰带，等下一趟。轮换体系让长期驻留变得平常，靠的是让谁都不是不可替代的。循环利用固然有帮助，但凡不能循环的，就必须真正送到；每一次轮换，都需要有人受过交接的训练。"
+  },
+  "zh-Hant": {
+   "intro": "在軌道上住一季是探險，住幾十年就是一條供應鏈。自2000年11月2日起，國際太空站從未斷過人。這項紀錄背後，是另一項更安靜的紀錄：貨運艙、輪換乘組、備用水泵、新鮮食物和體檢，一批接一批，大體按時抵達。一趟補給失手，站上的人就勒緊褲腰帶，等下一趟。輪換體系讓長期駐留變得平常，靠的是讓誰都不是不可替代的。循環利用固然有幫助，但凡不能循環的，就必須真正送到；每一次輪換，都需要有人受過交接的訓練。"
+  }
+ },
+ {
+  "id": "T160",
+  "en": {
+   "intro": "By the late nineteenth century physics held two excellent theories that disagreed about light. Albert Einstein resolved the quarrel in 1905 by taking two claims seriously: the laws of physics are the same for every observer moving steadily, and light's speed is the same for every observer too. Time and length then had to give way instead. A decade later he extended the idea to gravity, which accounted for a stubborn excess in the motion of Mercury. On 29 May 1919 eclipse expeditions to Príncipe and Sobral photographed starlight bent by the Sun's gravity. Relativity reshaped physics; it handed no one a new machine.",
+   "quote": {
+    "text": "Henceforth space by itself, and time by itself, are doomed to fade away into mere shadows, and only a kind of union of the two will preserve an independent reality.",
+    "source": "Hermann Minkowski, lecture “Space and Time”, Cologne (1908)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "到十九世纪末，物理学手里有两套出色的理论，在光的问题上却说不到一块。1905年，爱因斯坦认真对待了两条主张：对一切匀速运动的观察者，物理定律都相同；对他们每一个人，光速也都相同。于是只好让时间和长度来让步。十年后，他把这一思路推广到引力，解释了水星运动中一个顽固的多余偏移。1919年5月29日，前往普林西比岛和索布拉尔的日食观测队，拍到了被太阳引力偏折的星光。相对论重塑了物理学，却没有交给任何人一台新机器。",
+   "quote": {
+    "text": "从今以后，空间本身和时间本身都注定要消退为纯粹的影子，只有二者的某种结合才能保持独立的实在。",
+    "source": "赫尔曼·闵可夫斯基讲演《空间与时间》，科隆（1908）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "到十九世紀末，物理學手裡有兩套出色的理論，在光的問題上卻說不到一塊。1905年，愛因斯坦認真對待了兩條主張：對一切勻速運動的觀察者，物理定律都相同；對他們每一個人，光速也都相同。於是只好讓時間和長度來讓步。十年後，他把這一思路推廣到引力，解釋了水星運動中一個頑固的多餘偏移。1919年5月29日，前往普林西比島和索布拉爾的日食觀測隊，拍到了被太陽引力偏折的星光。相對論重塑了物理學，卻沒有交給任何人一臺新機器。",
+   "quote": {
+    "text": "從今以後，空間本身和時間本身都註定要消退為純粹的影子，只有二者的某種結合才能保持獨立的實在。",
+    "source": "赫爾曼·閔可夫斯基講演《空間與時間》，科隆（1908）"
+   }
+  }
+ },
+ {
+  "id": "T161",
+  "en": {
+   "intro": "Empty space turns out not to be empty. In 1948 Hendrik Casimir predicted that two uncharged metal plates, set very close together in a vacuum, would be pushed towards each other by the restless fields between them; Steve Lamoreaux measured the force convincingly in 1997. Pursuing such effects means pumping chambers to the hardest vacuum engineers can reach, shielding them from stray fields and vibration, and driving them with intense laser pulses and magnetic fields while instruments watch for anything that is not noise. It is slow, expensive, exacting work. Most nights the honest result is a tighter upper limit, carefully recorded."
+  },
+  "zh-Hans": {
+   "intro": "空无一物的空间，其实并不空。1948年，卡西米尔预言：在真空中靠得极近的两块不带电金属板，会被板间躁动不息的场推向彼此；1997年，拉莫罗把这股力测得令人信服。追踪这类效应，要把实验舱抽到工程师所能达到的最高真空，屏蔽杂散场和振动，再用高强度激光脉冲和强磁场去驱动，让仪器盯着一切不像噪声的信号。这是缓慢、昂贵而苛刻的工作。多数夜晚，诚实的结果只是一个更严格的上限，被仔细地记录下来。"
+  },
+  "zh-Hant": {
+   "intro": "空無一物的空間，其實並不空。1948年，卡西米爾預言：在真空中靠得極近的兩塊不帶電金屬板，會被板間躁動不息的場推向彼此；1997年，拉莫羅把這股力測得令人信服。追蹤這類效應，要把實驗艙抽到工程師所能達到的最高真空，遮蔽雜散場和振動，再用高強度雷射脈衝和強磁場去驅動，讓儀器盯著一切不像噪聲的訊號。這是緩慢、昂貴而苛刻的工作。多數夜晚，誠實的結果只是一個更嚴格的上限，被仔細地記錄下來。"
+  }
+ },
+ {
+  "id": "T162",
+  "en": {
+   "intro": "The first reports read like instrument faults, and most of them were. Then, under one precisely recorded set of conditions, the same discrepancy turned up again and again: clocks and rulers set apart inside the field-state chamber disagreed in a way no known effect accounted for. The team published its trigger conditions with version numbers, shipped samples to its rivals, and waited. Acceptance came only when an independent laboratory, following the written recipe and nothing else, reproduced the effect. This is the single point at which this account departs from known physics, and the departure was earned by replication, not announced."
+  },
+  "zh-Hans": {
+   "intro": "最早的报告读起来像是仪器故障，其中大多数也确实是。后来，在一组被精确记录下来的条件下，同样的偏差一次又一次出现：场态实验舱里相隔放置的时钟和量尺，以任何已知效应都解释不了的方式彼此不符。研究团队给触发条件编上版本号公开发表，把样本寄给竞争对手，然后等待。直到一家独立实验室只照着书面配方、别无其他，复现了这一现象，它才被接受。这是本叙述唯一一处偏离已知物理的设定，而它是靠重复验证挣来的，不是靠宣布得来的。"
+  },
+  "zh-Hant": {
+   "intro": "最早的報告讀起來像是儀器故障，其中大多數也確實是。後來，在一組被精確記錄下來的條件下，同樣的偏差一次又一次出現：場態實驗艙裡相隔放置的時鐘和量尺，以任何已知效應都解釋不了的方式彼此不符。研究團隊給觸發條件編上版本號公開發表，把樣本寄給競爭對手，然後等待。直到一家獨立實驗室只照著書面配方、別無其他，復現了這一現象，它才被接受。這是本敘述唯一一處偏離已知物理的設定，而它是靠重複驗證掙來的，不是靠宣佈得來的。"
+  }
+ },
+ {
+  "id": "T163",
+  "en": {
+   "intro": "An effect without a theory is a curiosity. The theory that grew around the anomaly proposed something bolder: under conditions it specified exactly, the effect could be shaped into an interface between two distant points, crossed sooner than light could travel between them. What made it science within this world rather than wishful thinking was that it risked being wrong. It predicted thresholds, energies and failure modes in advance, and rival teams spent years trying to break those predictions. Within the fiction of this account it is the only such interface there is; outside it, no established physics supports anything of the kind."
+  },
+  "zh-Hans": {
+   "intro": "只有效应、没有理论，那只是一桩奇闻。围绕这一异常发展起来的理论提出了更大胆的主张：在它精确规定的条件下，这种效应可以被塑造成连通两个遥远地点的界面，穿越它比光走完这段距离还快。它之所以在这个世界里算作科学而不是一厢情愿，是因为它甘冒出错的风险：它事先预言了阈值、能量和失效方式，各支团队花了好几年想推翻这些预言。在本叙述的虚构设定中，这是唯一的超光速界面；而在设定之外，没有任何已确立的物理学支持这类东西。"
+  },
+  "zh-Hant": {
+   "intro": "只有效應、沒有理論，那只是一樁奇聞。圍繞這一異常發展起來的理論提出了更大膽的主張：在它精確規定的條件下，這種效應可以被塑造成連通兩個遙遠地點的介面，穿越它比光走完這段距離還快。它之所以在這個世界裡算作科學而不是一廂情願，是因為它甘冒出錯的風險：它事先預言了閾值、能量和失效方式，各支團隊花了好幾年想推翻這些預言。在本敘述的虛構設定中，這是唯一的超光速介面；而在設定之外，沒有任何已確立的物理學支持這類東西。"
+  }
+ },
+ {
+  "id": "T164",
+  "en": {
+   "intro": "The brute-force answer to the interface's demands was abundance. If the field tolerates error only when it is fed enormous power, then feed it: bigger supplies, heavier heat rejection, triple-redundant controllers, margins on every margin. These prototypes were loud, hot and hungry, built at orbital yards beside the power plants that kept them fed, and they could absorb flaws in manufacture that would have doomed a finer machine. The cost was everything else: energy diverted from other uses, radiator wings the size of fields, and crews who spent more of their shifts on cooling loops than on the interface itself."
+  },
+  "zh-Hans": {
+   "intro": "应对界面苛刻要求的一种直截了当的办法，是靠充裕取胜：既然只有喂进巨大的能量，这种场才肯容忍误差，那就喂饱它——更大的电源、更强的排热、三重冗余的控制器，每道余量之外再留余量。这样的原型机嘈杂、炽热、胃口惊人，建在轨道工场里，紧挨着为它供能的电厂；制造上的偏差足以毁掉一台精巧的机器，它却吃得消。代价是其余的一切：被挪用的能源，田野般大小的散热翼，还有把更多班次花在冷却回路上而不是界面本身的乘组。"
+  },
+  "zh-Hant": {
+   "intro": "應對介面苛刻要求的一種直截了當的辦法，是靠充裕取勝：既然只有喂進巨大的能量，這種場才肯容忍誤差，那就餵飽它——更大的電源、更強的排熱、三重冗餘的控制器，每道餘量之外再留餘量。這樣的原型機嘈雜、熾熱、胃口驚人，建在軌道工場裡，緊挨著為它供能的電廠；製造上的偏差足以毀掉一臺精巧的機器，它卻吃得消。代價是其餘的一切：被挪用的能源，田野般大小的散熱翼，還有把更多班次花在冷卻迴路上而不是介面本身的乘組。"
+  }
+ },
+ {
+  "id": "T165",
+  "en": {
+   "intro": "This route to a working interface ran through precision. Hold the geometry true to a hair, keep the field steady, damp every vibration, and the device needs less raw power to stay within tolerance. Such prototypes were built like observatories: isolated mounts, laser metrology running around the clock, materials certified batch by batch, and calibration crews who treated a thermal drift as a personal insult. They still drew substantial real energy. And the benefit was brittle: a misaligned mount or a contaminated component could erase the advantage in a single run, so maintenance became an exacting discipline of its own."
+  },
+  "zh-Hans": {
+   "intro": "这条通往可用界面的路，走的是精度。把几何形状保持得分毫不差，让场稳定，把每一丝振动都吸收掉，装置就只需较少的原始能量便能保持在容差之内。这样的原型机造得像天文台：隔振基座，昼夜不停的激光计量，逐批认证的材料，还有一支把热漂移视为奇耻大辱的校准队伍。它们照样要消耗可观的真实能量。而且这份好处很脆弱：一个基座偏斜、一个部件受了污染，一次运行就能把优势抹得干干净净，于是维护本身也成了一门精密的学问。"
+  },
+  "zh-Hant": {
+   "intro": "這條通往可用介面的路，走的是精度。把幾何形狀保持得分毫不差，讓場穩定，把每一絲振動都吸收掉，裝置就只需較少的原始能量便能保持在容差之內。這樣的原型機造得像天文臺：隔振基座，晝夜不停的雷射計量，逐批認證的材料，還有一支把熱漂移視為奇恥大辱的校準隊伍。它們照樣要消耗可觀的真實能量。而且這份好處很脆弱：一個基座偏斜、一個部件受了汙染，一次運行就能把優勢抹得乾乾淨淨，於是維護本身也成了一門精密的學問。"
+  }
+ },
+ {
+  "id": "T166",
+  "en": {
+   "intro": "A prototype that returns once has made a claim; a vessel that goes out loaded, comes back, is recovered, inspected and goes again has made a case. The trials demanded two independent sets of interface components, so that one good run could not hide a lucky flaw, along with real payloads, crews, measured routes and recovery teams waiting at the far end and at home. Logs recorded each departure and return separately, and reviewers were paid to doubt them. The first crews were chosen as much for their patience with checklists as for their nerve. Only then was the interface treated as transport rather than an experiment."
+  },
+  "zh-Hans": {
+   "intro": "原型机回来一次，只是提出了一个主张；一台载具满载出发、返回、被回收、受检、再次出发，才算立住了案。试航要求两套彼此独立的界面部件，免得一次顺利的运行掩盖了侥幸躲过的缺陷；还要真实的载荷、乘组、经过测量的航路，以及在远端和本土同时待命的回收队伍。日志分别记录每一次出发和返回，评审员拿着薪水专门怀疑它们。首批乘组入选，看重的是对检查单的耐心，不亚于胆量。直到这时，界面才终于被当作运输手段，而不再是一项实验。"
+  },
+  "zh-Hant": {
+   "intro": "原型機回來一次，只是提出了一個主張；一臺載具滿載出發、返回、被回收、受檢、再次出發，才算立住了案。試航要求兩套彼此獨立的介面部件，免得一次順利的運行掩蓋了僥倖躲過的缺陷；還要真實的載荷、乘組、經過測量的航路，以及在遠端和本土同時待命的回收隊伍。日誌分別記錄每一次出發和返回，評審員拿著薪水專門懷疑它們。首批乘組入選，看重的是對檢查單的耐心，不亞於膽量。直到這時，介面才終於被當作運輸手段，而不再是一項實驗。"
+  }
+ },
+ {
+  "id": "T167",
+  "en": {
+   "intro": "A handful of hand-built vessels is a feat; a fleet is a standard. Interfaces from different yards had to fit the same mounts, speak the same control protocols and accept the same spares, or every breakdown became a custom repair far from home. So the work moved from laboratories to committees, drawings and training schools: tolerance tables, inspection regimes, simulator hours, maintenance manuals thick enough to prop open a door. It was the least glamorous chapter of the whole endeavour, and the one that let ordinary crews, not only heroes, make the crossing. A fleet, however well built, is still not a world united."
+  },
+  "zh-Hans": {
+   "intro": "几台手工打造的载具是壮举，一支舰队则是一套标准。不同工场造出的界面必须装得进同样的基座，使用同样的控制协议，接受同样的备件，否则每一次故障都会变成远离家园的定制维修。于是工作从实验室转到了委员会、图纸和培训学校：公差表、检验制度、模拟器时数，还有厚得能拿来顶门的维护手册。这是整项事业里最不光彩夺目的一章，却正是它，让普通乘组而不只是英雄能够完成穿越。舰队造得再好，也不等于世界已经统一。"
+  },
+  "zh-Hant": {
+   "intro": "幾臺手工打造的載具是壯舉，一支艦隊則是一套標準。不同工場造出的介面必須裝得進同樣的基座，使用同樣的控制協議，接受同樣的備品，否則每一次故障都會變成遠離家園的定製維修。於是工作從實驗室轉到了委員會、圖紙和培訓學校：公差表、檢驗制度、模擬器時數，還有厚得能拿來頂門的維護手冊。這是整項事業裡最不光彩奪目的一章，卻正是它，讓普通乘組而不只是英雄能夠完成穿越。艦隊造得再好，也不等於世界已經統一。"
+  }
+ }
+]

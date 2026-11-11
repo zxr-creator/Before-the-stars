@@ -1,7 +1,41 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import type { Plugin } from 'vite';
 import preact from '@preact/preset-vite';
+
+// The encyclopedia passages (content/lore/*.json, keyed by content id) reach the client as
+// one lazily loaded module per language, `virtual:lore/<locale>`, keyed by the card's
+// English name, which is all an observation carries (cards are addressed by opaque handles).
+// The main bundle holds none of the text; each language is its own chunk.
+const LORE_LOCALES = ['en', 'zh-Hans', 'zh-Hant'];
+function lore(): Plugin {
+  const prefix = 'virtual:lore/';
+  const content = (p: string) => fileURLToPath(new URL('../../content/' + p, import.meta.url));
+  return {
+    name: 'bts-lore',
+    resolveId(id) {
+      return id.startsWith(prefix) && LORE_LOCALES.includes(id.slice(prefix.length)) ? '\0' + id : null;
+    },
+    load(id) {
+      if (!id.startsWith('\0' + prefix)) return null;
+      const locale = id.slice(prefix.length + 1);
+      const read = (p: string) => {
+        this.addWatchFile(content(p));
+        return JSON.parse(readFileSync(content(p), 'utf8'));
+      };
+      const pack: Record<string, Record<string, unknown>> = { tech: {}, practice: {} };
+      for (const [kind, nodes, passages] of [['tech', 'technologies.json', 'lore/technologies.json'], ['practice', 'practices.json', 'lore/practices.json']]) {
+        const names = new Map<string, string>(read(nodes).map((n: { id: string; name: string }) => [n.id, n.name]));
+        for (const e of read(passages)) {
+          const name = names.get(e.id);
+          if (name && e[locale]) pack[kind][name] = e[locale];
+        }
+      }
+      return `export default ${JSON.stringify(pack)};`;
+    },
+  };
+}
 
 // Two ways to ship the same client:
 //
@@ -21,7 +55,7 @@ if (process.env.VITE_BTS_LOCAL === '1' && !existsSync(wasm)) {
 
 export default defineConfig({
   base: './',
-  plugins: [preact()],
+  plugins: [preact(), lore()],
   // the referee's worker is a module worker
   worker: { format: 'es' },
   server: {

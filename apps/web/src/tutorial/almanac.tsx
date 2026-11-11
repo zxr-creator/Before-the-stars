@@ -112,6 +112,26 @@ function BlockView({ block, query, term, canAct }: { block: Block; query: string
         ? <p class="alm-note is-gold"><Icon name="star" size={13} /> <span><b>{t('Revealed to your civilization:')}</b> {tc(v.summary)}</span></p>
         : <p class="alm-note"><Icon name="question" size={13} /> <span>{t('In this match it has not been revealed to your civilization yet.')}</span></p>;
     }
+    case 'encyclopedia': {
+      // Only the seat's own disclosed cards: each opens its details, encyclopedia entry included.
+      const cards = !canAct || !s.obs ? [] : block.tree === 'tech'
+        ? s.obs.knowledge.techs.map((c) => ({ handle: c.handle, name: tc(c.name) }))
+        : s.obs.culture.practices.map((c) => ({ handle: c.handle, name: tc(c.name) }));
+      cards.sort((a, b) => a.name.localeCompare(b.name));
+      return (
+        <div class="alm-encyclopedia" data-testid={`almanac-encyclopedia-${block.tree}`}>
+          <h4>{t('Encyclopedia')}</h4>
+          <p>{block.tree === 'tech'
+            ? t('Every technology your people have discovered has a short encyclopedia entry: what it was, and what it changed for the people who lived with it. It appears with the card’s details.')
+            : t('Every practice your people have recognized has a short encyclopedia entry: what it was, and what it changed for the people who lived by it. It appears with the card’s details.')}</p>
+          {cards.length ? (
+            <div class="alm-cards">
+              {cards.map((c) => <button type="button" class="alm-chip" data-testid="almanac-card" onClick={() => openOverlay(block.tree, c.handle)}>{c.name}</button>)}
+            </div>
+          ) : null}
+        </div>
+      );
+    }
     default: return null;
   }
 }

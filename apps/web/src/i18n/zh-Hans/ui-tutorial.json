@@ -374,5 +374,7 @@
  "{n} results": "{n} 条结果",
  "Nothing in the almanac matches. Try a shorter word.": "年鉴中没有匹配的内容。试试更短的词。",
  "Take the guided tour": "开始新手引导",
- "See also": "另请参阅"
+ "See also": "另请参阅",
+ "Every technology your people have discovered has a short encyclopedia entry: what it was, and what it changed for the people who lived with it. It appears with the card’s details.": "你的人民发现的每一项科技都附有一段简短的百科条目：它是什么，又给与它共处的人们带来了哪些改变。条目随卡片详情一同显示。",
+ "Every practice your people have recognized has a short encyclopedia entry: what it was, and what it changed for the people who lived by it. It appears with the card’s details.": "你的人民认识到的每一项制度都附有一段简短的百科条目：它是什么，又给依它生活的人们带来了哪些改变。条目随卡片详情一同显示。"
 }
