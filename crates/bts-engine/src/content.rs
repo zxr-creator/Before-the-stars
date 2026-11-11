@@ -22,9 +22,13 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
-/// pacing; saves written by earlier rulesets are refused.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0";
-pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0";
+/// pacing; saves written by earlier rulesets are refused. Until ruleset 3.0 is
+/// released each slice that changes saved state carries a pre-release tag
+/// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
+/// that a save of an earlier slice is refused by name.
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s4";
+/// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
+pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s4";
 
 /// Base units in one display unit of goods, work, research or service.
 pub const DISPLAY_DIVISOR: i64 = 1000;

@@ -171,18 +171,15 @@ pub fn field_method_for(civ: &Civ, has_pasture: bool, ceiling: Option<usize>, ch
 /// The harvest of a year in a region, basis points added to field yields
 /// (design chapter 36, section 3.2): one draw a year from the secret stream
 /// `("harvest", climate zone, year)`, shared by the regions of one climate zone
-/// (terrain group) in one part of the map, triangular in [-1,800, +1,000] with mode
+/// (generator 2.0's `Region.climate`) in one part of the map, triangular in [-1,800, +1,000] with mode
 /// +200 (mean -200).
 pub fn harvest_bp(w: &World, ri: usize) -> i64 {
     let r = &w.regions[ri];
-    let zone = match r.terrain {
-        Terrain::Plains | Terrain::Steppe => 0u64,
-        Terrain::Hills | Terrain::Mountains => 1,
-        Terrain::Forest | Terrain::Marsh => 2,
-        Terrain::Desert => 3,
-        Terrain::Tundra => 4,
-    };
-    let cell = ((r.center[0].max(0) as i64 * 3 / w.width.max(1) as i64).min(2) * 3 + (r.center[1].max(0) as i64 * 3 / w.height.max(1) as i64).min(2)) as u64;
+    let zone = r.climate.index() as u64;
+    // thirds of the map east-west and north-south (on a wrapped map the thirds of
+    // longitude simply repeat round the globe)
+    let x = r.center[0].rem_euclid(w.width.max(1)) as i64;
+    let cell = ((x * 3 / w.width.max(1) as i64).min(2) * 3 + (r.center[1].max(0) as i64 * 3 / w.height.max(1) as i64).min(2)) as u64;
     let year = (w.month.saturating_sub(1) / 12) as u64;
     let u = draw_range(w.secret, &[stream("harvest"), zone, cell, year], 1_000_000) as i64;
     // triangular(a = -1,800, b = +1,000, c = +200) by inverse transform, in integers

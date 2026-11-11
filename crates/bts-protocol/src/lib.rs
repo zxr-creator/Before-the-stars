@@ -14,7 +14,9 @@ use serde::{Deserialize, Serialize};
 /// 1.3 (ruleset 3.0, additions only): the historical calendar (`date`, `calendar`),
 /// standing orders (`directives`, `Action::Directive`), war policies, notice on
 /// open-ended treaties and the round recap flag of chronicle entries.
-pub const PROTOCOL_VERSION: &str = "bts-protocol/1.3";
+/// 1.4 (additions only): the Earth-like world (`WorldFrame.wrap_x`, `WorldFrame.kind`,
+/// `RegionView.climate`).
+pub const PROTOCOL_VERSION: &str = "bts-protocol/1.4";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -106,6 +108,31 @@ public_enum!(Terrain {
     Desert => "Desert",
     Tundra => "Tundra",
 });
+
+public_enum!(
+    /// Climate zone of a region (ruleset 3.0, generator 2.0): drives the shared
+    /// harvest draws and the map's colours. Terrain stays the eight kinds above.
+    ClimateZone {
+    Tropical => "Tropical",
+    Arid => "Arid",
+    Temperate => "Temperate",
+    Continental => "Continental",
+    Polar => "Polar",
+});
+
+public_enum!(
+    /// Kind of home world a match is generated on (design chapter 37, section 5).
+    /// `Classic` is the flat generator of ruleset 2.0, kept for fixtures.
+    WorldKind {
+    EarthLike => "Earth-like world",
+    Classic => "Classic map",
+});
+
+impl Default for WorldKind {
+    fn default() -> Self {
+        WorldKind::EarthLike
+    }
+}
 
 public_enum!(Deposit {
     CopperOre => "Copper ore",
@@ -457,6 +484,13 @@ pub struct WorldFrame {
     pub height: i32,
     /// Total number of regions is public scenario information.
     pub region_count: u16,
+    /// The map wraps east-west (generator 2.0 Earth-like worlds): a region polygon
+    /// may extend past either edge and is drawn again one width over.
+    #[serde(default)]
+    pub wrap_x: bool,
+    /// The kind of home world (absent from older referees: the classic map).
+    #[serde(default)]
+    pub kind: Option<WorldKind>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -882,6 +916,9 @@ pub struct RegionView {
     /// An epidemic in the region, seen by its government and by seats observing it (ruleset 3.0).
     #[serde(default)]
     pub outbreak: Option<OutbreakView>,
+    /// Climate zone (generator 2.0; public geography like terrain).
+    #[serde(default)]
+    pub climate: Option<ClimateZone>,
 }
 
 /// An epidemic in a region (design chapter 36, section 3.2).

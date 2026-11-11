@@ -787,3 +787,51 @@ handwork").
   12,000, 20,000 and 30,000 with 36, 30, 30, 30, 36 and 36 months (tiers 4-9 at a
   tenth to a fifth of the design's, which assumed research capacity the native seats
   do not yet build).
+
+## 13. The home world: generator 2.0 (ruleset 3.0)
+
+Design chapter 37, section 5.1, as implemented in `worldgen.rs` (shared steps) and
+`worldgen/earthlike.rs` (the map source). `MatchConfig.world` (`WorldKind`) chooses the
+map source: `earth_like` (default) or `classic` (the flat 1,600 x 1,000 map of ruleset
+2.0, kept for fixtures; `bts run --world classic`, `"world": "classic"` in a new-match
+request). A map source returns a `Geo` (regions with geography and links, geology tags,
+moisture, ocean adjacency); rivers, passes, sea links, connectivity, site data,
+deposits, starts, guarantees, test nodes and civilizations are shared, so the real
+Earth (slice 16) only adds a map source.
+
+- **Map.** 2,000 x 1,000 units, equirectangular, wrapping east-west
+  (`WorldFrame.wrap_x`); latitude 90 - y x 0.18 degrees. Cells on a staggered jittered
+  grid, `regions x 10 / 3` of them (land is about 30% of cells; one land cell is one
+  region); cells above 72 degrees are polar ice. Polygons are stored contiguous around
+  their centre (the centre's x in [0, 2,000)), so a region at the date line has
+  vertices past an edge; movement and carriage use links only.
+- **Plates.** 7-9 seeds; 3 continental (35-40%); each cell joins the nearest seed
+  (cosine-weighted, warped by noise). Elevation: continental crust 0.60, oceanic 0.18,
+  convergent boundaries raise continents (mountain belts) and island arcs and sink the
+  oceanic side of a subduction zone, divergent ones lower; fractal noise; high
+  latitudes lowered. Land = the highest non-polar cells.
+- **Climate.** Temperature `-18 + 46 cos(lat) - 10 x height` (integer cosine table);
+  moisture by latitude band (wet equator, dry subtropics, wet westerlies, dry poles),
+  reduced by 13% per land link from the sea (to at least 45%), by 45% in the rain
+  shadow of mountains (east of ranges at 35-62 degrees, west of ranges below 30), plus
+  noise. Height is the rank of relief among the world's land, so mountain and hill
+  shares match the classic map. Terrain from a Whittaker-style table onto the eight
+  terrains; `Region.climate` (`Tropical, Arid, Temperate, Continental, Polar`) drives
+  the shared harvest draws (one per climate zone and ninth of the map per year).
+- **Land attributes** by terrain are the classic generator's (`terrain_attrs`); over
+  1,000 worlds the arable, pasture, forest and water means are within 5% of the classic
+  map (`docs/calibration/ruleset3-slice-4-eval.txt`), which keeps slice 2's population
+  calibration valid.
+- **Starts.** Temperate or tropical, not mountains, desert or tundra, scored by land
+  and room, as many links apart as the world allows (four wanted, three at least in
+  nine worlds of ten), each with room to grow over land (`regions / 12` regions nearer
+  to it than to any other start within three land links). A world whose starts fail
+  is drawn again from the next address of the secret, at most twelve times. A start
+  the river courses missed gets a short river to its lowest land neighbour.
+- **Site data** (`Region.site`, plain world data for later rules on cities, harbours
+  and migration; no rule of slices 4-6 reads it): coast edges, natural harbour
+  quality, navigable river, river mouth, confluence, flat-land share, climate amenity,
+  and mineral wealth within one link.
+- **Determinism.** Only +, -, x, /, floor, sqrt and comparisons on `f64` and keyed
+  integer hashes (`worldgen_uses_no_transcendental_functions` scans the source); noise
+  on the wrapped map repeats every 2,000 units.

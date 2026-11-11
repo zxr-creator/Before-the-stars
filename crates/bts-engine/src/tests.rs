@@ -13,6 +13,7 @@ mod cooperation;
 mod knowledge;
 mod methods;
 mod population;
+mod worldgen;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).

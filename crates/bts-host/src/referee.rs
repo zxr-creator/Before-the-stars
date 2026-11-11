@@ -193,6 +193,9 @@ struct NewMatch {
     calendar: Option<String>,
     #[serde(default)]
     pace_bp: Option<u32>,
+    /// "earth_like" (the default generated planet) or "classic" (the flat map of ruleset 2.0).
+    #[serde(default)]
+    world: Option<String>,
     #[serde(default)]
     controllers: Option<Vec<String>>,
     #[serde(default)]
@@ -267,6 +270,13 @@ fn config_from<A: AgentSlot>(n: NewMatch) -> Result<MatchConfig, String> {
     }
     if let Some(p) = n.pace_bp {
         cfg.pace_bp = p.clamp(1000, 30_000);
+    }
+    if let Some(k) = n.world {
+        cfg.world = match k.trim() {
+            "earth_like" => bts_protocol::WorldKind::EarthLike,
+            "classic" => bts_protocol::WorldKind::Classic,
+            _ => return Err("world must be \"earth_like\" or \"classic\"".into()),
+        };
     }
     if let Some(c) = n.controllers {
         if c.len() != 4 {

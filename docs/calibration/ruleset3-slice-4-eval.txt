@@ -1,0 +1,95 @@
+Ruleset 3.0 slice 4 (merged plan, design chapter 37 section 11): the generated Earth-like world.
+Generator bts-worldgen/2.0.0-s4, ruleset bts-rules/3.0.0-s4. Economics, population and knowledge
+rules unchanged from slice 3; only the home world differs (wrapped 2,000 x 1,000 planet, plates,
+climate, geology-biased deposits; the five deposit kinds of slice 3).
+Standard calendar, --ai hard,medium,medium,easy, eval-0..15, 16 matches on all cores
+(1 min 04 s wall; 40-45 s per match under contention). Release build, Apple M5 Pro.
+   target/release/bts run --matches 16 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+   python3 scripts/curve_summary.py eval.csv --years -5000,-4000,...,2500
+
+Generator statistics over 1,000 worlds of each kind, 48 regions
+(cargo test -p bts-engine --release worldgen_statistics -- --ignored --nocapture, WORLDS=1000):
+classic:    Plains 27.4, Hills 18.8, Mountains 7.5, Forest 11.6, Wetland 5.8, Steppe 16.0, Desert 8.4, Tundra 4.5 (%)
+            arable 68.2 pasture 21.7 forest 9.3 water 2,108 k wild 429 k; rivers 28.5% coastal 64.9%; viable starts 983/1000
+earth-like: Plains 30.4, Hills 20.0, Mountains 8.3, Forest 14.3, Wetland 3.4, Steppe 11.6, Desert 7.0, Tundra 4.8 (%)
+            climate: Tropical 20.9, Arid 12.5, Temperate 40.4, Continental 20.3, Polar 5.8 (%)
+            arable 71.2 pasture 20.8 forest 10.1 water 2,148 k wild 449 k; rivers 28.7% coastal 83.2%; viable starts 1000/1000
+(design constraint: arable, pasture, forest and water means within 10% of the classic generator: met;
+ coastal share is higher because land is split over several continents and islands)
+
+match  0  winner None  month 89988 (AD 2500)  23.0s  0:124923559p/13r/126t  1:228042759p/14r/133t  2:105714889p/9r/120t  3:7280946p/11r/45t
+match  1  winner None  month 89988 (AD 2500)  41.5s  0:117177422p/18r/117t  1:139867102p/11r/125t  2:43884934p/9r/51t  3:64551694p/10r/110t
+match  2  winner None  month 89988 (AD 2500)  44.7s  0:288123875p/46r/138t  1:12019468p/2r/135t  2:0p/0r/133t  3:0p/0r/115t
+match  3  winner None  month 89988 (AD 2500)  43.4s  0:91299944p/13r/126t  1:111821977p/9r/126t  2:94296887p/16r/85t  3:76498259p/8r/126t
+match  4  winner None  month 89988 (AD 2500)  40.7s  0:82589733p/17r/120t  1:389974892p/15r/134t  2:20518403p/3r/89t  3:29750298p/13r/83t
+match  5  winner None  month 89988 (AD 2500)  42.4s  0:103456403p/12r/119t  1:0p/0r/127t  2:656451797p/25r/138t  3:170822156p/11r/116t
+match  6  winner None  month 89988 (AD 2500)  44.2s  0:122099553p/10r/126t  1:353230433p/13r/125t  2:161868117p/16r/119t  3:45897928p/9r/122t
+match  7  winner None  month 89988 (AD 2500)  41.9s  0:311449821p/44r/138t  1:0p/0r/125t  2:45827122p/4r/117t  3:0p/0r/85t
+match  8  winner None  month 89988 (AD 2500)  43.5s  0:160445181p/17r/119t  1:77242320p/10r/124t  2:95735209p/11r/125t  3:180725491p/10r/105t
+match  9  winner None  month 89988 (AD 2500)  43.6s  0:285063508p/18r/126t  1:59301160p/8r/120t  2:128081407p/11r/126t  3:174998835p/11r/106t
+match 10  winner None  month 89988 (AD 2500)  43.7s  0:79274567p/11r/125t  1:166468783p/21r/133t  2:127983042p/11r/134t  3:30655534p/5r/98t
+match 11  winner None  month 89988 (AD 2500)  42.4s  0:242784957p/24r/133t  1:16594323p/3r/126t  2:174589088p/10r/128t  3:146230491p/11r/106t
+match 12  winner None  month 89988 (AD 2500)  44.9s  0:111811505p/13r/123t  1:30430869p/3r/116t  2:166894913p/22r/137t  3:289396416p/10r/118t
+match 13  winner None  month 89988 (AD 2500)  40.7s  0:71672589p/7r/138t  1:118692716p/16r/116t  2:88371641p/13r/122t  3:15392062p/11r/54t
+match 14  winner None  month 89988 (AD 2500)  41.3s  0:133411146p/14r/121t  1:116121411p/13r/128t  2:125823049p/10r/136t  3:29681240p/11r/88t
+match 15  winner None  month 89988 (AD 2500)  44.9s  0:107996957p/11r/128t  1:168430150p/18r/138t  2:115872647p/13r/138t  3:159107174p/6r/123t
+
+
+Population (median seat excludes seats without land; largest and world are medians over matches)
+      date  median seat    largest      world  regions (median)
+   5000 BC        242 k      246 k      968 k               1.0
+   4000 BC       1.14 M     1.36 M     4.09 M               4.0
+   3000 BC       2.25 M     3.94 M    10.54 M               4.0
+   2000 BC       5.43 M     7.55 M    22.34 M               4.0
+   1000 BC       4.64 M     5.64 M    19.15 M               8.0
+     AD 10       4.75 M     5.94 M    19.70 M              10.0
+   AD 1000       6.91 M     9.88 M    27.78 M              11.0
+   AD 1500      12.38 M    26.69 M    58.64 M              11.0
+   AD 1700      23.13 M    49.00 M   109.53 M              11.0
+   AD 1800      36.48 M    74.16 M   162.48 M              11.5
+   AD 1900      62.03 M   131.77 M   267.77 M              12.0
+   AD 1950      83.94 M   207.91 M   407.14 M              12.0
+   AD 2000      91.44 M   205.45 M   453.12 M              12.0
+   AD 2100      94.02 M   177.69 M   357.91 M              12.0
+   AD 2200     101.19 M   185.04 M   382.52 M              11.5
+   AD 2300      92.55 M   185.00 M   415.70 M              11.0
+   AD 2500     116.12 M   235.41 M   490.06 M                11
+
+Era milestones: first sampled decade at which a seat had it
+  node  median seat  reached  leader (median)  leader (earliest)
+  T007      4570 BC   64/64           4680 BC            4680 BC
+  T008      4615 BC   64/64           4780 BC            4780 BC
+  T010      4480 BC   64/64           4540 BC            4550 BC
+  T011      4200 BC   64/64           4360 BC            4400 BC
+  T015      4070 BC   64/64           4190 BC            4320 BC
+  T025      2085 BC   64/64           2775 BC            2870 BC
+  T022      1400 BC   64/64           1780 BC            1970 BC
+  T023       475 BC   64/64            660 BC             980 BC
+  T024      2355 BC   64/64           2780 BC            2860 BC
+  T027       890 BC   64/64           1275 BC            1400 BC
+  T028       AD 200   64/64            760 BC            1110 BC
+  T029      1350 BC   64/64           1585 BC            2270 BC
+  T030       AD 430   64/64             80 BC             290 BC
+  T036       AD 925   64/64            AD 570             AD 290
+  T048      AD 1530   64/64           AD 1100            AD 1060
+   SCI      AD 1810   63/64           AD 1620            AD 1010
+  T080      AD 1870   61/64           AD 1735            AD 1560
+  T060      AD 1880   61/64           AD 1730            AD 1130
+  T061      AD 1820   62/64           AD 1675            AD 1510
+  T100      AD 1890   61/64           AD 1780            AD 1610
+  T111      AD 1970   57/64           AD 1860            AD 1720
+  T142      AD 2095   50/64           AD 2055            AD 1990
+  T147      AD 2135   42/64           AD 2080            AD 2010
+  T162      AD 2290   15/64           AD 2290            AD 2160
+  T167      AD 2375    6/64           AD 2440            AD 2310
+ALL138      AD 2375    6/64           AD 2440            AD 2310
+
+highest seat-decade growth: 5.68%/yr at ('eval-10', '0', '2480', '2490')
+pre-1700 500-year seat growth: min -0.098%/yr, median 0.045%/yr, max 0.426%/yr (39680 windows)
+
+Against slice 3 (docs/calibration/ruleset3-slice-3-eval.txt): population medians within a few percent
+at every date to 1900 (AD 1950 84 M against 66 M, 2000 91 M against 85 M); world peak about 0.49 B
+against 0.46 B. Knowledge milestones within 30-80 years of slice 3; the scientific method and the
+industrial nodes about 50-80 years later in this batch (the batch-to-batch variance noted in slice 3
+is of the same size). The late-population gap of slice 3 is unchanged: the generator was held to the
+classic land attributes on purpose.

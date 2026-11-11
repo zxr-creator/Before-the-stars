@@ -9,8 +9,7 @@ use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
 
-const W: f64 = 1600.0;
-const H: f64 = 1000.0;
+mod earthlike;
 
 /// Starting population of a seat: `START_POP_MIN` plus up to `START_POP_SPREAD` people.
 pub const START_POP_MIN: u32 = 236_000;
@@ -50,8 +49,8 @@ pub const HOME_WATER_MIN: u32 = 2_600_000;
 /// Natural water is drawn in thousands of residents.
 const WATER_STEP: u32 = 1000;
 
-struct Noise {
-    key: u64,
+pub(crate) struct Noise {
+    pub(crate) key: u64,
 }
 
 impl Noise {
@@ -81,10 +80,32 @@ impl Noise {
     fn fractal(&self, layer: u64, x: f64, y: f64, cell: f64) -> f64 {
         (self.value(layer, x, y, cell) * 4.0 + self.value(layer + 1, x, y, cell / 2.0) * 2.0 + self.value(layer + 2, x, y, cell / 4.0)) / 7.0
     }
+    /// Value noise that repeats every `period` map units east-west (`period / cell`
+    /// must be a whole number), so a wrapped map has no seam.
+    fn value_wrapped(&self, layer: u64, x: f64, y: f64, cell: f64, period: f64) -> f64 {
+        let p = (period / cell).round() as i64;
+        let gx = x / cell;
+        let gy = y / cell;
+        let x0 = gx.floor();
+        let y0 = gy.floor();
+        let tx = Self::smooth(gx - x0);
+        let ty = Self::smooth(gy - y0);
+        let (ix, iy) = (x0 as i64, y0 as i64);
+        let a = self.lattice(layer, ix.rem_euclid(p), iy);
+        let b = self.lattice(layer, (ix + 1).rem_euclid(p), iy);
+        let c = self.lattice(layer, ix.rem_euclid(p), iy + 1);
+        let d = self.lattice(layer, (ix + 1).rem_euclid(p), iy + 1);
+        let top = a + (b - a) * tx;
+        let bot = c + (d - c) * tx;
+        top + (bot - top) * ty
+    }
+    pub(crate) fn fractal_wrapped(&self, layer: u64, x: f64, y: f64, cell: f64, period: f64) -> f64 {
+        (self.value_wrapped(layer, x, y, cell, period) * 4.0 + self.value_wrapped(layer + 1, x, y, cell / 2.0, period) * 2.0 + self.value_wrapped(layer + 2, x, y, cell / 4.0, period)) / 7.0
+    }
 }
 
 #[derive(Clone)]
-struct Cell {
+pub(crate) struct Cell {
     x: f64,
     y: f64,
     poly: Vec<(f64, f64)>,
@@ -94,7 +115,7 @@ struct Cell {
 }
 
 /// Clip the polygon of `site` against the bisector with `other`, keeping the side nearer `site`.
-fn clip(poly: &[(f64, f64)], edges: &[i32], sx: f64, sy: f64, ox: f64, oy: f64, label: i32) -> (Vec<(f64, f64)>, Vec<i32>) {
+pub(crate) fn clip(poly: &[(f64, f64)], edges: &[i32], sx: f64, sy: f64, ox: f64, oy: f64, label: i32) -> (Vec<(f64, f64)>, Vec<i32>) {
     let mx = (sx + ox) / 2.0;
     let my = (sy + oy) / 2.0;
     let nx = ox - sx;
@@ -138,7 +159,7 @@ const CIV_ROOTS: &[(&str, &str)] = &[
 ];
 pub const CIV_COLORS: [&str; 4] = ["#c1503a", "#2f73a0", "#5c8a36", "#8a59a8"];
 
-fn region_name(secret: u64, i: usize, used: &mut Vec<String>) -> String {
+pub(crate) fn region_name(secret: u64, i: usize, used: &mut Vec<String>) -> String {
     for attempt in 0..20u64 {
         let a = SYL_A[draw_range(secret, &[stream("name"), i as u64, attempt, 0], SYL_A.len() as u64) as usize];
         let b = SYL_B[draw_range(secret, &[stream("name"), i as u64, attempt, 1], SYL_B.len() as u64) as usize];
@@ -152,7 +173,7 @@ fn region_name(secret: u64, i: usize, used: &mut Vec<String>) -> String {
     format!("Region {i}")
 }
 
-fn rng_between(secret: u64, addr: &[u64], lo: i64, hi: i64) -> i64 {
+pub(crate) fn rng_between(secret: u64, addr: &[u64], lo: i64, hi: i64) -> i64 {
     if hi <= lo {
         return lo;
     }
@@ -169,12 +190,136 @@ pub fn derive_secret(cfg: &MatchConfig, entropy: u64) -> u64 {
     }
 }
 
-pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
-    let secret = derive_secret(&cfg, entropy);
+/// A generated home world before resources and people: regions with their
+/// geography and links, plus the geology the resource placement reads. Every map
+/// source (the classic flat map, the generated Earth-like planet, and later the
+/// real Earth) produces one of these; everything after it is shared.
+pub(crate) struct Geo {
+    pub regions: Vec<Region>,
+    pub width: i32,
+    pub height: i32,
+    /// The map wraps east-west.
+    pub wrap: bool,
+    /// Geology of each region, for resource placement.
+    pub tags: Vec<GeoTag>,
+    /// Moisture of each region, 0-255 (river sources prefer wet highlands).
+    pub moist: Vec<u8>,
+    /// For each region, the ocean cells it borders (sea links join regions sharing one).
+    pub ocean: Vec<Vec<usize>>,
+    /// Polygon edges of each region facing open sea.
+    pub coast_edges: Vec<u8>,
+    /// Longest sea crossing a sea link may span, in map units.
+    pub sea_reach: i64,
+}
+
+/// What lies under a region, as resource placement needs it (design chapter 37,
+/// section 5.1, step 6).
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct GeoTag {
+    /// A convergent orogenic belt: porphyry copper, granite tin, ore veins.
+    pub belt: bool,
+    /// An old continental shield: iron formations, uranium, rare earths.
+    pub shield: bool,
+    /// A sedimentary basin: coal in wet lowlands, oil and gas, evaporites.
+    pub basin: bool,
+    /// A rift or divergent margin.
+    pub rift: bool,
+}
+
+/// Squared distance between two map points; on a wrapped map the shorter way round.
+pub(crate) fn dist2(a: [i32; 2], b: [i32; 2], wrap_w: i32) -> i64 {
+    let mut dx = (a[0] - b[0]).abs() as i64;
+    if wrap_w > 0 {
+        dx = dx.min(wrap_w as i64 - dx);
+    }
+    let dy = (a[1] - b[1]) as i64;
+    dx * dx + dy * dy
+}
+
+/// The land attributes of a region of a terrain: arable land three times generator
+/// 1.2's (design chapter 36, section 3.3), pasture, wild food in thousands of
+/// rations, forest, natural water in thousands of residents, hydro sites. Shared
+/// by every map source, so that a region of a kind is as productive on any map.
+pub(crate) fn terrain_attrs(secret: u64, rid: usize, terrain: Terrain) -> (i64, i64, i64, i64, i64, i64) {
+    let a = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("attr"), rid as u64, k], lo, hi);
+    match terrain {
+        Terrain::Plains => (3 * a(0, 30, 55), a(1, 15, 30), a(2, 380, 520), a(3, 4, 10), a(4, 1500, 3000), a(5, 0, 2)),
+        Terrain::Hills => (3 * a(0, 10, 22), a(1, 20, 35), a(2, 300, 420), a(3, 8, 16), a(4, 1000, 2000), a(5, 4, 8)),
+        Terrain::Mountains => (3 * a(0, 2, 6), a(1, 6, 14), a(2, 150, 240), a(3, 4, 10), a(4, 800, 1500), a(5, 8, 16)),
+        Terrain::Forest => (3 * a(0, 12, 24), a(1, 6, 12), a(2, 450, 600), a(3, 20, 36), a(4, 1500, 2500), a(5, 1, 3)),
+        Terrain::Marsh => (3 * a(0, 10, 22), a(1, 4, 8), a(2, 420, 560), a(3, 6, 12), a(4, 2500, 4000), a(5, 0, 2)),
+        Terrain::Steppe => (3 * a(0, 8, 16), a(1, 35, 55), a(2, 260, 360), a(3, 2, 5), a(4, 600, 1200), a(5, 1, 4)),
+        Terrain::Desert => (3 * a(0, 0, 4), a(1, 4, 10), a(2, 90, 160), a(3, 0, 2), a(4, 200, 500), a(5, 0, 3)),
+        Terrain::Tundra => (3 * a(0, 0, 3), a(1, 6, 12), a(2, 160, 260), a(3, 2, 8), a(4, 800, 1500), a(5, 1, 4)),
+    }
+}
+
+/// A region of the given geography with its land attributes and nothing on it.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn new_region(secret: u64, rid: usize, used_names: &mut Vec<String>, poly: Vec<[i32; 2]>, center: [i32; 2], terrain: Terrain, climate: ClimateZone, coastal: bool, height: f64) -> Region {
+    let (arable, pasture, wild, forest, water, hydro) = terrain_attrs(secret, rid, terrain);
+    let a = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("attr"), rid as u64, k], lo, hi);
+    Region {
+        id: rid as RegionId,
+        name: region_name(secret, rid, used_names),
+        poly,
+        center,
+        neighbors: Vec::new(),
+        terrain,
+        coastal,
+        river: false,
+        elevation: (height.clamp(0.0, 1.0) * 255.0) as u8,
+        arable: arable as u16,
+        pasture: pasture as u16,
+        wild: wild * 1000,
+        fishery: if coastal { a(6, 8, 16) as u16 } else { 0 },
+        forest: forest as u16,
+        water: water as u32 * WATER_STEP,
+        hydro: hydro as u16,
+        deposits: vec![],
+        owner: None,
+        controller: None,
+        blocks: vec![],
+        quals: [0; NQ],
+        facilities: vec![],
+        nutrition_debt: 0,
+        health_bp: 0,
+        unrest_bp: 0,
+        food_hist: [10_000; 12],
+        water_hist: [10_000; 12],
+        capture: None,
+        occupied_since: None,
+        last: RegionMonth::default(),
+        students: 0,
+        teachers: [0; NQ],
+        migr_rem: 0,
+        outbreak: None,
+        immune_until: 0,
+        army_seen: 0,
+        climate,
+        site: SiteData::default(),
+    }
+}
+
+/// The climate zone the classic map assigns from terrain and latitude (it has no
+/// climate model of its own).
+fn classic_climate(terrain: Terrain, lat: f64) -> ClimateZone {
+    match terrain {
+        Terrain::Tundra => ClimateZone::Polar,
+        Terrain::Desert | Terrain::Steppe => ClimateZone::Arid,
+        _ if lat < 0.30 => ClimateZone::Tropical,
+        _ if lat > 0.62 => ClimateZone::Continental,
+        _ => ClimateZone::Temperate,
+    }
+}
+
+/// The flat map of ruleset 2.0 (generator 1.x geometry): jittered Voronoi cells on a
+/// 1,600 x 1,000 rectangle, one land blob, noise terrain. Kept for fixtures.
+fn classic_geography(cfg: &MatchConfig, secret: u64) -> Geo {
+    const W: f64 = 1600.0;
+    const H: f64 = 1000.0;
     let noise = Noise { key: draw(secret, &[stream("terrain")]) };
     let want = cfg.regions.max(8) as usize;
-
-    // --- 1. sites on a jittered grid -------------------------------------
     let total_cells = want * 9 / 5;
     let cols = isqrt((total_cells as f64 * 1.6) as i64).max(4) as usize;
     let rows = (total_cells + cols - 1) / cols;
@@ -212,8 +357,6 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         cells[i].poly = poly;
         cells[i].edges = edges;
     }
-
-    // --- 2. elevation, land and sea ---------------------------------------
     for c in cells.iter_mut() {
         let dx = (c.x - W / 2.0) / (W / 2.0);
         let dy = (c.y - H / 2.0) / (H / 2.0);
@@ -226,15 +369,19 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         cells[i].land = true;
     }
     let land: Vec<usize> = (0..n).filter(|i| cells[*i].land).collect();
-    let id_of = |cell: usize| land.iter().position(|c| *c == cell);
-
+    let mut id_of = vec![usize::MAX; n];
+    for (rid, &ci) in land.iter().enumerate() {
+        id_of[ci] = rid;
+    }
     let elevs: Vec<f64> = land.iter().map(|i| cells[*i].elev).collect();
     let emin = elevs.iter().cloned().fold(f64::MAX, f64::min);
     let emax = elevs.iter().cloned().fold(f64::MIN, f64::max);
-
-    // --- 3. regions --------------------------------------------------------
     let mut used_names = Vec::new();
     let mut regions: Vec<Region> = Vec::new();
+    let mut tags = Vec::new();
+    let mut moist_v = Vec::new();
+    let mut ocean = Vec::new();
+    let mut coast_edges = Vec::new();
     for (rid, &ci) in land.iter().enumerate() {
         let c = &cells[ci];
         let e01 = if emax > emin { (c.elev - emin) / (emax - emin) } else { 0.5 };
@@ -258,76 +405,56 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         } else {
             Terrain::Plains
         };
-        let a = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("attr"), rid as u64, k], lo, hi);
-        let (arable, pasture, wild, forest, water, hydro) = match terrain {
-            // arable land is three times generator 1.2's (design chapter 36, section 3.3):
-            // a field level keeps its meaning, and a country-sized region has that much cropland
-            Terrain::Plains => (3 * a(0, 30, 55), a(1, 15, 30), a(2, 380, 520), a(3, 4, 10), a(4, 1500, 3000), a(5, 0, 2)),
-            Terrain::Hills => (3 * a(0, 10, 22), a(1, 20, 35), a(2, 300, 420), a(3, 8, 16), a(4, 1000, 2000), a(5, 4, 8)),
-            Terrain::Mountains => (3 * a(0, 2, 6), a(1, 6, 14), a(2, 150, 240), a(3, 4, 10), a(4, 800, 1500), a(5, 8, 16)),
-            Terrain::Forest => (3 * a(0, 12, 24), a(1, 6, 12), a(2, 450, 600), a(3, 20, 36), a(4, 1500, 2500), a(5, 1, 3)),
-            Terrain::Marsh => (3 * a(0, 10, 22), a(1, 4, 8), a(2, 420, 560), a(3, 6, 12), a(4, 2500, 4000), a(5, 0, 2)),
-            Terrain::Steppe => (3 * a(0, 8, 16), a(1, 35, 55), a(2, 260, 360), a(3, 2, 5), a(4, 600, 1200), a(5, 1, 4)),
-            Terrain::Desert => (3 * a(0, 0, 4), a(1, 4, 10), a(2, 90, 160), a(3, 0, 2), a(4, 200, 500), a(5, 0, 3)),
-            Terrain::Tundra => (3 * a(0, 0, 3), a(1, 6, 12), a(2, 160, 260), a(3, 2, 8), a(4, 800, 1500), a(5, 1, 4)),
-        };
         let poly: Vec<[i32; 2]> = c.poly.iter().map(|p| [p.0.round() as i32, p.1.round() as i32]).collect();
-        let mut neighbors: Vec<(RegionId, LinkKind)> = Vec::new();
+        let mut r = new_region(secret, rid, &mut used_names, poly, [c.x.round() as i32, c.y.round() as i32], terrain, classic_climate(terrain, lat), coastal, height);
         for e in &c.edges {
-            if *e >= 0 {
-                if let Some(o) = id_of(*e as usize) {
-                    if !neighbors.iter().any(|(x, _)| *x as usize == o) {
-                        neighbors.push((o as RegionId, LinkKind::Land));
-                    }
+            if *e >= 0 && id_of[*e as usize] != usize::MAX {
+                let o = id_of[*e as usize];
+                if !r.neighbors.iter().any(|(x, _)| *x as usize == o) {
+                    r.neighbors.push((o as RegionId, LinkKind::Land));
                 }
             }
         }
-        regions.push(Region {
-            id: rid as RegionId,
-            name: region_name(secret, rid, &mut used_names),
-            poly,
-            center: [c.x.round() as i32, c.y.round() as i32],
-            neighbors,
-            terrain,
-            coastal,
-            river: false,
-            elevation: (height * 255.0) as u8,
-            arable: arable as u16,
-            pasture: pasture as u16,
-            wild: wild * 1000,
-            fishery: if coastal { a(6, 8, 16) as u16 } else { 0 },
-            forest: forest as u16,
-            water: water as u32 * WATER_STEP,
-            hydro: hydro as u16,
-            deposits: vec![],
-            owner: None,
-            controller: None,
-            blocks: vec![],
-            quals: [0; NQ],
-            facilities: vec![],
-            nutrition_debt: 0,
-            health_bp: 0,
-            unrest_bp: 0,
-            food_hist: [10_000; 12],
-            water_hist: [10_000; 12],
-            capture: None,
-            occupied_since: None,
-            last: RegionMonth::default(),
-            students: 0,
-            teachers: [0; NQ],
-            migr_rem: 0,
-            outbreak: None,
-            immune_until: 0,
-            army_seen: 0,
+        regions.push(r);
+        let rough_land = matches!(terrain, Terrain::Hills | Terrain::Mountains);
+        tags.push(GeoTag {
+            belt: rough_land,
+            shield: matches!(terrain, Terrain::Plains | Terrain::Hills | Terrain::Tundra) && !coastal,
+            basin: matches!(terrain, Terrain::Plains | Terrain::Steppe | Terrain::Desert | Terrain::Marsh | Terrain::Forest) && height < 0.5,
+            rift: false,
         });
+        moist_v.push((moist * 255.0) as u8);
+        ocean.push(c.edges.iter().filter(|e| **e >= 0 && !cells[**e as usize].land).map(|e| *e as usize).collect());
+        coast_edges.push(c.edges.iter().filter(|e| **e < 0 || !cells[**e as usize].land).count().min(255) as u8);
     }
-    let nr = regions.len();
+    Geo { regions, width: W as i32, height: H as i32, wrap: false, tags, moist: moist_v, ocean, coast_edges, sea_reach: (cw * 2.6) as i64 }
+}
 
-    // --- 4. rivers: flow from high wet regions downhill to the coast -------
-    let mut sources: Vec<usize> = (0..nr)
-        .filter(|i| matches!(regions[*i].terrain, Terrain::Mountains | Terrain::Hills))
-        .collect();
-    sources.sort_by_key(|i| (std::cmp::Reverse(regions[*i].elevation), *i));
+/// A region becomes a river region: more arable land, water, hydro sites,
+/// fishing and wild food.
+fn make_river(r: &mut Region, i: usize, secret: u64) {
+    if r.river {
+        return;
+    }
+    r.river = true;
+    let b = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("riverattr"), i as u64, k], lo, hi);
+    r.arable += 3 * b(0, 6, 12) as u16;
+    r.water += b(1, 1200, 2200) as u32 * WATER_STEP;
+    r.hydro += b(2, 4, 8) as u16;
+    r.fishery += b(3, 3, 6) as u16;
+    r.wild += b(4, 40, 90) * 1000;
+}
+
+/// Rivers, mountain passes, sea links and connectivity, and the site data: the
+/// part of geography every map source shares.
+fn finish_geography(geo: &mut Geo, secret: u64) {
+    let nr = geo.regions.len();
+    let wrap_w = if geo.wrap { geo.width } else { 0 };
+    // --- rivers: flow from high wet regions downhill to the coast -------------
+    let regions = &mut geo.regions;
+    let mut sources: Vec<usize> = (0..nr).filter(|i| matches!(regions[*i].terrain, Terrain::Mountains | Terrain::Hills)).collect();
+    // wet highlands first: rivers rise where rain falls on high ground
+    sources.sort_by_key(|i| (std::cmp::Reverse(regions[*i].elevation as u32 + geo.moist[*i] as u32 / 2), *i));
     let river_count = (nr / 7).max(3);
     for (k, &src) in sources.iter().take(river_count).enumerate() {
         let mut cur = src;
@@ -339,7 +466,10 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             }
             let mut next: Option<usize> = None;
             let mut best = regions[cur].elevation as i32 + 6;
-            for (nb, _) in regions[cur].neighbors.clone() {
+            for (nb, kind) in regions[cur].neighbors.clone() {
+                if kind == LinkKind::Sea {
+                    continue;
+                }
                 let nb = nb as usize;
                 let e = regions[nb].elevation as i32 - (draw_range(secret, &[stream("river"), k as u64, nb as u64], 12) as i32);
                 if e < best && !(regions[nb].river && steps > 0 && regions[nb].elevation >= regions[cur].elevation) {
@@ -374,12 +504,8 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
     }
     for i in 0..nr {
         if regions[i].river {
-            let b = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("riverattr"), i as u64, k], lo, hi);
-            regions[i].arable += 3 * b(0, 6, 12) as u16;
-            regions[i].water += b(1, 1200, 2200) as u32 * WATER_STEP;
-            regions[i].hydro += b(2, 4, 8) as u16;
-            regions[i].fishery += b(3, 3, 6) as u16;
-            regions[i].wild += b(4, 40, 90) * 1000;
+            regions[i].river = false;
+            make_river(&mut regions[i], i, secret);
         }
         if regions[i].coastal {
             regions[i].wild += 70_000;
@@ -393,8 +519,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             }
         }
     }
-
-    // --- 5. sea links ------------------------------------------------------
+    // --- sea links ---------------------------------------------------------------
     for i in 0..nr {
         if !regions[i].coastal {
             continue;
@@ -403,12 +528,8 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             if !regions[j].coastal || regions[i].neighbors.iter().any(|(n, _)| *n as usize == j) {
                 continue;
             }
-            let ci = &cells[land[i]];
-            let cj = &cells[land[j]];
-            let shared_sea = ci.edges.iter().any(|e| *e >= 0 && !cells[*e as usize].land && cj.edges.contains(e));
-            let dx = (regions[i].center[0] - regions[j].center[0]) as f64;
-            let dy = (regions[i].center[1] - regions[j].center[1]) as f64;
-            if shared_sea && dx * dx + dy * dy < (cw * 2.6) * (cw * 2.6) {
+            let shared_sea = geo.ocean[i].iter().any(|e| geo.ocean[j].contains(e));
+            if shared_sea && dist2(regions[i].center, regions[j].center, wrap_w) < geo.sea_reach * geo.sea_reach {
                 regions[i].neighbors.push((j as RegionId, LinkKind::Sea));
                 regions[j].neighbors.push((i as RegionId, LinkKind::Sea));
             }
@@ -441,9 +562,9 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         for i in 0..nr {
             for j in 0..nr {
                 if comp[i] == 0 && comp[j] != 0 {
-                    let dx = (regions[i].center[0] - regions[j].center[0]) as i64;
-                    let dy = (regions[i].center[1] - regions[j].center[1]) as i64;
-                    let d = dx * dx + dy * dy;
+                    // prefer coasts: a crossing between two shores
+                    let shore = if regions[i].coastal && regions[j].coastal { 1 } else { 4 };
+                    let d = dist2(regions[i].center, regions[j].center, wrap_w) * shore;
                     if d < best.0 {
                         best = (d, i, j);
                     }
@@ -462,12 +583,84 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         regions[i].neighbors.push((j as RegionId, LinkKind::Sea));
         regions[j].neighbors.push((i as RegionId, LinkKind::Sea));
     }
+    // --- site data: plain world data for later rules on cities and harbours -------
+    for i in 0..nr {
+        let r = &regions[i];
+        let land_nbrs = r.neighbors.iter().filter(|(_, k)| *k != LinkKind::Sea).count() as i64;
+        let river_links = r.neighbors.iter().filter(|(_, k)| *k == LinkKind::River).count();
+        let coast = geo.coast_edges[i].max(if r.coastal { 1 } else { 0 });
+        let jitter = |k: u64, lo: i64, hi: i64| rng_between(secret, &[stream("site-data"), i as u64, k], lo, hi);
+        // a coast with land on several sides is sheltered; a long open coast is exposed
+        let harbour = if r.coastal { (4000 + 1800 * land_nbrs.min(3) - 700 * (coast as i64 - 3).max(0) + jitter(0, -1500, 1500)).clamp(800, 10_000) } else { 0 };
+        let flat = match r.terrain {
+            Terrain::Plains => jitter(1, 8000, 9500),
+            Terrain::Steppe => jitter(1, 7000, 9000),
+            Terrain::Desert => jitter(1, 6000, 8000),
+            Terrain::Marsh | Terrain::Forest | Terrain::Tundra => jitter(1, 5000, 7000),
+            Terrain::Hills => jitter(1, 3000, 5000),
+            Terrain::Mountains => jitter(1, 1000, 2500),
+        };
+        let mut amenity: i64 = match r.climate {
+            ClimateZone::Temperate => 8000,
+            ClimateZone::Tropical => 6500,
+            ClimateZone::Continental => 5500,
+            ClimateZone::Arid => 3500,
+            ClimateZone::Polar => 1500,
+        };
+        amenity += match r.terrain {
+            Terrain::Mountains => -1500,
+            Terrain::Marsh | Terrain::Desert => -1000,
+            Terrain::Plains => 500,
+            _ => 0,
+        };
+        if r.coastal {
+            amenity += 800;
+        }
+        if r.river {
+            amenity += 500;
+        }
+        let site = SiteData {
+            coast_edges: if r.coastal { coast } else { 0 },
+            harbour_bp: harbour as u16,
+            navigable_river: r.river && !matches!(r.terrain, Terrain::Mountains | Terrain::Hills),
+            river_mouth: r.river && r.coastal,
+            confluence: river_links >= 3,
+            flat_bp: flat as u16,
+            amenity_bp: amenity.clamp(0, 10_000) as u16,
+            resource_bp: 0,
+        };
+        regions[i].site = site;
+    }
+}
 
-    // --- 6. correlated deposits -------------------------------------------
-    // Kilotonnes in the ground. Extraction draws from a deposit at least what it
-    // delivers, and shallow workings disturb twice what they deliver. Generator 2.0
-    // holds three centuries of industrial demand at the scale of ruleset 3.0 (design
-    // chapter 36, section 5.3): copper 300-1,200 Mt, iron 2,000-8,000, coal 3,000-12,000.
+/// Mineral wealth within one link of each region, in basis points of the richest:
+/// recorded as site data once deposits are placed.
+fn resource_proximity(regions: &mut [Region]) {
+    let weight = |d: &DepositState| -> i64 {
+        let w = match d.kind {
+            Deposit::CopperOre | Deposit::IronOre | Deposit::Coal | Deposit::Crude => 1,
+            _ => 2,
+        };
+        w * (d.quality_bp as i64)
+    };
+    let own: Vec<i64> = regions.iter().map(|r| r.deposits.iter().map(weight).sum()).collect();
+    let score: Vec<i64> = regions.iter().enumerate().map(|(i, r)| own[i] * 2 + r.neighbors.iter().map(|(n, _)| own[*n as usize]).sum::<i64>()).collect();
+    let best = score.iter().copied().max().unwrap_or(0).max(1);
+    for (i, r) in regions.iter_mut().enumerate() {
+        r.site.resource_bp = (score[i] * 10_000 / best) as u16;
+    }
+}
+
+/// Correlated deposits, placed by geology and climate. Kilotonnes in the ground
+/// (stored in tonnes). Extraction draws from a deposit at least what it delivers,
+/// and shallow workings disturb twice what they deliver. Generator 2.0 holds three
+/// centuries of industrial demand at the scale of ruleset 3.0 (design chapter 36,
+/// section 5.3).
+fn place_deposits(geo: &mut Geo, secret: u64) {
+    let noise = Noise { key: draw(secret, &[stream("geology")]) };
+    let wrap = geo.wrap;
+    let nr = geo.regions.len();
+    // (kind, layer, threshold, low, high in kt)
     let belts: [(Deposit, u64, f64, i64, i64); 5] = [
         (Deposit::CopperOre, 40, 0.56, 300_000, 1_200_000),
         (Deposit::IronOre, 50, 0.52, 2_000_000, 8_000_000),
@@ -476,64 +669,226 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         (Deposit::Minerals, 80, 0.58, 80_000, 260_000),
     ];
     for i in 0..nr {
-        let (x, y) = (regions[i].center[0] as f64, regions[i].center[1] as f64);
+        let r = &geo.regions[i];
+        let (x, y) = (r.center[0] as f64, r.center[1] as f64);
+        let t = r.terrain;
+        let g = geo.tags[i];
+        let mut add = Vec::new();
         for (kind, layer, threshold, lo, hi) in belts.iter() {
-            let mut v = noise.fractal(*layer, x, y, 330.0);
-            let t = regions[i].terrain;
-            v += match (kind, t) {
-                (Deposit::CopperOre, Terrain::Hills | Terrain::Mountains) => 0.10,
-                (Deposit::IronOre, Terrain::Hills | Terrain::Mountains) => 0.10,
-                (Deposit::Coal, Terrain::Hills | Terrain::Forest | Terrain::Plains) => 0.06,
-                (Deposit::Crude, Terrain::Desert | Terrain::Steppe | Terrain::Tundra | Terrain::Marsh) => 0.10,
-                (Deposit::Minerals, Terrain::Mountains | Terrain::Desert | Terrain::Tundra) => 0.10,
-                _ => -0.02,
+            let mut v = if wrap { noise.fractal_wrapped(*layer, x, y, 250.0, geo.width as f64) } else { noise.fractal(*layer, x, y, 330.0) };
+            v += match kind {
+                Deposit::CopperOre => if g.belt { 0.12 } else if matches!(t, Terrain::Hills | Terrain::Mountains) { 0.06 } else { -0.04 },
+                Deposit::IronOre => if g.shield || g.belt { 0.10 } else { -0.03 },
+                Deposit::Coal => if g.basin && matches!(t, Terrain::Plains | Terrain::Hills | Terrain::Forest | Terrain::Marsh) && !matches!(r.climate, ClimateZone::Arid | ClimateZone::Polar) { 0.10 } else if matches!(t, Terrain::Hills | Terrain::Forest | Terrain::Plains) { 0.03 } else { -0.04 },
+                Deposit::Crude => if g.basin && matches!(t, Terrain::Desert | Terrain::Steppe | Terrain::Tundra | Terrain::Marsh) { 0.14 } else if g.basin { 0.04 } else { -0.04 },
+                _ => if g.shield || matches!(t, Terrain::Mountains | Terrain::Desert) { 0.10 } else { -0.02 },
             };
             if v > *threshold {
                 let amount = rng_between(secret, &[stream("deposit"), i as u64, *layer], *lo, *hi);
                 let quality = rng_between(secret, &[stream("depq"), i as u64, *layer], 5500, 9500) as u16;
-                regions[i].deposits.push(DepositState::new(*kind, amount * 1000, quality));
+                add.push(DepositState::new(*kind, amount * 1000, quality));
+            }
+        }
+        geo.regions[i].deposits.extend(add);
+    }
+}
+
+/// Regions within `links` links of `home` (every kind of link), nearest first.
+pub(crate) fn within_links(regions: &[Region], home: usize, links: usize) -> Vec<(usize, usize)> {
+    let mut near: Vec<(usize, usize)> = vec![(home, 0)];
+    let mut seen = vec![false; regions.len()];
+    seen[home] = true;
+    let mut qi = 0;
+    while qi < near.len() {
+        let (x, d) = near[qi];
+        qi += 1;
+        if d >= links {
+            continue;
+        }
+        for (nb, _) in &regions[x].neighbors {
+            let nb = *nb as usize;
+            if !seen[nb] {
+                seen[nb] = true;
+                near.push((nb, d + 1));
             }
         }
     }
+    near
+}
 
-    // --- 7. starting positions ---------------------------------------------
-    let seats = cfg.controllers.len().clamp(2, 4);
-    let score = |r: &Region| -> i64 {
-        let base = r.arable as i64 * 12 + r.wild / 1000 + r.water as i64 / (20 * WATER_STEP as i64) + r.forest as i64 * 6;
-        let bonus = if r.river { 200 } else { 0 } + if r.coastal { 80 } else { 0 };
-        let penalty = match r.terrain {
-            Terrain::Mountains | Terrain::Desert | Terrain::Tundra => 600,
-            _ => 0,
-        };
-        base + bonus - penalty
-    };
-    let mut cands: Vec<usize> = (0..nr).collect();
-    cands.sort_by_key(|i| (std::cmp::Reverse(score(&regions[*i])), *i));
-    cands.truncate((nr * 2 / 3).max(seats));
-    let centers: Vec<[i32; 2]> = regions.iter().map(|r| r.center).collect();
-    let dist = |a: usize, b: usize| -> i64 {
-        let dx = (centers[a][0] - centers[b][0]) as i64;
-        let dy = (centers[a][1] - centers[b][1]) as i64;
-        dx * dx + dy * dy
-    };
-    let mut starts: Vec<usize> = vec![cands[0]];
-    while starts.len() < seats {
-        let mut best = (i64::MIN, cands[0]);
-        for &c in &cands {
-            if starts.contains(&c) {
+/// Link distance from `src` to every region; `land_only` ignores sea links.
+fn link_distances(regions: &[Region], src: usize, land_only: bool) -> Vec<u32> {
+    let mut dist = vec![u32::MAX; regions.len()];
+    dist[src] = 0;
+    let mut queue = vec![src];
+    let mut qi = 0;
+    while qi < queue.len() {
+        let x = queue[qi];
+        qi += 1;
+        for (nb, k) in &regions[x].neighbors {
+            if land_only && *k == LinkKind::Sea {
                 continue;
             }
-            let dmin = starts.iter().map(|s| dist(*s, c)).min().unwrap();
-            let v = isqrt(dmin) * 3 + score(&regions[c]) / 3;
-            if v > best.0 {
-                best = (v, c);
+            let nb = *nb as usize;
+            if dist[nb] == u32::MAX {
+                dist[nb] = dist[x] + 1;
+                queue.push(nb);
             }
         }
-        starts.push(best.1);
     }
+    dist
+}
+
+/// How good a region is as a homeland of first cultivators.
+fn home_score(r: &Region) -> i64 {
+    let base = r.arable as i64 * 12 + r.wild / 1000 + r.water as i64 / (20 * WATER_STEP as i64) + r.forest as i64 * 6;
+    let bonus = if r.river { 200 } else { 0 } + if r.coastal { 80 } else { 0 };
+    let penalty = match r.terrain {
+        Terrain::Mountains | Terrain::Desert | Terrain::Tundra => 600,
+        _ => 0,
+    };
+    base + bonus - penalty
+}
+
+/// Starting regions (design chapter 37, section 5.1, step 7): temperate or
+/// subtropical river regions, as many links apart as the world allows (four
+/// wanted), each with room to grow over land. Returns the starts and the least
+/// room any of them has (regions reachable over land within three links that are
+/// nearer to it than to any other start).
+fn choose_starts(regions: &[Region], seats: usize, wrap_w: i32) -> (Vec<usize>, usize) {
+    let nr = regions.len();
+    let fit = |r: &Region, strict: u8| -> bool {
+        let harsh = matches!(r.terrain, Terrain::Mountains | Terrain::Desert | Terrain::Tundra);
+        match strict {
+            2 => !harsh && matches!(r.climate, ClimateZone::Temperate | ClimateZone::Tropical),
+            1 => !harsh,
+            _ => true,
+        }
+    };
+    let land_room = |s: usize| -> usize { link_distances(regions, s, true).iter().filter(|d| **d <= 3).count() };
+    let mut best: (i64, Vec<usize>, usize) = (i64::MIN, Vec::new(), 0);
+    'levels: for strict in [2u8, 1, 0] {
+        let mut cands: Vec<usize> = (0..nr).filter(|i| fit(&regions[*i], strict)).collect();
+        if cands.len() < seats {
+            continue;
+        }
+        cands.sort_by_key(|i| (std::cmp::Reverse(home_score(&regions[*i]) + land_room(*i) as i64 * 40), *i));
+        let dists: Vec<Vec<u32>> = cands.iter().map(|c| link_distances(regions, *c, false)).collect();
+        for apart in [4u32, 3, 2, 1] {
+            // greedy from each of the best few candidates, keeping the fairest set
+            for first in 0..cands.len().min(6) {
+                let mut picked: Vec<usize> = vec![first];
+                while picked.len() < seats {
+                    let next = (0..cands.len())
+                        .filter(|k| !picked.contains(k) && picked.iter().all(|p| dists[*p][cands[*k]] >= apart))
+                        .max_by_key(|k| {
+                            let spread: i64 = picked.iter().map(|p| isqrt(dist2(regions[cands[*p]].center, regions[cands[*k]].center, wrap_w))).min().unwrap_or(0);
+                            (spread / 4 + home_score(&regions[cands[*k]]) / 3 + land_room(cands[*k]) as i64 * 30, std::cmp::Reverse(*k))
+                        });
+                    match next {
+                        Some(k) => picked.push(k),
+                        None => break,
+                    }
+                }
+                if picked.len() < seats {
+                    continue;
+                }
+                let starts: Vec<usize> = picked.iter().map(|k| cands[*k]).collect();
+                let room = start_room_of(regions, &starts);
+                let scores: Vec<i64> = starts.iter().map(|s| home_score(&regions[*s])).collect();
+                let fair = scores.iter().min().unwrap() * 100 / scores.iter().max().unwrap().max(&1);
+                let value = room.min(room_needed(nr)) as i64 * 4000 + strict as i64 * 1500 + room.min(12) as i64 * 300 + fair * 5 + apart.min(4) as i64 * 2500;
+                if value > best.0 {
+                    best = (value, starts, room);
+                }
+            }
+            if !best.1.is_empty() && best.2 >= room_needed(nr) && apart >= 3 {
+                break 'levels;
+            }
+        }
+    }
+    (best.1, best.2)
+}
+
+/// The least room of any start: regions reachable over land within three links
+/// that are strictly nearer (over land) to it than to every other start.
+pub(crate) fn start_room_of(regions: &[Region], starts: &[usize]) -> usize {
+    let d: Vec<Vec<u32>> = starts.iter().map(|s| link_distances(regions, *s, true)).collect();
+    (0..starts.len())
+        .map(|k| (0..regions.len()).filter(|r| d[k][*r] <= 3 && (0..starts.len()).all(|o| o == k || d[o][*r] > d[k][*r])).count())
+        .min()
+        .unwrap_or(0)
+}
+
+/// Regions a viable start needs about it.
+pub(crate) fn room_needed(regions: usize) -> usize {
+    (regions / 12).max(3)
+}
+
+/// The geography of a match: the configured map source, then the shared steps.
+/// An Earth-like world is drawn again (from the next address of the same secret)
+/// when its starts would not be viable, at most a dozen times; the best attempt stands.
+pub(crate) fn geography(cfg: &MatchConfig, secret: u64) -> (Geo, Vec<usize>) {
+    let seats = cfg.controllers.len().clamp(2, 4);
+    let mut best: Option<(usize, Geo, Vec<usize>)> = None;
+    let attempts = if cfg.world == WorldKind::Classic { 1 } else { 12 };
+    for attempt in 0..attempts {
+        let mut geo = match cfg.world {
+            WorldKind::Classic => classic_geography(cfg, secret),
+            WorldKind::EarthLike => earthlike::geography(cfg, secret, attempt),
+        };
+        finish_geography(&mut geo, secret);
+        let (starts, room) = choose_starts(&geo.regions, seats, if geo.wrap { geo.width } else { 0 });
+        if starts.len() < seats {
+            continue;
+        }
+        let good = room >= room_needed(geo.regions.len());
+        if best.as_ref().map(|b| room > b.0).unwrap_or(true) {
+            best = Some((room, geo, starts));
+        }
+        if good {
+            break;
+        }
+    }
+    let (_, mut geo, starts) = best.expect("a world with starting regions");
+    // every homeland of first cultivators lies on a river: a start the river courses
+    // missed gets a short river of its own, down to its lowest land neighbour
+    for &h in &starts {
+        if geo.regions[h].river {
+            continue;
+        }
+        let low = geo.regions[h].neighbors.iter().filter(|(_, k)| *k != LinkKind::Sea).map(|(n, _)| *n as usize).min_by_key(|n| (geo.regions[*n].elevation, *n));
+        if let Some(nb) = low {
+            for l in geo.regions[h].neighbors.iter_mut().filter(|l| l.0 as usize == nb) {
+                l.1 = LinkKind::River;
+            }
+            for l in geo.regions[nb].neighbors.iter_mut().filter(|l| l.0 as usize == h) {
+                l.1 = LinkKind::River;
+            }
+            if !geo.regions[nb].river {
+                make_river(&mut geo.regions[nb], nb, secret);
+            }
+        }
+        make_river(&mut geo.regions[h], h, secret);
+        geo.regions[h].site.navigable_river = !matches!(geo.regions[h].terrain, Terrain::Mountains | Terrain::Hills);
+        geo.regions[h].site.river_mouth = geo.regions[h].coastal;
+    }
+    (geo, starts)
+}
+
+pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
+    let secret = derive_secret(&cfg, entropy);
+    let (mut geo, mut starts) = geography(&cfg, secret);
+    place_deposits(&mut geo, secret);
+    let wrap_w = if geo.wrap { geo.width } else { 0 };
+    let seats = cfg.controllers.len().clamp(2, 4);
     // Rotate seat assignment by seed so seat 0 is not always the best site.
     let rot = draw_range(secret, &[stream("seat-rot")], seats as u64) as usize;
     starts.rotate_left(rot);
+    let (width, height) = (geo.width, geo.height);
+    let mut regions = geo.regions;
+    let nr = regions.len();
+    let dist = |a: usize, b: usize, regions: &[Region]| dist2(regions[a].center, regions[b].center, wrap_w);
 
     // Viability guarantees: a costly but real autonomous route from every start.
     for (s, &home) in starts.iter().enumerate() {
@@ -546,21 +901,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             r.pasture = r.pasture.max(12);
             r.hydro = r.hydro.max(4);
         }
-        // Regions within three links of home, nearest first.
-        let mut near: Vec<(usize, usize)> = vec![(home, 0)];
-        let mut qi = 0;
-        while qi < near.len() {
-            let (x, d) = near[qi];
-            qi += 1;
-            if d >= 3 {
-                continue;
-            }
-            for (nb, _) in regions[x].neighbors.clone() {
-                if !near.iter().any(|(y, _)| *y == nb as usize) {
-                    near.push((nb as usize, d + 1));
-                }
-            }
-        }
+        let near = within_links(&regions, home, 3);
         // at least this much within three links of home, in kilotonnes
         let needed: [(Deposit, i64); 4] = [
             (Deposit::CopperOre, 1_200_000),
@@ -592,15 +933,16 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             }
         }
     }
+    resource_proximity(&mut regions);
 
-    // --- 8. test nodes: three mutually distant regions ----------------------
+    // --- test nodes: three mutually distant regions -----------------------------
     let mut test_nodes: Vec<usize> = Vec::new();
-    let first = (0..nr).max_by_key(|i| (starts.iter().map(|s| dist(*s, *i)).min().unwrap(), *i)).unwrap();
+    let first = (0..nr).max_by_key(|i| (starts.iter().map(|s| dist(*s, *i, &regions)).min().unwrap(), *i)).unwrap();
     test_nodes.push(first);
     while test_nodes.len() < 3 {
         let next = (0..nr)
             .filter(|i| !test_nodes.contains(i))
-            .max_by_key(|i| (test_nodes.iter().map(|t| dist(*t, *i)).min().unwrap(), *i))
+            .max_by_key(|i| (test_nodes.iter().map(|t| dist(*t, *i, &regions)).min().unwrap(), *i))
             .unwrap();
         test_nodes.push(next);
     }
@@ -758,8 +1100,8 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         round: 1,
         phase: Phase::Contact,
         window: 0,
-        width: W as i32,
-        height: H as i32,
+        width,
+        height,
         regions,
         civs,
         armies: vec![],

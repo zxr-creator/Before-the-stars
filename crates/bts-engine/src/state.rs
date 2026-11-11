@@ -25,6 +25,10 @@ pub struct MatchConfig {
     pub disclosed_objective: bool,
     /// When true the world secret is derived only from the seed label (replayable public world).
     pub public_seed: bool,
+    /// The kind of home world (design chapter 37, section 5): the generated
+    /// Earth-like planet by default; the classic flat map for fixtures.
+    #[serde(default)]
+    pub world: WorldKind,
 }
 
 impl MatchConfig {
@@ -58,6 +62,7 @@ impl Default for MatchConfig {
             ],
             disclosed_objective: false,
             public_seed: true,
+            world: WorldKind::EarthLike,
         }
     }
 }
@@ -354,6 +359,41 @@ pub struct Region {
     /// Last month an army stood in the region.
     #[serde(default)]
     pub army_seen: Month,
+    /// Climate zone (generator 2.0).
+    #[serde(default = "default_climate")]
+    pub climate: ClimateZone,
+    /// Natural qualities of the site as plain world data (generator 2.0): what later
+    /// rules on city growth, harbours and migration read without regenerating the world.
+    #[serde(default)]
+    pub site: SiteData,
+}
+
+fn default_climate() -> ClimateZone {
+    ClimateZone::Temperate
+}
+
+/// Natural qualities of a region's site, fixed at generation. Nothing in ruleset 3.0
+/// slices 4-6 keys a rule on these except as noted; they are recorded so that
+/// city-site quality (coast, rivers, flat land, climate, resources) can be derived later.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SiteData {
+    /// Edges of the region's polygon that face open sea.
+    pub coast_edges: u8,
+    /// Natural harbour quality, basis points (0 inland; sheltered, indented coasts high).
+    pub harbour_bp: u16,
+    /// A river runs through the region and is navigable here (lowland stretch).
+    pub navigable_river: bool,
+    /// A river reaches the sea in this region.
+    pub river_mouth: bool,
+    /// Two or more river links meet here.
+    pub confluence: bool,
+    /// Share of the region's land that is flat enough for fields and towns, basis points.
+    pub flat_bp: u16,
+    /// Climate amenity for settlement, basis points (mild, wet enough, not extreme).
+    pub amenity_bp: u16,
+    /// Known-or-not mineral wealth within one link (deposits weighted by kind),
+    /// basis points of the world's best region; filled after deposits are placed.
+    pub resource_bp: u16,
 }
 
 /// An epidemic in a region.

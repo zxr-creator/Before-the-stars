@@ -628,6 +628,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             test_node: revealed && w.test_nodes.contains(&r.id),
             // an epidemic is seen by the region's government and by anyone observing it now
             outbreak: if mine || current { r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }) } else { None },
+            climate: Some(r.climate),
         });
     }
 
@@ -1356,7 +1357,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         outcome: w.outcome.as_ref().map(|o| MatchOutcome { finished_month: o.month, winner: o.winner, reason: o.reason.clone(), reward: victory::reward(w, seat) }),
         civ: own_civ,
         regions,
-        world: WorldFrame { width: w.width, height: w.height, region_count: w.regions.len() as u16 },
+        world: WorldFrame { width: w.width, height: w.height, region_count: w.regions.len() as u16, wrap_x: w.cfg.world == WorldKind::EarthLike, kind: Some(w.cfg.world) },
         others,
         knowledge,
         culture: culture_view,
@@ -1418,6 +1419,7 @@ pub fn spectate(w: &World) -> SpectatorView {
             foreign: None,
             test_node: w.test_nodes.contains(&r.id),
             outbreak: r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }),
+            climate: Some(r.climate),
         });
     }
     let civs = w
@@ -1526,7 +1528,7 @@ pub fn spectate(w: &World) -> SpectatorView {
         date: Some(date_view(&w.cfg, w.month)),
         calendar: Some(calendar_view(w)),
         outcome: w.outcome.as_ref().map(|o| SpectatorOutcome { finished_month: o.month, winner: o.winner, reason: o.reason.clone() }),
-        world: WorldFrame { width: w.width, height: w.height, region_count: w.regions.len() as u16 },
+        world: WorldFrame { width: w.width, height: w.height, region_count: w.regions.len() as u16, wrap_x: w.cfg.world == WorldKind::EarthLike, kind: Some(w.cfg.world) },
         regions,
         civs,
         armies,

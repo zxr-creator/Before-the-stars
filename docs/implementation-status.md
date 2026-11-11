@@ -8,7 +8,7 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Design area | Status | Notes |
 | --- | --- | --- |
 | Clock and rounds (30 §3, 36 §2) | Implemented | One simulation month. Since ruleset 3.0 a historical calendar: the standard game runs 525 rounds from 5000 BC to AD 2500 (rounds of 50 years down to 2), the quick game 230 rounds on the same dates, and fixture clocks serve tests (`docs/units-and-scale.md` section 11). Contact → five negotiation windows → plan → resolve; standing orders act inside long rounds |
-| World generation (08) | Implemented, simplified | Seeded Voronoi regions (24/48/72), elevation and moisture noise, downhill rivers, coasts and sea links, correlated deposits, viable starts with guaranteed reachable copper, iron, coal and rare minerals, three fixed test nodes. Derivation uses a keyed integer hash rather than HMAC-SHA256; `public_seed: false` mixes in server entropy |
+| World generation (08, 37 §5) | Implemented, simplified | Since ruleset 3.0 slice 4 a generated Earth-like planet by default (wrapped 2,000 x 1,000 map, plates, climate bands and rain shadows, terrain and climate zones, geology tags for deposits; `docs/units-and-scale.md` section 13); the flat classic map remains for fixtures. Seeded Voronoi regions (24/48/72), downhill rivers, coasts and sea links, correlated deposits, viable starts with guaranteed reachable copper, iron, coal and rare minerals, three fixed test nodes. The real Earth (slice 16) is not built; the client draws a region that crosses the date line only once, clipped at the map edge. Derivation uses a keyed integer hash rather than HMAC-SHA256; `public_seed: false` mixes in server entropy |
 | Economy and production (02, 21) | Abstracted | About sixty facility types carry the 34 recipes and 10 capital modules with inputs, shaft/electric/compute services, upkeep, condition and storage throttles. Goods are pooled per civilization with a per-region carriage efficiency set by transport grade and distance, not per-shipment logistics. No prices, money or private balance sheets: the limit on what a government can direct is the callable-labour share raised by institutions |
 | Industrial traditions (22) | Implemented as content | Water/wind, steam, diesel and electric power are separate facilities with real fuel and site limits; generators, grids and motors bridge them; fission, fusion and orbital power follow. No route skips electricity, electronics, computing or orbit |
 | Population (32) | Implemented, simplified | Sparse blocks keyed by region × lineage × religion with 81 annual age cells, nine-month lagged birth intensity, one combined mortality calculation, annual ageing, migration that moves real counts. One access class per region; qualifications are counted per region rather than per block |
@@ -92,6 +92,13 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   depends on the productivity, goods and AI slices. Native: a full standard all-AI
   match about 23 s, p95 per round about 100 ms; WebAssembly (Node): about 43 s,
   p95 about 200 ms; the annual-step contingency was not needed.
+
+- **Slice 4, the Earth-like world (done).** `WorldKind`, `worldgen::earthlike`, the
+  shared `Geo` pipeline, `Region.climate` and `Region.site`, harvest draws by climate
+  zone, `bts run --world`, ruleset `bts-rules/3.0.0-s4` and generator
+  `bts-worldgen/2.0.0-s4` (earlier ruleset-3 saves are refused by name), protocol
+  `bts-protocol/1.4` (`WorldFrame.wrap_x`, `WorldFrame.kind`, `RegionView.climate`).
+  Calibration: `docs/calibration/ruleset3-slice-4-eval.txt`.
 
 ## Known calibration gaps
 

@@ -22,6 +22,10 @@ export type Qual =
   | 'ftl_engineer';
 
 export type Terrain = 'plains' | 'hills' | 'mountains' | 'forest' | 'marsh' | 'steppe' | 'desert' | 'tundra';
+/** Climate zone of a region (generator 2.0). */
+export type ClimateZone = 'tropical' | 'arid' | 'temperate' | 'continental' | 'polar';
+/** Kind of home world (design chapter 37, section 5). */
+export type WorldKind = 'earth_like' | 'classic';
 export type Deposit = 'copper_ore' | 'iron_ore' | 'coal' | 'crude' | 'minerals';
 export type Role = 'assault' | 'maneuver' | 'denial';
 export type ResearchClass = 'craft' | 'scholarly' | 'scientific' | 'industrial' | 'advanced' | 'frontier';
@@ -165,6 +169,9 @@ export interface WorldFrame {
   width: number;
   height: number;
   region_count: number;
+  /** The map wraps east-west: a polygon may extend past an edge and is drawn again one width over. */
+  wrap_x?: boolean;
+  kind?: WorldKind | null;
 }
 
 export interface MatchOutcome {
@@ -408,6 +415,8 @@ export interface RegionView {
   test_node: boolean;
   /** bts-protocol/1.3: an epidemic, seen by the region's government and by seats observing it. */
   outbreak?: OutbreakView | null;
+  /** Climate zone (generator 2.0). */
+  climate?: ClimateZone | null;
 }
 
 export interface ForeignCiv {

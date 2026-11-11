@@ -6,7 +6,7 @@
 //! bts                                   start the game in its own window (packaged use)
 //! bts serve   [--port 7878] [--web apps/web/dist] [--require-tokens]
 //! bts run     [--seed S] [--rounds N] [--ai hard,medium,medium,easy] [--regions 48] [--horizon 2880] [--every 20] [--matches M]
-//!             [--calendar standard|quick] [--curve out.csv] [--checkpoints DIR [--at m1,m2,... | --at-years -1000,1000,...]]
+//!             [--calendar standard|quick] [--world earth_like|classic] [--curve out.csv] [--checkpoints DIR [--at m1,m2,... | --at-years -1000,1000,...]]
 //!             [--save out.json] [--first K] [--threads T]   (--horizon M: development clock of 12-month rounds)
 //! bts verify  [--seed S] [--rounds N]
 //! bts observe --seat N [--url http://127.0.0.1:7878] [--token T]
@@ -341,6 +341,9 @@ fn run_config(args: &Args) -> MatchConfig {
     let kinds: Vec<ControllerKind> = ai.split(',').filter_map(controller).collect();
     cfg.controllers = if kinds.len() == 4 { kinds } else { vec![ControllerKind::NativeMedium; 4] };
     cfg.disclosed_objective = args.has("disclosed");
+    if args.get("world", "earth_like") == "classic" {
+        cfg.world = bts_protocol::WorldKind::Classic;
+    }
     cfg
 }
 
