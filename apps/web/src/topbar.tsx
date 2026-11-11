@@ -13,6 +13,7 @@ import { getLocale, t, tc } from './i18n';
 import { Emblem } from './theme/emblem';
 import { GoodIcon } from './theme/goods';
 import { PerspectiveSwitch } from './observer/controls';
+import { BoostYield } from './space/BoostYield';
 
 const BASIC: Good[] = ['food', 'materials', 'tools'];
 const ADVANCED: Good[] = ['metal', 'components', 'electronics', 'fuel'];
@@ -201,6 +202,7 @@ export function TopBar() {
       <div class="yields" data-tut="yields" role="group" aria-label={t('Stocks and capacities')}>
         {shownBasics.map((g) => <GoodYield g={g} obs={obs} />)}
         {shownAdvanced.map((g) => <GoodYield g={g} obs={obs} />)}
+        <BoostYield obs={obs} />
         <span class="yield-sep" aria-hidden="true" />
         <Yield id="population" icon={<Icon name="people" size={20} />} label={t('Population')} panel="people" right
           value={<><span data-testid="population" data-exact={civ.population}><Tick value={civ.population} format={(n) => peopleNum(n)} /></span>{growth ? <em class={growth < 0 ? 'neg' : 'pos'}>{(growth > 0 ? '+' : '−') + peopleNum(Math.abs(growth))}</em> : null}</>}>

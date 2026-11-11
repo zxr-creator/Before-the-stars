@@ -21,6 +21,9 @@ import type { DepositHit, Map3D, Map3DData } from '../map3d';
 import { SECTOR_COLOR, type Building, type Sector } from './landuse';
 import { BUILD_AMBER, type ChipGlyph } from './sites';
 import { ChipSwatch, DevelopmentCard } from './Development';
+import { ScaleSwitch, SpaceLayer, type ScaleChoice, type SpaceEntry, type SwitchBand } from '../space/SpaceLayer';
+import { lonLatToWorld, worldToLonLat } from '../space/globe';
+import type { Band } from '../space/layout';
 import './map.css';
 
 type Map3DModule = typeof import('../map3d');
@@ -643,6 +646,10 @@ export function MapView(props: MapViewProps): JSX.Element {
   const legendOpen = legendPref ?? (roomy && mode !== 'construction');
   const setLegendOpen = (v: boolean) => setLegendPref(v);
   const [, setZoomTick] = useState(0);
+  // The Solar System layer: open while `space` is set (design chapter 37 §5.3, one continuous zoom).
+  const [space, setSpace] = useState<SpaceEntry | null>(null);
+  const [spaceBand, setSpaceBand] = useState<SwitchBand>('orbit');
+  const [homeNonce, setHomeNonce] = useState(0);
 
   // Latest props for long-lived event handlers.
   // Opening camera target: the viewer's own capital, when the viewer governs anything.
@@ -650,6 +657,47 @@ export function MapView(props: MapViewProps): JSX.Element {
   capitalRef.current = props.obs.seat >= 0 && props.obs.regions.some((r) => r.id === props.obs.civ.capital && r.own) ? props.obs.civ.capital : null;
   const live = useRef({ onSelect, pick, insets });
   live.current = { onSelect, pick, insets };
+  // Leaving the planet: the globe faces the point at the middle of the map (or the capital).
+  const enterSpace = (band: Band, fromPlanet: boolean) => {
+    const o = props.obs;
+    let lon = 0, lat = 0.35;
+    const engine = engineRef.current, canvas = canvasRef.current;
+    let id: RegionId | null = null;
+    if (engine && canvas) {
+      const i = live.current.insets;
+      id = engine.regionAt(i.left + (canvas.clientWidth - i.left - i.right) / 2, i.top + (canvas.clientHeight - i.top - i.bottom) / 2);
+    }
+    const r = o.regions.find((x) => x.id === id) ?? o.regions.find((x) => x.id === capitalRef.current) ?? null;
+    if (r) [lon, lat] = worldToLonLat(o, r.center[0], r.center[1]);
+    setSpace((prev) => ({ band, lon, lat, fromPlanet: fromPlanet || !prev, nonce: (prev?.nonce ?? 0) + 1 }));
+  };
+  const spaceApi = useRef(enterSpace);
+  spaceApi.current = enterSpace;
+  /** Zoom out; past the whole planet the view leaves for space. */
+  const zoomOutOrLeave = (engine: MapEngine, f: number) => {
+    const z0 = engine.zoom;
+    engine.zoomBy(f);
+    if (engine.zoom === z0 && !live.current.pick) spaceApi.current('globe', true);
+  };
+  const exitSpace = (face: { lon: number; lat: number; moved: boolean }) => {
+    setSpace(null);
+    const engine = engineRef.current;
+    if (engine && face.moved) {
+      // The player turned the globe: land on the known region nearest the point that faced them.
+      const o = props.obs;
+      const [x, y] = lonLatToWorld(o, face.lon, face.lat);
+      const W = o.world.width;
+      let best: RegionId | null = null, bd = Infinity;
+      for (const r of o.regions) {
+        let dx = Math.abs(r.center[0] - x);
+        if (o.world.wrap_x) dx = Math.min(dx, W - (dx % W));
+        const d = dx * dx + (r.center[1] - y) ** 2;
+        if (d < bd) { bd = d; best = r.id; }
+      }
+      if (best != null) engine.focusRegion(best, false);
+    }
+    requestAnimationFrame(() => canvasRef.current?.focus({ preventScroll: true }));
+  };
 
   const data = useMemo(() => buildData(obs), [obs]);
   const byId = useMemo(() => new Map(obs.regions.map((r) => [r.id, r])), [obs]);
@@ -735,7 +783,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     ro.observe(root);
 
     const pointers = new Map<number, { x: number; y: number }>();
-    let downX = 0, downY = 0, moved = false, pinchDist = 0, rotating = false;
+    let downX = 0, downY = 0, moved = false, pinchDist = 0, rotating = false, outPush = 0;
     const local = (e: { clientX: number; clientY: number }): [number, number] => {
       const b = canvas.getBoundingClientRect();
       return [e.clientX - b.left, e.clientY - b.top];
@@ -841,8 +889,14 @@ export function MapView(props: MapViewProps): JSX.Element {
       const [x, y] = local(e);
       const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 240 : 1;
       const dy = Math.max(-240, Math.min(240, e.deltaY * unit));
+      const z0 = engine.zoom;
       engine.zoomAt(Math.exp(-dy * (e.ctrlKey ? 0.012 : 0.0018)), x, y);
       setHoverId(engine.regionAt(x, y));
+      // Keep scrolling out past the whole planet and the view leaves for Earth orbit.
+      if (dy > 0 && engine.zoom === z0 && !live.current.pick) {
+        outPush += dy;
+        if (outPush > 260) { outPush = 0; spaceApi.current('globe', true); }
+      } else outPush = 0;
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -854,7 +908,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         case 'ArrowUp': engine.panBy(0, step); break;
         case 'ArrowDown': engine.panBy(0, -step); break;
         case '+': case '=': engine.zoomBy(1.3); break;
-        case '-': case '_': engine.zoomBy(1 / 1.3); break;
+        case '-': case '_': zoomOutOrLeave(engine, 1 / 1.3); break;
         case 'f': case 'F': engine.fit(true); break;
         case 'Enter': case ' ': {
           // Choose the region under the middle of the visible map.
@@ -967,8 +1021,23 @@ export function MapView(props: MapViewProps): JSX.Element {
   }, [mode, selected, hoverId, pick, marked, engineKey]);
 
   useEffect(() => {
-    if (props.focus) engineRef.current?.focusRegion(props.focus.region);
+    if (props.focus) {
+      setSpace(null);
+      engineRef.current?.focusRegion(props.focus.region);
+    }
   }, [props.focus?.nonce]);
+
+  // Choosing a region on the map needs the planet.
+  useEffect(() => {
+    if (pick) setSpace(null);
+  }, [pick]);
+
+  // The 3D planet under the Solar System layer keeps still (no ambient animation) while hidden.
+  useEffect(() => {
+    const m3 = map3dRef.current;
+    if (!m3) return;
+    m3.setReducedMotion(!!space || !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  }, [!!space, engineKey]);
 
   // Labels inside the 3D scene carry formatted numbers; refresh them when the language changes.
   useEffect(() => {
@@ -1068,7 +1137,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       <div class="map-controls">
         <div class="map-zoom" role="group" aria-label={t('Zoom')}>
           <button type="button" class="map-btn" data-testid="map-zoom-in" title={t('Zoom in (+)')} aria-label={t('Zoom in')} onClick={() => engine?.zoomBy(1.35)}><IconPlus /></button>
-          <button type="button" class="map-btn" data-testid="map-zoom-out" title={t('Zoom out (−)')} aria-label={t('Zoom out')} onClick={() => engine?.zoomBy(1 / 1.35)}><IconMinus /></button>
+          <button type="button" class="map-btn" data-testid="map-zoom-out" title={t('Zoom out (−)')} aria-label={t('Zoom out')} onClick={() => engine && zoomOutOrLeave(engine, 1 / 1.35)}><IconMinus /></button>
           <button type="button" class="map-btn" data-testid="map-fit" title={t('Fit the known world (F)')} aria-label={t('Fit the known world')} onClick={() => engine?.fit(true)}><IconFit /></button>
         </div>
         <div class="map-modebox">
@@ -1145,6 +1214,18 @@ export function MapView(props: MapViewProps): JSX.Element {
       <div ref={tipRef} class={'map-tip' + (hovered ? ' is-on' : '')} role="tooltip" data-testid="map-tooltip">
         {hovered && <Tooltip obs={obs} region={hovered} mode={mode} pick={pick} deposit={hoveredDeposit} building={data.construction?.[hovered.id] ?? null} />}
       </div>
+
+      {space && (
+        <SpaceLayer obs={obs} tier={tier} entry={space} home={homeNonce} insets={insets}
+          reducedMotion={typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches}
+          onExit={exitSpace} onSwitchBand={setSpaceBand} onTier={chooseTier} />
+      )}
+      {!pick && (
+        <ScaleSwitch value={(space ? spaceBand : 'planet') as ScaleChoice} onChoose={(v) => {
+          if (v === 'planet') { if (space) setHomeNonce((n) => n + 1); }
+          else enterSpace(v === 'orbit' ? 'orbit' : 'system', !space);
+        }} />
+      )}
     </div>
   );
 }
