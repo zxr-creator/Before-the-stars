@@ -1,0 +1,2041 @@
+{
+ "_doc": "Draft content for design chapter 39. Assumes doc 37 C065-C067 are merged first. \"add\" entries use the content/practices.json fields at top level; \"draft\" holds the new fields of chapter 39 section 2 (era, category, hard = material preconditions for practice_hard, exclusive group, tension list, tradition) and name_zh for apps/web/scripts/i18n-data-practices.mjs. \"T{...}\" never remains: hard requirements name technology ids. lore \"needed\" for every new practice. New ids continue from C068; no new practice is a prerequisite of the victory-critical set; every exclusive group leaves a route to C064.",
+ "era_of_existing": {
+  "C001": 0,
+  "C002": 0,
+  "C003": 0,
+  "C004": 0,
+  "C005": 0,
+  "C006": 0,
+  "C007": 0,
+  "C008": 0,
+  "C009": 0,
+  "C010": 0,
+  "C011": 0,
+  "C012": 0,
+  "C013": 1,
+  "C014": 0,
+  "C015": 0,
+  "C016": 0,
+  "C017": 1,
+  "C018": 2,
+  "C019": 1,
+  "C020": 1,
+  "C021": 1,
+  "C022": 1,
+  "C023": 1,
+  "C024": 1,
+  "C025": 2,
+  "C026": 2,
+  "C027": 2,
+  "C028": 3,
+  "C029": 3,
+  "C030": 2,
+  "C031": 3,
+  "C032": 3,
+  "C033": 4,
+  "C034": 4,
+  "C035": 4,
+  "C036": 5,
+  "C037": 4,
+  "C038": 4,
+  "C039": 5,
+  "C040": 5,
+  "C041": 4,
+  "C042": 5,
+  "C043": 5,
+  "C044": 5,
+  "C045": 5,
+  "C046": 5,
+  "C047": 6,
+  "C048": 6,
+  "C049": 6,
+  "C050": 8,
+  "C051": 6,
+  "C052": 6,
+  "C053": 8,
+  "C054": 6,
+  "C055": 6,
+  "C056": 7,
+  "C057": 7,
+  "C058": 7,
+  "C059": 8,
+  "C060": 6,
+  "C061": 8,
+  "C062": 8,
+  "C063": 8,
+  "C064": 8,
+  "C065": 7,
+  "C066": 7,
+  "C067": 7
+ },
+ "critical_practices": [
+  "C001",
+  "C002",
+  "C003",
+  "C004",
+  "C005",
+  "C006",
+  "C007",
+  "C009",
+  "C010",
+  "C011",
+  "C012",
+  "C013",
+  "C015",
+  "C016",
+  "C019",
+  "C020",
+  "C023",
+  "C024",
+  "C025",
+  "C026",
+  "C028",
+  "C029",
+  "C036",
+  "C037",
+  "C038",
+  "C039",
+  "C041",
+  "C045",
+  "C055",
+  "C056",
+  "C057",
+  "C058",
+  "C060",
+  "C063",
+  "C064"
+ ],
+ "exclusive_groups": [
+  {
+   "id": "X01",
+   "name": "Early authority",
+   "members": [
+    "C068",
+    "C069"
+   ]
+  },
+  {
+   "id": "X02",
+   "name": "Classical polity",
+   "members": [
+    "C075",
+    "C076"
+   ]
+  },
+  {
+   "id": "X03",
+   "name": "Revenue collection",
+   "members": [
+    "C078",
+    "C079"
+   ]
+  },
+  {
+   "id": "X04",
+   "name": "Land and service",
+   "members": [
+    "C086",
+    "C087"
+   ]
+  },
+  {
+   "id": "X05",
+   "name": "Sovereignty",
+   "members": [
+    "C101",
+    "C102"
+   ]
+  },
+  {
+   "id": "X06",
+   "name": "Faith and state",
+   "members": [
+    "C103",
+    "C104"
+   ]
+  },
+  {
+   "id": "X07",
+   "name": "Trade doctrine",
+   "members": [
+    "C107",
+    "C112"
+   ]
+  },
+  {
+   "id": "X08",
+   "name": "Army recruitment",
+   "members": [
+    "C114",
+    "C115"
+   ]
+  },
+  {
+   "id": "X09",
+   "name": "Economic coordination",
+   "members": [
+    "C127",
+    "C128"
+   ]
+  },
+  {
+   "id": "X10",
+   "name": "Broadcast media",
+   "members": [
+    "C131",
+    "C132"
+   ]
+  },
+  {
+   "id": "X11",
+   "name": "Data and the state",
+   "members": [
+    "C139",
+    "C140"
+   ]
+  },
+  {
+   "id": "X12",
+   "name": "Off-world claims",
+   "members": [
+    "C149",
+    "C150"
+   ]
+  },
+  {
+   "id": "X13",
+   "name": "Settler recruitment",
+   "members": [
+    "C156",
+    "C157"
+   ]
+  },
+  {
+   "id": "X14",
+   "name": "Automation dividend",
+   "members": [
+    "C160",
+    "C161"
+   ]
+  },
+  {
+   "id": "X15",
+   "name": "Central authority",
+   "members": [
+    "C041",
+    "C042"
+   ],
+   "existing": true
+  },
+  {
+   "id": "X16",
+   "name": "Highest administration",
+   "members": [
+    "C051",
+    "C053"
+   ],
+   "existing": true
+  },
+  {
+   "id": "X17",
+   "name": "World order",
+   "members": [
+    "C061",
+    "C062",
+    "C063"
+   ],
+   "existing": true
+  }
+ ],
+ "groups_added": [
+  "Classical polity, law and revenue",
+  "Medieval estates, faith and learning",
+  "Early modern state, money and toleration",
+  "Industrial society and the nation",
+  "Mass politics, welfare and planning",
+  "Information-age institutions",
+  "Space-age institutions",
+  "AI-age institutions",
+  "Tradition institutions"
+ ],
+ "add": [
+  {
+   "id": "C068",
+   "name": "Councils of elders",
+   "group": "Community, land, and early organization",
+   "prereq": "C003 & C011",
+   "requirements": "Respected elders, a meeting place, accepted precedence",
+   "behavior": "Decisions by consensus: slow, broadly accepted; stability +1, callable labour −5%",
+   "draft": {
+    "name_zh": "长老议事会",
+    "era": 0,
+    "era_name": "Ancient",
+    "category": "governance",
+    "hard": "POP>=200000",
+    "lore": "needed",
+    "exclusive": "X01"
+   }
+  },
+  {
+   "id": "C069",
+   "name": "Hereditary chieftaincy",
+   "group": "Community, land, and early organization",
+   "prereq": "C003 & C009",
+   "requirements": "A ruling lineage, retainers, succession custom",
+   "behavior": "Quick decisions; callable labour +10%; succession disputes (stability −5 for 24 months at each succession event)",
+   "draft": {
+    "name_zh": "世袭酋长制",
+    "era": 0,
+    "era_name": "Ancient",
+    "category": "governance",
+    "hard": "POP>=200000",
+    "lore": "needed",
+    "exclusive": "X01"
+   }
+  },
+  {
+   "id": "C070",
+   "name": "Marriage alliances and bride-wealth",
+   "group": "Community, land, and early organization",
+   "prereq": "C002 & C009",
+   "requirements": "Lineages, transferable goods, witnesses",
+   "behavior": "Peace between lineages; contact evidence +10% with met seats at peace",
+   "draft": {
+    "name_zh": "联姻与聘礼",
+    "era": 0,
+    "era_name": "Ancient",
+    "category": "family",
+    "hard": "",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C071",
+   "name": "Feasting and gift obligations",
+   "group": "Community, land, and early organization",
+   "prereq": "C004 & C011",
+   "requirements": "Stored surplus, hosts, guests",
+   "behavior": "Surplus becomes standing; stability +1, food reserve −2%",
+   "draft": {
+    "name_zh": "宴享与馈赠义务",
+    "era": 0,
+    "era_name": "Ancient",
+    "category": "economy",
+    "hard": "T007",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C072",
+   "name": "Rites of passage and age sets",
+   "group": "Community, land, and early organization",
+   "prereq": "C001 & C016",
+   "requirements": "Initiation custom, elders, cohorts",
+   "behavior": "Cohort loyalty: militia +10%, apprenticeship places +5%",
+   "draft": {
+    "name_zh": "成年礼与年龄组",
+    "era": 0,
+    "era_name": "Ancient",
+    "category": "family",
+    "hard": "",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C073",
+   "name": "Sacred groves and seasonal taboos",
+   "group": "Community, land, and early organization",
+   "prereq": "C007 & C001",
+   "requirements": "Protected land, custodians, observance",
+   "behavior": "Forest and wild land recover 20% faster; 2% of farmland stays fallow",
+   "draft": {
+    "name_zh": "圣林与季节禁忌",
+    "era": 0,
+    "era_name": "Ancient",
+    "category": "environment",
+    "hard": "",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C074",
+   "name": "Codified law on public tablets",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C020 & C013",
+   "requirements": "Scribes, public display, judges bound by text",
+   "behavior": "Predictable judgement: unrest −500 bp in owned regions",
+   "draft": {
+    "name_zh": "成文法与公示法典",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "law",
+    "hard": "T025",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C075",
+   "name": "Citizen assemblies",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C019 & C011",
+   "requirements": "A defined citizen body, meeting place, rules of debate",
+   "behavior": "Openness drifts up; levy room +10%; policy changes need 12 months",
+   "draft": {
+    "name_zh": "公民大会",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "governance",
+    "hard": "POP>=1000000",
+    "lore": "needed",
+    "exclusive": "X02"
+   }
+  },
+  {
+   "id": "C076",
+   "name": "Divine kingship and temple economy",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C014 & (C069 | C013)",
+   "requirements": "A sacred ruler, temples, redistributive stores",
+   "behavior": "Stability +3; temples store food (+10% reserve cap); Revisability drifts down",
+   "draft": {
+    "name_zh": "神圣王权与神庙经济",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "governance",
+    "hard": "REL | F:holy_site",
+    "lore": "needed",
+    "exclusive": "X02"
+   }
+  },
+  {
+   "id": "C077",
+   "name": "Tribute and client rulers",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C016 & C012",
+   "requirements": "A stronger power, envoys, ritual exchange",
+   "behavior": "Subordination offers are accepted 20% more readily by weaker neighbours",
+   "draft": {
+    "name_zh": "朝贡与附庸",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "diplomacy",
+    "hard": "CONTACT",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C078",
+   "name": "Tax farming",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C022 & C013",
+   "requirements": "Wealthy contractors, auctions of collection rights",
+   "behavior": "Revenue early and cheap to administer; unrest +500 bp in regions above 2 M",
+   "draft": {
+    "name_zh": "包税制",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "revenue",
+    "hard": "T026",
+    "lore": "needed",
+    "exclusive": "X03"
+   }
+  },
+  {
+   "id": "C079",
+   "name": "Salaried revenue officials",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C026",
+   "requirements": "Trained officials, pay, audits",
+   "behavior": "Administrative capacity +1 region; upkeep of offices +10%",
+   "draft": {
+    "name_zh": "领薪税吏",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "revenue",
+    "hard": "Q:scribe>=10000",
+    "lore": "needed",
+    "exclusive": "X03"
+   }
+  },
+  {
+   "id": "C080",
+   "name": "Debt limits and jubilee remission",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C011 & C017",
+   "requirements": "Recorded debts, periodic remission",
+   "behavior": "Prevents debt bondage: stability +1; lending (credit lines) −10%",
+   "draft": {
+    "name_zh": "债务限制与免债年",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "law",
+    "hard": "",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C081",
+   "name": "Schools of philosophy",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C023 & C024",
+   "requirements": "Teachers, disputation, copied texts",
+   "behavior": "Science-tag evidence +5%; scholar training +10% places",
+   "draft": {
+    "name_zh": "哲学学派",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "science",
+    "hard": "T025",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C082",
+   "name": "Public games and festivals",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C019 & C071",
+   "requirements": "Venues, sponsors, calendar",
+   "behavior": "Stability +2 in towns; media upkeep +5%",
+   "draft": {
+    "name_zh": "公共竞技与节庆",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "culture",
+    "hard": "POP>=1000000",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C083",
+   "name": "Military colonies and veteran grants",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C016 & C017",
+   "requirements": "Land to grant, discharged soldiers",
+   "behavior": "Occupied regions settle faster (unrest −1,000 bp after 10 years); farmland +2%",
+   "draft": {
+    "name_zh": "军屯与老兵授田",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "military",
+    "hard": "F:barracks",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C084",
+   "name": "Courier and relay services",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C026 & C012",
+   "requirements": "Relay stations, horses, couriers",
+   "behavior": "Directives reach distant regions sooner: administrative load of regions beyond 3 links −1",
+   "draft": {
+    "name_zh": "驿传制度",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "administration",
+    "hard": "T027",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C085",
+   "name": "Market inspectors and standard measures",
+   "group": "Classical polity, law and revenue",
+   "prereq": "C021 & C019",
+   "requirements": "Officials, standard weights, courts",
+   "behavior": "Market trade losses −10%",
+   "draft": {
+    "name_zh": "市吏与度量监察",
+    "era": 1,
+    "era_name": "Classical",
+    "category": "economy",
+    "hard": "T016",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C086",
+   "name": "Feudal vassalage",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C083 & C009",
+   "requirements": "Lords, oaths, land for service",
+   "behavior": "Militia ×1.3, administration needs −1 region per 4; central taxation −10%",
+   "draft": {
+    "name_zh": "封建封臣制",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "governance",
+    "hard": "REG>=3",
+    "lore": "needed",
+    "exclusive": "X04",
+    "tension": [
+     "C090"
+    ]
+   }
+  },
+  {
+   "id": "C087",
+   "name": "Prefectures and appointed magistrates",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C026 & C025",
+   "requirements": "Examined officials, rotation, inspection",
+   "behavior": "Administrative capacity +2 regions; scribe upkeep +20%",
+   "draft": {
+    "name_zh": "郡县与流官",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "governance",
+    "hard": "REG>=3 & Q:scribe>=20000",
+    "lore": "needed",
+    "exclusive": "X04"
+   }
+  },
+  {
+   "id": "C088",
+   "name": "Monastic orders and scriptoria",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C014 & C023",
+   "requirements": "Endowed houses, copyists, rule of life",
+   "behavior": "Records survive collapse (archives keep knowledge in a dark age); F_custom −100",
+   "draft": {
+    "name_zh": "修道团体与缮写室",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "religion-adjacent",
+    "hard": "REL & F:archive",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C089",
+   "name": "Chartered towns and communes",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C019 & C018",
+   "requirements": "Town charters, councils, militias",
+   "behavior": "Towns +10% services productivity; town unrest when overruled",
+   "draft": {
+    "name_zh": "特许城镇与自治公社",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "governance",
+    "hard": "POP>=2000000",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C090",
+   "name": "Civil examinations",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C025 & C087",
+   "requirements": "Graded examinations, candidates, examiners",
+   "behavior": "Official posts filled by merit: administrative capacity +1; scholar places +15%",
+   "draft": {
+    "name_zh": "科举考试",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "education",
+    "hard": "F:school",
+    "lore": "needed",
+    "tension": [
+     "C086"
+    ]
+   }
+  },
+  {
+   "id": "C091",
+   "name": "Universities and degrees",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C027 & C081",
+   "requirements": "Chartered faculties, degrees, endowments",
+   "behavior": "Scholar and physician training +20% places",
+   "draft": {
+    "name_zh": "大学与学位",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "education",
+    "hard": "F:school & Q:scholar>=10000",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C092",
+   "name": "Religious and customary courts",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C020 & C014",
+   "requirements": "Judges, recorded custom, sanction",
+   "behavior": "Dispute settlement in remote regions: unrest −300 bp; competes with state courts",
+   "draft": {
+    "name_zh": "宗教法与习惯法法庭",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "law",
+    "hard": "REL",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C093",
+   "name": "Merchant leagues",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C018 & C021",
+   "requirements": "Allied trading towns, shared privileges",
+   "behavior": "Sea gateway capacity +15%; foreign merchants pay more",
+   "draft": {
+    "name_zh": "商人同盟",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "economy",
+    "hard": "CONTACT & T028",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C094",
+   "name": "Pilgrimage routes and hospices",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C012 & C014",
+   "requirements": "Shrines, hostels, safe roads",
+   "behavior": "Contact evidence +10%; faith spreads 10% faster",
+   "draft": {
+    "name_zh": "朝圣路线与济院",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "religion-adjacent",
+    "hard": "REL & F:holy_site",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C095",
+   "name": "Manorial tenancy and labour dues",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C017 & C086",
+   "requirements": "Lords, tenants, labour days",
+   "behavior": "Callable labour +10%; F_cul Food +200; mobility of labour −20%",
+   "draft": {
+    "name_zh": "庄园租佃与劳役",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "labour",
+    "hard": "",
+    "lore": "needed",
+    "tension": [
+     "C123"
+    ]
+   }
+  },
+  {
+   "id": "C096",
+   "name": "Hospitals and almshouses",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C015 & C014",
+   "requirements": "Endowments, carers, beds",
+   "behavior": "Care deaths −5%; stability +1",
+   "draft": {
+    "name_zh": "医院与济贫院",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "welfare",
+    "hard": "F:clinic | F:holy_site",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C097",
+   "name": "Warrior codes of honour",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C016 & C086",
+   "requirements": "A warrior estate, codes, patrons",
+   "behavior": "Formation morale +10%; Martial obligation drifts up",
+   "draft": {
+    "name_zh": "武士荣誉法则",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "military",
+    "hard": "",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C098",
+   "name": "Cadastral surveys and land registers",
+   "group": "Medieval estates, faith and learning",
+   "prereq": "C017 & C026",
+   "requirements": "Surveyors, maps, registers",
+   "behavior": "Land tax and field disputes settled: farmland use +3%, unrest −200 bp",
+   "draft": {
+    "name_zh": "地籍清丈与田册",
+    "era": 2,
+    "era_name": "Medieval",
+    "category": "administration",
+    "hard": "T016 & T026",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C099",
+   "name": "Joint-stock companies",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C022 & C021 & C031",
+   "requirements": "Shares, ledgers, courts enforcing contracts",
+   "behavior": "Enterprises pool capital: construction finance +10%; enables chartered companies",
+   "draft": {
+    "name_zh": "股份公司",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "economy",
+    "hard": "T208",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C100",
+   "name": "Central banking and public debt",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C026 & C099",
+   "requirements": "A public bank, bond markets, credible repayment",
+   "behavior": "Treaty credit lines +25%; a default costs stability −10",
+   "draft": {
+    "name_zh": "中央银行与公债",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "economy",
+    "hard": "T208",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C101",
+   "name": "Absolute monarchy and court bureaucracy",
+   "group": "Early modern state, money and toleration",
+   "prereq": "(C087 | C086) & C026",
+   "requirements": "A sovereign above estates, a court, standing officials",
+   "behavior": "Administrative capacity +2; reforms −20% work; Revisability drifts down",
+   "draft": {
+    "name_zh": "君主专制与宫廷官僚",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "governance",
+    "hard": "REG>=6",
+    "lore": "needed",
+    "exclusive": "X05"
+   }
+  },
+  {
+   "id": "C102",
+   "name": "Parliamentary sovereignty",
+   "group": "Early modern state, money and toleration",
+   "prereq": "(C075 | C089) & C020",
+   "requirements": "Elected chamber, budget control, rule of law",
+   "behavior": "Budget legitimacy: stability +2; war declarations need 6 months",
+   "draft": {
+    "name_zh": "议会主权",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "governance",
+    "hard": "REG>=3",
+    "lore": "needed",
+    "exclusive": "X05"
+   }
+  },
+  {
+   "id": "C103",
+   "name": "Edicts of toleration",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C092 & C024",
+   "requirements": "Legal coexistence of faiths",
+   "behavior": "Migrants of other faiths settle freely; Openness drifts up",
+   "draft": {
+    "name_zh": "宗教宽容敕令",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "religion-adjacent",
+    "hard": "REL",
+    "lore": "needed",
+    "exclusive": "X06"
+   }
+  },
+  {
+   "id": "C104",
+   "name": "State church and confessional unity",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C092 & C014",
+   "requirements": "An established church, tithes, censorship",
+   "behavior": "Stability +3 where the faith is the majority; Science-tag evidence −10%",
+   "draft": {
+    "name_zh": "国教与信仰统一",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "religion-adjacent",
+    "hard": "REL",
+    "lore": "needed",
+    "exclusive": "X06"
+   }
+  },
+  {
+   "id": "C105",
+   "name": "Learned societies and academies",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C091 & C028",
+   "requirements": "Members, journals, meetings",
+   "behavior": "Discovery channel +5%; contact evidence in science +10%",
+   "draft": {
+    "name_zh": "学会与科学院",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "science",
+    "hard": "T210 | T045",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C106",
+   "name": "Patents and inventors' privileges",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C031 & C020",
+   "requirements": "Registered inventions, courts, terms",
+   "behavior": "Prototyped nodes adopted 20% faster; licensing out earns credit",
+   "draft": {
+    "name_zh": "专利与发明特权",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "economy",
+    "hard": "",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C107",
+   "name": "Mercantilist trade policy",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C093 & C026",
+   "requirements": "Navigation acts, bullion targets, colonies",
+   "behavior": "Own exports favoured; contact evidence −20%; imports −10%",
+   "draft": {
+    "name_zh": "重商主义贸易政策",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "economy",
+    "hard": "CONTACT",
+    "lore": "needed",
+    "exclusive": "X07"
+   }
+  },
+  {
+   "id": "C108",
+   "name": "Public postal service",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C084 & C026",
+   "requirements": "Post offices, routes, stamps",
+   "behavior": "Record-tag activity +10%; practice evidence +5%",
+   "draft": {
+    "name_zh": "公共邮政",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "administration",
+    "hard": "T198 | T048",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C109",
+   "name": "Maritime law and marine insurance",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C021 & C099",
+   "requirements": "Admiralty courts, underwriters",
+   "behavior": "Sea route losses −25%",
+   "draft": {
+    "name_zh": "海商法与海上保险",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "law",
+    "hard": "T028",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C110",
+   "name": "Poor laws and workhouses",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C096 & C026",
+   "requirements": "Parish relief, overseers",
+   "behavior": "Famine deaths −20%; general labour +2%; stability −1 among the poor",
+   "draft": {
+    "name_zh": "济贫法与习艺所",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "welfare",
+    "hard": "F:admin",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C111",
+   "name": "Settler companies and colonial charters",
+   "group": "Early modern state, money and toleration",
+   "prereq": "C099 & C083",
+   "requirements": "Charters, ships, recruited settlers",
+   "behavior": "Migration to newly claimed regions +30%",
+   "draft": {
+    "name_zh": "殖民特许与移民公司",
+    "era": 3,
+    "era_name": "Early Modern",
+    "category": "economy",
+    "hard": "T028 & CONTACT",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C112",
+   "name": "Free-trade doctrine",
+   "group": "Industrial society and the nation",
+   "prereq": "C099 & C031",
+   "requirements": "Open ports, treaties, low duties",
+   "behavior": "Market fills more of your orders; dependency on imports rises",
+   "draft": {
+    "name_zh": "自由贸易主张",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "economy",
+    "hard": "CONTACT",
+    "lore": "needed",
+    "exclusive": "X07"
+   }
+  },
+  {
+   "id": "C113",
+   "name": "Written constitution and bill of rights",
+   "group": "Industrial society and the nation",
+   "prereq": "(C102 | C040) & C020",
+   "requirements": "A constitutional text, courts that apply it",
+   "behavior": "Stability floor +5; emergency powers take 12 months",
+   "draft": {
+    "name_zh": "成文宪法与权利法案",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "law",
+    "hard": "F:admin",
+    "lore": "needed",
+    "tension": [
+     "C135"
+    ]
+   }
+  },
+  {
+   "id": "C114",
+   "name": "Mass conscription",
+   "group": "Industrial society and the nation",
+   "prereq": "C037 & C016",
+   "requirements": "Registers, depots, universal service",
+   "behavior": "Recruit room +40%; trained labour −3% while mobilized",
+   "draft": {
+    "name_zh": "普遍征兵制",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "military",
+    "hard": "F:barracks",
+    "lore": "needed",
+    "exclusive": "X08"
+   }
+  },
+  {
+   "id": "C115",
+   "name": "Volunteer professional army",
+   "group": "Industrial society and the nation",
+   "prereq": "C037 & C033",
+   "requirements": "Pay, long service, career officers",
+   "behavior": "Proficiency cap +1,000; recruit room −25%",
+   "draft": {
+    "name_zh": "志愿职业军队",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "military",
+    "hard": "F:barracks",
+    "lore": "needed",
+    "exclusive": "X08"
+   }
+  },
+  {
+   "id": "C116",
+   "name": "Factory inspection and child-labour limits",
+   "group": "Industrial society and the nation",
+   "prereq": "C033 & C026",
+   "requirements": "Inspectors, age limits, accident records",
+   "behavior": "Industrial deaths −10%, school attendance +10%; Industry LP −100",
+   "draft": {
+    "name_zh": "工厂监察与童工限制",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "labour",
+    "hard": "T061 | T062",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C117",
+   "name": "Friendly societies and mutual insurance",
+   "group": "Industrial society and the nation",
+   "prereq": "C015 & C033",
+   "requirements": "Member dues, sick funds, trustees",
+   "behavior": "Care deaths −5%; stability +1 in industrial towns",
+   "draft": {
+    "name_zh": "互助会与互助保险",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "welfare",
+    "hard": "",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C118",
+   "name": "Boards of public health",
+   "group": "Industrial society and the nation",
+   "prereq": "C019 & C026",
+   "requirements": "Medical officers, inspection powers, sewer budgets",
+   "behavior": "Town mortality −10%; outbreak spread −20%",
+   "draft": {
+    "name_zh": "公共卫生委员会",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "welfare",
+    "hard": "T069 | T053",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C119",
+   "name": "Statistical bureaus and census",
+   "group": "Industrial society and the nation",
+   "prereq": "C026 & C098",
+   "requirements": "Enumerators, tabulation, publication",
+   "behavior": "Own-state estimates exact; administrative capacity +1",
+   "draft": {
+    "name_zh": "统计局与人口普查",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "administration",
+    "hard": "T055",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C120",
+   "name": "Chartered engineering institutions",
+   "group": "Industrial society and the nation",
+   "prereq": "C025 & C030",
+   "requirements": "Examinations, codes, journals",
+   "behavior": "Construction productivity +300 bp; incident hazards −10%",
+   "draft": {
+    "name_zh": "特许工程师学会",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "science",
+    "hard": "T061",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C121",
+   "name": "Stock exchanges",
+   "group": "Industrial society and the nation",
+   "prereq": "C099 & C100",
+   "requirements": "Listed companies, brokers, rules",
+   "behavior": "Construction finance +10%; crash hazard (one per 80 years: stability −5)",
+   "draft": {
+    "name_zh": "证券交易所",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "economy",
+    "hard": "T219 | T048",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C122",
+   "name": "National language schooling",
+   "group": "Industrial society and the nation",
+   "prereq": "C032 & (C101 | C102)",
+   "requirements": "A standard language, textbooks, teachers",
+   "behavior": "Literacy +5 points over 20 years; minority unrest +300 bp",
+   "draft": {
+    "name_zh": "国语教育与民族认同",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "education",
+    "hard": "F:school",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C123",
+   "name": "Abolition of servile labour",
+   "group": "Industrial society and the nation",
+   "prereq": "C033 & C080",
+   "requirements": "Courts, compensation, enforcement",
+   "behavior": "Labour mobility +20%; stability −3 for 60 months, then +2",
+   "draft": {
+    "name_zh": "废除奴役劳动",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "labour",
+    "hard": "",
+    "lore": "needed",
+    "tension": [
+     "C095"
+    ]
+   }
+  },
+  {
+   "id": "C124",
+   "name": "Research universities",
+   "group": "Industrial society and the nation",
+   "prereq": "C091 & C029",
+   "requirements": "Laboratories, doctoral training, research chairs",
+   "behavior": "Research posts +10% effectiveness; scientist training +20%",
+   "draft": {
+    "name_zh": "研究型大学",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "science",
+    "hard": "F:laboratory",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C125",
+   "name": "Universal suffrage",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C113 & C032",
+   "requirements": "Voter registers, secret ballot, parties",
+   "behavior": "Stability +3; policy reversals cost half; Openness up",
+   "draft": {
+    "name_zh": "普选权",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "governance",
+    "hard": "T048",
+    "lore": "needed",
+    "tension": [
+     "C172"
+    ]
+   }
+  },
+  {
+   "id": "C126",
+   "name": "Social insurance and pensions",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C039 & C117",
+   "requirements": "Contributions, records, pensions",
+   "behavior": "Elder care deaths −15%; F_dev +200; upkeep 0.5 lots media per M residents",
+   "draft": {
+    "name_zh": "社会保险与养老金",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "welfare",
+    "hard": "F:admin",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C127",
+   "name": "Central planning commissions",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C036 & C041 & C119",
+   "requirements": "Planners, output targets, material balances",
+   "behavior": "Construction priority obeyed exactly; market orders −50%; Industry LP +300, Services LP −300",
+   "draft": {
+    "name_zh": "中央计划委员会",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "economy",
+    "hard": "T055",
+    "lore": "needed",
+    "exclusive": "X09"
+   }
+  },
+  {
+   "id": "C128",
+   "name": "Market regulation and competition law",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C035 & C040",
+   "requirements": "Regulators, courts, disclosure",
+   "behavior": "Market clearing losses −10%; Industry LP +200",
+   "draft": {
+    "name_zh": "市场监管与竞争法",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "economy",
+    "hard": "",
+    "lore": "needed",
+    "exclusive": "X09",
+    "tension": [
+     "C129"
+    ]
+   }
+  },
+  {
+   "id": "C129",
+   "name": "Tripartite wage bargaining",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C034 & C035",
+   "requirements": "Unions, employer associations, state mediators",
+   "behavior": "Strike hazard −50%; Industry LP −100",
+   "draft": {
+    "name_zh": "劳资政三方协商",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "labour",
+    "hard": "",
+    "lore": "needed",
+    "tension": [
+     "C128"
+    ]
+   }
+  },
+  {
+   "id": "C130",
+   "name": "Industrial research laboratories",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C035 & C124",
+   "requirements": "Company scientists, patents, budgets",
+   "behavior": "Industrial research capacity +15%",
+   "draft": {
+    "name_zh": "企业研究实验室",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "science",
+    "hard": "F:laboratory",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C131",
+   "name": "Public broadcasting charter",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C028 & C036",
+   "requirements": "A licensed public broadcaster, independent board",
+   "behavior": "Stability +2; misinformation events −50%",
+   "draft": {
+    "name_zh": "公共广播宪章",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "media",
+    "hard": "T229",
+    "lore": "needed",
+    "exclusive": "X10"
+   }
+  },
+  {
+   "id": "C132",
+   "name": "Commercial broadcasting",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C028 & C035",
+   "requirements": "Advertising, private stations",
+   "behavior": "Consumer goods demand +10% (prosperity from supply +10%); stability −1",
+   "draft": {
+    "name_zh": "商业广播",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "media",
+    "hard": "T229",
+    "lore": "needed",
+    "exclusive": "X10"
+   }
+  },
+  {
+   "id": "C133",
+   "name": "Family planning services",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C039 & C118",
+   "requirements": "Clinics, contraception, counselling",
+   "behavior": "Fertility follows prosperity faster (F_dev ×1.5); maternal deaths −30%",
+   "draft": {
+    "name_zh": "计划生育服务",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "family",
+    "hard": "T070",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C134",
+   "name": "National parks and conservation",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C007 & C036",
+   "requirements": "Protected land, rangers",
+   "behavior": "Wild land protected from encroachment; amenity +300 bp",
+   "draft": {
+    "name_zh": "国家公园与自然保护",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "environment",
+    "hard": "",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C135",
+   "name": "Political police",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C041 & C037",
+   "requirements": "Informers, files, detention",
+   "behavior": "Unrest −1,000 bp; Revisability drifts down; Science-tag evidence −5%",
+   "draft": {
+    "name_zh": "政治警察",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "security",
+    "hard": "F:barracks",
+    "lore": "needed",
+    "tension": [
+     "C113"
+    ]
+   }
+  },
+  {
+   "id": "C136",
+   "name": "National science councils",
+   "group": "Mass politics, welfare and planning",
+   "prereq": "C036 & C124",
+   "requirements": "Peer-reviewed grants, national laboratories",
+   "behavior": "Advanced and Frontier research +10%",
+   "draft": {
+    "name_zh": "国家科学委员会",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "science",
+    "hard": "F:institute",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C137",
+   "name": "Environmental impact assessment",
+   "group": "Information-age institutions",
+   "prereq": "C134 & C045",
+   "requirements": "Assessors, public hearings, baselines",
+   "behavior": "Pollution mortality −20%; construction months +5%",
+   "draft": {
+    "name_zh": "环境影响评价",
+    "era": 6,
+    "era_name": "Information",
+    "category": "environment",
+    "hard": "T130",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C138",
+   "name": "Freedom of information",
+   "group": "Information-age institutions",
+   "prereq": "C040 & C047",
+   "requirements": "Disclosure rules, appeals, archives",
+   "behavior": "Corruption losses −10%; incident reports reach you a month earlier",
+   "draft": {
+    "name_zh": "信息公开法",
+    "era": 6,
+    "era_name": "Information",
+    "category": "law",
+    "hard": "T113",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C139",
+   "name": "Data privacy rights",
+   "group": "Information-age institutions",
+   "prereq": "C047 & C113",
+   "requirements": "Consent, data protection authority",
+   "behavior": "Openness up; network incident hazard −20%; compute for administration +10%",
+   "draft": {
+    "name_zh": "数据隐私权",
+    "era": 6,
+    "era_name": "Information",
+    "category": "law",
+    "hard": "T113",
+    "lore": "needed",
+    "exclusive": "X11"
+   }
+  },
+  {
+   "id": "C140",
+   "name": "Mass surveillance programmes",
+   "group": "Information-age institutions",
+   "prereq": "C047 & C135",
+   "requirements": "Data centres, intercepts, analysts",
+   "behavior": "Unrest −1,500 bp; espionage against you −30%; Openness down",
+   "draft": {
+    "name_zh": "大规模监控计划",
+    "era": 6,
+    "era_name": "Information",
+    "category": "security",
+    "hard": "T112 & T116",
+    "lore": "needed",
+    "exclusive": "X11"
+   }
+  },
+  {
+   "id": "C141",
+   "name": "International standards bodies",
+   "group": "Information-age institutions",
+   "prereq": "C043 & C120",
+   "requirements": "Committees, shared specifications",
+   "behavior": "Rival-technology locks halved for families shared with met seats",
+   "draft": {
+    "name_zh": "国际标准组织",
+    "era": 6,
+    "era_name": "Information",
+    "category": "diplomacy",
+    "hard": "CONTACT",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C142",
+   "name": "Venture capital and start-up finance",
+   "group": "Information-age institutions",
+   "prereq": "C121 & C031",
+   "requirements": "Funds, equity, failure tolerance",
+   "behavior": "Prototype stage of side technologies −20% work",
+   "draft": {
+    "name_zh": "风险投资与创业金融",
+    "era": 6,
+    "era_name": "Information",
+    "category": "economy",
+    "hard": "T111",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C143",
+   "name": "Open-source commons",
+   "group": "Information-age institutions",
+   "prereq": "C044 & C047",
+   "requirements": "Shared code, licences, maintainers",
+   "behavior": "Compute-tag evidence +10%; contact evidence in computing +25%",
+   "draft": {
+    "name_zh": "开源公共品",
+    "era": 6,
+    "era_name": "Information",
+    "category": "science",
+    "hard": "T112",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C144",
+   "name": "Civil space agency",
+   "group": "Information-age institutions",
+   "prereq": "C136 & C045",
+   "requirements": "Budget, mission planning, contractors",
+   "behavior": "Launch failure rate −20%; Space-tag evidence +10%",
+   "draft": {
+    "name_zh": "民用航天局",
+    "era": 6,
+    "era_name": "Information",
+    "category": "science",
+    "hard": "T140",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C145",
+   "name": "Nuclear safety regulation",
+   "group": "Information-age institutions",
+   "prereq": "C045 & C136",
+   "requirements": "Licensing, inspectors, incident review",
+   "behavior": "Reactor incident hazard −50%; fission build months +10%",
+   "draft": {
+    "name_zh": "核安全监管",
+    "era": 6,
+    "era_name": "Information",
+    "category": "safety",
+    "hard": "T146",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C146",
+   "name": "Universal health coverage",
+   "group": "Information-age institutions",
+   "prereq": "C126 & C118",
+   "requirements": "Pooled finance, clinics everywhere",
+   "behavior": "Mortality −5% all ages; medicine upkeep +10%",
+   "draft": {
+    "name_zh": "全民医疗保障",
+    "era": 6,
+    "era_name": "Information",
+    "category": "welfare",
+    "hard": "F:hospital",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C147",
+   "name": "Climate treaties and carbon accounting",
+   "group": "Information-age institutions",
+   "prereq": "C055 & C043",
+   "requirements": "Inventories, verified pledges",
+   "behavior": "Harvest variance −20% from AD 2100 on; coal-burning works −5% output",
+   "draft": {
+    "name_zh": "气候条约与碳核算",
+    "era": 6,
+    "era_name": "Information",
+    "category": "environment",
+    "hard": "T130 & CONTACT",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C148",
+   "name": "Arms-control verification",
+   "group": "Information-age institutions",
+   "prereq": "C043 & C045",
+   "requirements": "Inspectors, data exchange, limits",
+   "behavior": "Trust +1 a decade with treaty partners; pulse ships forbidden while held",
+   "draft": {
+    "name_zh": "军控核查机制",
+    "era": 6,
+    "era_name": "Information",
+    "category": "diplomacy",
+    "hard": "T146 & CONTACT",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C149",
+   "name": "Space commons treaty",
+   "group": "Space-age institutions",
+   "prereq": "C144 & C043",
+   "requirements": "Shared registry of objects, no sovereignty claims",
+   "behavior": "Contest of stations −50% (capture needs 6 months); sites claimed by outposts only",
+   "draft": {
+    "name_zh": "太空公域条约",
+    "era": 7,
+    "era_name": "Space",
+    "category": "off-world",
+    "hard": "T142 & CONTACT",
+    "lore": "needed",
+    "exclusive": "X12"
+   }
+  },
+  {
+   "id": "C150",
+   "name": "Off-world homestead claims",
+   "group": "Space-age institutions",
+   "prereq": "C144 & C038",
+   "requirements": "Registered claims, enforcement",
+   "behavior": "Outposts claim +1 adjacent orbit; settler volunteers +25%; trust −2 with commons holders",
+   "draft": {
+    "name_zh": "地外宅地权",
+    "era": 7,
+    "era_name": "Space",
+    "category": "off-world",
+    "hard": "T142",
+    "lore": "needed",
+    "exclusive": "X12"
+   }
+  },
+  {
+   "id": "C151",
+   "name": "Launch range and safety authority",
+   "group": "Space-age institutions",
+   "prereq": "C144 & C045",
+   "requirements": "Range control, flight termination, inspections",
+   "behavior": "Launch failure rate −25%; crewed failure deaths −50%",
+   "draft": {
+    "name_zh": "发射靶场与安全管理局",
+    "era": 7,
+    "era_name": "Space",
+    "category": "safety",
+    "hard": "T142 & F:launch_complex",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C152",
+   "name": "Station crew articles",
+   "group": "Space-age institutions",
+   "prereq": "C058 & C151",
+   "requirements": "Contracts for orbit, rotation rules, medical boards",
+   "behavior": "Station crews rotate at −25% boost",
+   "draft": {
+    "name_zh": "空间站乘员公约",
+    "era": 7,
+    "era_name": "Space",
+    "category": "labour",
+    "hard": "T144",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C153",
+   "name": "Orbital traffic management",
+   "group": "Space-age institutions",
+   "prereq": "C151 & C141",
+   "requirements": "Tracking, conjunction warnings, deorbit rules",
+   "behavior": "Debris hazard −50% in every orbit you use",
+   "draft": {
+    "name_zh": "轨道交通管理",
+    "era": 7,
+    "era_name": "Space",
+    "category": "safety",
+    "hard": "T141",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C154",
+   "name": "Planetary protection protocols",
+   "group": "Space-age institutions",
+   "prereq": "C137 & C144",
+   "requirements": "Sterilisation, quarantine, sample rules",
+   "behavior": "Life-search evidence ×1.5; off-world construction months +10%",
+   "draft": {
+    "name_zh": "行星保护规程",
+    "era": 7,
+    "era_name": "Space",
+    "category": "environment",
+    "hard": "T143",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C155",
+   "name": "Asteroid mining charters",
+   "group": "Space-age institutions",
+   "prereq": "C142 & C038",
+   "requirements": "Licensed prospectors, ore rights",
+   "behavior": "Off-world mines +10% output; their bill −10%",
+   "draft": {
+    "name_zh": "小行星采矿特许",
+    "era": 7,
+    "era_name": "Space",
+    "category": "economy",
+    "hard": "T159",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C156",
+   "name": "Indentured passage",
+   "group": "Space-age institutions",
+   "prereq": "C111 & C033",
+   "requirements": "Passage paid by labour contracts",
+   "behavior": "Settlers move at no credit cost; site autonomy pressure +30%",
+   "draft": {
+    "name_zh": "契约移民",
+    "era": 7,
+    "era_name": "Space",
+    "category": "off-world",
+    "hard": "T144",
+    "lore": "needed",
+    "exclusive": "X13"
+   }
+  },
+  {
+   "id": "C157",
+   "name": "Subsidized free passage",
+   "group": "Space-age institutions",
+   "prereq": "C126 & C151",
+   "requirements": "Public passage, family settlement",
+   "behavior": "Settler volunteers +50%; boost per settler −0.5 t (families pack light)",
+   "draft": {
+    "name_zh": "资助自由移民",
+    "era": 7,
+    "era_name": "Space",
+    "category": "off-world",
+    "hard": "T144",
+    "lore": "needed",
+    "exclusive": "X13"
+   }
+  },
+  {
+   "id": "C158",
+   "name": "Space guard and orbital militia",
+   "group": "Space-age institutions",
+   "prereq": "C037 & C151",
+   "requirements": "Orbital crews under arms, rules of engagement",
+   "behavior": "Station defence ×1.5; boarding defence +25%",
+   "draft": {
+    "name_zh": "太空警备队",
+    "era": 7,
+    "era_name": "Space",
+    "category": "military",
+    "hard": "T145",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C159",
+   "name": "Algorithmic audit courts",
+   "group": "AI-age institutions",
+   "prereq": "C051 & C138",
+   "requirements": "Auditors, access to models, appeal",
+   "behavior": "Automation incident hazards −30%; administrative compute +10%",
+   "draft": {
+    "name_zh": "算法审计法庭",
+    "era": 8,
+    "era_name": "AI",
+    "category": "law",
+    "hard": "T115",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C160",
+   "name": "Universal basic income",
+   "group": "AI-age institutions",
+   "prereq": "C126 & C046",
+   "requirements": "Universal payments financed from automation",
+   "behavior": "Automation unrest −75%; general labour supply −5%",
+   "draft": {
+    "name_zh": "全民基本收入",
+    "era": 8,
+    "era_name": "AI",
+    "category": "welfare",
+    "hard": "T122",
+    "lore": "needed",
+    "exclusive": "X14"
+   }
+  },
+  {
+   "id": "C161",
+   "name": "Public job guarantee",
+   "group": "AI-age institutions",
+   "prereq": "C036 & C046",
+   "requirements": "Public employers, wages, training",
+   "behavior": "Automation unrest −50%; idle workers fill public works",
+   "draft": {
+    "name_zh": "公共就业保障",
+    "era": 8,
+    "era_name": "AI",
+    "category": "labour",
+    "hard": "T122",
+    "lore": "needed",
+    "exclusive": "X14"
+   }
+  },
+  {
+   "id": "C162",
+   "name": "Compute allocation boards",
+   "group": "AI-age institutions",
+   "prereq": "C052 & (C127 | C128)",
+   "requirements": "Priority lists, metering, appeals",
+   "behavior": "Compute shortfalls fall on the lowest priority first (the order is yours)",
+   "draft": {
+    "name_zh": "算力分配委员会",
+    "era": 8,
+    "era_name": "AI",
+    "category": "economy",
+    "hard": "T117",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C163",
+   "name": "Registry of synthetic persons",
+   "group": "AI-age institutions",
+   "prereq": "C059 & C159",
+   "requirements": "Identity, liability and rights of synthetic agents",
+   "behavior": "Machine governance centres +25% capacity; Human Primacy doctrines −2 stability",
+   "draft": {
+    "name_zh": "合成人登记制度",
+    "era": 8,
+    "era_name": "AI",
+    "category": "law",
+    "hard": "T122",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C164",
+   "name": "Human-in-the-loop command law",
+   "group": "AI-age institutions",
+   "prereq": "C051 & C037",
+   "requirements": "Human authorization for lethal action",
+   "behavior": "Autonomous-swarm power −10%; trust +1 a decade with every met seat",
+   "draft": {
+    "name_zh": "人在回路指挥法",
+    "era": 8,
+    "era_name": "AI",
+    "category": "military",
+    "hard": "T114",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C165",
+   "name": "Generational equity compact",
+   "group": "AI-age institutions",
+   "prereq": "C056 & C146",
+   "requirements": "Long-horizon budgets, rights of the unborn",
+   "behavior": "Long projects (≥ 120 months) −10% work",
+   "draft": {
+    "name_zh": "代际公平契约",
+    "era": 8,
+    "era_name": "AI",
+    "category": "welfare",
+    "hard": "T136 | T134",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C166",
+   "name": "Global compute treaty",
+   "group": "AI-age institutions",
+   "prereq": "C148 & C162",
+   "requirements": "Verified compute ceilings, inspections",
+   "behavior": "Network incident hazard −50% world-wide among parties; F_auto cap −1,000",
+   "draft": {
+    "name_zh": "全球算力条约",
+    "era": 8,
+    "era_name": "AI",
+    "category": "diplomacy",
+    "hard": "T122 & CONTACT",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C167",
+   "name": "Machine trusteeship of commons",
+   "group": "AI-age institutions",
+   "prereq": "C053 & C143",
+   "requirements": "Authorized systems managing shared resources",
+   "behavior": "Common pools (fisheries, water, orbits) +20% sustainable yield",
+   "draft": {
+    "name_zh": "机器托管公共品",
+    "era": 8,
+    "era_name": "AI",
+    "category": "governance",
+    "hard": "T125",
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "C168",
+   "name": "Engine-house brotherhoods",
+   "group": "Tradition institutions",
+   "prereq": "C018 & C033",
+   "requirements": "Engine crews, lodges, apprenticeships",
+   "behavior": "Steampunk: steam works crews train 25% faster; mastery +25 bp a year",
+   "draft": {
+    "name_zh": "机房兄弟会",
+    "era": 4,
+    "era_name": "Industrial",
+    "category": "tradition",
+    "hard": "TRAD:steam",
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "C169",
+   "name": "Oil concession diplomacy",
+   "group": "Tradition institutions",
+   "prereq": "C099 & C043",
+   "requirements": "Concessions, royalties, protection",
+   "behavior": "Dieselpunk: crude imports by treaty −15% credit",
+   "draft": {
+    "name_zh": "石油租让外交",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "tradition",
+    "hard": "TRAD:engine & CONTACT",
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "C170",
+   "name": "Public power cooperatives",
+   "group": "Tradition institutions",
+   "prereq": "C036 & C015",
+   "requirements": "Member-owned utilities",
+   "behavior": "Electropunk: grid faults −50%; stability +1 in electrified regions",
+   "draft": {
+    "name_zh": "公共电力合作社",
+    "era": 5,
+    "era_name": "Modern",
+    "category": "tradition",
+    "hard": "TRAD:wire",
+    "lore": "needed",
+    "tradition": "wire"
+   }
+  },
+  {
+   "id": "C171",
+   "name": "Atomic stewardship orders",
+   "group": "Tradition institutions",
+   "prereq": "C056 & C145",
+   "requirements": "Custodians of waste for ten thousand years",
+   "behavior": "Atompunk: reactor incident hazard −50%; Stewardship of the Land conflict removed",
+   "draft": {
+    "name_zh": "原子守护会",
+    "era": 7,
+    "era_name": "Space",
+    "category": "tradition",
+    "hard": "TRAD:atom",
+    "lore": "needed",
+    "tradition": "atom"
+   }
+  },
+  {
+   "id": "C172",
+   "name": "Corporate citizenship",
+   "group": "Tradition institutions",
+   "prereq": "C048 & C142",
+   "requirements": "Membership through employers, company towns",
+   "behavior": "Cyberpunk: qualified posts +5% productivity; stability −2 in regions with universal suffrage",
+   "draft": {
+    "name_zh": "企业公民权",
+    "era": 6,
+    "era_name": "Information",
+    "category": "tradition",
+    "hard": "TRAD:network",
+    "lore": "needed",
+    "tension": [
+     "C125"
+    ],
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "C173",
+   "name": "Bioethics tribunals",
+   "group": "Tradition institutions",
+   "prereq": "C045 & C137",
+   "requirements": "Review boards with stop powers",
+   "behavior": "Biopunk: biofoundry contamination hazard −50%; bio build months −20%",
+   "draft": {
+    "name_zh": "生物伦理法庭",
+    "era": 6,
+    "era_name": "Information",
+    "category": "tradition",
+    "hard": "TRAD:living",
+    "lore": "needed",
+    "tradition": "living"
+   }
+  },
+  {
+   "id": "C174",
+   "name": "Machine-labour dividends",
+   "group": "Tradition institutions",
+   "prereq": "C050 & (C160 | C161)",
+   "requirements": "Shares in automated output for every resident",
+   "behavior": "AI-punk: unemployment unrest removed; consumer demand +10%",
+   "draft": {
+    "name_zh": "机器劳动红利",
+    "era": 8,
+    "era_name": "AI",
+    "category": "tradition",
+    "hard": "TRAD:synthetic",
+    "lore": "needed",
+    "tradition": "synthetic"
+   }
+  }
+ ]
+}
