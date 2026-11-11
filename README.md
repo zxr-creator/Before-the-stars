@@ -213,7 +213,9 @@ content/lore/         Encyclopedia passages for every technology and practice, k
                       quote. Client-only (the engine never reads it); zh-Hant is generated
                       from zh-Hans by apps/web/scripts/make-zh-hant.mjs, and
                       apps/web/scripts/lore-check.mjs checks coverage, lengths and that no
-                      passage names a node that is not among its ancestors
+                      passage names a node that is not among its ancestors. Entries for
+                      designed but unmerged nodes (docs 37 and 39) already live here and are
+                      checked against the draft graph; the client ignores ids not in content/
 scripts/              bootstrap, build, run, package, browser build, content extraction
 packaging/            app icon, macOS bundle metadata, Windows installer script
 docs/                 v1.0 design documentation, agent API, implementation status
