@@ -109,3 +109,7 @@ before slice 12b (intelligence); items 13-14 before doc 39's graph merge (slice 
     chapter takes T330-T335 and C180-C183. Alternatives: renumber the tether (one node,
     referenced in doc 38 only), or shift doc 39's whole range by one. **Recommendation:
     renumber the tether to T326** before the slice 6b merge.
+
+**Resolved by the lead (2026-11-10):** all recommendations above are adopted, consistent
+with the user's earlier choices; the orbital tether of doc 38 is renumbered T326 so that
+doc 39's T183 (fermentation and brewing) keeps its id.
