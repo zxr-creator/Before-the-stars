@@ -8,21 +8,103 @@ use crate::session::AgentConfig;
 use serde_json::{json, Value};
 
 /// A transport that can run agent seats, reduced to what the host sees of it.
-struct StubAgent;
+#[derive(Default)]
+struct StubAgent {
+    /// The private token of a consultation in progress, and of one that has ended.
+    live: Option<String>,
+    ended: Option<String>,
+    resumed: bool,
+}
 
 impl AgentSlot for StubAgent {
     fn provider(name: &str) -> Option<AgentProvider> {
         (name == "claude-api").then_some(AgentProvider { key: "claude-api", default_model: "stub-model" })
     }
     fn new(_: &AgentConfig) -> Option<StubAgent> {
-        Some(StubAgent)
+        Some(StubAgent::default())
     }
     fn summary(&self) -> AgentSummary {
-        AgentSummary { provider: "claude-api".into(), model: "stub-model".into(), consult_every: 1, state: "idle".into(), last_note: String::new(), calls: 0, last_error: None, thinking_seconds: None }
+        AgentSummary {
+            provider: "claude-api".into(),
+            model: "stub-model".into(),
+            consult_every: 1,
+            state: if self.resumed { "idle".into() } else { "stopped".into() },
+            last_note: String::new(),
+            calls: 0,
+            last_error: None,
+            thinking_seconds: None,
+            mode: "oneshot".into(),
+            errors_in_row: 0,
+            max_failures: 3,
+            spent_usd: 0.0,
+            tokens: 0,
+            budget_seconds: 300,
+        }
     }
     fn log(&self) -> Value {
         json!([{ "note": "what this seat privately intends" }])
     }
+    fn access(&self, token: &str) -> AgentAccess {
+        if !token.is_empty() && self.live.as_deref() == Some(token) {
+            AgentAccess::Live
+        } else if !token.is_empty() && self.ended.as_deref() == Some(token) {
+            AgentAccess::Ended
+        } else {
+            AgentAccess::None
+        }
+    }
+    fn control(&mut self, op: &str) -> Result<(), String> {
+        if op != "resume" {
+            return Err(format!("unknown control '{op}'"));
+        }
+        self.resumed = true;
+        Ok(())
+    }
+}
+
+#[test]
+fn an_agent_plays_its_own_seat_only_with_the_live_consultation_token() {
+    for require_tokens in [false, true] {
+        let mut h: Host<StubAgent> = new_match(Config { require_tokens, ..SERVER }, ["human", "claude-api", "medium", "hard"]);
+        // nobody may read or command the driven seat from outside
+        assert_eq!(get(&mut h, "/api/turn?seat=1&token=guess").status, 403);
+        h.agents[1].as_mut().unwrap().live = Some("c0ffee-live".into());
+        let packet = get(&mut h, "/api/turn?seat=1&token=c0ffee-live&view=brief");
+        assert_eq!(packet.status, 200, "{}", packet.text);
+        assert_eq!(packet.body["seat"], 1);
+        assert!(packet.body.get("observation").is_none());
+        // the token opens that seat only: not the person's seat, not a built-in seat, not the observer views
+        assert_eq!(get(&mut h, "/api/turn?seat=2&token=c0ffee-live").status, 403);
+        if require_tokens {
+            assert_eq!(get(&mut h, "/api/turn?seat=0&token=c0ffee-live").status, 403);
+        }
+        assert_eq!(get(&mut h, "/api/spectator").status, 403);
+        assert_eq!(get(&mut h, "/api/agent-log?seat=1").status, 403);
+        // it commands the seat while the consultation lasts
+        let cursor = packet.body["cursor"].as_str().unwrap().to_string();
+        let sub = json!({ "seat": 1, "token": "c0ffee-live", "request_id": "agent-1", "cursor": cursor, "actions": [{"kind": "set_policy", "setting": {"kind": "food_reserve_months", "months": 7}}], "advance": "none", "view": "brief" });
+        let done = post(&mut h, "/api/turn", sub.clone());
+        assert_eq!(done.status, 200, "{}", done.text);
+        assert_eq!(done.body["receipts"][0]["status"], "accepted");
+        // and not a moment after: the referee tells the agent to stop
+        let slot = h.agents[1].as_mut().unwrap();
+        slot.ended = slot.live.take();
+        let late = get(&mut h, "/api/turn?seat=1&token=c0ffee-live");
+        assert_eq!((late.status, late.body["error"].as_str()), (409, Some("TURN_OVER")));
+        assert_eq!(post(&mut h, "/api/turn", json!({ "seat": 1, "token": "c0ffee-live", "request_id": "agent-2", "cursor": cursor, "actions": [] })).status, 409);
+    }
+}
+
+#[test]
+fn a_stopped_agent_seat_can_be_resumed_from_this_machine_only() {
+    let mut h: Host<StubAgent> = new_match(SERVER, ["human", "claude-api", "medium", "hard"]);
+    assert_eq!(post(&mut h, "/api/agent/control", json!({ "seat": 2, "op": "resume" })).status, 404, "a built-in seat is not an agent seat");
+    assert_eq!(post(&mut h, "/api/agent/control", json!({ "seat": 1, "op": "explode" })).status, 400);
+    let ok = post(&mut h, "/api/agent/control", json!({ "seat": 1, "op": "resume" }));
+    assert_eq!(ok.status, 200, "{}", ok.text);
+    assert_eq!(ok.body["seats"][1]["agent"]["state"], "idle");
+    let mut strict: Host<StubAgent> = new_match(Config { require_tokens: true, ..SERVER }, ["human", "claude-api", "medium", "hard"]);
+    assert_eq!(post(&mut strict, "/api/agent/control", json!({ "seat": 1, "op": "resume" })).status, 403);
 }
 
 struct Out {

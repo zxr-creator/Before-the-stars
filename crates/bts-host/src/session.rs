@@ -25,10 +25,70 @@ pub struct AgentConfig {
     pub base_url: Option<String>,
     #[serde(default)]
     pub effort: Option<String>,
+    /// How a CLI agent signs in: "login" (the CLI's own sign-in on this machine) or
+    /// "api_key" (the key above, handed to the CLI's environment only). Absent: login.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth: Option<String>,
+    /// Seconds one consultation may take before the steward takes the round.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub budget_seconds: Option<u32>,
+    /// Game tool calls (get_turn, submit_turn) an agent may make in one consultation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_calls: Option<u32>,
+    /// Dollar ceiling Claude Code applies to one consultation (`--max-budget-usd`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_usd: Option<f64>,
+    /// Output tokens of one reply over a direct API.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<u32>,
+    /// Consecutive failed consultations after which the seat stops and the steward runs it alone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_failures: Option<u32>,
 }
 
 fn one() -> u32 {
     1
+}
+
+/// Defaults and bounds of the cost guard. Conservative: a seat left alone for a
+/// whole match should not run up a surprising bill.
+pub mod limits {
+    pub const BUDGET_SECONDS: (u32, u32, u32) = (300, 30, 3600);
+    pub const MAX_CALLS: (u32, u32, u32) = (12, 2, 60);
+    pub const MAX_USD: (f64, f64, f64) = (0.5, 0.05, 20.0);
+    pub const MAX_TOKENS: (u32, u32, u32) = (16_000, 1_000, 64_000);
+    pub const MAX_FAILURES: (u32, u32, u32) = (3, 1, 20);
+}
+
+impl AgentConfig {
+    /// A configuration for `provider` with every option at its default.
+    pub fn new(provider: &str) -> AgentConfig {
+        AgentConfig { provider: provider.into(), model: String::new(), consult_every: 1, api_key: None, base_url: None, effort: None, auth: None, budget_seconds: None, max_calls: None, max_usd: None, max_tokens: None, max_failures: None }
+    }
+    pub fn budget_seconds(&self) -> u32 {
+        let (d, lo, hi) = limits::BUDGET_SECONDS;
+        self.budget_seconds.unwrap_or(d).clamp(lo, hi)
+    }
+    pub fn max_calls(&self) -> u32 {
+        let (d, lo, hi) = limits::MAX_CALLS;
+        self.max_calls.unwrap_or(d).clamp(lo, hi)
+    }
+    pub fn max_usd(&self) -> f64 {
+        let (d, lo, hi) = limits::MAX_USD;
+        self.max_usd.filter(|v| v.is_finite()).unwrap_or(d).clamp(lo, hi)
+    }
+    pub fn max_tokens(&self) -> u32 {
+        let (d, lo, hi) = limits::MAX_TOKENS;
+        self.max_tokens.unwrap_or(d).clamp(lo, hi)
+    }
+    pub fn max_failures(&self) -> u32 {
+        let (d, lo, hi) = limits::MAX_FAILURES;
+        self.max_failures.unwrap_or(d).clamp(lo, hi)
+    }
+    /// Whether a CLI agent signs in with the typed key rather than its own login.
+    pub fn uses_key(&self) -> bool {
+        self.auth.as_deref() == Some("api_key")
+    }
 }
 
 /// An address as it may be written to a save: scheme, host, port and path. User
@@ -64,6 +124,12 @@ impl AgentConfig {
             api_key: None,
             base_url: self.base_url.as_deref().map(scrub_url).map(|u| clean(&u)).filter(|u| !u.is_empty()),
             effort: self.effort.as_deref().map(clean).filter(|e| !e.is_empty()),
+            auth: self.auth.as_deref().map(clean).filter(|e| !e.is_empty()),
+            budget_seconds: self.budget_seconds,
+            max_calls: self.max_calls,
+            max_usd: self.max_usd,
+            max_tokens: self.max_tokens,
+            max_failures: self.max_failures,
         }
     }
 }
