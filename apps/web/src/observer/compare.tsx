@@ -6,7 +6,7 @@ import { useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import type { SeatId, SpectatorCiv, SpectatorView } from '../protocol';
 import { FTL_MONTHS, GOVERNANCE_MONTHS } from '../protocol';
-import { compact, histYear, int, peopleNum, tonnes, yearOf } from '../format';
+import { compact, fmtYear, histYear, int, peopleNum, tonnes } from '../format';
 import { Icon } from '../icons';
 import { cx } from '../ui';
 import { t, tc } from '../i18n';
@@ -57,12 +57,12 @@ function metricDefs(): MetricDef[] {
 
 /** A sample's date: the historical year where the referee keeps a calendar, else the game year. */
 function when(s: { month: number; year?: number | null }): string {
-  return s.year != null ? histYear(s.year) : String(yearOf(s.month));
+  return s.year != null ? histYear(s.year) : fmtYear(s.month);
 }
 
 /** The same as a phrase: "5000 BC" or "Year 4". */
 function whenLong(s: { month: number; year?: number | null }): string {
-  return s.year != null ? histYear(s.year) : t('Year {n}', { n: yearOf(s.month) });
+  return s.year != null ? histYear(s.year) : fmtYear(s.month);
 }
 
 function seriesFor(h: History, civs: SpectatorCiv[], metric: MetricKey, only?: SeatId[]): ChartSeries[] {
@@ -275,7 +275,7 @@ export function Compare({ sp }: { sp: SpectatorView }) {
     <div class="compare" data-testid="compare">
       <div class="cmp-switch" role="tablist" aria-label={t('Comparison')}>
         <button type="button" role="tab" aria-selected={view === 'trends'} class={cx('cmp-switch-opt', view === 'trends' && 'is-active')} data-testid="compare-trends" onClick={() => pickView('trends')}>
-          <Icon name="objectives" size={13} />{t('All four over time')}
+          <Icon name="objectives" size={13} />{t('All over time')}
         </button>
         <button type="button" role="tab" aria-selected={view === 'duel'} class={cx('cmp-switch-opt', view === 'duel' && 'is-active')} data-testid="compare-duel-tab" onClick={() => pickView('duel')}>
           <Icon name="swap" size={13} />{t('Head to head')}

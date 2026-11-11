@@ -107,6 +107,19 @@
 .sb-row th { text-align: left; font: 600 11.5px/1.25 var(--sans); color: var(--ink-2); padding: 0 6px 0 4px; height: 30px; border-top: 1px solid var(--line-2); white-space: nowrap; cursor: default; }
 .sb-row th .icon { color: var(--brass-lo); margin-right: 6px; vertical-align: -2px; }
 .sb-row th span { display: inline-block; max-width: 86px; white-space: normal; vertical-align: middle; }
+.sb-sort { display: inline-flex; align-items: center; gap: 0; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.sb-sort:hover span, .sb-sort.is-on span { text-decoration: underline; text-decoration-color: var(--brass-lo); text-underline-offset: 2px; }
+.sb-sort.is-on { color: var(--ink); }
+/* seven to ten civilizations: narrower columns, compact heads, the table scrolls sideways */
+.scoreboard.is-many { overflow-x: auto; }
+.scoreboard.is-many .sb-table { min-width: calc(112px + var(--n, 10) * 92px); }
+.scoreboard.is-many .sb-civ { padding: 9px 2px 6px !important; }
+.scoreboard.is-many .sb-civ-name { font-size: 13px; }
+.scoreboard.is-many .sb-civ-model { display: none; }
+.scoreboard.is-many .sb-civ-chip { min-height: 0; padding-top: 0; }
+.scoreboard.is-many .sb-civ .btn { margin-top: 3px; padding: 2px 6px; }
+.scoreboard.is-many td { font-size: 11.5px; }
+.scoreboard.is-many .sb-goodlist { flex-wrap: wrap; }
 .sb-row td { text-align: center; height: 30px; font: 600 14.5px/1.2 var(--serif); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line-2); border-right: 1px solid #d3c5a3; background: #fffdf6; white-space: nowrap; overflow: hidden; }
 .sb-row td:nth-child(2) { border-left: 1px solid #d3c5a3; }
 .sb-row:nth-child(even) td { background: #faf5e6; }
@@ -367,6 +380,10 @@
 .ch { position: relative; min-width: 0; }
 .ch-legend { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 2px 0 2px; padding: 0; list-style: none; font: 600 11.5px/1.5 var(--sans); color: var(--ink-2); }
 .ch-legend li { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.ch-leg-btn { display: inline-flex; align-items: center; gap: 5px; border: 1px solid transparent; border-radius: 4px; background: none; padding: 0 4px; font: inherit; color: inherit; cursor: pointer; }
+.ch-leg-btn:hover { border-color: var(--line, #d8cdb0); }
+.ch-leg-btn.is-on { border-color: var(--ink-3, #8a7d6a); background: rgba(255, 255, 255, .5); }
+.ch-leg-btn.is-dim { color: var(--ink-3, #8a7d6a); }
 .ch-key { flex: none; }
 .ch-svg { display: block; outline: none; touch-action: pan-y; cursor: crosshair; }
 .ch-svg:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; border-radius: 4px; }
