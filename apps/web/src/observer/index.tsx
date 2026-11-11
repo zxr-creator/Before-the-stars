@@ -14,7 +14,9 @@ import {
 } from '../format';
 import { Icon } from '../icons';
 import { Btn, Tick, cx } from '../ui';
-import { dismissResult, loadAgentLog, openOverlay, setMenu, setScreen, useApp, viewAsSeat } from '../store';
+import { dismissResult, loadAgentLog, openOverlay, refresh, setMenu, setScreen, toast, useApp, viewAsSeat } from '../store';
+import { api } from '../api';
+import '../agents/agents.css';
 import type { AppState } from '../store';
 import { t, tc, useLocale } from '../i18n';
 import { MapView } from '../map/MapView';
@@ -48,7 +50,7 @@ let lastTab: Tab = 'score';
 
 const PROVIDER_LABEL: Record<string, string> = {
   'claude-api': 'Claude (API)', claude_api: 'Claude (API)', 'claude-code': 'Claude Code', claude_code: 'Claude Code',
-  codex: 'Codex', 'openai-api': 'OpenAI-compatible', openai_api: 'OpenAI-compatible', mock: 'Mock agent',
+  codex: 'Codex', 'openai-api': 'OpenAI-compatible', openai_api: 'OpenAI-compatible', mock: 'Mock agent', 'mock-agent': 'Mock agent',
 };
 const NATIVE_LABEL: Record<string, string> = {
   native_easy: 'Built-in AI · Easy', native_medium: 'Built-in AI · Medium', native_hard: 'Built-in AI · Hard', native_expert: 'Built-in AI · Expert (test)',
@@ -561,9 +563,31 @@ function LogEntry({ e }: { e: AgentLogEntry }) {
       </div>
       {e.note ? <p class="log-note">“{e.note}”</p> : <p class="log-note is-none">{t('No note this time.')}</p>}
       {e.actions.length ? <p class="log-actions">{e.actions.map((a) => <span class="log-action">{actionLabel(a)}</span>)}</p> : null}
+      {e.tool_calls || e.cost_usd || e.tokens || (e.attempts ?? 1) > 1 ? (
+        <p class="log-meta">
+          {[
+            e.tool_calls ? (e.tool_calls === 1 ? t('1 game tool call') : t('{n} game tool calls', { n: e.tool_calls })) : null,
+            (e.attempts ?? 1) > 1 ? t('{n} attempts', { n: e.attempts ?? 1 }) : null,
+            e.cost_usd ? t('${n}', { n: e.cost_usd.toFixed(3) }) : null,
+            e.tokens ? t('{n} tokens', { n: e.tokens.toLocaleString() }) : null,
+          ].filter(Boolean).join(' · ')}
+        </p>
+      ) : null}
+      {e.steward_took_over ? <p class="log-steward">{t('The steward played this round')}</p> : null}
       {e.error ? <p class="log-error"><Icon name="warn" size={12} /> <span>{e.error}</span></p> : null}
+      {e.hint ? <p class="log-hint"><Icon name="info" size={11} /> <span>{tc(e.hint)}</span></p> : null}
     </li>
   );
+}
+
+/** Resume a stopped agent seat, or stop one, then show the new state. */
+async function control(seat: SeatId, op: 'resume' | 'stop'): Promise<void> {
+  try {
+    await api.agentControl(seat, op);
+    await refresh();
+  } catch (e) {
+    toast({ tone: 'bad', title: t('The agent seat could not be changed'), detail: e instanceof Error ? e.message : String(e) });
+  }
 }
 
 function Agents({ state, sp, thinkingOf }: { state: AppState; sp: SpectatorView; thinkingOf: (a: AgentInfo) => number }) {
@@ -594,19 +618,26 @@ function Agents({ state, sp, thinkingOf }: { state: AppState; sp: SpectatorView;
               <div class="agent-id">
                 <b>{tc(x.name)}</b>
                 <span><Icon name="agent" size={11} /> {providerName(agent)} · {agent.model || t('default model')}</span>
-                <span class="muted">{everyLabel(agent.consult_every)} · {agent.calls === 1 ? t('1 call so far') : t('{n} calls so far', { n: agent.calls })}</span>
+                <span class="muted">{agent.mode === 'agent' ? t('agent with the game’s tools') : agent.mode === 'oneshot' ? t('one reply per consultation') : null}{agent.mode ? ' · ' : ''}{everyLabel(agent.consult_every)} · {agent.calls === 1 ? t('1 call so far') : t('{n} calls so far', { n: agent.calls })}</span>
+                {agent.spent_usd || agent.tokens ? <span class="agent-spend">{agent.spent_usd ? t('Spent about ${n}', { n: agent.spent_usd.toFixed(2) }) : ''}{agent.spent_usd && agent.tokens ? ' · ' : ''}{agent.tokens ? t('{n} tokens', { n: agent.tokens.toLocaleString() }) : ''}</span> : null}
               </div>
               <div class="agent-side">
                 <AgentChip agent={agent} seconds={thinkingOf(agent)} />
-                <Btn small nav icon="eye" title={t('View as {name}', { name: tc(x.name) })} onClick={() => void viewAsSeat(x.seat)}>{t('View as')}</Btn>
+                <div class="agent-controls">
+                  {agent.state === 'stopped' || agent.state === 'error'
+                    ? <Btn small nav icon="play" testid={`agent-resume-${x.seat}`} onClick={() => void control(x.seat, 'resume')}>{t('Resume')}</Btn>
+                    : <Btn small kind="ghost" nav icon="pause" testid={`agent-stop-${x.seat}`} title={t('Stop consulting this agent; the steward carries on alone')} onClick={() => void control(x.seat, 'stop')}>{t('Stop')}</Btn>}
+                  <Btn small nav icon="eye" title={t('View as {name}', { name: tc(x.name) })} onClick={() => void viewAsSeat(x.seat)}>{t('View as')}</Btn>
+                </div>
               </div>
             </header>
             {agent.last_error ? (
               <div class="agent-error" role="alert" data-testid="agent-error">
                 <Icon name="warn" size={15} />
                 <div>
-                  <b>{agent.state === 'stopped' ? t('The agent has stopped. A steward carries on alone.') : agent.state === 'error' ? t('The agent failed this round. It will be tried again next round.') : t('The agent’s last error')}</b>
+                  <b>{agent.state === 'stopped' ? t('The agent has stopped. A steward carries on alone; press Resume to try again.') : agent.state === 'error' ? t('The agent failed this round; the steward played it. It will be tried again next round ({n} of {max} failures in a row).', { n: agent.errors_in_row ?? 1, max: agent.max_failures ?? 3 }) : t('The agent’s last error')}</b>
                   <span>{agent.last_error}</span>
+                  {agent.last_hint ? <span class="log-hint"><Icon name="info" size={11} /> {tc(agent.last_hint)}</span> : null}
                 </div>
               </div>
             ) : null}

@@ -28,6 +28,42 @@ pub struct Submission {
     pub actions: Vec<Action>,
     #[serde(default)]
     pub advance: Advance,
+    /// How much of the updated packet to send back: "full" (the default) or "brief".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view: Option<String>,
+    /// With `view: "full"`, only these top-level parts of the observation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sections: Option<Vec<String>>,
+}
+
+/// How much of a decision packet to send.
+///
+/// The full observation of a large civilization runs to hundreds of kilobytes. A
+/// brief packet replaces it with a text briefing of what matters (see
+/// [`crate::briefing`]) and the seat's standing orders; any part of the full
+/// observation can be asked for by name.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct View {
+    pub brief: bool,
+    /// Top-level observation fields to keep (with `brief == false`); `None` keeps all.
+    pub sections: Option<Vec<String>>,
+}
+
+/// Top-level observation fields a packet may be cut to.
+pub const SECTIONS: [&str; 23] = [
+    "civ", "regions", "world", "others", "knowledge", "culture", "catalog", "projects", "programs", "armies", "foreign_armies", "diplomacy", "objectives", "briefing", "chronicle", "receipts", "units",
+    "date", "calendar", "directives", "outcome", "status", "ready",
+];
+
+impl View {
+    pub fn parse(view: Option<&str>, sections: Option<&str>) -> View {
+        let brief = view.map(str::trim) == Some("brief");
+        let sections = sections.map(|s| s.split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect::<Vec<_>>()).filter(|v| !v.is_empty());
+        View { brief, sections }
+    }
+    fn of(sub: &Submission) -> View {
+        View { brief: sub.view.as_deref() == Some("brief"), sections: sub.sections.clone().filter(|v| !v.is_empty()) }
+    }
 }
 
 #[derive(Default, Deserialize, Serialize, PartialEq)]
@@ -42,13 +78,20 @@ fn cursor(obs: &Observation) -> String {
 
 fn action_reference(obs: &Observation) -> Value {
     let mut examples = vec![
+        json!({"kind":"directive","op":"add","directive":{"kind":"build_target","region":0,"facility":"known_catalog_kind","levels":2,"priority":5}}),
+        json!({"kind":"directive","op":"add","directive":{"kind":"research_agenda","techs":["known_tech_handle"]}}),
+        json!({"kind":"directive","op":"add","directive":{"kind":"auto_research","on":true}}),
+        json!({"kind":"directive","op":"add","directive":{"kind":"reform_agenda","practices":["known_practice_handle"]}}),
+        json!({"kind":"directive","op":"add","directive":{"kind":"settle_target","from":0,"to":1,"people":30000,"when_crowd_bp":8000}}),
+        json!({"kind":"directive","op":"remove","id":0}),
+        json!({"kind":"directive","op":"move","id":0,"position":0}),
         json!({"kind":"select_contacts","seats":[]}),
         json!({"kind":"message","to":0,"text":"Your statement or proposal","intent":null}),
         json!({"kind":"propose_treaty","to":0,"clauses":[],"text":null}),
         json!({"kind":"sign_treaty","offer":0}),
         json!({"kind":"decline_offer","offer":0}),
         json!({"kind":"withdraw_offer","offer":0}),
-        json!({"kind":"break_treaty","treaty":0}),
+        json!({"kind":"break_treaty","treaty":0,"notice":true}),
         json!({"kind":"start_project","spec":{"kind":"build","region":0,"facility":"known_catalog_kind","levels":1},"priority":5}),
         json!({"kind":"start_project","spec":{"kind":"research","tech":"known_tech_handle"},"priority":5}),
         json!({"kind":"start_project","spec":{"kind":"survey","region":0},"priority":5}),
@@ -65,6 +108,9 @@ fn action_reference(obs: &Observation) -> Value {
         json!({"kind":"set_policy","setting":{"kind":"mobilization","bp":5000}}),
         json!({"kind":"set_policy","setting":{"kind":"food_reserve_months","months":6}}),
         json!({"kind":"set_policy","setting":{"kind":"facility","region":0,"facility":"known_catalog_kind","enabled":true}}),
+        json!({"kind":"set_policy","setting":{"kind":"method","region":0,"facility":"known_catalog_kind","method":"known_recipe_key"}}),
+        json!({"kind":"set_policy","setting":{"kind":"war_policy","seat":0,"accept_white_peace_after_months":36,"accept_cession_max":0}}),
+        json!({"kind":"repeal","practice":"known_practice_handle"}),
         json!({"kind":"military_order","army":0,"order":{"kind":"hold"}}),
         json!({"kind":"demolish","region":0,"facility":"known_catalog_kind","levels":1}),
     ];
@@ -76,25 +122,89 @@ fn action_reference(obs: &Observation) -> Value {
             examples.push(json!({"kind":"start_project","spec":{"kind":kind},"priority":5}));
         }
     }
-    json!({"note":"Templates only: replace sample references with handles/IDs from your observation; availability and costs are authoritative there. Do not submit this entire example list. pause/resume/cancel manage projects/programs; role assault/maneuver/denial; priorities 0–9; lower is first. Signed treaty clauses are binding, message prose is not.", "examples":examples})
-}
-
-fn packet<A: AgentSlot>(host: &Host<A>, seat: SeatId, receipts: Vec<Receipt>, submitted: bool, advanced: bool) -> Value {
-    let s = host.session.as_ref().unwrap();
-    let obs = s.m.observe(seat);
+    let clauses = vec![
+        json!({"kind":"goods","from":0,"good":"food","amount_per_month":50000,"months":12}),
+        json!({"kind":"knowledge","from":0,"tech":"known_tech_handle"}),
+        json!({"kind":"practice","from":0,"practice":"known_practice_handle"}),
+        json!({"kind":"maps","from":0}),
+        json!({"kind":"non_aggression","months":0}),
+        json!({"kind":"defensive_pact","months":120}),
+        json!({"kind":"peace"}),
+        json!({"kind":"secondment","from":0,"qual":"builder","count":200,"months":24}),
+        json!({"kind":"joint_programme","host":0,"service":"launch","months":60}),
+        json!({"kind":"subordination","from":0,"tribute_bp":1000}),
+        json!({"kind":"cede_region","from":0,"region":0}),
+    ];
     json!({
-        "cursor": cursor(&obs), "action_reference": action_reference(&obs), "observation": obs, "receipts": receipts,
-        "submitted": submitted, "round_advanced": advanced,
-        "waiting_for": s.m.waiting_on(),
-        "limits": {"actions_per_submission": MAX_ACTIONS_PER_BATCH, "counterparts_per_round": 3,
-                   "envelopes_per_pair_per_round": 10, "negotiation_windows": 5},
-        "next": "Submit a batch with this cursor and a unique request_id. Use phase to hear replies; round passes all remaining diplomacy. Rejected actions prevent automatic advance; accepted actions remain applied."
+        "note": "Templates only: replace sample references with handles/IDs from your observation; availability and costs are authoritative there. Do not submit this entire example list. Rounds last up to fifty years, so an order given now is carried out once while a standing order (kind directive) is re-checked every January inside the round: keep facility levels with build_target, keep research busy with research_agenda/auto_research, queue reforms with reform_agenda, expand with settle_target; op add replaces an order that stands for the same thing. pause/resume/cancel manage projects/programs; role assault/maneuver/denial; priorities 0–9, lower is first. A war policy (set_policy war_policy) lets an armistice happen inside a long round. Treaty clauses (propose_treaty) bind once signed; months 0 on non_aggression makes it open-ended, ended without breach by break_treaty with notice. Message prose binds nobody.",
+        "examples": examples,
+        "clauses": clauses,
     })
 }
 
-pub(crate) fn get<A: AgentSlot>(host: &Host<A>, seat: SeatId, token: &str) -> Result<Value> {
+/// What to do next, in the words a model reads first.
+fn next_text(obs: &Observation) -> String {
+    let months = obs.calendar.as_ref().map(|c| c.round_months).unwrap_or(obs.months_per_round);
+    let phase = match obs.phase {
+        Phase::Plan => "This is the planning phase: your orders now shape the whole round.",
+        Phase::Contact => "This is the contact phase: choose up to three counterparts with select_contacts.",
+        Phase::Negotiate => "This is a negotiation window: one envelope (message, proposal or signature) per open channel; planning orders are also accepted.",
+        Phase::Finished => "The match is over.",
+    };
+    format!(
+        "{phase} This round resolves {months} months in one go. One-off orders are carried out once; standing orders (kind directive) act every January inside the round, so use them for what must keep happening. Submit one batch with this cursor and a unique request_id: advance phase finishes your part of this phase, round also passes the remaining diplomacy, none only applies the orders so you can read the receipts and submit again. Rejected actions prevent the advance; accepted actions stay applied."
+    )
+}
+
+/// The observation as JSON, cut to the named top-level fields (identity and timing always kept).
+fn cut(obs: &Observation, sections: &Option<Vec<String>>) -> Value {
+    let full = serde_json::to_value(obs).unwrap();
+    let Some(keep) = sections else { return full };
+    let mut out = serde_json::Map::new();
+    if let Value::Object(map) = full {
+        for (k, v) in map {
+            if ["protocol_version", "match_id", "seat", "month", "round", "months_per_round", "horizon", "phase", "window"].contains(&k.as_str()) || keep.iter().any(|x| x == &k) {
+                out.insert(k, v);
+            }
+        }
+    }
+    Value::Object(out)
+}
+
+fn packet<A: AgentSlot>(host: &Host<A>, seat: SeatId, receipts: Vec<Receipt>, submitted: bool, advanced: bool, view: &View) -> Value {
+    let s = host.session.as_ref().unwrap();
+    let obs = s.m.observe(seat);
+    let limits = json!({"actions_per_submission": MAX_ACTIONS_PER_BATCH, "counterparts_per_round": 3,
+                       "envelopes_per_pair_per_round": 10, "negotiation_windows": 5});
+    if view.brief {
+        let delegates = s.delegates.get(seat as usize).cloned().unwrap_or_default();
+        return json!({
+            "cursor": cursor(&obs), "view": "brief",
+            "seat": seat, "round": obs.round, "phase": obs.phase, "window": obs.window, "date": obs.date,
+            "briefing": crate::brief::briefing(&obs, &delegates),
+            "standing_orders": obs.directives,
+            "receipts": receipts,
+            "submitted": submitted, "round_advanced": advanced,
+            "waiting_for": s.m.waiting_on(),
+            "action_reference": action_reference(&obs),
+            "limits": limits,
+            "sections": SECTIONS,
+            "next": format!("{} For any detail the briefing leaves out, call get_turn with view full and sections naming the parts you need (for example [\"regions\"] or [\"catalog\"]).", next_text(&obs)),
+        });
+    }
+    let observation = cut(&obs, &view.sections);
+    json!({
+        "cursor": cursor(&obs), "action_reference": action_reference(&obs), "observation": observation, "receipts": receipts,
+        "submitted": submitted, "round_advanced": advanced,
+        "waiting_for": s.m.waiting_on(),
+        "limits": limits,
+        "next": next_text(&obs),
+    })
+}
+
+pub(crate) fn get<A: AgentSlot>(host: &Host<A>, seat: SeatId, token: &str, view: &View) -> Result<Value> {
     host.seat_access(seat, token, false)?;
-    Ok(packet(host, seat, vec![], false, false))
+    Ok(packet(host, seat, vec![], false, false, view))
 }
 
 /// Apply one submission. The flag is false when the reply is the stored result of
@@ -107,6 +217,7 @@ pub(crate) fn submit<A: AgentSlot>(host: &mut Host<A>, b: Submission) -> Result<
     if b.actions.len() > MAX_ACTIONS_PER_BATCH {
         return Err((400, "RATE_LIMITED", "at most 32 actions per submission".into()));
     }
+    let view = View::of(&b);
     let s = host.session.as_ref().unwrap();
     let key = (format!("{}:{}", host.generation, s.m.match_id()), b.seat, b.request_id.clone());
     let fingerprint = serde_json::to_string(&b).unwrap();
@@ -120,6 +231,10 @@ pub(crate) fn submit<A: AgentSlot>(host: &mut Host<A>, b: Submission) -> Result<
     let s = host.session.as_mut().unwrap();
     let before = s.m.round();
     let receipts = s.m.act(b.seat, b.actions);
+    if let Some(slot) = host.agents.get_mut(b.seat as usize).and_then(|a| a.as_mut()) {
+        slot.record(&b.token, &receipts);
+    }
+    let s = host.session.as_mut().unwrap();
     let accepted = receipts.iter().all(|r| matches!(r.status.as_str(), "accepted" | "applied"));
     if accepted && b.advance != Advance::None {
         s.m.set_ready(b.seat, b.advance == Advance::Round);
@@ -127,7 +242,7 @@ pub(crate) fn submit<A: AgentSlot>(host: &mut Host<A>, b: Submission) -> Result<
         if s.m.try_advance() { s.drive(); }
     }
     let advanced = s.m.round() != before;
-    let response = packet(host, b.seat, receipts, true, advanced);
+    let response = packet(host, b.seat, receipts, true, advanced, &view);
     let bytes = fingerprint.len() + response.to_string().len();
     if bytes <= 16 * 1024 * 1024 {
         let cache = &mut host.turn_cache;
@@ -157,8 +272,8 @@ mod tests {
         host
     }
     fn order(st: &Host<NoAgents>, id: &str) -> Submission {
-        Submission { seat: 0, token: String::new(), request_id: id.into(), cursor: get(st, 0, "").unwrap()["cursor"].as_str().unwrap().into(),
-            actions: vec![Action::SetPolicy { setting: PolicySetting::Rename { name: "New identity".into() } }], advance: Advance::None }
+        Submission { seat: 0, token: String::new(), request_id: id.into(), cursor: get(st, 0, "", &View::default()).unwrap()["cursor"].as_str().unwrap().into(),
+            actions: vec![Action::SetPolicy { setting: PolicySetting::Rename { name: "New identity".into() } }], advance: Advance::None, view: None, sections: None }
     }
     #[test]
     fn retry_never_reapplies_and_changed_payload_conflicts() {
@@ -190,17 +305,39 @@ mod tests {
     #[test]
     fn packets_enforce_seat_permissions_and_never_include_spectator_state() {
         let mut st = state();
-        assert_eq!(get(&st, 255, "").unwrap_err().0, 403);
-        assert_eq!(get(&st, 1, "").unwrap_err().0, 403, "a native seat's packet is closed while an external seat plays");
+        assert_eq!(get(&st, 255, "", &View::default()).unwrap_err().0, 403);
+        assert_eq!(get(&st, 1, "", &View::default()).unwrap_err().0, 403, "a native seat's packet is closed while an external seat plays");
         st.cfg.require_tokens = true;
-        assert_eq!(get(&st, 0, "bad-token").unwrap_err().0, 403);
-        assert_eq!(get(&st, 1, "").unwrap_err().0, 403);
+        assert_eq!(get(&st, 0, "bad-token", &View::default()).unwrap_err().0, 403);
+        assert_eq!(get(&st, 1, "", &View::default()).unwrap_err().0, 403);
         let token = st.session.as_ref().unwrap().tokens[0].clone();
-        let p = get(&st, 0, &token).unwrap();
+        let p = get(&st, 0, &token, &View::default()).unwrap();
         assert_eq!(p["observation"]["seat"], 0);
         assert!(p.get("spectator").is_none());
         assert!(p.get("seed").is_none());
         assert!(!p["action_reference"].to_string().contains("ftl"));
+    }
+    #[test]
+    fn brief_and_sectioned_packets_stay_small_and_teach_standing_orders() {
+        let mut st = state();
+        let full = get(&st, 0, "", &View::default()).unwrap();
+        let brief = get(&st, 0, "", &View::parse(Some("brief"), None)).unwrap();
+        assert!(brief.get("observation").is_none());
+        assert!(brief["briefing"].as_str().unwrap().contains("STANDING ORDERS"));
+        assert!(brief["next"].as_str().unwrap().contains("standing orders"));
+        assert!(brief["action_reference"]["examples"].as_array().unwrap().iter().any(|e| e["kind"] == "directive"));
+        assert_eq!(brief["cursor"], full["cursor"], "both views describe the same decision point");
+        assert!(brief.to_string().len() * 2 < full.to_string().len());
+        let part = get(&st, 0, "", &View::parse(Some("full"), Some("regions,directives"))).unwrap();
+        let obs = part["observation"].as_object().unwrap();
+        assert!(obs.contains_key("regions") && obs.contains_key("directives") && obs.contains_key("round"));
+        assert!(!obs.contains_key("catalog") && !obs.contains_key("chronicle"));
+        // a brief reply to a submission carries the receipts
+        let mut b = order(&st, "brief-reply");
+        b.view = Some("brief".into());
+        let (reply, _) = submit(&mut st, b).unwrap();
+        assert_eq!(reply["view"], "brief");
+        assert_eq!(reply["receipts"][0]["status"], "accepted");
     }
     #[test]
     fn one_submission_can_finish_a_round_and_return_the_next_observation() {

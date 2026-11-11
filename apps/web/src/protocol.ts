@@ -115,8 +115,116 @@ export interface Observation {
   calendar?: CalendarView | null;
   /** Ruleset 3.0: this seat's standing orders, in the order they are evaluated. */
   directives?: DirectiveView[];
+  /**
+   * The off-world layer (design chapters 37 §6 and 39 §4–5). Not sent yet: the engine will supply
+   * it with the space slices (14–15). Until then the client draws static astronomy and shows every
+   * site as unclaimed and unsurveyed. Every field is optional.
+   */
+  space?: SpaceView | null;
+  /**
   /** bts-protocol/2.2: era, charters, golden or dark age and traditions. */
   era?: EraView | null;
+}
+
+// --- Off-world layer (supplied by the engine in a later slice) --------------------------------
+
+/** What this seat knows of the Solar System beyond its own planet. */
+export interface SpaceView {
+  /** The seat's boost (运载力): tonnes its launch system can put into low Earth orbit. */
+  boost?: BoostView | null;
+  /** Off-world sites as this seat sees them (own, foreign as seen, unclaimed). */
+  sites?: SpaceSiteView[];
+  /** Stations this seat owns or can see. */
+  stations?: StationView[];
+  /** Shipments in flight that this seat can see. */
+  transfers?: TransferView[];
+  /** Next departure windows by logistics zone, when reported. */
+  windows?: WindowView[];
+  /** Bodies this seat has observed (chapter 37 §6.1); absent = all are drawn. */
+  known_bodies?: string[];
+}
+
+/** Boost (chapter 39 §4.7): a national stock that does not decay; launch sites stand down at the cap. */
+export interface BoostView {
+  /** Tonnes in stock. */
+  stock: number;
+  /** Tonnes the stock may hold. */
+  cap: number;
+  /** Tonnes made last month. */
+  made_last: number;
+  /** Tonnes spent last month. */
+  spent_last: number;
+  by_stage?: BoostStageView[];
+  /** Launch failure risk per 1,000 t spent, basis points. */
+  failure_rate_bp?: number;
+}
+
+export interface BoostStageView {
+  /** Launch-chain stage, as a display name. */
+  stage: string;
+  levels: number;
+  made: number;
+  standing_down: boolean;
+}
+
+/** One of chapter 37's nineteen sites, as this seat sees it. */
+export interface SpaceSiteView {
+  /** Site key, for example "shackleton_rim" or "arcadia_planitia" (or its number 1–19 as text). */
+  site: string;
+  /** The site's region id, once sites are regions. */
+  region?: RegionId | null;
+  owner: SeatId | null;
+  controller?: SeatId | null;
+  /** True once this seat has surveyed the body. */
+  surveyed?: boolean;
+  /** Residents (own sites exactly; foreign as estimated). */
+  population?: number | null;
+  population_low?: number | null;
+  population_high?: number | null;
+  /** Housing built (residents the habitats hold). */
+  housing?: number | null;
+  /** Works at the site (facility kind and levels), where visible. */
+  works?: { kind: string; level: number }[];
+  /** Deposits, after a survey. */
+  deposits?: DepositView[];
+  /** Autonomy pressure, 0–10,000 (own sites). */
+  autonomy_bp?: number | null;
+}
+
+/** A station in one of chapter 39's ten orbits. */
+export interface StationView {
+  id: number;
+  /** Orbit key: leo, geo, eml1, eml5, sel2, llo, mars_orbit, ceres_orbit, callisto_orbit, titan_orbit. */
+  orbit: string;
+  owner: SeatId;
+  /** Core stage K1–K4. */
+  core?: string | null;
+  /** Modules (kind, as a display name), where visible. */
+  modules?: { kind: string; level?: number }[];
+  /** Crew aboard. */
+  aboard?: number | null;
+}
+
+/** A shipment between logistics zones (chapter 37 §6.5). */
+export interface TransferView {
+  id?: number;
+  owner?: SeatId | null;
+  /** Zone keys: earth_orbit, moon, nea, mars, venus, mercury, belt, jupiter, saturn, neptune. */
+  from_zone: string;
+  to_zone: string;
+  payload_t?: number;
+  people?: number;
+  /** Propulsion, as a display name. */
+  propulsion?: string | null;
+  departed: Month;
+  arrives: Month;
+}
+
+export interface WindowView {
+  zone: string;
+  open: boolean;
+  /** Months until the window opens (0 while open). */
+  opens_in: number;
 }
 
 /** bts-protocol/2.2: a civilization's place on the era ladder (design chapter 37, section 3). */
@@ -1261,8 +1369,20 @@ export interface AgentInfo {
   calls: number;
   /** "error" = the agent failed and will be tried again next round; "stopped" = the steward carries on alone. */
   last_error: string | null;
+  /** A fix for the last error the person can apply, when the referee recognises it. */
+  last_hint?: string | null;
   /** Seconds the agent has been thinking, while `state` is "thinking". */
   thinking_seconds?: number | null;
+  /** "agent": a CLI agent playing through the game's MCP server; "oneshot": one reply per consultation. */
+  mode?: 'agent' | 'oneshot';
+  /** Consecutive failed consultations, and how many stop the seat. */
+  errors_in_row?: number;
+  max_failures?: number;
+  /** What the seat's consultations have cost so far, as the providers reported it. */
+  spent_usd?: number;
+  tokens?: number;
+  /** Seconds one consultation may take. */
+  budget_seconds?: number;
 }
 
 export interface MatchSummary {
@@ -1307,6 +1427,45 @@ export interface AgentOptions {
   api_key?: string;
   base_url?: string;
   effort?: string;
+  /** CLI agents: "login" (the CLI's own sign-in) or "api_key" (the key above, given to the CLI's environment only). */
+  auth?: 'login' | 'api_key';
+  /** Cost guard: seconds per consultation, game tool calls per consultation, dollars per consultation (Claude Code), output tokens per reply (APIs), failures in a row before the seat stops. */
+  budget_seconds?: number;
+  max_calls?: number;
+  max_usd?: number;
+  max_tokens?: number;
+  max_failures?: number;
+}
+
+/** GET /api/agents/providers: what this machine offers for agent seats (no model is called). */
+export interface CliStatus {
+  installed: boolean;
+  version?: string;
+  logged_in?: boolean | null;
+  auth_method?: string | null;
+  login?: 'chatgpt' | 'api_key' | null;
+  models?: { id: string; name: string; description: string; efforts: string[] }[];
+  hint?: string | null;
+}
+export interface ProviderDetection {
+  claude_code: CliStatus;
+  codex: CliStatus;
+  env: Record<'ANTHROPIC_API_KEY' | 'OPENAI_API_KEY' | 'CODEX_API_KEY', boolean>;
+  /** The command that serves the game's MCP server for one seat: [program, "mcp"]. */
+  mcp_command: string[];
+}
+/** POST /api/agents/test: one tiny real call with a seat's settings. */
+export interface AgentTestResult {
+  ok: boolean;
+  reply?: string;
+  exact?: boolean;
+  error?: string;
+  hint?: string | null;
+  seconds?: number;
+  cost_usd?: number | null;
+  tokens?: number;
+  /** Agent CLIs: whether the game's MCP server came up. */
+  mcp?: 'connected' | 'failed' | null;
 }
 
 export interface NewMatchRequest {
@@ -1426,6 +1585,16 @@ export interface AgentLogEntry {
   rejected: number;
   duration_ms: number;
   error: string | null;
+  /** Newer referees: the historical date, a fix for the error, retries, tool calls, cost. */
+  date?: string;
+  hint?: string | null;
+  attempts?: number;
+  tool_calls?: number;
+  turns?: number;
+  cost_usd?: number | null;
+  tokens?: number;
+  /** The steward ran this round in the seat's place. */
+  steward_took_over?: boolean;
 }
 
 export interface ApiErrorBody {

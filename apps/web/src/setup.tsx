@@ -4,7 +4,9 @@
 import './economy/construction.css';
 import { useState } from 'preact/hooks';
 import { api } from './api';
-import type { AgentOptions, AgentProvider, NewMatchRequest, SetupController, WorldKind } from './protocol';
+import type { AgentOptions, NewMatchRequest, SetupController, WorldKind } from './protocol';
+import { AGENT_DEFAULTS, AgentBox, agentLine, agentOptions, agentProblem, type AgentSeatConfig } from './agents/setup-agent';
+import { openConnect } from './agents/connect';
 import { Btn, Field, cx } from './ui';
 import { Icon } from './icons';
 import { hasLiveMatch, loadGame, newMatch, setScreen, useApp } from './store';
@@ -15,7 +17,7 @@ import { TitleBackdrop } from './theme/backdrop';
 import { startTutorial } from './tutorial';
 import { MAP_PRESETS, MAX_SEATS, SEAT_COLORS, presetOf, type MapPreset } from './theme/seats';
 
-type SeatKind = 'human' | 'easy' | 'medium' | 'hard' | 'agent';
+type SeatKind = 'human' | 'easy' | 'medium' | 'hard' | 'agent' | 'external';
 // i18n-fields
 const KINDS: { value: SeatKind; label: string; hint: string; icon: string }[] = [
   { value: 'human', label: 'Human', hint: 'Played on this device', icon: 'people' },
@@ -23,39 +25,16 @@ const KINDS: { value: SeatKind; label: string; hint: string; icon: string }[] = 
   { value: 'medium', label: 'Medium AI', hint: 'Built-in opponent', icon: 'military' },
   { value: 'hard', label: 'Hard AI', hint: 'Built-in opponent, demanding', icon: 'military' },
   { value: 'agent', label: 'LLM agent', hint: 'A language model plays this seat', icon: 'agent' },
+  { value: 'external', label: 'Your own agent', hint: 'An agent you run yourself connects over MCP or HTTP', icon: 'external' },
 ];
 // i18n-end
 
-interface ProviderInfo {
-  value: AgentProvider;
-  label: string;
-  blurb: string;
-  model: string;
-  modelHint: string;
-  key: 'ANTHROPIC_API_KEY' | 'OPENAI_API_KEY' | null;
-  baseUrl: boolean;
-  modelRequired: boolean;
-}
-// i18n-fields
-const PROVIDERS: ProviderInfo[] = [
-  { value: 'claude-api', label: 'Claude (API)', blurb: 'Calls the Anthropic API with a key.', model: 'claude-opus-5-5', modelHint: 'Model id', key: 'ANTHROPIC_API_KEY', baseUrl: false, modelRequired: false },
-  { value: 'claude-code', label: 'Claude Code (subscription)', blurb: 'Uses the Claude Code CLI installed and signed in on this machine.', model: '', modelHint: 'Blank = the CLI’s default model', key: null, baseUrl: false, modelRequired: false },
-  { value: 'codex', label: 'Codex (CLI)', blurb: 'Uses the Codex CLI installed and signed in on this machine.', model: '', modelHint: 'Blank = the CLI’s default model', key: null, baseUrl: false, modelRequired: false },
-  { value: 'openai-api', label: 'OpenAI-compatible API', blurb: 'Any server that speaks the OpenAI chat API.', model: '', modelHint: 'Model id (required)', key: 'OPENAI_API_KEY', baseUrl: true, modelRequired: true },
-];
-// i18n-end
-const providerOf = (p: AgentProvider) => PROVIDERS.find((x) => x.value === p)!;
 
-interface SeatConfig {
+interface SeatConfig extends AgentSeatConfig {
   kind: SeatKind;
-  provider: AgentProvider;
-  model: string;
-  consultEvery: number;
-  apiKey: string;
-  baseUrl: string;
-  effort: string;
 }
-const seatDefault = (kind: SeatKind): SeatConfig => ({ kind, provider: 'claude-api', model: 'claude-opus-5-5', consultEvery: 1, apiKey: '', baseUrl: '', effort: '' });
+const seatDefault = (kind: SeatKind): SeatConfig => ({ kind, ...AGENT_DEFAULTS });
+const offSeat = (k: SeatKind) => k !== 'human' && k !== 'agent' && k !== 'external';
 
 function randomSeed(): string {
   const a = ['amber', 'river', 'north', 'salt', 'cedar', 'iron', 'still', 'high', 'ash', 'tide', 'grey', 'long'];
@@ -84,7 +63,7 @@ export function resizeSeats(seats: SeatConfig[], n: number): SeatConfig[] {
   while (out.length < n) out.push(seatDefault('medium'));
   while (out.length > n) {
     let i = -1;
-    for (let j = out.length - 1; j >= 0; j--) if (out[j].kind !== 'human' && out[j].kind !== 'agent') { i = j; break; }
+    for (let j = out.length - 1; j >= 0; j--) if (offSeat(out[j].kind)) { i = j; break; }
     out.splice(i >= 0 ? i : out.length - 1, 1);
   }
   return out;
@@ -120,24 +99,18 @@ export function Setup() {
   const hasMatch = hasLiveMatch();
   const humans = seats.filter((c) => c.kind === 'human').length;
   const agents = seats.filter((c) => c.kind === 'agent').length;
-  const missingModel = seats.findIndex((c) => c.kind === 'agent' && providerOf(c.provider).modelRequired && !c.model.trim());
+  const externals = seats.filter((c) => c.kind === 'external').length;
+  const problemSeat = seats.findIndex((c) => c.kind === 'agent' && agentProblem(c) !== null);
+  const problem = problemSeat >= 0 ? (agentProblem(seats[problemSeat]) === 'needs an API key' ? t('Seat {n} needs an API key.', { n: problemSeat + 1 }) : t('Seat {n} needs a model id.', { n: problemSeat + 1 })) : null;
 
-  const patchSeat = (i: number, patch: Partial<SeatConfig>) => setSeats(seats.map((x, j) => (j === i ? { ...x, ...patch } : x)));
-  const pickProvider = (i: number, p: AgentProvider) => patchSeat(i, { provider: p, model: providerOf(p).model, apiKey: '', baseUrl: '' });
+  const patchSeat = (i: number, patch: Partial<SeatConfig>) => setSeats((all) => all.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   const start = async () => {
     setError(null);
     const controllers: SetupController[] = seats.map((c) => (c.kind === 'agent' ? c.provider : c.kind));
     const agent_options: Record<string, AgentOptions> = {};
     seats.forEach((c, i) => {
-      if (c.kind !== 'agent') return;
-      const info = providerOf(c.provider);
-      const o: AgentOptions = { consult_every: c.consultEvery };
-      if (c.model.trim()) o.model = c.model.trim();
-      if (info.key && c.apiKey.trim()) o.api_key = c.apiKey.trim();
-      if (info.baseUrl && c.baseUrl.trim()) o.base_url = c.baseUrl.trim();
-      if (c.effort) o.effort = c.effort;
-      agent_options[String(i)] = o;
+      if (c.kind === 'agent') agent_options[String(i)] = agentOptions(c);
     });
     const req: NewMatchRequest = {
       seed: seed.trim() || undefined,
@@ -156,15 +129,15 @@ export function Setup() {
     // Keys are sent once and never kept by the client.
     setSeats(seats.map((c) => ({ ...c, apiKey: '' })));
     if (tutorial && humans > 0) startTutorial();
+    // an agent you run yourself needs its seat's token and the game's MCP server
+    if (externals > 0) openConnect();
   };
 
   const seatLine = (c: SeatConfig): string => {
     if (c.kind === 'human') return t('A person on this device');
+    if (c.kind === 'external') return t('An agent you run yourself (MCP or HTTP)');
     if (c.kind !== 'agent') return t('Built-in AI · {level}', { level: t(c.kind === 'easy' ? 'Easy' : c.kind === 'medium' ? 'Medium' : 'Hard') });
-    const parts = [t(providerOf(c.provider).label)];
-    if (c.model.trim()) parts.push(c.model.trim());
-    parts.push(c.consultEvery === 1 ? t('every round') : t('every {n} rounds', { n: c.consultEvery }));
-    return parts.join(' · ');
+    return agentLine(c);
   };
 
   const load = async (name: string) => {
@@ -259,16 +232,15 @@ export function Setup() {
               </span>
               <div class={cx('seat-rows', seats.length > 5 && 'is-many')}>
                 {seats.map((c, i) => {
-                  const info = providerOf(c.provider);
                   return (
                     <div class={cx('seat-card', 'is-' + c.kind)} data-testid={`setup-seat-${i}`}>
                       <div class="seat-row">
                         <span class="seat-id"><Emblem seat={i} color={SEAT_COLORS[i % SEAT_COLORS.length]} name={'seat' + i} size={24} /> {t('Seat {n}', { n: i + 1 })}</span>
                         <div class="segmented" role="radiogroup" aria-label={t('Seat {n} controller', { n: i + 1 })}>
-                          {KINDS.filter((o) => api.features.llmSeats || o.value !== 'agent').map((o) => (
+                          {KINDS.filter((o) => (api.features.llmSeats || o.value !== 'agent') && (api.features.externalAgents || o.value !== 'external')).map((o) => (
                             <button type="button" role="radio" aria-checked={c.kind === o.value} class={cx('seg', c.kind === o.value && 'is-active')} title={t(o.hint)}
                               data-testid={`setup-seat-${i}-${o.value}`} onClick={() => patchSeat(i, { kind: o.value })}>
-                              {o.value === 'agent' ? <Icon name="agent" size={13} /> : null}{t(o.label)}
+                              {o.value === 'agent' || o.value === 'external' ? <Icon name={o.icon} size={13} /> : null}{t(o.label)}
                             </button>
                           ))}
                         </div>
@@ -277,61 +249,10 @@ export function Setup() {
                           <Icon name="close" size={11} />
                         </button>
                       </div>
-                      {c.kind === 'agent' ? (
-                        <div class="agent-box" data-testid={`setup-agent-${i}`}>
-                          <div class="chips" role="radiogroup" aria-label={t('Agent provider')}>
-                            {PROVIDERS.map((p) => (
-                              <button type="button" role="radio" aria-checked={c.provider === p.value} class={cx('chip', c.provider === p.value && 'is-active')}
-                                data-testid={`setup-seat-${i}-${p.value}`} onClick={() => pickProvider(i, p.value)}>{t(p.label)}</button>
-                            ))}
-                          </div>
-                          <p class="agent-blurb">{t(info.blurb)}</p>
-                          <div class="agent-fields">
-                            <label class="inline-field">
-                              <span>{t('Model')}</span>
-                              <input type="text" class="text" value={c.model} placeholder={t(info.modelHint)} spellcheck={false} autocomplete="off"
-                                data-testid={`setup-agent-${i}-model`} onInput={(e) => patchSeat(i, { model: (e.target as HTMLInputElement).value })} />
-                            </label>
-                            <div class="inline-field">
-                              <span>{t('Consult every')}</span>
-                              <div class="segmented" role="radiogroup" aria-label={t('Consult every')}>
-                                {[1, 2, 5, 10].map((n) => (
-                                  <button type="button" role="radio" aria-checked={c.consultEvery === n} class={cx('seg', c.consultEvery === n && 'is-active')}
-                                    data-testid={`setup-agent-${i}-every-${n}`} onClick={() => patchSeat(i, { consultEvery: n })}>{n === 1 ? t('round') : t('{n} rounds', { n })}</button>
-                                ))}
-                              </div>
-                            </div>
-                            <label class="inline-field">
-                              <span>{t('Effort')}</span>
-                              <select class="select" value={c.effort} data-testid={`setup-agent-${i}-effort`} onChange={(e) => patchSeat(i, { effort: (e.target as HTMLSelectElement).value })}>
-                                <option value="">{t('Default')}</option>
-                                <option value="low">{t('Low')}</option>
-                                <option value="medium">{t('Medium')}</option>
-                                <option value="high">{t('High')}</option>
-                              </select>
-                            </label>
-                            {info.baseUrl ? (
-                              <label class="inline-field wide">
-                                <span>{t('Base URL')}</span>
-                                <input type="url" class="text" value={c.baseUrl} placeholder="https://…/v1" spellcheck={false} autocomplete="off"
-                                  data-testid={`setup-agent-${i}-baseurl`} onInput={(e) => patchSeat(i, { baseUrl: (e.target as HTMLInputElement).value })} />
-                              </label>
-                            ) : null}
-                            {info.key ? (
-                              <label class="inline-field wide">
-                                <span>{t('API key (optional)')}</span>
-                                <input type="password" class="text" value={c.apiKey} placeholder={t('Blank = the server’s {env}', { env: info.key })} autocomplete="off" spellcheck={false}
-                                  data-testid={`setup-agent-${i}-key`} onInput={(e) => patchSeat(i, { apiKey: (e.target as HTMLInputElement).value })} />
-                              </label>
-                            ) : null}
-                          </div>
-                          <p class="agent-note">
-                            <Icon name={info.key ? 'key' : 'info'} size={12} />{' '}
-                            {info.key
-                              ? t('A key typed here is sent to the local game server and kept in its memory only. It is never saved by this page.')
-                              : t('No key is needed: the game server runs the CLI with the login already on this machine.')}
-                            {c.consultEvery > 1 ? ' ' + t('Between consultations a built-in steward keeps this civilization running.') : ''}
-                          </p>
+                      {c.kind === 'agent' ? <AgentBox seat={i} c={c} onChange={(patch) => patchSeat(i, patch)} /> : null}
+                      {c.kind === 'external' ? (
+                        <div class="external-box" data-testid={`setup-external-${i}`}>
+                          <p><Icon name="external" size={12} /> {t('When the match starts, the game shows this seat’s token and a ready-made MCP configuration for your own Claude Code or Codex session (or any MCP client). The match waits for your agent at every phase.')}</p>
                         </div>
                       ) : null}
                     </div>
@@ -393,10 +314,10 @@ export function Setup() {
                 <dt>{t('Objective')}</dt><dd>{disclosed ? t('Disclosed from year 1') : t('Revealed by discovery')}</dd>
               </dl>
               {error ? <p class="action-note is-bad" role="alert"><Icon name="cross" size={12} /> {error}</p> : null}
-              {missingModel >= 0 ? <p class="summary-why"><Icon name="warn" size={12} /> {t('Seat {n} needs a model id.', { n: missingModel + 1 })}</p> : null}
+              {problem ? <p class="summary-why"><Icon name="warn" size={12} /> {problem}</p> : null}
               <div class="setup-actions">
                 <Btn kind="primary" nav icon={humans === 0 ? 'eye' : 'flag'} disabled={s.busy} testid="setup-start"
-                  why={missingModel >= 0 ? t('Seat {n} needs a model id.', { n: missingModel + 1 }) : null} onClick={() => void start()}>
+                  why={problem} onClick={() => void start()}>
                   {s.busy ? t('Drawing the world…') : humans === 0 ? t('Watch') : t('Start')}
                 </Btn>
                 {hasMatch ? <small class="muted">{t('Starting replaces the match in progress (its autosave is kept).')}</small> : null}
