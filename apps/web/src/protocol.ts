@@ -115,6 +115,113 @@ export interface Observation {
   calendar?: CalendarView | null;
   /** Ruleset 3.0: this seat's standing orders, in the order they are evaluated. */
   directives?: DirectiveView[];
+  /**
+   * The off-world layer (design chapters 37 §6 and 39 §4–5). Not sent yet: the engine will supply
+   * it with the space slices (14–15). Until then the client draws static astronomy and shows every
+   * site as unclaimed and unsurveyed. Every field is optional.
+   */
+  space?: SpaceView | null;
+}
+
+// --- Off-world layer (supplied by the engine in a later slice) --------------------------------
+
+/** What this seat knows of the Solar System beyond its own planet. */
+export interface SpaceView {
+  /** The seat's boost (运载力): tonnes its launch system can put into low Earth orbit. */
+  boost?: BoostView | null;
+  /** Off-world sites as this seat sees them (own, foreign as seen, unclaimed). */
+  sites?: SpaceSiteView[];
+  /** Stations this seat owns or can see. */
+  stations?: StationView[];
+  /** Shipments in flight that this seat can see. */
+  transfers?: TransferView[];
+  /** Next departure windows by logistics zone, when reported. */
+  windows?: WindowView[];
+  /** Bodies this seat has observed (chapter 37 §6.1); absent = all are drawn. */
+  known_bodies?: string[];
+}
+
+/** Boost (chapter 39 §4.7): a national stock that does not decay; launch sites stand down at the cap. */
+export interface BoostView {
+  /** Tonnes in stock. */
+  stock: number;
+  /** Tonnes the stock may hold. */
+  cap: number;
+  /** Tonnes made last month. */
+  made_last: number;
+  /** Tonnes spent last month. */
+  spent_last: number;
+  by_stage?: BoostStageView[];
+  /** Launch failure risk per 1,000 t spent, basis points. */
+  failure_rate_bp?: number;
+}
+
+export interface BoostStageView {
+  /** Launch-chain stage, as a display name. */
+  stage: string;
+  levels: number;
+  made: number;
+  standing_down: boolean;
+}
+
+/** One of chapter 37's nineteen sites, as this seat sees it. */
+export interface SpaceSiteView {
+  /** Site key, for example "shackleton_rim" or "arcadia_planitia" (or its number 1–19 as text). */
+  site: string;
+  /** The site's region id, once sites are regions. */
+  region?: RegionId | null;
+  owner: SeatId | null;
+  controller?: SeatId | null;
+  /** True once this seat has surveyed the body. */
+  surveyed?: boolean;
+  /** Residents (own sites exactly; foreign as estimated). */
+  population?: number | null;
+  population_low?: number | null;
+  population_high?: number | null;
+  /** Housing built (residents the habitats hold). */
+  housing?: number | null;
+  /** Works at the site (facility kind and levels), where visible. */
+  works?: { kind: string; level: number }[];
+  /** Deposits, after a survey. */
+  deposits?: DepositView[];
+  /** Autonomy pressure, 0–10,000 (own sites). */
+  autonomy_bp?: number | null;
+}
+
+/** A station in one of chapter 39's ten orbits. */
+export interface StationView {
+  id: number;
+  /** Orbit key: leo, geo, eml1, eml5, sel2, llo, mars_orbit, ceres_orbit, callisto_orbit, titan_orbit. */
+  orbit: string;
+  owner: SeatId;
+  /** Core stage K1–K4. */
+  core?: string | null;
+  /** Modules (kind, as a display name), where visible. */
+  modules?: { kind: string; level?: number }[];
+  /** Crew aboard. */
+  aboard?: number | null;
+}
+
+/** A shipment between logistics zones (chapter 37 §6.5). */
+export interface TransferView {
+  id?: number;
+  owner?: SeatId | null;
+  /** Zone keys: earth_orbit, moon, nea, mars, venus, mercury, belt, jupiter, saturn, neptune. */
+  from_zone: string;
+  to_zone: string;
+  payload_t?: number;
+  people?: number;
+  /** Propulsion, as a display name. */
+  propulsion?: string | null;
+  departed: Month;
+  arrives: Month;
+}
+
+export interface WindowView {
+  zone: string;
+  open: boolean;
+  /** Months until the window opens (0 while open). */
+  opens_in: number;
 }
 
 /** A historical year: negative is BC, positive AD; there is no year zero. */
