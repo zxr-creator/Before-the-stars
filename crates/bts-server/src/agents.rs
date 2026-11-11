@@ -532,7 +532,8 @@ fn worker(shared: Shared, seat: SeatId, generation: u64) {
             attempts += 1;
             let a = attempt(&shared, seat, generation, &job);
             let retry = match &a.result {
-                Err(e) => attempts < 3 && !permanent(e) && started.elapsed() + Duration::from_secs(20) < budget * 2,
+                // a consultation that used its whole time budget is not run again in the same round
+                Err(e) => attempts < 3 && !permanent(e) && !e.contains("did not finish within") && started.elapsed() + Duration::from_secs(20) < budget,
                 Ok(_) => false,
             };
             if !retry {
