@@ -675,9 +675,10 @@ fn inspect(args: &Args) {
     for r in o.regions.iter().filter(|r| r.own.is_some()) {
         let w = r.own.as_ref().unwrap();
         println!(" {} [{}] {:?} pop {} labor f{} fac{} proj{} idle{} stu{} water {} food {}% link {} unrest {} health {}{}", r.name, r.id, r.terrain, w.population, w.labor.food, w.labor.facilities, w.labor.projects, w.labor.household, w.labor.students, w.water_capacity, w.food_fulfillment_bp / 100, w.link_efficiency_bp, w.unrest_bp, w.health_pressure_bp, r.outbreak.as_ref().map(|x| format!(" OUTBREAK band {}", x.severity_band)).unwrap_or_default());
+        println!("    power: shaft {}/{} (+{} to halls) elec {}/{} compute {}/{}", w.power.shaft_supply / 1000, w.power.shaft_demand / 1000, w.power.shaft_to_generators / 1000, w.power.elec_supply / 1000, w.power.elec_demand / 1000, w.power.compute_supply, w.power.compute_demand);
         for f in &w.facilities {
             let b: Vec<String> = f.runs.iter().flat_map(|x| x.blockers.clone()).collect();
-            println!("    {} L{}/{} staff {}/{} util {}% {:?}", f.name, f.level, f.max_level, f.staffed, f.staff_needed, f.utilization_bp / 100, b);
+            println!("    {} L{}/{} staff {}/{} util {}% {:?}{}", f.name, f.level, f.max_level, f.staffed, f.staff_needed, f.utilization_bp / 100, b, f.active_method.as_ref().map(|m| format!(" [{m}]")).unwrap_or_default());
         }
         if let Some(sv) = &r.survey {
             let d: Vec<String> = sv.deposits.iter().map(|d| format!("{}:{:.0}", d.kind.label(), u(d.remaining))).collect();
