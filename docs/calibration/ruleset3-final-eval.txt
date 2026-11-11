@@ -1,0 +1,141 @@
+Ruleset 3.0.0 release, job 4b: final calibration (lean scope, doc 41).
+Ruleset bts-rules/3.0.0, content bts-content/3.0.0, generator bts-worldgen/2.1.0,
+protocol bts-protocol/2.6, policy bts-native/1.7.0. 32 matches, standard calendar,
+60-region Earth-like world, hard,medium,medium,easy (seat 0 hard), eval-0..31. Release build.
+   bts run --matches 32 --seed eval --ai hard,medium,medium,easy --threads 12 --curve final.csv
+   python3 scripts/calib_report.py final.csv
+New curve columns: gov_fail, ftl_fail (failed victory checks, one bit per check),
+gov_streak, ftl_streak.
+
+Timing:
+- native perf test (cargo test --release -p bts-ai --test perf -- --ignored, riverland,
+  load average 4.7): 481 rounds (the hard seat won in AD 2410) in 41.3 s; per round p50
+  80.4 ms, p95 147.4 ms, max 163.7 ms (budget p95 <= 150 ms, a match <= 60 s). Before the
+  move and conversion work below it was 52.4 s, p95 161.6 ms.
+- WebAssembly (node apps/web/scripts/wasm-calendar-bench.mjs eval-0): 69.1 s; p50 119.4 ms,
+  p95 266.2 ms, max 282.3 ms (budget p95 <= 400 ms).
+- The 32 matches ran 12 at a time: 58-101 s each (median 82 s) under that load.
+- bts verify eval-3 (300 rounds, to 2140): repeated inputs and checkpoint recovery
+  reproduce the same state. All workspace tests pass, the conservation campaigns
+  included (zero ledger violations).
+
+Headline against the targets
+ target                                              result (32 seeds)                       verdict
+ winner in 55-75% of matches                         0 of 32 (0%)                            missed
+ >= 70% of wins by the hard seat                     -                                       missed
+ median win year AD 2250-2310                        -                                       missed
+ median seat population within +-35% 1000 BC-2200    1000 BC 1.05, AD 1 0.60, AD 1000 0.66,  partly (1000 BC, 1500,
+                                                     1500 0.98, 1700 1.94, 1800 3.66,        2000 in; antiquity low,
+                                                     1900 1.82, 1950 1.55, 2000 0.80,        1700-1950 high, 2100-
+                                                     2100 0.63, 2200 0.62                    2200 low)
+ world peak ~2.5 B (1.88-3.75 B)                     1.05 B                                  missed
+ no bimodal stagnation at 1-3 M                      IQR at 1500 5.9-27 M, at 1900 17-248 M  met (no stuck half;
+                                                     (conquered seats excluded)              the spread is conquest)
+ eras in doc 37's windows                            Early Modern 1490 in; Industrial 1690   partly
+                                                     (70 early); Modern 1790 (90 early);
+                                                     Information 1900 (60 early); Space:
+                                                     1 seat of 128 (2140)
+ golden ages not the majority, dark ages present     golden 72%, dark 2 of 702 crossings     missed
+ late joblessness well under half                    77-79% of working age after 1900        missed
+ wars happening                                      31 of 32 matches; 1,683 seat-decades    met
+ raiders gone by 1900 in >= 80% of matches           32 of 32 (last camp AD 1790)            met
+ real trade volumes                                  all 128 seats traded; median 0.5 Mt a   partly (still thin)
+                                                     seat-decade after 2000
+ the AI uses space; check 13 can be met              85 stations, 743 modules, 31 outposts   partly
+                                                     by 2490, 27 Mt of boost made; check 13
+                                                     met by 6-16 seats at a time; Space era
+                                                     entered by 1 seat (the proof wants a
+                                                     launch complex at half rate 12 months)
+
+Victory: where the hard seats stand. The hard seat unified the world (60 of 60 regions or
+all but a few, the rest subordinate) in most matches by 2000-2200; 22 seats held 96
+months of continuous governance at some sample. T167 (fleet-wide jump standards) was
+understood by 36 seats, 23 of them hard, from 1850 to 2360 (median 2060): the critical
+path is no longer the limit. Failed checks over the seat-decades after T167:
+ nodes (three deployment nodes at the test nodes running at half rate) 93%,
+ industry (a year of flight hardware: lattice, magnets, computing hardware) 86%,
+ exercise (follows the nodes) 84%, launch and recovery (launch complex and a powered,
+ supplied station with a shipyard) 71%, scientific base 47%, two assemblies in series
+ 43%, links and power at the sites 42%, stores of fuel 38%, replacement 37%, crews 23%,
+ lines staffed 20%, training 19%, C064 16%;
+ governance: food 34%, water 28%, the governing form 23%, a last region 9%.
+In the 8-seed development batches the same code (before its last two changes) gave one
+hard win in eight (AD 2058, AD 2238, AD 2320 in three batches), and the perf seed
+(riverland) ends with a hard win in AD 2410. What is left is the late economy of the
+native seats: refined fuel (fields and power stations take it before the programme),
+electricity and qualified technicians at the test-node regions, and food at the ceiling
+of the land for populations of 0.5-1.2 billion.
+
+Population of the median seat (IQR) and the world (median over matches)
+    date    median                 IQR   target  ratio |     world    target  ratio
+ 5000 BC     242 k     239 k-245 k        240 k   1.01 |     968 k     1.2 M   0.80
+ 3000 BC     2.0 M     1.5 M-2.7 M        800 k   2.52 |     9.2 M     3.8 M   2.44
+ 1000 BC     2.6 M     1.8 M-3.5 M        2.5 M   1.05 |    11.6 M    12.5 M   0.93
+    AD 1     3.0 M     2.0 M-4.1 M        5.0 M   0.60 |    13.6 M    25.0 M   0.54
+ AD 1000     5.3 M     2.6 M-9.9 M        8.0 M   0.66 |    27.4 M    40.0 M   0.68
+ AD 1500    10.8 M     5.9 M-27.1 M      11.0 M   0.98 |    67.9 M    56.2 M   1.21
+ AD 1700    29.0 M     7.5 M-93.7 M      15.0 M   1.94 |   208.0 M    75.0 M   2.77
+ AD 1800    73.1 M    12.5 M-182.6 M     20.0 M   3.66 |   400.4 M   106.2 M   3.77
+ AD 1900   109.1 M    17.2 M-248.2 M     60.0 M   1.82 |   636.1 M   312.5 M   2.04
+ AD 1950   170.5 M    53.2 M-294.8 M    110.0 M   1.55 |   710.0 M   562.5 M   1.26
+ AD 2000   184.3 M    37.8 M-449.0 M    230.0 M   0.80 |   753.6 M    1.25 B   0.60
+ AD 2100   251.8 M    68.2 M-679.1 M    400.0 M   0.63 |   874.0 M    2.12 B   0.41
+ AD 2200   295.6 M    82.4 M-771.6 M    480.0 M   0.62 |   914.7 M    2.50 B   0.37
+ AD 2300   368.7 M   157.1 M-903.0 M          -      - |   975.4 M    2.50 B   0.39
+Largest seat (median over matches): 1900 309 M, 2000 466 M, 2100 743 M, 2200 786 M, 2300 895 M.
+Births and deaths of the median seat (% a year): 1700 2.27/1.62, 1800 2.02/1.40, 1900
+1.73/1.19, 2000 1.47/1.15, 2100 1.40/1.04, 2200 1.31/1.04, 2300 1.20/1.07 - steady growth,
+the explosion in the Industrial era (from about 1650), slowing after 2000. Job 4a's world
+peaked at 0.5 B with half the seats at 1-3 M; job 3's median seat was 5 M in 2000.
+
+Era entry (median seat; seats never entering counted as later)
+          era    median       p10                   IQR       p90  entered              window verdict
+    Classical   1310 BC   1602 BC    1480 BC-1100 BC       910 BC  128/128   1400 BC-500 BC    in window
+     Medieval    AD 380     AD 30     AD 160-AD 610        AD 766  128/128    AD 400-AD 900    early by 20
+ Early Modern   AD 1490   AD 1170    AD 1305-AD 1650      AD 1817  124/128   AD 1400-AD 1600   in window
+   Industrial   AD 1690   AD 1416    AD 1530-AD 1787      AD 1917  114/128   AD 1760-AD 1850   early by 70
+       Modern   AD 1790   AD 1591    AD 1680-AD 1842      AD 1960  112/128   AD 1880-AD 1930   early by 90
+  Information   AD 1900   AD 1724    AD 1800-AD 1930      AD 2048   95/128   AD 1960-AD 2010   early by 60
+        Space     never   AD 2140                                    1/128   AD 2030-AD 2090   median seat never
+Knowledge milestones (median seat): printing and the scientific method in their windows;
+T142 (orbital transport) leaders from 1900; T162 by 45 of 128 seats (1930-2050 IQR).
+
+Other measures
+- Wars: 31 of 32 matches; 70 eliminations (2.2 a match), 5 before 1900 (0.16 a match;
+  target <= 1.5).
+- Raiders: camps gone by 1900 in every match (last camp AD 1790; median last AD 1340).
+- Joblessness (household share of working age, students and the old not counted):
+  1500 62%, 1800 74%, 1900 79%, 2000 79%, 2200 77%. Works are limited by qualified
+  people, not by hands.
+- Urban share of the median seat: 1800 17%, 1900 25%, 2000 27%, 2300 32%.
+- Trade: every seat traded; median credit earned to date 54-134 thousand credits after
+  1900; median 0.47-0.54 Mt traded a seat-decade after 2000.
+- Space: boost made 6 Mt by 2000, 27 Mt by 2490; 64 stations by 2000, 85 by 2490 (743
+  modules); 31 outposts; off-world residents peak near 6,000 in 2000 and die out by 2490
+  (resupply still lacking).
+
+Steps (8-seed batches b0-b31 on eval-0..7; each a whole match)
+1. Site power deadlock (the largest single cause of job 3's stagnation): generator halls
+   took all spare shaft work, so the AI saw none for a site and ordered nothing industrial
+   from about 1800 (a 70 M seat stood at 138 technologies for 400 years); coal pits held
+   back by power stopped coal planning. Fixed in the AI (protocol 2.6 shows the halls'
+   share). Industrial seats then reached 150-330 M.
+2. Pre-modern brake: the land factor's neutral point 4,800 -> 6,300 bp of carrying
+   capacity (the half of the seats stuck at 1-3 M grew); 7,000 overshot by 3-4x, 6,000
+   left antiquity low; raider budding ends at AD 1300.
+3. A small lasting food shortfall grew the nutrition debt without bound (hunger deaths
+   of 1.5% a year at 98% access): the debt now settles.
+4. Education, research, administration scaled with the people (the AI trained a
+   thousandth of what modern works need; research capacity was 0.07% of the people);
+   programmes no longer flip every round and use most of the action budget.
+5. Integration from 1850 (doc 36 section 7): wars and subordination by the hard seat;
+   offices for the regions it takes (stability had fallen to 5 at 51 regions).
+6. The critical path (doc 39 section 8.5): critical tier 7-9 work 50/35/30%, leads at
+   50/40%, T162-T167 30 minimum months; T167 moved from never to median 2060.
+7. Programme installations founded and supplied by the AI; check-13 and series rules made
+   consistent with their text; lattice works at 40 a month (three at 20 could never meet
+   check 10).
+8. Era prosperity in the development factor so that growth slows after 2000.
+9. Round cost: migration and conversions recomputed block totals many times a move.
+
+Remaining gaps: see docs/implementation-status.md, "Known calibration gaps".

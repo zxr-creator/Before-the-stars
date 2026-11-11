@@ -134,6 +134,21 @@ material than the method it replaces.
   checks that no station reports more aboard than a tenth of its filled posts. Station and
   site research capacity is bounded by the people in their research posts.
 
+### 2.3 Ruleset 3.0.0 (job 4b)
+
+- **Project work**: a region that calls up any workers for its orders this month supplies
+  at least one worker-month (the product `called x unrest x construction` was rounded
+  down to nothing for a call-up of one, so the last worker-month of an order waited for
+  ever). The work identity is unchanged: work accepted never exceeds the called-up
+  workers times the construction factor, at least one.
+- **Moves and conversions** reckon each block's total once and drop empty blocks only
+  when a move emptied one; specialists moving to vacant posts are sent for once per
+  region and qualification set; at most 24 moves of jobless people a seat a month. People
+  are conserved by the same identities.
+- **Loaded saves** are checked for references outside the world (regions, seats,
+  lineages, camps, formations, test nodes, orders) and refused with a reason before any
+  step runs.
+
 ## 3. Sources of people
 
 | Source | Where | What backs it | Ledger | Tests |
