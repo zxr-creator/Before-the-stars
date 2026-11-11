@@ -357,16 +357,16 @@ fn book_moved(w: &mut World, from: usize, to: usize, moved: &[u32; NQ]) {
 /// courses unless the region empties around them.
 pub fn move_people(w: &mut World, from: usize, to: usize, count: u32, adults_bias: bool) -> u32 {
     // settlers: adults of working age and their children; otherwise everyone alike
+    let mut weights = [1u64; AGES];
     if adults_bias {
-        move_people_weighted(w, from, to, count, &|age| if age < 50 { 1 } else { 0 })
-    } else {
-        move_people_weighted(w, from, to, count, &|_| 1)
+        weights[50..].iter_mut().for_each(|x| *x = 0);
     }
+    move_people_weighted(w, from, to, count, &weights)
 }
 
 /// [`move_people`] with a weight per age: the people of each age cell are drawn in
 /// proportion to their number times the weight (migrants are mostly young adults).
-pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, weight: &dyn Fn(usize) -> u64) -> u32 {
+pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, weight: &[u64; AGES]) -> u32 {
     if from == to {
         return 0;
     }
@@ -383,7 +383,7 @@ pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, w
     let mut moved_working = 0u32;
     let mut carried: Vec<PopBlock> = Vec::new();
     // the eligible pool, weighted by age
-    let pool: u64 = w.regions[from].blocks.iter().map(|b| b.ages.iter().enumerate().map(|(a, n)| *n as u64 * weight(a)).sum::<u64>()).sum();
+    let pool: u64 = w.regions[from].blocks.iter().map(|b| b.ages.iter().zip(weight.iter()).map(|(n, wt)| *n as u64 * wt).sum::<u64>()).sum();
     if pool == 0 {
         return 0;
     }
@@ -393,7 +393,7 @@ pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, w
         out.birth_hist = b.birth_hist;
         for age in 0..AGES {
             let have = b.ages[age] as u64;
-            let wt = weight(age);
+            let wt = weight[age];
             if have == 0 || wt == 0 {
                 continue;
             }

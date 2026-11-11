@@ -415,6 +415,13 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
     let lin = |i: u16| w.lineages.get(i as usize).map(|l| l.name.clone()).unwrap_or_default();
     let mut facilities = Vec::new();
     let civ = &w.civs[seat as usize];
+    // kinds the seat already has somewhere (the first of a kind is the prototype)
+    let mut has_kind = vec![false; c.facilities.len()];
+    for x in w.regions.iter().filter(|x| x.controller == Some(seat)) {
+        for f in x.facilities.iter().filter(|f| f.level > 0) {
+            has_kind[f.kind] = true;
+        }
+    }
     // the shared infrastructure as it applies in the coming month
     let infra = economy::region_infra(r);
     for f in &r.facilities {
@@ -467,7 +474,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
             (0, vec![])
         };
         facilities.push(FacilityView {
-            obsolete: projects::is_obsolete(&w.civs[seat as usize], f.kind) || (w.civs[seat as usize].successors.is_empty() && def.era as u16 + 2 <= w.civs[seat as usize].era.era as u16 && projects::successor_table(w, seat)[f.kind]),
+            obsolete: def.era as u16 + 2 <= civ.era.era as u16 && if civ.successors.is_empty() { projects::successor_table(w, seat)[f.kind] } else { projects::is_obsolete(civ, f.kind) },
             posts_base,
             posts_after_scale,
             posts_after_productivity,
@@ -538,7 +545,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64) -> OwnRegion {
         productivity: productivity::breakdown(w, seat, ri),
         // the price of one more level here, exactly as an order placed now is charged
         construction_sites: c.facilities.iter().enumerate().filter(|(k, _)| facility_visible(w, seat, *k)).map(|(k, def)| {
-            let quote = projects::build_quote(w, seat, k);
+            let quote = projects::build_quote_with(w, seat, k, !has_kind[k]);
             BuildSiteView {
                 kind: def.key.to_string(),
                 work_per_level: quote.work,

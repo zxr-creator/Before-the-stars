@@ -105,8 +105,12 @@ pub fn build_months(months: u16, pace_bp: u32) -> i64 {
 }
 
 pub fn build_quote(w: &World, seat: SeatId, kind: usize) -> BuildQuote {
+    build_quote_with(w, seat, kind, !civ_has_facility(w, seat, kind))
+}
+
+/// [`build_quote`] when whether this would be the seat's first works of the kind is known.
+pub fn build_quote_with(w: &World, seat: SeatId, kind: usize, first: bool) -> BuildQuote {
     let def = &content().facilities[kind];
-    let first = !civ_has_facility(w, seat, kind);
     let mut work = scaled(def.work, w.cfg.pace_bp);
     let mut months = build_months(def.build_months, w.cfg.pace_bp);
     if first {
@@ -448,13 +452,17 @@ pub fn demolish(w: &mut World, seat: SeatId, ri: usize, kind: usize, levels: u16
 /// build now: what makes a works two eras behind obsolete (design chapter 37,
 /// section 8.3). Tradition works and lines of one stage never are.
 pub fn successor_table(w: &World, seat: SeatId) -> Vec<bool> {
+    // later stages of each kind's line: static content, found once
+    static LATER: std::sync::OnceLock<Vec<Vec<usize>>> = std::sync::OnceLock::new();
     let c = content();
+    let later = LATER.get_or_init(|| {
+        c.facilities
+            .iter()
+            .map(|d| if d.line.is_empty() || d.line.starts_with("tradition") { vec![] } else { (0..c.facilities.len()).filter(|j| c.facilities[*j].line == d.line && c.facilities[*j].stage > d.stage).collect() })
+            .collect()
+    });
     let ctx = CivCtx { world: w, seat };
-    let can: Vec<bool> = c.facilities.iter().map(|d| !d.line.is_empty() && d.req.eval(&ctx)).collect();
-    c.facilities
-        .iter()
-        .map(|d| !d.line.starts_with("tradition") && c.facilities.iter().enumerate().any(|(j, e)| e.line == d.line && e.stage > d.stage && can[j]))
-        .collect()
+    later.iter().map(|l| l.iter().any(|j| c.facilities[*j].req.eval(&ctx))).collect()
 }
 
 /// Whether a works of this kind is obsolete for the seat: two or more eras behind

@@ -242,6 +242,21 @@ pub fn congestion_bp(r: &Region, city: i64) -> i64 {
 /// regions at peace with it, weighted by the best mode, at most +600.
 pub fn access_bonus(w: &World, ri: usize, city: i64) -> i64 {
     let r = &w.regions[ri];
+    let mut sizes = vec![0u32; w.regions.len()];
+    for (nb, _) in &r.neighbors {
+        sizes[*nb as usize] = city_size(w, *nb as usize);
+    }
+    access_bonus_with(w, ri, city, &sizes)
+}
+
+/// Every region's principal city, residents.
+pub fn city_sizes(w: &World) -> Vec<u32> {
+    (0..w.regions.len()).map(|i| city_size(w, i)).collect()
+}
+
+/// [`access_bonus`] with the neighbours' city sizes already reckoned.
+pub fn access_bonus_with(w: &World, ri: usize, city: i64, sizes: &[u32]) -> i64 {
+    let r = &w.regions[ri];
     let Some(me) = r.controller else { return 0 };
     let a = network::net(r);
     let mut reach = 0i64;
@@ -252,7 +267,7 @@ pub fn access_bonus(w: &World, ri: usize, city: i64) -> i64 {
             continue;
         }
         let b = network::net(&w.regions[j]);
-        reach += city_size(w, j) as i64 * network::reach_weight(&a, &b, *kind) / 10_000;
+        reach += sizes[j] as i64 * network::reach_weight(&a, &b, *kind) / 10_000;
     }
     (600 * reach / city.max(1_000_000)).min(600)
 }

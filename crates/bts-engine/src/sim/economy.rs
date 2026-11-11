@@ -708,7 +708,8 @@ pub fn step(w: &mut World, seat: SeatId) {
     // productivity (design chapter 36, section 4): the seat's technology and
     // automation factors, and each region's other factors, as the month opens
     let tables = productivity::civ_tables(&w.civs[si]);
-    let factors: Vec<productivity::RegionFactors> = regs.iter().map(|ri| productivity::region_factors(w, seat, *ri)).collect();
+    let sizes = crate::sim::cities::city_sizes(w);
+    let factors: Vec<productivity::RegionFactors> = regs.iter().map(|ri| productivity::region_factors_with(w, seat, *ri, &sizes)).collect();
     let food_k = Sector::Food.index();
     // a food works' labour productivity at a method of a given era
     let food_lp = |pi: usize, def: &FacDef, method_era: u8| factors[pi].lp(Sector::Food, tables.tech[food_k][productivity::era_cap(def, method_era)]);

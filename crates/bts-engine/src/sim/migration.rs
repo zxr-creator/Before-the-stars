@@ -67,6 +67,11 @@ pub fn distress_bp(w: &World, ri: usize) -> i64 {
 /// negative. Work, the city's opportunity, food, services, landscape, crowding and
 /// safety; the per-civilization standard of living waits for prosperity.
 pub fn attractiveness(w: &World, ri: usize) -> i64 {
+    attractiveness_with(w, ri, &cities::city_sizes(w))
+}
+
+/// [`attractiveness`] with every region's city size already reckoned.
+pub fn attractiveness_with(w: &World, ri: usize, sizes: &[u32]) -> i64 {
     let r = &w.regions[ri];
     let pop = r.population() as i64;
     if pop == 0 || r.controller.is_none() {
@@ -76,10 +81,10 @@ pub fn attractiveness(w: &World, ri: usize) -> i64 {
     let active = (l.food + l.facilities + l.projects + l.household + l.teachers).max(1) as i64;
     let vacant: i64 = r.facilities.iter().map(|f| f.staff_needed.saturating_sub(f.staffed) as i64).sum();
     let work = (6_000 * vacant / active - 6_000 * l.household as i64 / active).clamp(-3_000, 3_000);
-    let city = cities::city_size(w, ri) as i64;
+    let city = sizes[ri] as i64;
     let class = cities::class_of(city as u32);
     let class_term = crate::sim::productivity::city_factor(class, Sector::Services, 0, 10_000, 0);
-    let city_term = (2 * (class_term + cities::access_bonus(w, ri, city) - cities::congestion_bp(r, city) - 10_000)).clamp(-1_000, 5_000);
+    let city_term = (2 * (class_term + cities::access_bonus_with(w, ri, city, sizes) - cities::congestion_bp(r, city) - 10_000)).clamp(-1_000, 5_000);
     let food = (r.food_hist.iter().map(|x| *x as i64).sum::<i64>() / 12 - 10_000).min(0);
     let children = r.children().max(1) as i64;
     let services = 1_000
@@ -112,7 +117,8 @@ fn route_open(w: &World, a: SeatId, b: SeatId) -> bool {
 /// One month's flows, computed from the month's state and applied in order.
 pub fn step(w: &mut World) {
     let n = w.regions.len();
-    let attr: Vec<i64> = (0..n).map(|i| attractiveness(w, i)).collect();
+    let sizes = cities::city_sizes(w);
+    let attr: Vec<i64> = (0..n).map(|i| attractiveness_with(w, i, &sizes)).collect();
     let distress: Vec<i64> = (0..n).map(|i| distress_bp(w, i)).collect();
     let pops: Vec<i64> = w.regions.iter().map(|r| r.population() as i64).collect();
     let nets: Vec<network::Net> = w.regions.iter().map(network::net).collect();
@@ -314,5 +320,7 @@ pub fn step(w: &mut World) {
 
 /// Move `count` people with the migration age profile.
 pub fn move_migrants(w: &mut World, from: usize, to: usize, count: u32) -> u32 {
-    crate::sim::population::move_people_weighted(w, from, to, count, &age_weight)
+    static WEIGHTS: std::sync::OnceLock<[u64; AGES]> = std::sync::OnceLock::new();
+    let weights = WEIGHTS.get_or_init(|| std::array::from_fn(age_weight));
+    crate::sim::population::move_people_weighted(w, from, to, count, weights)
 }

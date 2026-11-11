@@ -307,6 +307,16 @@ pub fn food_access(r: &Region) -> i64 {
 }
 
 pub fn region_factors(w: &World, seat: SeatId, ri: usize) -> RegionFactors {
+    let mut sizes = vec![0u32; w.regions.len()];
+    sizes[ri] = crate::sim::cities::city_size(w, ri);
+    for (nb, _) in &w.regions[ri].neighbors {
+        sizes[*nb as usize] = crate::sim::cities::city_size(w, *nb as usize);
+    }
+    region_factors_with(w, seat, ri, &sizes)
+}
+
+/// [`region_factors`] with the city sizes of the region and its neighbours reckoned.
+pub fn region_factors_with(w: &World, seat: SeatId, ri: usize, sizes: &[u32]) -> RegionFactors {
     if neutral() {
         return RegionFactors { edu: 10_000, cul: [10_000; SECTORS], rel: [10_000; SECTORS], city: [10_000; SECTORS], health: 10_000 };
     }
@@ -353,9 +363,9 @@ pub fn region_factors(w: &World, seat: SeatId, ri: usize) -> RegionFactors {
     let pop = r.population() as i64;
     let water_bp = crate::util::ratio_bp(crate::sim::population::water_capacity(r) as i64, pop.max(1));
     let pressure = r.health_bp as i64;
-    let size = crate::sim::cities::city_size(w, ri);
+    let size = sizes[ri];
     let class = crate::sim::cities::class_of(size);
-    let agglomeration = crate::sim::cities::access_bonus(w, ri, size as i64) - crate::sim::cities::congestion_bp(r, size as i64);
+    let agglomeration = crate::sim::cities::access_bonus_with(w, ri, size as i64, sizes) - crate::sim::cities::congestion_bp(r, size as i64);
     let mut city = [10_000i64; SECTORS];
     let trams = crate::sim::eras::tram_city_add(w, seat, ri);
     for s in Sector::ALL {

@@ -1483,8 +1483,8 @@ pub fn upkeep_bp(civ: &Civ, def: &FacDef, g: Good, month: Month) -> i64 {
         f = f * 12_500 / 10_000;
     }
     // obsolete works cost a quarter more to keep (design chapter 37, section 8.3)
-    if let Some(&k) = content().fac_ix.get(def.key) {
-        if crate::sim::projects::is_obsolete(civ, k) {
+    if def.era as u16 + 2 <= civ.era.era as u16 {
+        if content().fac_ix.get(def.key).map(|k| crate::sim::projects::is_obsolete(civ, *k)).unwrap_or(false) {
             f = f * 12_500 / 10_000;
         }
     }
