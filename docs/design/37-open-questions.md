@@ -1,5 +1,14 @@
 # 37. Eras, the Solar System, buildings and military: decisions to confirm
 
+**Resolved by the user (2026-11-10):** every recommendation below is adopted. In addition:
+traditions are shown in the game under their "punk" names with the sober name beneath
+(Steampunk — Coal and Steam; Dieselpunk — Oil and Engine; Electropunk — Current and Wire;
+Atompunk — Atom; Cyberpunk — Network; Biopunk — Living Systems; AI-punk — Synthetic Minds);
+one tradition per slot at a time; inhabited off-world sites count for world governance;
+military modernization keeps its planned place in the slice order. The home world is a
+generated Earth-like planet by default, with the real Earth as a setup option, and the
+player can zoom from the planet out to the Solar System.
+
 Companion to `37-eras-space-buildings-military.md`. Only real choices are listed, each
 with the design's decision, the alternative and a recommendation. Nothing here blocks
 doc 36 slices 3-6; items 1-5 should be settled before slice 7, items 6-12 before slice 14.
