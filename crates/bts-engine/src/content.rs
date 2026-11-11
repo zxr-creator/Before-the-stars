@@ -18,10 +18,12 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/2.0.0";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0";
 /// Ruleset 2.0 counts real people, posts and base units of goods
-/// (`docs/units-and-scale.md`); saves written by earlier rulesets are refused.
-pub const RULESET_VERSION: &str = "bts-rules/2.0.0";
+/// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
+/// historical calendar from 5000 BC with historical population and knowledge
+/// pacing; saves written by earlier rulesets are refused.
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0";
 pub const GENERATOR_VERSION: &str = "bts-worldgen/1.2.0";
 
 /// Base units in one display unit of goods, work, research or service.

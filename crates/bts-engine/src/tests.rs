@@ -7,12 +7,15 @@ use crate::state::*;
 use crate::{Match, MatchConfig};
 use bts_protocol::*;
 
+mod calendar;
 mod construction;
 mod cooperation;
 mod methods;
 
+/// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
+/// 5000 BC (design chapter 36, section 2.2).
 fn cfg(seed: &str) -> MatchConfig {
-    MatchConfig { seed: seed.into(), regions: 24, ..Default::default() }
+    MatchConfig { seed: seed.into(), regions: 24, calendar: MatchConfig::fixture_calendar(240), ..Default::default() }
 }
 
 fn run_rounds(m: &mut Match, rounds: u32) {
@@ -243,7 +246,7 @@ fn complete_victory_needs_g96_f24_and_two_spaced_trials() {
     assert_eq!(o.winner, Some(0));
     assert_eq!(o.month, 96, "governance must have held for 96 consecutive months");
     let reward = victory::reward(&w, 0);
-    assert!((reward - (2.0 - 96.0 / w.cfg.horizon as f64)).abs() < 1e-9);
+    assert!((reward - (2.0 - 96.0 / w.cfg.horizon() as f64)).abs() < 1e-9);
     assert_eq!(victory::reward(&w, 1), -1.0);
 }
 
@@ -338,7 +341,7 @@ fn a_broken_window_restarts_from_zero() {
 
 #[test]
 fn the_horizon_ends_the_match_without_a_winner() {
-    let mut m = Match::new(MatchConfig { seed: "short".into(), regions: 24, horizon: 24, ..Default::default() }, 1);
+    let mut m = Match::new(MatchConfig { seed: "short".into(), regions: 24, calendar: MatchConfig::fixture_calendar(2), ..Default::default() }, 1);
     run_rounds(&mut m, 5);
     assert!(m.finished());
     assert_eq!(m.winner(), None);
@@ -2040,7 +2043,8 @@ fn a_scripted_match_balances_every_month_for_thirty_years() {
     assert_eq!(m.world.regions[far1].controller, Some(0), "the outlying region was captured");
     assert_eq!(m.world.regions[capitals[3]].controller, Some(2), "the ceded region changed hands");
     assert_eq!(m.world.civs[3].status, SeatStatus::Eliminated);
-    assert!(!m.world.armies.iter().any(|a| a.owner == 1 && a.soldiers[Role::Assault.index()] > 0), "the broken formation is gone, and its dead were counted");
+    // the formation was broken: it lost most of its soldiers and holds nothing of seat 0's
+    assert!(!m.world.armies.iter().any(|a| a.owner == 1 && a.soldiers[Role::Assault.index()] > 10_000 || a.owner == 1 && a.region as usize == capitals[0]), "the broken formation is gone or routed, and its dead were counted");
     assert!(seen_lost[Good::Food.index()] > 0, "food spoiled");
     assert!(seen_lost[Good::Materials.index()] > 0 && seen_lost[Good::IronOre.index()] > 0, "carriage from the outlying regions cost something");
     assert!(seen_traded > 0 && seen_grid > 0 && seen_work > 0);

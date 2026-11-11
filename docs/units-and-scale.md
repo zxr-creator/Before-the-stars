@@ -9,6 +9,13 @@ Ruleset `bts-rules/2.0.0` is the first that follows this chapter. Saves written 
 earlier rulesets counted people and posts differently and are refused on load with a
 versioned error; they cannot be migrated exactly.
 
+Ruleset `bts-rules/3.0.0` (design chapter 36) keeps every unit of this chapter and
+puts the game on a historical calendar (section 11). Its population, knowledge,
+productivity, goods and trade changes are recorded in the sections they touch as
+they land; a 2.x save is refused with "this save was written by ruleset
+bts-rules/2.x.y; this build runs bts-rules/3.0.0 and cannot load it: the calendar,
+the goods and the population rules differ".
+
 ## 1. Why the scale changed
 
 The endgame is an interstellar programme. A society that can run one independently
@@ -612,3 +619,54 @@ deliveries, recurring deliveries only with escrow) apply.
 ## 10. Known gaps in calibration
 
 Listed in `docs/implementation-status.md` under "Known calibration gaps".
+
+## 11. Time: the historical calendar (ruleset 3.0)
+
+The authoritative clock is still the simulated month, `World.month`, counting
+completed months since the start. A **calendar** (`MatchConfig.calendar`,
+`bts_engine::calendar`) fixes the start year and the length of every decision round
+by round number:
+
+| Calendar | Rounds | Start | Horizon | Round lengths |
+| --- | --- | --- | --- | --- |
+| Standard | 525 | 1 January 5000 BC | 1 January AD 2500, month 89,988 | 50 years (rounds 1-60), 40 (61-110), 25 (111-150; round 111 is 24), 20 (151-175), 10 (176-195), 5 (196-225), 4 (226-250), 2 (251-525) |
+| Quick | 230 | the same | the same | 100, 80, 50 (the first 49), 50, 20, 10, 10, 5 years on the same segment dates |
+| Fixture | as given | as given | `rounds x months_per_round` | fixed; tests and calibration only (`MatchConfig::fixture_calendar(rounds)` is twelve-month rounds from 5000 BC, the ruleset 2.0 clock) |
+
+- **Dates.** Inside the engine years are astronomical (1 BC = 0, 5000 BC = -4999). The
+  month about to be simulated after `m` completed months is in astronomical year
+  `start + m / 12`, month `m % 12 + 1`. On the wire and on screen a year is
+  historical, signed, with no year zero: `-5000` is 5000 BC, `1` is AD 1
+  (`util::date`, `util::year_label`, `util::date_label`). The round that starts on
+  1 January AD 1 is one year shorter than its segment's rounds because the year zero
+  does not exist. Ageing stays on 1 January.
+- **Every rate is monthly**, so a round of 600 months is 600 monthly steps; the
+  standard and quick calendars differ only in how often seats decide.
+- **Horizon and reward.** The match ends without a winner at the horizon. The unique
+  winner at month `T` scores `2 - (T - R)/(H - R)`, clamped to [1, 2], with `R` the
+  first month of AD 1900 (82,788): a win in AD 2280 scores 1.37. Under a fixture `R`
+  is 0, which is the ruleset 2.0 reward `2 - T/H`.
+- **Round totals.** `GoodLine` totals and the `*_last_round` counts cover the last
+  resolved round, however long; `CalendarView.last_round_months` states its length.
+  The referee's own uses of round totals (tribute, the industrial-base check of the
+  jump programme) are scaled to a month or a year by that length.
+- **Standing orders** (design section 2.6, `Action::Directive`) are evaluated on
+  1 January of every year and in the first month of every round, in the seat's
+  order, each through exactly the validation and price of the action it stands for:
+  build targets (at most four levels an evaluation), a research agenda (discovered
+  methods are investigated, leads followed up), automatic research, a reform agenda
+  (an addition to the design's list: practices gate early works, and without it
+  culture would advance only once per fifty-year round) and settlement targets.
+  Courses already enrol a new cohort whenever one graduates, so the design's
+  `repeat` flag is the standing behaviour of every programme.
+- **Treaty terms** run at least `max(6, round months)` and at most
+  `max(240, 3 x round months)` (or the clause's own longer maximum); pacts and
+  recurring deliveries may be open-ended (`months: 0`) until a party gives notice,
+  which ends them at the close of the next round. A war between seats begins only
+  in the first month of a round. Standing war policies make an armistice once both
+  sides accept it and no region has changed hands between them for the longer of
+  their terms and 36 months.
+- **Unchanged in months:** project minimum months and work, course lengths, the
+  minimum months of investigations, offer expiry in rounds, the five negotiation
+  windows of every round, the G96/F24/Trials96 windows, practice reform and
+  drift, capture and sovereignty.

@@ -417,6 +417,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
     let c = content();
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let title = project_title(w, &p.kind, p.region);
     match p.kind {
         ProjKind::Build { facility, levels } => {
@@ -455,7 +456,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                     Some(ri as RegionId),
                     art,
                     def.work >= 100_000,
-                    vec![format!("Construction accepted in month {month}"), format!("Site: {rname}")],
+                    vec![format!("Construction accepted in {when}"), format!("Site: {rname}")],
                 );
             }
             brief(w, seat, "good", format!("Completed: {title}"), format!("{} is ready for staff.", def.name), Some(ri as RegionId), "economy");
@@ -490,7 +491,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                     _ => "jump",
                 },
                 t.tier >= 3 || matches!(t.id.as_str(), "T005" | "T025" | "T023" | "T049"),
-                vec![format!("Work completed in month {month}"), format!("Field: {}", t.group_title)],
+                vec![format!("Work completed in {when}"), format!("Field: {}", t.group_title)],
             );
             brief(w, seat, "good", format!("Understood: {}", t.name), t.capability.clone(), None, "knowledge");
             crate::sim::knowledge::mark_used(w, seat, &t.prereq.clone());
@@ -532,7 +533,7 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
                     Some(to),
                     "camp",
                     count == 2,
-                    vec![format!("Arrival recorded in month {month}"), format!("{} settlers", group(moved as i64))],
+                    vec![format!("Arrival recorded in {when}"), format!("{} settlers", group(moved as i64))],
                 );
                 brief(w, seat, "good", format!("Settled {name}"), format!("{} people arrived with their stores.", group(moved as i64)), Some(to), "map");
             }
@@ -633,6 +634,7 @@ fn step_programs(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let n = w.civs[si].programs.len();
     let mut lost: Vec<usize> = Vec::new();
     for i in 0..n {
@@ -810,7 +812,7 @@ fn step_programs(w: &mut World, seat: SeatId) {
                         Some(ri as RegionId),
                         "school",
                         course.months >= 36,
-                        vec![format!("Cohort verified in month {month}"), format!("{} graduates", group(grads as i64))],
+                        vec![format!("Cohort verified in {when}"), format!("{} graduates", group(grads as i64))],
                     );
                 }
                 brief(w, seat, "good", format!("{} new {}", group(grads as i64), course.output.label().to_lowercase()), format!("A cohort of {} graduated at {rname}.", course.name.to_lowercase()), Some(ri as RegionId), "population");

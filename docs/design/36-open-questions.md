@@ -1,5 +1,29 @@
 # 36. Ruleset 3.0: decisions to confirm
 
+## Resolutions (decided by the user, 2026-11-10)
+
+The user decided items 1, 5, 8 and 9 and asked for item 6; every other item takes the
+design's recommendation. Implementation follows these on branch `ruleset3`.
+
+| # | Question | Resolution |
+| --- | --- | --- |
+| 1 | Horizon and round count | **AD 2500, 525 rounds** on the schedule of design table 2.2 (5000 BC start) |
+| 2 | Late round length | Two-year rounds from AD 1950 (recommendation) |
+| 3 | Reward formula | `2 - (T - R)/(H - R)` with **R = AD 1900**, clamped to [1, 2]; R recorded in the calendar view (recommendation) |
+| 4 | Starting population | **About 240,000 per seat** (236,000-248,000), unchanged (recommendation) |
+| 5 | World population scale | **World peak about 2 billion** |
+| 6 | Culture and religion on productivity and fertility | **Yes**, through named, bounded practices and doctrines shown in the breakdowns, as the user asked; the four new doctrines and Merchant's Covenant included (recommendation) |
+| 7 | Interface lattice | Included, behind the cut line (recommendation) |
+| 8 | Settlement medium | **Conserved trade credit** |
+| 9 | Tariffs | **None in 3.0** |
+| 10 | Market visibility | Aggregates are public market data (recommendation) |
+| 11 | Household energy | Left out of 3.0 (recommendation) |
+| 12 | Independent peoples | Left out of 3.0 (recommendation) |
+| 13 | Stewards inside long rounds | Stewards act only at round boundaries, where they may draft standing orders (recommendation) |
+| 14 | Quick mode | Same dates and rules, **about 230 rounds** (recommendation) |
+
+## The questions as posed
+
 Companion to `36-ruleset-3-history-resources-trade.md`. Each item states the
 decision taken in the design, the alternatives and a recommendation. Nothing here
 blocks slice 0 (tooling); items 1-3 should be settled before slice 1, items 4-7

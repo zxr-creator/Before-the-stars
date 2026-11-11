@@ -11,7 +11,8 @@ use bts_engine::{Match, MatchConfig};
 use bts_protocol::*;
 
 /// The hard seat's observation in the plan phase of an all-native match, taken in
-/// the first round in which it can build roads, with the controller as it then is.
+/// the first round in which it can build roads and has builders to crew them, with
+/// the controller as it then is.
 fn mid_game() -> (Observation, NativeAi) {
     let controllers = vec![ControllerKind::NativeHard, ControllerKind::NativeMedium, ControllerKind::NativeMedium, ControllerKind::NativeEasy];
     let mut m = Match::new(MatchConfig { seed: "riverland".into(), controllers, ..Default::default() }, 7);
@@ -21,7 +22,8 @@ fn mid_game() -> (Observation, NativeAi) {
             let obs = m.observe(0);
             let roads = obs.catalog.facilities.iter().any(|f| f.kind == "roads" && f.available);
             let tools = obs.catalog.facilities.iter().find(|f| f.kind == "workshop").map(|f| f.recipes.iter().filter(|r| r.available).count()).unwrap_or(0);
-            if roads && tools >= 2 {
+            let builders = obs.civ.quals.iter().find(|q| q.qual == Qual::Builder).map(|q| q.count).unwrap_or(0);
+            if roads && tools >= 2 && builders >= 20_000 {
                 return (obs, ais[0].clone());
             }
         }

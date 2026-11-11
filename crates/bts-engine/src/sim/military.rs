@@ -62,6 +62,7 @@ pub fn declare_war(w: &mut World, aggressor: SeatId, victim: SeatId, reason: &st
         return;
     }
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let (an, vn) = (w.civs[aggressor as usize].name.clone(), w.civs[victim as usize].name.clone());
     let mut broke_pact = false;
     let mut ended = Vec::new();
@@ -71,7 +72,7 @@ pub fn declare_war(w: &mut World, aggressor: SeatId, victim: SeatId, reason: &st
                 broke_pact = true;
             }
             t.status = "broken".into();
-            t.performance.push(format!("Month {month}: ended by war ({an} against {vn})"));
+            t.performance.push(format!("{when}: ended by war ({an} against {vn})"));
             ended.push(ti);
         }
     }
@@ -98,12 +99,12 @@ pub fn declare_war(w: &mut World, aggressor: SeatId, victim: SeatId, reason: &st
     {
         let ct = &mut w.civs[victim as usize].contacts[aggressor as usize];
         ct.trust = (ct.trust - if broke_pact { 45 } else { 25 }).max(0);
-        ct.notes.push(format!("Month {month}: attacked us{}", if broke_pact { " in breach of a signed commitment" } else { "" }));
+        ct.notes.push(format!("{when}: attacked us{}", if broke_pact { " in breach of a signed commitment" } else { "" }));
     }
     let capital_a = w.civs[aggressor as usize].capital;
     let capital_v = w.civs[victim as usize].capital;
-    moment(w, aggressor, MomentCategory::War, format!("War against {vn}"), format!("{an} opened hostilities against {vn}. {reason}"), Some(capital_a), "war", true, vec![format!("Hostilities began in month {month}")]);
-    moment(w, victim, MomentCategory::War, format!("{an} attacks"), format!("Forces of {an} crossed into our territory. {vn} is at war."), Some(capital_v), "war", true, vec![format!("Hostilities began in month {month}")]);
+    moment(w, aggressor, MomentCategory::War, format!("War against {vn}"), format!("{an} opened hostilities against {vn}. {reason}"), Some(capital_a), "war", true, vec![format!("Hostilities began in {when}")]);
+    moment(w, victim, MomentCategory::War, format!("{an} attacks"), format!("Forces of {an} crossed into our territory. {vn} is at war."), Some(capital_v), "war", true, vec![format!("Hostilities began in {when}")]);
     brief(w, victim, "danger", format!("{an} has attacked"), "Raise and position forces, or seek terms.".into(), None, "military");
     for o in 0..w.civs.len() {
         let os = o as SeatId;
@@ -113,7 +114,7 @@ pub fn declare_war(w: &mut World, aggressor: SeatId, victim: SeatId, reason: &st
         if w.civs[o].contacts[aggressor as usize].met {
             let ct = &mut w.civs[o].contacts[aggressor as usize];
             ct.trust = (ct.trust - if broke_pact { 15 } else { 5 }).max(0);
-            reported(w, os, MomentCategory::War, format!("War between {an} and {vn}"), format!("Reports say {an} has attacked {vn}."), None, "war", vec![format!("Reported in month {month}")]);
+            reported(w, os, MomentCategory::War, format!("War between {an} and {vn}"), format!("Reports say {an} has attacked {vn}."), None, "war", vec![format!("Reported in {when}")]);
         }
         // defensive pacts answer the attack
         let pact = w.treaties.iter().any(|t| t.status == "active" && t.parties.contains(&os) && t.parties.contains(&victim) && t.clauses.iter().any(|c| matches!(c, Clause::DefensivePact { .. })));
@@ -267,12 +268,45 @@ fn apply_losses(w: &mut World, side: &Side, frac_bp: i64) -> u32 {
     lost
 }
 
+/// Armistice by standing war policies (design chapter 36, section 2.6): when both
+/// sides of a war accept a white peace and no region has changed hands between them
+/// for the longer of their two terms and 36 months, the war ends as it stands.
+pub fn armistices(w: &mut World) {
+    let n = w.civs.len();
+    let month = w.month;
+    for a in 0..n {
+        for b in a + 1..n {
+            if !w.at_war(a as SeatId, b as SeatId) {
+                continue;
+            }
+            let pa = w.civs[a].war_policy.get(b).copied().flatten();
+            let pb = w.civs[b].war_policy.get(a).copied().flatten();
+            let (Some((ma, _)), Some((mb, _))) = (pa, pb) else { continue };
+            let need = (ma as u32).max(mb as u32).max(36);
+            let ct = &w.civs[a].contacts[b];
+            let since = ct.war_since.max(ct.last_control_change);
+            if month < since + need {
+                continue;
+            }
+            make_peace(w, a as SeatId, b as SeatId);
+            let (an, bn) = (w.civs[a].name.clone(), w.civs[b].name.clone());
+            let when = crate::util::event_label(&w.cfg, month);
+            for (x, other) in [(a, bn.clone()), (b, an.clone())] {
+                let cap = w.civs[x].capital;
+                moment(w, x as SeatId, MomentCategory::Diplomacy, format!("Armistice with {other}"), format!("With no ground changing hands for {need} months and both governments willing, the war with {other} ended where the lines stood."), Some(cap), "treaty", true, vec![format!("Armistice in {when}")]);
+            }
+        }
+    }
+}
+
 pub fn step(w: &mut World) {
     let c = content();
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     for a in w.armies.iter_mut() {
         a.in_battle = false;
     }
+    armistices(w);
 
     // ---- training and upkeep --------------------------------------------------
     for i in 0..w.armies.len() {
@@ -343,6 +377,12 @@ pub fn step(w: &mut World) {
         let owner = w.armies[i].owner;
         if let Some(ctrl) = w.regions[next].controller {
             if !friendly(w, owner, ctrl) && !hostile(w, owner, ctrl) {
+                if attack && next == target && !w.first_month_of_round() {
+                    // a war between seats begins only in the first month of a round:
+                    // the formation waits at the border with its order standing
+                    w.armies[i].move_progress = needed - 1;
+                    continue;
+                }
                 if attack && next == target {
                     declare_war(w, owner, ctrl, "Its forces marched on a neighbouring region.");
                 } else {
@@ -463,8 +503,8 @@ pub fn step(w: &mut World) {
                 }
                 let rname = w.regions[ri].name.clone();
                 let (ln, on) = (w.civs[lead as usize].name.clone(), w.civs[old as usize].name.clone());
-                moment(w, lead, MomentCategory::War, format!("{rname} occupied"), format!("After five months of control, {ln} administers {rname}. Its people, debts and damaged works come with it; cooperation does not."), Some(ri as RegionId), "war", true, vec![format!("Control established in month {month}")]);
-                moment(w, old, MomentCategory::Crisis, format!("{rname} lost"), format!("{on} no longer controls {rname}. {ln} holds it."), Some(ri as RegionId), "war", true, vec![format!("Control lost in month {month}")]);
+                moment(w, lead, MomentCategory::War, format!("{rname} occupied"), format!("After five months of control, {ln} administers {rname}. Its people, debts and damaged works come with it; cooperation does not."), Some(ri as RegionId), "war", true, vec![format!("Control established in {when}")]);
+                moment(w, old, MomentCategory::Crisis, format!("{rname} lost"), format!("{on} no longer controls {rname}. {ln} holds it."), Some(ri as RegionId), "war", true, vec![format!("Control lost in {when}")]);
                 brief(w, old, "danger", format!("{rname} has fallen"), format!("{ln} now controls it."), Some(ri as RegionId), "military");
             }
         }
@@ -517,6 +557,7 @@ pub fn step(w: &mut World) {
 
 pub fn eliminate(w: &mut World, seat: SeatId) {
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let name = w.civs[seat as usize].name.clone();
     w.civs[seat as usize].status = SeatStatus::Eliminated;
     w.civs[seat as usize].eliminated_month = Some(month);
@@ -550,7 +591,7 @@ pub fn eliminate(w: &mut World, seat: SeatId) {
     for t in w.treaties.iter_mut() {
         if t.status == "active" && t.parties.contains(&seat) {
             t.status = "expired".into();
-            t.performance.push(format!("Month {month}: {name} ceased to govern"));
+            t.performance.push(format!("{when}: {name} ceased to govern"));
         }
     }
     for o in 0..w.civs.len() {
@@ -560,8 +601,8 @@ pub fn eliminate(w: &mut World, seat: SeatId) {
         w.civs[o].contacts[seat as usize].at_war = false;
         w.civs[seat as usize].contacts[o].at_war = false;
         if o != seat as usize && w.civs[o].contacts[seat as usize].met && w.civs[o].status != SeatStatus::Eliminated {
-            reported(w, o as SeatId, MomentCategory::Governance, format!("{name} no longer governs"), format!("{name} holds no land and no effective government remains. Its people, property and debts continue under other authorities."), None, "ruin", vec![format!("Recorded in month {month}")]);
+            reported(w, o as SeatId, MomentCategory::Governance, format!("{name} no longer governs"), format!("{name} holds no land and no effective government remains. Its people, property and debts continue under other authorities."), None, "ruin", vec![format!("Recorded in {when}")]);
         }
     }
-    moment(w, seat, MomentCategory::Crisis, format!("The end of {name}"), "No region remains under our government. The people live on under other authorities.".into(), None, "ruin", true, vec![format!("Recorded in month {month}")]);
+    moment(w, seat, MomentCategory::Crisis, format!("The end of {name}"), "No region remains under our government. The people live on under other authorities.".into(), None, "ruin", true, vec![format!("Recorded in {when}")]);
 }

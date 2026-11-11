@@ -729,6 +729,10 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
                 q
             },
             compute_used: 0,
+            directives: Vec::new(),
+            war_policy: vec![None; seats],
+            tallies: Vec::new(),
+            round_start_pop: 0,
         });
     }
 
@@ -757,6 +761,8 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         envelopes: vec![0; seats * seats],
         sent_window: vec![false; seats * seats],
         versions: vec![RULESET_VERSION.into(), CONTENT_VERSION.into(), GENERATOR_VERSION.into(), PROTOCOL_VERSION.into()],
+        round_start: 0,
+        last_round_months: 0,
     };
     for s in 0..seats {
         crate::sim::knowledge::refresh_visibility(&mut world, s as SeatId);

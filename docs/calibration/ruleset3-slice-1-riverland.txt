@@ -1,0 +1,50 @@
+Ruleset 3.0, slice 1, riverland, standard calendar, single thread (2.0 economics).
+
+round  76  month 43200  1400 BC  phase Contact
+  seat 0 Stonewold   Active     pop 49550204 reg 20 tech 122 (tier 8) prac 62 army 2052257 stab 95 food 100% sci 3644 BC gov  0 ftl  0
+  seat 1 Amberfen    Active     pop 18369502 reg  8 tech 116 (tier 7) prac 60 army 257942 stab 95 food 100% sci 3841 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 65637014 reg 16 tech 134 (tier 9) prac 63 army 3013709 stab 95 food 100% sci 3898 BC gov  0 ftl  0
+  seat 3 Riverland   Active     pop 13613758 reg  4 tech 117 (tier 7) prac 52 army 1551221 stab 95 food 100% sci 2496 BC gov  0 ftl  0
+round 151  month 71988  AD 1000  phase Contact
+  seat 0 Stonewold   Active     pop 54159881 reg 23 tech 138 (tier 9) prac 64 army 4328777 stab 95 food 100% sci 3644 BC gov  0 ftl  0
+  seat 1 Amberfen    Eliminated pop       0 reg  0 tech 116 (tier 7) prac 60 army     0 stab 90 food 100% sci 3841 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 51708740 reg 25 tech 138 (tier 9) prac 64 army 4448355 stab 95 food 100% sci 3898 BC gov  0 ftl  0
+  seat 3 Riverland   Eliminated pop       0 reg  0 tech 134 (tier 9) prac 60 army     0 stab 95 food 100% sci 2496 BC gov  0 ftl  0
+round 226  month 82188  AD 1850  phase Contact
+  seat 0 Stonewold   Active     pop 51178013 reg 23 tech 138 (tier 9) prac 64 army 4328777 stab 95 food  97% sci 3644 BC gov  0 ftl  0
+  seat 1 Amberfen    Eliminated pop       0 reg  0 tech 116 (tier 7) prac 60 army     0 stab 90 food 100% sci 3841 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 57103458 reg 25 tech 138 (tier 9) prac 64 army 4448355 stab 95 food 100% sci 3898 BC gov  0 ftl  0
+  seat 3 Riverland   Eliminated pop       0 reg  0 tech 134 (tier 9) prac 60 army     0 stab 95 food 100% sci 2496 BC gov  0 ftl  0
+round 301  month 84588  AD 2050  phase Contact
+  seat 0 Stonewold   Active     pop 63286451 reg 23 tech 138 (tier 9) prac 64 army 4328777 stab 95 food 100% sci 3644 BC gov  0 ftl  0
+  seat 1 Amberfen    Eliminated pop       0 reg  0 tech 116 (tier 7) prac 60 army     0 stab 90 food 100% sci 3841 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 58384835 reg 25 tech 138 (tier 9) prac 64 army 4448355 stab 95 food 100% sci 3898 BC gov  0 ftl  0
+  seat 3 Riverland   Eliminated pop       0 reg  0 tech 134 (tier 9) prac 60 army     0 stab 95 food 100% sci 2496 BC gov  0 ftl  0
+round 376  month 86388  AD 2200  phase Contact
+  seat 0 Stonewold   Active     pop 61715994 reg 23 tech 138 (tier 9) prac 64 army 4328777 stab 95 food 100% sci 3644 BC gov  0 ftl  0
+  seat 1 Amberfen    Eliminated pop       0 reg  0 tech 116 (tier 7) prac 60 army     0 stab 90 food 100% sci 3841 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 59146465 reg 25 tech 138 (tier 9) prac 64 army 4448355 stab 95 food 100% sci 3898 BC gov  0 ftl  0
+  seat 3 Riverland   Eliminated pop       0 reg  0 tech 134 (tier 9) prac 60 army     0 stab 95 food 100% sci 2496 BC gov  0 ftl  0
+round 451  month 88188  AD 2350  phase Contact
+  seat 0 Stonewold   Active     pop 59737645 reg 23 tech 138 (tier 9) prac 64 army 4328777 stab 95 food 100% sci 3644 BC gov  0 ftl  0
+  seat 1 Amberfen    Eliminated pop       0 reg  0 tech 116 (tier 7) prac 60 army     0 stab 90 food 100% sci 3841 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 59827435 reg 25 tech 138 (tier 9) prac 64 army 4448355 stab 95 food 100% sci 3898 BC gov  0 ftl  0
+  seat 3 Riverland   Eliminated pop       0 reg  0 tech 134 (tier 9) prac 60 army     0 stab 95 food 100% sci 2496 BC gov  0 ftl  0
+round 525  month 89988  AD 2500  phase Finished
+  seat 0 Stonewold   Active     pop 57157897 reg 23 tech 138 (tier 9) prac 64 army 4328777 stab 95 food 100% sci 3644 BC gov  0 ftl  0
+  seat 1 Amberfen    Eliminated pop       0 reg  0 tech 116 (tier 7) prac 60 army     0 stab 90 food 100% sci 3841 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 59829922 reg 25 tech 138 (tier 9) prac 64 army 4448355 stab 95 food 100% sci 3898 BC gov  0 ftl  0
+  seat 3 Riverland   Eliminated pop       0 reg  0 tech 134 (tier 9) prac 60 army     0 stab 95 food 100% sci 2496 BC gov  0 ftl  0
+round 525  month 89988  AD 2500  phase Finished
+  seat 0 Stonewold   Active     pop 57157897 reg 23 tech 138 (tier 9) prac 64 army 4328777 stab 95 food 100% sci 3644 BC gov  0 ftl  0
+  seat 1 Amberfen    Eliminated pop       0 reg  0 tech 116 (tier 7) prac 60 army     0 stab 90 food 100% sci 3841 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 59829922 reg 25 tech 138 (tier 9) prac 64 army 4448355 stab 95 food 100% sci 3898 BC gov  0 ftl  0
+  seat 3 Riverland   Eliminated pop       0 reg  0 tech 134 (tier 9) prac 60 army     0 stab 95 food 100% sci 2496 BC gov  0 ftl  0
+finished: true  winner: None  AD 2500  elapsed 61.0s  state hash f18b65f12a4cab8d
+
+round 230  month 89988  AD 2500  phase Finished
+  seat 0 Stonewold   Eliminated pop       0 reg  0 tech 134 (tier 9) prac 63 army     0 stab 79 food 100% sci AD 371 gov  0 ftl  0
+  seat 1 Amberfen    Active     pop 7450605 reg  2 tech 134 (tier 9) prac 63 army 352932 stab 95 food 100% sci 1359 BC gov  0 ftl  0
+  seat 2 Longstrand  Active     pop 91481008 reg 39 tech 138 (tier 9) prac 64 army 6381351 stab 95 food 100% sci 316 BC gov  0 ftl  0
+  seat 3 Riverland   Active     pop 47496176 reg  7 tech 138 (tier 9) prac 64 army 1753120 stab 95 food 100% sci AD 1060 gov  0 ftl  0
+finished: true  winner: None  AD 2500  elapsed 24.6s  state hash ae7a14df41a9c4ef

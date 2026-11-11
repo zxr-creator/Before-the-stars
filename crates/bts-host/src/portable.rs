@@ -163,6 +163,9 @@ pub struct Header {
     pub month: Month,
     /// `month / 12 + 1`, for a person reading the header.
     pub year: u32,
+    /// The historical date of the match (ruleset 3.0), for a person reading the header.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date: Option<DateView>,
     pub horizon: Month,
     pub finished: bool,
     #[serde(default)]
@@ -301,7 +304,8 @@ fn describe_session(s: &Session, meta: Meta) -> Header {
         round: s.m.round(),
         month: s.m.month(),
         year: s.m.month() / 12 + 1,
-        horizon: cfg.horizon,
+        date: Some(bts_engine::observe::date_view(cfg, s.m.month())),
+        horizon: cfg.horizon(),
         finished: s.m.finished(),
         winner: s.m.winner(),
         seats,

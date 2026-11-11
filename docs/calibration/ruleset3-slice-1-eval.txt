@@ -1,0 +1,82 @@
+Ruleset 3.0, slice 1 (calendar and standing orders) with ruleset 2.0 economics: population,
+knowledge and production rules are still those of 2.0, so technology is expected far too early.
+Standard calendar (525 rounds, 5000 BC to AD 2500), --ai hard,medium,medium,easy, eval-0..15,
+release build, Apple M5 Pro, 16 matches on all cores (2 min 07 s wall; 62-126 s per match under
+contention; a single match alone takes about 45 s, see the riverland file).
+
+   target/release/bts run --matches 16 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+
+match  0  winner None  month 89988 (AD 2500)  62.6s  0:41212540p/20r/128t  1:48611049p/13r/138t  2:17632375p/11r/116t  3:29852482p/4r/138t
+match  1  winner None  month 89988 (AD 2500)  110.8s  0:0p/0r/134t  1:121156796p/48r/138t  2:0p/0r/138t  3:0p/0r/125t
+match  2  winner None  month 89988 (AD 2500)  114.0s  0:112628746p/34r/138t  1:0p/0r/138t  2:34212584p/14r/125t  3:0p/0r/85t
+match  3  winner None  month 89988 (AD 2500)  91.0s  0:69878686p/29r/138t  1:0p/0r/138t  2:30357074p/13r/134t  3:16095180p/6r/128t
+match  4  winner None  month 89988 (AD 2500)  64.1s  0:52080524p/28r/122t  1:23340655p/9r/51t  2:15281954p/6r/85t  3:15995973p/5r/128t
+match  5  winner None  month 89988 (AD 2500)  126.3s  0:0p/0r/138t  1:105380073p/48r/138t  2:0p/0r/125t  3:0p/0r/85t
+match  6  winner None  month 89988 (AD 2500)  100.9s  0:36374322p/18r/128t  1:62984361p/30r/138t  2:0p/0r/123t  3:0p/0r/44t
+match  7  winner None  month 89988 (AD 2500)  100.2s  0:79126124p/35r/134t  1:30064603p/13r/128t  2:0p/0r/134t  3:0p/0r/51t
+match  8  winner None  month 89988 (AD 2500)  106.1s  0:0p/0r/128t  1:0p/0r/125t  2:118373210p/48r/134t  3:0p/0r/85t
+match  9  winner None  month 89988 (AD 2500)  91.3s  0:110013414p/47r/138t  1:0p/0r/138t  2:0p/0r/126t  3:0p/0r/51t
+match 10  winner None  month 89988 (AD 2500)  117.2s  0:0p/0r/123t  1:0p/0r/85t  2:128361675p/48r/138t  3:0p/0r/85t
+match 11  winner None  month 89988 (AD 2500)  106.8s  0:78110458p/28r/138t  1:57419772p/17r/138t  2:0p/0r/91t  3:0p/0r/51t
+match 12  winner None  month 89988 (AD 2500)  79.2s  0:113092634p/48r/138t  1:0p/0r/125t  2:0p/0r/134t  3:0p/0r/125t
+match 13  winner None  month 89988 (AD 2500)  97.9s  0:0p/0r/138t  1:111382504p/48r/138t  2:0p/0r/85t  3:0p/0r/51t
+match 14  winner None  month 89988 (AD 2500)  114.7s  0:0p/0r/138t  1:112756249p/47r/138t  2:1628191p/1r/125t  3:0p/0r/85t
+match 15  winner None  month 89988 (AD 2500)  75.2s  0:54478210p/23r/125t  1:41903234p/21r/138t  2:0p/0r/134t  3:13320643p/4r/122t
+
+
+Population (median seat excludes seats without land; largest and world are medians over matches)
+      date  median seat    largest      world  regions (median)
+   5000 BC        241 k      246 k      964 k               1.0
+   4000 BC       7.14 M    11.66 M    30.66 M               4.0
+   3000 BC      23.40 M    40.38 M   102.54 M               8.0
+   2000 BC      34.92 M    62.15 M   140.08 M              11.5
+   1000 BC      34.98 M    67.06 M   129.69 M                13
+     AD 10      34.26 M    58.35 M   124.76 M                13
+   AD 1000      33.59 M    67.18 M   114.65 M              13.5
+   AD 1500      38.73 M    72.14 M   111.16 M              16.0
+   AD 1700      36.06 M    77.79 M   110.55 M              16.0
+   AD 1800      38.89 M    85.70 M   117.94 M              15.0
+   AD 1900      39.63 M    81.39 M   117.08 M              18.0
+   AD 1950      41.57 M    80.51 M   113.76 M              18.0
+   AD 2000      52.39 M    95.27 M   119.64 M              18.0
+   AD 2100      41.79 M   104.89 M   117.28 M                20
+   AD 2200      51.23 M   105.59 M   118.37 M              20.5
+   AD 2300      54.67 M   105.57 M   116.29 M                21
+   AD 2500      52.08 M   107.70 M   113.74 M                21
+
+Era milestones: first sampled decade at which a seat had it
+  node  median seat  reached  leader (median)  leader (earliest)
+  T007      4990 BC   64/64           4990 BC            4990 BC
+  T008      4990 BC   64/64           4990 BC            4990 BC
+  T010      4990 BC   64/64           4990 BC            4990 BC
+  T011      4990 BC   64/64           4990 BC            4990 BC
+  T015      4990 BC   64/64           4990 BC            4990 BC
+  T025      4980 BC   64/64           4980 BC            4980 BC
+  T022      4980 BC   64/64           4980 BC            4980 BC
+  T023      4980 BC   64/64           4980 BC            4980 BC
+  T024      4980 BC   64/64           4980 BC            4980 BC
+  T027      4980 BC   64/64           4980 BC            4980 BC
+  T028      4970 BC   64/64           4970 BC            4970 BC
+  T029      4990 BC   64/64           4990 BC            4990 BC
+  T030      4970 BC   64/64           4970 BC            4970 BC
+  T036      3970 BC   64/64           4180 BC            4380 BC
+  T048      3970 BC   64/64           4190 BC            4390 BC
+   SCI      3690 BC   63/64           3890 BC            4030 BC
+  T080      3575 BC   58/64           3765 BC            3960 BC
+  T060      3610 BC   58/64           3775 BC            3990 BC
+  T061      3610 BC   58/64           3780 BC            3980 BC
+  T100      3510 BC   58/64           3710 BC            3890 BC
+  T111      3110 BC   49/64           3355 BC            3720 BC
+  T142      2840 BC   49/64           3110 BC            3490 BC
+  T147      1780 BC   44/64           2660 BC            3100 BC
+  T162      1290 BC   29/64           1850 BC            2870 BC
+  T167       AD 360   22/64            700 BC            1700 BC
+ALL138       AD 360   22/64            700 BC            1700 BC
+
+highest seat-decade growth: 7.87%/yr at ('eval-1', '0', '1160', '1170')
+pre-1700 500-year seat growth: min -0.776%/yr, median 0.029%/yr, max 0.720%/yr (34886 windows)
+
+Reading: the graph completes for the median seat that completes it around AD 360 (leader 700 BC),
+so under 2.0 knowledge pacing a standard game would spend two thousand years with the whole graph
+known; no seat wins (the jump programme and global integration are not reached together). Slices 2
+and 3 replace the population and knowledge rules that cause this.

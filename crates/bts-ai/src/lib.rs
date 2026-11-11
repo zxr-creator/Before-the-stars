@@ -10,7 +10,7 @@ mod policy;
 use bts_protocol::*;
 use serde::{Deserialize, Serialize};
 
-pub const POLICY_VERSION: &str = "bts-native/1.0.0";
+pub const POLICY_VERSION: &str = "bts-native/1.1.0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Difficulty {
@@ -89,7 +89,8 @@ impl NativeAi {
             return Vec::new();
         }
         self.memory.rounds_seen += 1;
-        policy::plan_domains(self, obs, Some(domains))
+        let scaled = policy::per_year(obs);
+        policy::plan_domains(self, scaled.as_ref().unwrap_or(obs), Some(domains))
     }
 
     pub fn steward_domains() -> &'static [&'static str] {

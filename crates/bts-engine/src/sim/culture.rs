@@ -119,6 +119,7 @@ pub fn movement_requirements(stage: u8) -> (i64, &'static str) {
 pub fn advance_movement(w: &mut World, seat: SeatId, beliefs: Vec<String>, name: Option<String>) {
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let Some(mv) = w.civs[si].movement.clone() else { return };
     match mv.stage {
         0 => {
@@ -130,7 +131,7 @@ pub fn advance_movement(w: &mut World, seat: SeatId, beliefs: Vec<String>, name:
             let rname = w.regions[mv.region as usize].name.clone();
             moment(w, seat, MomentCategory::Religion, format!("A tradition forms at {rname}"),
                 format!("Gatherings at {rname} settled on a shared practice: {bname}. It is a local tradition, not yet a founded religion."),
-                Some(mv.region), "shrine", false, vec![format!("Recorded in month {month}")]);
+                Some(mv.region), "shrine", false, vec![format!("Recorded in {when}")]);
         }
         3 => {
             if w.religions.len() as u8 >= RELIGION_SLOTS || w.civs[si].founded_religion {
@@ -166,13 +167,13 @@ pub fn advance_movement(w: &mut World, seat: SeatId, beliefs: Vec<String>, name:
             let place = w.regions[mv.region as usize].name.clone();
             moment(w, seat, MomentCategory::Religion, format!("{rname} is founded"),
                 format!("At {place} the movement declared its obligations, practices and rites. They are now fixed; its followers and organizations will keep changing."),
-                Some(mv.region), "shrine", true, vec![format!("Founded in month {month}"), format!("{converts} founding adherents")]);
+                Some(mv.region), "shrine", true, vec![format!("Founded in {when}"), format!("{converts} founding adherents")]);
             // others who are in contact hear of it
             for o in 0..w.civs.len() {
                 if o != si && w.civs[o].contacts[si].met {
                     let who = w.civs[si].name.clone();
                     crate::sim::chronicle::reported(w, o as SeatId, MomentCategory::Religion, format!("{rname} founded among the {who}"),
-                        format!("Travellers report that a religion called {rname} has been founded at {place}."), None, "shrine", vec![format!("Reported in month {month}")]);
+                        format!("Travellers report that a religion called {rname} has been founded at {place}."), None, "shrine", vec![format!("Reported in {when}")]);
                 }
             }
         }
@@ -187,6 +188,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         return;
     }
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let pop = w.civ_population(seat) as i64;
     let lineage = w.civs[si].lineage as usize;
     let axes = w.lineages[lineage].axes;
@@ -292,7 +294,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         let capital = w.civs[si].capital;
         moment(w, seat, MomentCategory::Culture, format!("{} takes root", p.name),
             format!("Enough people now take part for this to be an ordinary part of life. {}", if p.effect.is_empty() { p.behavior.clone() } else { p.effect.to_string() }),
-            Some(capital), "assembly_hall", p.group_ix >= 2, vec![format!("Participation passed a quarter of the population in month {month}")]);
+            Some(capital), "assembly_hall", p.group_ix >= 2, vec![format!("Participation passed a quarter of the population in {when}")]);
         brief(w, seat, "good", format!("Established: {}", p.name), p.effect.to_string(), None, "culture");
     }
 
@@ -306,7 +308,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 w.civs[si].movement = Some(Movement { region: rid, stage: 0, participants: MOVEMENT_SEED, devotion: 0, pantheon: None, religion: None, started: month });
                 moment(w, seat, MomentCategory::Religion, format!("Gatherings at {rname}"),
                     format!("People at {rname} have begun to meet regularly for remembrance and shared rites. Nobody has founded a religion; the government may support the gatherings, leave them alone, or ignore them."),
-                    Some(rid), "shrine", false, vec![format!("First recorded in month {month}")]);
+                    Some(rid), "shrine", false, vec![format!("First recorded in {when}")]);
                 brief(w, seat, "info", format!("A movement is gathering at {rname}"), "See the culture panel. Supporting it is optional; a secular path remains fully viable.".into(), Some(rid), "culture");
             }
         }

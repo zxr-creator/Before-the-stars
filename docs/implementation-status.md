@@ -7,7 +7,7 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 
 | Design area | Status | Notes |
 | --- | --- | --- |
-| Clock and rounds (30 §3) | Implemented | One simulation month; 12 months per round; H = 2880 standard, 960 development fixture with scaled work. Contact → five negotiation windows → plan → resolve |
+| Clock and rounds (30 §3, 36 §2) | Implemented | One simulation month. Since ruleset 3.0 a historical calendar: the standard game runs 525 rounds from 5000 BC to AD 2500 (rounds of 50 years down to 2), the quick game 230 rounds on the same dates, and fixture clocks serve tests (`docs/units-and-scale.md` section 11). Contact → five negotiation windows → plan → resolve; standing orders act inside long rounds |
 | World generation (08) | Implemented, simplified | Seeded Voronoi regions (24/48/72), elevation and moisture noise, downhill rivers, coasts and sea links, correlated deposits, viable starts with guaranteed reachable copper, iron, coal and rare minerals, three fixed test nodes. Derivation uses a keyed integer hash rather than HMAC-SHA256; `public_seed: false` mixes in server entropy |
 | Economy and production (02, 21) | Abstracted | About sixty facility types carry the 34 recipes and 10 capital modules with inputs, shaft/electric/compute services, upkeep, condition and storage throttles. Goods are pooled per civilization with a per-region carriage efficiency set by transport grade and distance, not per-shipment logistics. No prices, money or private balance sheets: the limit on what a government can direct is the callable-labour share raised by institutions |
 | Industrial traditions (22) | Implemented as content | Water/wind, steam, diesel and electric power are separate facilities with real fuel and site limits; generators, grids and motors bridge them; fission, fusion and orbital power follow. No route skips electricity, electronics, computing or orbit |
@@ -50,6 +50,22 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   `scripts/curve_summary.py` summarizes a curve (population by date, regions, era
   milestones, growth checks). The ruleset 2.0 baseline is
   `docs/calibration/ruleset3-slice-0-baseline.txt`.
+- **Slice 1, calendar and standing orders (done).** `bts_engine::calendar` (standard
+  525 rounds, quick 230, fixtures), signed historical years with no year zero,
+  `date`/`calendar` on `Observation`, `SpectatorView` and the host's `MatchSummary`
+  (and the portable save header), the reward counted from AD 1900, standing orders
+  (`Action::Directive`: build targets, research agenda, automatic research, reform
+  agenda, settlement targets), treaty terms scaled to the round with open-ended
+  clauses and notice, war only in a round's first month, war policies and armistice,
+  round recap flags and one era summary per round in the chronicle (at most 2,000
+  entries per seat), briefings counted by kind, dates instead of month numbers in
+  every engine text, ruleset `bts-rules/3.0.0` with the named refusal of 2.x saves.
+  The native AI writes standing orders in rounds longer than a year, reads round
+  totals per year, keeps clause terms within the round's bounds and may place up to
+  four times its candidate actions in long rounds. `bts run --calendar quick`,
+  `--checkpoints DIR` (era saves at 1000 BC, AD 1000, 1700, 1900, 2100 by default)
+  and `examples/decide` (one seat's plan and the referee's answers). Calibration:
+  `docs/calibration/ruleset3-slice-1-*.txt`.
 
 ## Known calibration gaps
 

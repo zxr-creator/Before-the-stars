@@ -179,7 +179,89 @@ fn label(a: &Action) -> String {
         Action::Demolish { .. } => "demolish".into(),
         Action::MilitaryOrder { .. } => "military_order".into(),
         Action::Forfeit => "forfeit".into(),
+        Action::Directive { .. } => "directive".into(),
     }
+}
+
+/// Apply the action a standing order stands for, through exactly the validation of
+/// that action, without writing a receipt (the order reports through its own
+/// `last_result`). Returns the acceptance text or the refusal.
+pub fn apply_for_directive(w: &mut World, seat: SeatId, action: Action) -> Result<(String, Option<u32>), String> {
+    if w.outcome.is_some() || w.civs[seat as usize].status == SeatStatus::Eliminated {
+        return Err("the match has finished".into());
+    }
+    apply_inner(w, seat, action).map_err(|f| f.reason)
+}
+
+/// Most standing orders a seat may hold.
+pub const DIRECTIVES_MAX: usize = 64;
+
+/// Whether two standing orders stand for the same thing (the later replaces the earlier).
+fn same_directive(a: &Directive, b: &Directive) -> bool {
+    match (a, b) {
+        (Directive::BuildTarget { region: r1, facility: f1, .. }, Directive::BuildTarget { region: r2, facility: f2, .. }) => r1 == r2 && f1 == f2,
+        (Directive::ResearchAgenda { .. }, Directive::ResearchAgenda { .. }) => true,
+        (Directive::AutoResearch { .. }, Directive::AutoResearch { .. }) => true,
+        (Directive::ReformAgenda { .. }, Directive::ReformAgenda { .. }) => true,
+        (Directive::SettleTarget { to: t1, .. }, Directive::SettleTarget { to: t2, .. }) => t1 == t2,
+        _ => false,
+    }
+}
+
+/// Check a standing order against what the seat can know, as its action would be.
+fn validate_directive(w: &World, seat: SeatId, d: &Directive) -> Result<(), Fail> {
+    let c = content();
+    let si = seat as usize;
+    match d {
+        Directive::BuildTarget { region, facility, levels, priority } => {
+            own_region(w, seat, *region)?;
+            let Some(&kind) = c.fac_ix.get(facility) else { return fail(UNKNOWN, "unknown facility") };
+            if !facility_visible(w, seat, kind) {
+                return fail(UNKNOWN, "unknown facility");
+            }
+            if *levels == 0 || *levels > 2000 {
+                return fail("INVALID_SCHEMA", "a build target is 1 to 2,000 levels");
+            }
+            if priority.map(|p| p > 9).unwrap_or(false) {
+                return fail("INVALID_SCHEMA", "priority is 0 to 9");
+            }
+        }
+        Directive::ResearchAgenda { techs } => {
+            if techs.len() > 40 {
+                return fail("INVALID_SCHEMA", "an agenda lists at most 40 methods");
+            }
+            for h in techs {
+                if tech_from_handle(w, seat, h).is_none() {
+                    return fail(UNKNOWN, "unknown method");
+                }
+            }
+        }
+        Directive::AutoResearch { .. } => {}
+        Directive::ReformAgenda { practices } => {
+            if practices.len() > 64 {
+                return fail("INVALID_SCHEMA", "an agenda lists at most 64 practices");
+            }
+            for h in practices {
+                if prac_from_handle(w, seat, h).is_none() {
+                    return fail(UNKNOWN, "unknown practice");
+                }
+            }
+        }
+        Directive::SettleTarget { from, to, people, when_crowd_bp } => {
+            own_region(w, seat, *from)?;
+            let ti = *to as usize;
+            if ti >= w.regions.len() || !w.civs[si].memory[ti].seen {
+                return fail(UNKNOWN, "unknown region");
+            }
+            if !(SETTLERS_MIN..=SETTLERS_MAX).contains(people) {
+                return fail("INVALID_SCHEMA", "a settling party is 20,000 to 400,000 people");
+            }
+            if *when_crowd_bp > 30_000 {
+                return fail("INVALID_SCHEMA", "the crowding threshold is at most 30,000 basis points");
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn apply(w: &mut World, seat: SeatId, action: Action) -> Receipt {
@@ -372,10 +454,16 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 Err(e) => fail("CONFLICTING_ACTIONS", e),
             }
         }
-        Action::BreakTreaty { treaty } => {
+        Action::BreakTreaty { treaty, notice } => {
             let Some(ix) = w.treaties.iter().position(|t| t.id == treaty && t.parties.contains(&seat) && t.status == "active") else {
                 return fail(UNKNOWN, "no such active treaty");
             };
+            if notice {
+                return match crate::sim::diplomacy::give_notice(w, seat, ix) {
+                    Ok(ends) => Ok((format!("Notice given. The open-ended clauses end in {}; nothing is breached.", crate::util::date_label(&w.cfg, ends)), None)),
+                    Err(e) => fail("CONFLICTING_ACTIONS", e),
+                };
+            }
             crate::sim::diplomacy::break_treaty(w, seat, ix);
             Ok(("Treaty repudiated. The record of the breach is permanent.".into(), None))
         }
@@ -434,6 +522,17 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if let Some(f) = w.regions[ri].fac_mut(kind) {
                         f.method = method;
                     }
+                }
+                PolicySetting::WarPolicy { seat: other, accept_white_peace_after_months, accept_cession_max } => {
+                    let o = other as usize;
+                    if other == seat || o >= w.civs.len() || !w.civs[si].contacts[o].met {
+                        return fail(UNKNOWN, "unknown counterpart");
+                    }
+                    if w.civs[si].war_policy.len() < w.civs.len() {
+                        let n = w.civs.len();
+                        w.civs[si].war_policy.resize(n, None);
+                    }
+                    w.civs[si].war_policy[o] = accept_white_peace_after_months.map(|m| (m.min(1200), accept_cession_max));
                 }
             }
             Ok(("Standing policy updated.".into(), None))
@@ -857,6 +956,39 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
             }
             Ok(("Order issued.".into(), None))
         }
+        Action::Directive { op, id, directive, position } => match op {
+            DirectiveOp::Add => {
+                let Some(d) = directive else { return fail("INVALID_SCHEMA", "a standing order to add is required") };
+                validate_directive(w, seat, &d)?;
+                let civ = &w.civs[si];
+                if let Some(i) = civ.directives.iter().position(|x| same_directive(&x.directive, &d)) {
+                    let st = &mut w.civs[si].directives[i];
+                    st.directive = d;
+                    st.last_result.clear();
+                    st.last_status.clear();
+                    let id = st.id;
+                    return Ok(("Standing order replaced. It is evaluated on 1 January of every year and in the first month of every round.".into(), Some(id)));
+                }
+                if civ.directives.len() >= DIRECTIVES_MAX {
+                    return fail("RATE_LIMITED", "at most 64 standing orders");
+                }
+                let new_id = w.id();
+                w.civs[si].directives.push(DirectiveSt { id: new_id, directive: d, last_result: String::new(), last_status: String::new(), last_month: 0 });
+                Ok(("Standing order recorded. It is evaluated on 1 January of every year and in the first month of every round.".into(), Some(new_id)))
+            }
+            DirectiveOp::Remove => {
+                let Some(pos) = id.and_then(|id| w.civs[si].directives.iter().position(|d| d.id == id)) else { return fail(UNKNOWN, "no such standing order") };
+                w.civs[si].directives.remove(pos);
+                Ok(("Standing order withdrawn.".into(), None))
+            }
+            DirectiveOp::Move => {
+                let Some(pos) = id.and_then(|id| w.civs[si].directives.iter().position(|d| d.id == id)) else { return fail(UNKNOWN, "no such standing order") };
+                let d = w.civs[si].directives.remove(pos);
+                let to = (position.unwrap_or(0) as usize).min(w.civs[si].directives.len());
+                w.civs[si].directives.insert(to, d);
+                Ok(("Standing order moved.".into(), None))
+            }
+        },
         Action::Forfeit => {
             w.civs[si].status = SeatStatus::Forfeited;
             w.civs[si].auto_pass = true;

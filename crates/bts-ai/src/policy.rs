@@ -100,6 +100,29 @@ struct Plan<'a> {
     callup_room: HashMap<RegionId, i64>,
     /// Open orders that stand still for want of their site crew.
     crew_stalled: usize,
+    /// Rounds longer than a year: plans are also written as standing orders, which
+    /// the referee carries out every 1 January until the next round.
+    long: bool,
+    /// Years the round lasts.
+    years: i64,
+    /// Standing orders chosen this round. They do not count against the round's
+    /// candidate actions: they restate what the plan already chose, for the years
+    /// in which nobody decides.
+    directives: Vec<Action>,
+}
+
+/// Months a clause may run this round: the wanted term clamped to the bounds the
+/// referee states for the round's length (design chapter 36, section 2.5).
+fn term(obs: &Observation, want: u16, own: (u16, u16)) -> u16 {
+    let rm = obs.calendar.as_ref().map(|c| c.round_months).unwrap_or(12);
+    let lo = (own.0 as u32).max(6).max(rm);
+    let hi = (own.1 as u32).max(240).max(3 * rm);
+    (want as u32).clamp(lo, hi).min(u16::MAX as u32 - 1) as u16
+}
+
+/// Facilities whose need grows with the population they serve.
+fn grows_with_people(kind: &str) -> bool {
+    matches!(kind, "fields" | "pasture" | "fishery" | "irrigation" | "waterworks" | "wells" | "sewers" | "water_treatment" | "clinic" | "hospital" | "granary" | "housing")
 }
 
 /// Whether an open order has stood still because part of its site crew is missing.
@@ -153,7 +176,30 @@ impl<'a> Plan<'a> {
                 callup_room.insert(r.id, cap * 3 / 4 - asked);
             }
         }
-        Plan { obs, diff, actions: Vec::new(), budget: diff.candidates(), avail, wanted: HashSet::new(), builds, planned: HashSet::new(), idle, crew_pool, crew_spare, crew_wanted: HashMap::new(), shaft_spare, callup_room, crew_stalled: crew_stalled_count }
+        let rm = obs.calendar.as_ref().map(|c| c.round_months).unwrap_or(12) as i64;
+        // a long round is many years of government: up to four times the candidate
+        // actions of a one-year round (two years each), never more
+        let scale = (rm / 24).clamp(1, 4) as usize;
+        Plan {
+            obs,
+            diff,
+            actions: Vec::new(),
+            budget: diff.candidates() * scale,
+            avail,
+            wanted: HashSet::new(),
+            builds,
+            planned: HashSet::new(),
+            idle,
+            crew_pool,
+            crew_spare,
+            crew_wanted: HashMap::new(),
+            shaft_spare,
+            callup_room,
+            crew_stalled: crew_stalled_count,
+            long: rm > 12,
+            years: (rm / 12).max(1),
+            directives: Vec::new(),
+        }
     }
     /// The price of one more level of a facility in a region, as the seat is quoted it.
     fn quote(&self, region: &RegionView, kind: &str) -> Option<&'a BuildSiteView> {
@@ -411,7 +457,22 @@ impl<'a> Plan<'a> {
         self.planned.insert((region.id, kind.to_string()));
         let jobs: i64 = ft.jobs.iter().map(|j| j.count as i64).sum::<i64>() * levels as i64;
         *self.idle.entry(region.id).or_insert(0) -= jobs;
-        self.push(Action::StartProject { spec: ProjectSpec::Build { region: region.id, facility: kind.to_string(), levels }, priority: Some(priority) })
+        let pushed = self.push(Action::StartProject { spec: ProjectSpec::Build { region: region.id, facility: kind.to_string(), levels }, priority: Some(priority) });
+        if pushed && self.long {
+            // keep what was ordered through the round, and for works that serve
+            // people the growth the round's years will bring (0.3% a year)
+            let target = existing + levels;
+            let extra = if grows_with_people(kind) { ((target as i64 * self.years * 3 + 999) / 1000) as u16 } else { 0 };
+            self.target(region.id, kind, (target + extra).min(cap), priority);
+        }
+        pushed
+    }
+    /// A standing build target for the years of this round.
+    fn target(&mut self, region: RegionId, kind: &str, levels: u16, priority: u8) {
+        if levels == 0 {
+            return;
+        }
+        self.directives.push(Action::Directive { op: DirectiveOp::Add, id: None, directive: Some(Directive::BuildTarget { region, facility: kind.to_string(), levels, priority: Some(priority) }), position: None });
     }
     /// Region best suited to host a new workplace that has no site constraint.
     fn workplace_region(&self, ft: &FacilityType) -> Option<&'a RegionView> {
@@ -455,10 +516,33 @@ fn mix(mut z: u64) -> u64 {
     z ^ (z >> 31)
 }
 
+/// The observation with last round's goods flows restated per year, so the policy
+/// reads every round the same way whatever its length (rounds last 2 to 50 years).
+/// It changes nothing the seat may know, only the unit of the totals.
+pub fn per_year(obs: &Observation) -> Option<Observation> {
+    let months = obs.calendar.as_ref().map(|c| c.last_round_months).unwrap_or(0) as i64;
+    if months == 0 || months == 12 {
+        return None;
+    }
+    let mut o = obs.clone();
+    let y = |v: i64| (v as i128 * 12 / months as i128) as i64;
+    for l in o.civ.goods.iter_mut() {
+        l.produced = y(l.produced);
+        l.consumed = y(l.consumed);
+        l.traded_in = y(l.traded_in);
+        l.traded_out = y(l.traded_out);
+        l.lost = y(l.lost);
+        l.withheld = y(l.withheld);
+    }
+    Some(o)
+}
+
 pub fn decide(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
     if obs.status == SeatStatus::Eliminated || obs.outcome.is_some() {
         return Vec::new();
     }
+    let scaled = if matches!(obs.phase, Phase::Plan | Phase::Negotiate) { per_year(obs) } else { None };
+    let obs = scaled.as_ref().unwrap_or(obs);
     let n = obs.others.iter().map(|o| o.seat as usize + 1).max().unwrap_or(0).max(obs.seat as usize + 1).max(4);
     if ai.memory.grievances.len() < n {
         ai.memory.grievances.resize(n, 0);
@@ -641,7 +725,7 @@ fn cooperation_ask(ai: &NativeAi, obs: &Observation, o: &ForeignCiv) -> Option<A
         let (orb, _) = holders(obs, Qual::Orbital);
         let (q, gap) = if 75 * K - eng >= 120 * K - orb { (Qual::FtlEngineer, 75 * K - eng) } else { (Qual::Orbital, 120 * K - orb) };
         let count = (gap.clamp(5 * K, 30 * K) / K * K) as u32;
-        let months: u16 = 120;
+        let months: u16 = term(obs, 120, (6, 240));
         let worth = count as i64 * months as i64 / 2_000 * 13 / 10;
         if let Some(pg) = payment_good(obs, escrow) {
             let total = worth * 1000 / base_price(pg);
@@ -654,7 +738,7 @@ fn cooperation_ask(ai: &NativeAi, obs: &Observation, o: &ForeignCiv) -> Option<A
                 }
                 Clause::Goods { from: me, good: pg, amount_per_month: total.max(1000), months: 1 }
             };
-            return Some(Action::ProposeTreaty { to: s, clauses: vec![Clause::Secondment { from: s, qual: q, count, months }, pay], text: Some(format!("We ask you to lend us {} {} for ten years, and pay for their work.", count, q.label().to_lowercase())) });
+            return Some(Action::ProposeTreaty { to: s, clauses: vec![Clause::Secondment { from: s, qual: q, count, months }, pay], text: Some(format!("We ask you to lend us {} {} for {} months, and pay for their work.", count, q.label().to_lowercase(), months)) });
         }
     }
     if escrow && (base_short(obs, "Launch and recovery") || base_short(obs, "Scientific base")) {
@@ -667,7 +751,7 @@ fn cooperation_ask(ai: &NativeAi, obs: &Observation, o: &ForeignCiv) -> Option<A
         if let (Some(sv), false) = (pick, asking) {
             let ft = obs.catalog.facilities.iter().find(|f| Some(f.kind.as_str()) == service_facility(sv))?;
             let monthly: i64 = ft.recipes.first().map(|r| r.inputs.iter().map(|i| goods_value(obs, i.good, i.amount, false)).sum::<i64>()).unwrap_or(0) + ft.upkeep.iter().map(|u| goods_value(obs, u.good, u.amount, false)).sum::<i64>();
-            let months: u16 = 120;
+            let months: u16 = term(obs, 120, (12, 240));
             let pg = payment_good(obs, true)?;
             let per_month = (monthly / 2 * 13 / 10 + 1) * 1000 / base_price(pg);
             let made = obs.civ.goods.iter().find(|l| l.good == pg).map(made_in_year).unwrap_or(0);
@@ -677,7 +761,7 @@ fn cooperation_ask(ai: &NativeAi, obs: &Observation, o: &ForeignCiv) -> Option<A
             return Some(Action::ProposeTreaty {
                 to: s,
                 clauses: vec![Clause::JointProgramme { host: s, service: sv, months }, Clause::Goods { from: me, good: pg, amount_per_month: per_month.max(1000), months }],
-                text: Some(format!("We ask to share your {} for ten years, and pay for what it costs you.", sv.label().to_lowercase())),
+                text: Some(format!("We ask to share your {} for {} months, and pay for what it costs you.", sv.label().to_lowercase(), months)),
             });
         }
     }
@@ -826,7 +910,7 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
                 let winning = obs.regions.iter().any(|r| r.owner == Some(s) && r.controller == Some(me));
                 if losing && obs.round >= last + 2 {
                     ai.memory.last_offer_round[s as usize] = obs.round;
-                    out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::Peace, Clause::NonAggression { months: 120 }], text: Some("We propose an end to this war.".into()) });
+                    out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::Peace, Clause::NonAggression { months: term(obs, 120, (6, 600)) }], text: Some("We propose an end to this war.".into()) });
                 } else if winning && obs.round >= last + 3 && obs.objectives.victory.is_some() {
                     ai.memory.last_offer_round[s as usize] = obs.round;
                     out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::Peace, Clause::Subordination { from: s, tribute_bp: 1000 }], text: Some("Keep your local government under our authority and the fighting stops.".into()) });
@@ -841,7 +925,7 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
             let ambitious = obs.objectives.victory.is_some() && ai.difficulty != Difficulty::Easy;
             if !pact && !ambitious && borders(obs, s) && ai.memory.war_target != Some(s) && (theirs >= mine || ai.difficulty == Difficulty::Easy) {
                 ai.memory.last_offer_round[s as usize] = obs.round;
-                out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::NonAggression { months: 120 }], text: Some("Neither of us gains from fighting over this border.".into()) });
+                out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::NonAggression { months: term(obs, 120, (6, 600)) }], text: Some("Neither of us gains from fighting over this border.".into()) });
                 continue;
             }
             // buy what we cannot make, paying with what we hold in plenty
@@ -1057,7 +1141,50 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
         .collect();
     imports.sort();
     ai.memory.imports = imports;
-    p.actions
+    if full || on("economy") || on("research") || on("expansion") {
+        standing_orders(&mut p);
+    }
+    let mut out = p.actions;
+    out.append(&mut p.directives);
+    out
+}
+
+/// Keep the seat's standing orders current: drop build targets for regions it no
+/// longer governs, and make room when the referee's limit is near by withdrawing
+/// the oldest targets that are already met.
+fn standing_orders(p: &mut Plan) {
+    let obs = p.obs;
+    let own: HashSet<RegionId> = p.own_regions().iter().map(|r| r.id).collect();
+    let mut count = obs.directives.len();
+    let restated: HashSet<(RegionId, String)> = p
+        .directives
+        .iter()
+        .filter_map(|a| if let Action::Directive { directive: Some(Directive::BuildTarget { region, facility, .. }), .. } = a { Some((*region, facility.clone())) } else { None })
+        .collect();
+    let mut removals = Vec::new();
+    for d in &obs.directives {
+        if let Directive::BuildTarget { region, .. } = &d.directive {
+            if !own.contains(region) {
+                removals.push(d.id);
+                count -= 1;
+            }
+        }
+    }
+    let new_targets = restated.iter().filter(|k| !obs.directives.iter().any(|d| matches!(&d.directive, Directive::BuildTarget { region, facility, .. } if (*region, facility.clone()) == **k))).count();
+    for d in &obs.directives {
+        if count + new_targets <= 56 {
+            break;
+        }
+        if let Directive::BuildTarget { region, facility, .. } = &d.directive {
+            if own.contains(region) && d.last_status == "idle" && !restated.contains(&(*region, facility.clone())) {
+                removals.push(d.id);
+                count -= 1;
+            }
+        }
+    }
+    let mut out: Vec<Action> = removals.into_iter().map(|id| Action::Directive { op: DirectiveOp::Remove, id: Some(id), directive: None, position: None }).collect();
+    out.append(&mut p.directives);
+    p.directives = out;
 }
 
 /// Open orders that stand still for want of a site crew or site power. The people
@@ -1209,6 +1336,18 @@ fn research(ai: &NativeAi, p: &mut Plan) {
     for x in obs.projects.iter().filter(|x| x.kind == "research" && x.work_done == 0 && class_of(&x.target).map(|k| cap_for(k) == 0).unwrap_or(false)) {
         p.push(Action::ManageProject { project: x.id, op: ManageOp::Cancel, priority: None, position: None });
     }
+    if p.long {
+        // in a long round the agenda keeps research going after these finish, and
+        // automatic research picks up what is discovered in the meantime
+        let mut agenda: Vec<String> = cands.iter().take(32).map(|t| t.handle.clone()).collect();
+        agenda.extend(obs.knowledge.leads.iter().take(8).map(|l| l.handle.clone()));
+        if !agenda.is_empty() {
+            p.directives.push(Action::Directive { op: DirectiveOp::Add, id: None, directive: Some(Directive::ResearchAgenda { techs: agenda }), position: None });
+        }
+        if !obs.directives.iter().any(|d| matches!(d.directive, Directive::AutoResearch { on: true })) {
+            p.directives.push(Action::Directive { op: DirectiveOp::Add, id: None, directive: Some(Directive::AutoResearch { on: true }), position: None });
+        }
+    }
     for t in cands.into_iter().take(slots.saturating_sub(active)) {
         let prio = if needed.contains(t.handle.as_str()) { 3 } else { 5 };
         p.push(Action::StartProject { spec: ProjectSpec::Research { tech: t.handle.clone() }, priority: Some(prio) });
@@ -1237,6 +1376,14 @@ fn culture(p: &mut Plan, capital: &RegionView) {
         }
         p.push(Action::ProposeReform { practice: pr.handle.clone() });
         started += 1;
+    }
+    if p.long {
+        // every recognized practice, in the order the catalog lists them: reforms
+        // that become possible during the round begin when one finishes
+        let agenda: Vec<String> = obs.culture.practices.iter().filter(|c| c.state == PracticeState::Recognized).map(|c| c.handle.clone()).take(64).collect();
+        if !agenda.is_empty() && limit >= 2 {
+            p.directives.push(Action::Directive { op: DirectiveOp::Add, id: None, directive: Some(Directive::ReformAgenda { practices: agenda }), position: None });
+        }
     }
     if let Some(m) = &obs.culture.movement {
         let busy = obs.projects.iter().any(|x| x.kind == "religion");
@@ -1411,7 +1558,20 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
                 if learners < 4 * K {
                     continue;
                 }
-                let free = o.venues.iter().find(|v| v.venue == course.venue).map(|v| v.capacity as i64 - v.reserved as i64).unwrap_or(0);
+                let mut free = o.venues.iter().find(|v| v.venue == course.venue).map(|v| v.capacity as i64 - v.reserved as i64).unwrap_or(0);
+                if free < 4 * K {
+                    // paused programmes keep their places booked: close the ones in
+                    // surplus here to make room for a qualification that is short
+                    let venue_of = |key: &str| obs.catalog.courses.iter().find(|c| c.key == key).map(|c| c.venue.clone());
+                    let idle: Vec<&ProgramView> = obs.programs.iter().filter(|g| g.region == r.id && g.paused && g.enrolled == 0 && venue_of(&g.course).as_deref() == Some(course.venue.as_str())).collect();
+                    let room: i64 = idle.iter().map(|g| g.seats as i64).sum();
+                    if free + room >= 4 * K {
+                        for g in idle {
+                            p.push(Action::ManageProgram { program: g.id, op: ManageOp::Cancel, seats: None });
+                        }
+                        free += room;
+                    }
+                }
                 if free >= 4 * K {
                     // at most three thousand instructors' worth of learners in one programme
                     let seats = free.min(n.deficit.max(4 * K)).min(learners).min(course.class_size as i64 * 3 * K).clamp(4 * K, 2_000 * K) as u32;
@@ -1812,6 +1972,7 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
     }
     let sea_ok = p.fac_type("port").map(|f| f.available).unwrap_or(false);
     let mut best: Option<(i64, RegionId, RegionId)> = None;
+    let mut second: Option<(i64, RegionId, RegionId)> = None;
     for from in regions {
         let fo = from.own.as_ref().unwrap();
         if (fo.population as i64) < 260 * K {
@@ -1849,8 +2010,21 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
                 }
             }
             if best.map(|(s, _, _)| score > s).unwrap_or(true) {
+                if best.map(|b| b.2 != t.id).unwrap_or(false) {
+                    second = best;
+                }
                 best = Some((score, from.id, t.id));
+            } else if second.map(|(s, _, _)| score > s).unwrap_or(true) && best.map(|b| b.2 != t.id).unwrap_or(true) {
+                second = Some((score, from.id, t.id));
             }
+        }
+    }
+    // in a long round, the runner-up is settled later, once the sending region is crowded
+    if let (true, Some((score, from, to))) = (p.long && (obs.civ.admin_load as i64) + 2 <= obs.civ.admin_capacity as i64 + slack, second) {
+        if score >= 250 {
+            let fp = regions.iter().find(|r| r.id == from).and_then(|r| r.own.as_ref()).map(|o| o.population).unwrap_or(0);
+            let people = (fp / 5).clamp(30_000, 120_000);
+            p.directives.push(Action::Directive { op: DirectiveOp::Add, id: None, directive: Some(Directive::SettleTarget { from, to, people, when_crowd_bp: 8500 }), position: None });
         }
     }
     if let Some((score, from, to)) = best {

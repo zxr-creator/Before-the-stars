@@ -38,6 +38,7 @@ pub fn meet(w: &mut World, a: SeatId, b: SeatId) {
         return;
     }
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     for (x, y) in [(a, b), (b, a)] {
         let ct = &mut w.civs[x as usize].contacts[y as usize];
         ct.met = true;
@@ -53,7 +54,7 @@ pub fn meet(w: &mut World, a: SeatId, b: SeatId) {
             Some(capital),
             "contact",
             true,
-            vec![format!("Contact recorded in month {month}")],
+            vec![format!("Contact recorded in {when}")],
         );
         brief(w, x, "info", format!("First contact: {other}"), "You can now select them as a counterpart in the contact phase.".into(), None, "diplomacy");
     }
@@ -227,8 +228,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
     }
     if !new_leads.is_empty() {
-        let n = new_leads.len();
-        brief(w, seat, "info", format!("{n} new lead{}", if n == 1 { "" } else { "s" }), "Practitioners report problems that current methods do not explain. Follow them up from the frontier view.".into(), None, "knowledge");
+        crate::sim::chronicle::tally(w, seat, "leads", new_leads.len() as u32);
     }
     for i in discovered {
         // a pending lead study on this node has nothing left to find
@@ -264,6 +264,7 @@ fn milestones(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
     let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
     let capital = w.civs[si].capital;
     if w.civs[si].milestones.sci_method.is_none() && w.civs[si].knows_id("T049") && w.civs[si].est_id("C013") {
         let lab = c.f("laboratory");
@@ -272,7 +273,7 @@ fn milestones(w: &mut World, seat: SeatId) {
             w.civs[si].milestones.sci_method = Some(month);
             moment(w, seat, MomentCategory::Knowledge, "The scientific method takes hold".into(),
                 "Measurement, kept records, repeatable experiment and independent checking now work together as institutions. Systematic research programmes and research institutes become possible.".into(),
-                Some(capital), "measure", true, vec![format!("Laboratory, archive and reproducible methods all functioning in month {month}")]);
+                Some(capital), "measure", true, vec![format!("Laboratory, archive and reproducible methods all functioning in {when}")]);
             brief(w, seat, "good", "Scientific method established".into(), "Research institutes can now be founded and technology becomes an explicit agenda.".into(), None, "knowledge");
         }
     }
@@ -295,13 +296,13 @@ fn milestones(w: &mut World, seat: SeatId) {
         }
         moment(w, seat, MomentCategory::Knowledge, "A planetary perspective".into(),
             "Astronomical models, electrical power and wireless signals let surveyors fix every coast and range. The whole world is now on the map, if only in outline.".into(),
-            Some(capital), "globe", true, vec![format!("World outline compiled in month {month}")]);
+            Some(capital), "globe", true, vec![format!("World outline compiled in {when}")]);
     }
     if w.civs[si].milestones.interstellar.is_none() && w.civs[si].knows_id("T162") {
         w.civs[si].milestones.interstellar = Some(month);
         moment(w, seat, MomentCategory::Endgame, "Interstellar feasibility".into(),
             "A repeatable spacetime anomaly has been reproduced under controlled conditions. An engineering assessment now sets out exactly what a working jump capability, and a world able to sustain it, would require.".into(),
-            Some(capital), "jump", true, vec![format!("Anomaly reproduced in month {month}"), "Complete acceptance requirements issued".into()]);
+            Some(capital), "jump", true, vec![format!("Anomaly reproduced in {when}"), "Complete acceptance requirements issued".into()]);
         brief(w, seat, "good", "The final objective is revealed".into(), "Open the objectives panel: sustained jump capability for the whole military system, and real governance of the whole inhabited world, are both required.".into(), None, "objectives");
     }
 }

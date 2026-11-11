@@ -75,10 +75,77 @@ export interface Observation {
   units?: UnitsView;
   /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
   date?: HistoricalDate | null;
+  /** Ruleset 3.0 (bts-protocol/1.3): the round schedule and where this round sits in it. */
+  calendar?: CalendarView | null;
+  /** Ruleset 3.0: this seat's standing orders, in the order they are evaluated. */
+  directives?: DirectiveView[];
 }
 
 /** A historical year: negative is BC, positive AD; there is no year zero. */
-export interface HistoricalDate { year: number }
+export interface HistoricalDate {
+  year: number;
+  /** Month of the year, 1 (January) to 12 (bts-protocol/1.3). */
+  month?: number;
+  /** "5000 BC", "AD 1066" (bts-protocol/1.3). */
+  label?: string;
+}
+
+/** One segment of the round schedule (bts-protocol/1.3). */
+export interface CalendarSegment {
+  first_round: number;
+  last_round: number;
+  years_per_round: number;
+  /** Historical years (signed, no year zero) at the segment's start and end. */
+  from: number;
+  to: number;
+}
+
+/** The calendar of the match (design chapter 36, section 2.2; bts-protocol/1.3). */
+export interface CalendarView {
+  /** "standard", "quick" or "fixture". */
+  id: string;
+  start: HistoricalDate;
+  horizon: HistoricalDate;
+  horizon_month: Month;
+  /** Wins are scored from this date: reward 2 - (T - R)/(H - R), clamped to [1, 2]. */
+  reward_reference: HistoricalDate;
+  reward_reference_month: Month;
+  rounds: number;
+  round_months: number;
+  round_start: HistoricalDate;
+  round_end: HistoricalDate;
+  next_round_months: number;
+  /** Months the last resolved round lasted: the span of the round totals; 0 before the first. */
+  last_round_months: number;
+  segments: CalendarSegment[];
+}
+
+/** A standing order (design chapter 36, section 2.6; bts-protocol/1.3). */
+export type Directive =
+  | { kind: 'build_target'; region: RegionId; facility: string; levels: number; priority?: number | null }
+  | { kind: 'research_agenda'; techs: string[] }
+  | { kind: 'auto_research'; on: boolean }
+  | { kind: 'reform_agenda'; practices: string[] }
+  | { kind: 'settle_target'; from: RegionId; to: RegionId; people: number; when_crowd_bp: number };
+
+export type DirectiveOp = 'add' | 'remove' | 'move';
+
+export interface DirectiveView {
+  id: number;
+  directive: Directive;
+  /** What happened the last time it was evaluated (empty before then). */
+  last_result: string;
+  /** "acted", "idle", "skipped" or "" (not yet evaluated). */
+  last_status?: string;
+  last_month?: Month;
+}
+
+/** A standing war policy toward one seat (bts-protocol/1.3). */
+export interface WarPolicyView {
+  seat: SeatId;
+  accept_white_peace_after_months: number | null;
+  accept_cession_max: number;
+}
 
 export interface WorldFrame {
   width: number;
@@ -144,6 +211,8 @@ export interface Policies {
   food_reserve_months: number;
   labor_weights: [LaborCategory, number][];
   mobilization_bp: number;
+  /** bts-protocol/1.3: standing war policies, one per seat they name. */
+  war_policies?: WarPolicyView[];
 }
 
 export interface FactionView {
@@ -820,6 +889,8 @@ export interface ChronicleEntry {
   /** Vignette template key and palette seed, "key:n". */
   art: string;
   major: boolean;
+  /** bts-protocol/1.3: shown in the round recap (at most twelve moments a round, plus the era summary). */
+  recap?: boolean;
 }
 
 // --- Actions ---------------------------------------------------------------
@@ -858,7 +929,9 @@ export type PolicySetting =
    * type's recipes that is `available`. For fields the choice is a ceiling. `method` null or
    * absent returns the choice to the works.
    */
-  | { kind: 'method'; region: RegionId; facility: string; method?: string | null };
+  | { kind: 'method'; region: RegionId; facility: string; method?: string | null }
+  /** bts-protocol/1.3: accept a white peace with `seat` after this many months of unchanged lines (null withdraws). */
+  | { kind: 'war_policy'; seat: SeatId; accept_white_peace_after_months?: number | null; accept_cession_max?: number };
 
 export type Action =
   | { kind: 'select_contacts'; seats: SeatId[] }
@@ -867,7 +940,8 @@ export type Action =
   | { kind: 'withdraw_offer'; offer: number }
   | { kind: 'sign_treaty'; offer: number }
   | { kind: 'decline_offer'; offer: number }
-  | { kind: 'break_treaty'; treaty: number }
+  /** With `notice` (bts-protocol/1.3) on a treaty with open-ended clauses: they end with the next round, nothing breached. */
+  | { kind: 'break_treaty'; treaty: number; notice?: boolean }
   | { kind: 'set_policy'; setting: PolicySetting }
   | { kind: 'start_project'; spec: ProjectSpec; priority: number | null }
   | { kind: 'manage_project'; project: number; op: ManageOp; priority: number | null; position?: number | null }
@@ -877,7 +951,9 @@ export type Action =
   | { kind: 'manage_program'; program: number; op: ManageOp; seats: number | null }
   | { kind: 'demolish'; region: RegionId; facility: string; levels: number }
   | { kind: 'military_order'; army: number; order: ArmyOrder }
-  | { kind: 'forfeit' };
+  | { kind: 'forfeit' }
+  /** bts-protocol/1.3: add, remove or reorder a standing order. */
+  | { kind: 'directive'; op: DirectiveOp; id?: number | null; directive?: Directive | null; position?: number | null };
 
 export interface Receipt {
   round: number;
@@ -940,6 +1016,8 @@ export interface AgentInfo {
 export interface MatchSummary {
   /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
   date?: HistoricalDate | null;
+  /** bts-protocol/1.3: the round schedule. */
+  calendar?: CalendarView | null;
   exists: boolean;
   match_id?: string;
   seed?: string;
@@ -1057,6 +1135,8 @@ export interface SpectatorOutcome {
 export interface SpectatorView {
   /** Historical date of the current month, from a referee with a calendar (signed year; negative = BC). */
   date?: HistoricalDate | null;
+  /** bts-protocol/1.3: the round schedule. */
+  calendar?: CalendarView | null;
   match_id: string;
   month: Month;
   round: number;

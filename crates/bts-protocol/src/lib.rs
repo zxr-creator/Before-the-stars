@@ -11,7 +11,10 @@ use serde::{Deserialize, Serialize};
 /// 1.2: head counts are real people (`JobSpec.count`, programme places and
 /// `start_program`/`manage_program` seats widen to `u32`), quantities are base units,
 /// and `Observation.units` states the unit system.
-pub const PROTOCOL_VERSION: &str = "bts-protocol/1.2";
+/// 1.3 (ruleset 3.0, additions only): the historical calendar (`date`, `calendar`),
+/// standing orders (`directives`, `Action::Directive`), war policies, notice on
+/// open-ended treaties and the round recap flag of chronicle entries.
+pub const PROTOCOL_VERSION: &str = "bts-protocol/1.3";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -280,6 +283,123 @@ pub struct Observation {
     /// client need not hard-code scale. Absent in observations older than protocol 1.2.
     #[serde(default)]
     pub units: UnitsView,
+    /// The date of the month about to be simulated (ruleset 3.0).
+    #[serde(default)]
+    pub date: Option<DateView>,
+    /// The round schedule and where this round sits in it (ruleset 3.0).
+    #[serde(default)]
+    pub calendar: Option<CalendarView>,
+    /// This seat's standing orders, in the order they are evaluated.
+    #[serde(default)]
+    pub directives: Vec<DirectiveView>,
+}
+
+/// A date of the historical calendar.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DateView {
+    /// Historical year, signed, with no year zero: -5000 is 5000 BC, 1 is AD 1.
+    pub year: i32,
+    /// Month of the year, 1 (January) to 12.
+    pub month: u8,
+    /// "5000 BC", "AD 1066".
+    pub label: String,
+}
+
+/// One segment of the round schedule: rounds `first_round..=last_round` last
+/// `years_per_round` years each (the round that starts in AD 1 one year less).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct CalendarSegment {
+    pub first_round: u32,
+    pub last_round: u32,
+    pub years_per_round: u32,
+    /// Historical years at the segment's start and end.
+    pub from: i32,
+    pub to: i32,
+}
+
+/// The calendar of the match (design chapter 36, section 2.2).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct CalendarView {
+    /// "standard", "quick" or "fixture".
+    pub id: String,
+    pub start: DateView,
+    /// The date at which the match ends without a winner, and that month.
+    pub horizon: DateView,
+    pub horizon_month: Month,
+    /// Wins are scored from this date: reward `2 - (T - R) / (H - R)`, clamped to [1, 2].
+    pub reward_reference: DateView,
+    pub reward_reference_month: Month,
+    /// The last round of the schedule.
+    pub rounds: u32,
+    /// Months this round resolves, and the dates it runs from and to.
+    pub round_months: u32,
+    pub round_start: DateView,
+    pub round_end: DateView,
+    pub next_round_months: u32,
+    /// Months the last resolved round lasted (the span of `GoodLine` round totals and
+    /// of the `*_last_round` counts); 0 before the first round is resolved.
+    pub last_round_months: u32,
+    pub segments: Vec<CalendarSegment>,
+}
+
+/// A standing order (design chapter 36, section 2.6). Evaluated by the referee on
+/// 1 January of every year inside a round and in the first month of every round,
+/// in the seat's order, each through exactly the validation of the action it
+/// stands for. One that fails is skipped that year and reports why.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Directive {
+    /// Keep `levels` levels (built plus under construction) of a facility in a
+    /// region: when fewer and no order for it is open there, order the shortfall
+    /// (at most four levels) at the quoted price.
+    BuildTarget {
+        region: RegionId,
+        facility: String,
+        levels: u16,
+        #[serde(default)]
+        priority: Option<u8>,
+    },
+    /// When research capacity is idle, start the first item of the list that can be
+    /// started (technology handles as in `KnowledgeView`): a discovered method is
+    /// investigated, a lead is followed up by a small study.
+    ResearchAgenda { techs: Vec<String> },
+    /// When research capacity is still idle after the agenda, start the discovered
+    /// method with the lowest tier and most evidence, then follow up leads alike.
+    AutoResearch { on: bool },
+    /// While fewer than two reforms are under way, propose the first practice of the
+    /// list whose reform can begin (practice handles as in `CultureView`).
+    ReformAgenda { practices: Vec<String> },
+    /// Order the settlement of `to` from `from` with `people` settlers once the
+    /// sending region's residents exceed `when_crowd_bp` of its water capacity and
+    /// our records show the land unclaimed.
+    SettleTarget { from: RegionId, to: RegionId, people: u32, when_crowd_bp: u16 },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DirectiveOp {
+    /// Add a standing order. One that stands for the same thing (the same region
+    /// and facility, the same settlement target, the agenda, automatic research)
+    /// is replaced in place.
+    Add,
+    Remove,
+    /// Move the order `id` to the 0-based `position`.
+    Move,
+}
+
+/// A standing order and what it did when last evaluated.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DirectiveView {
+    pub id: u32,
+    pub directive: Directive,
+    /// What happened the last time it was evaluated (empty before then).
+    pub last_result: String,
+    /// "acted", "idle" (nothing to do), "skipped" (an order was refused) or "" (not yet evaluated).
+    #[serde(default)]
+    pub last_status: String,
+    /// Completed months when it was last evaluated.
+    #[serde(default)]
+    pub last_month: Month,
 }
 
 /// Unit and mass of one base unit of a good.
@@ -406,6 +526,16 @@ pub struct Policies {
     pub labor_weights: Vec<(LaborCategory, u8)>,
     /// Share of project labour capacity the government actually calls up, basis points.
     pub mobilization_bp: u16,
+    /// Standing war policies, one per seat they name.
+    #[serde(default)]
+    pub war_policies: Vec<WarPolicyView>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WarPolicyView {
+    pub seat: SeatId,
+    pub accept_white_peace_after_months: Option<u16>,
+    pub accept_cession_max: u8,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1328,6 +1458,10 @@ pub struct ChronicleEntry {
     /// Vignette template key and palette seed for the illustrated card.
     pub art: String,
     pub major: bool,
+    /// Whether the round recap shows it: at most twelve moments of a round per seat,
+    /// by significance; the rest stay in the archive. Era summaries always show.
+    #[serde(default)]
+    pub recap: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -1417,6 +1551,10 @@ pub struct SpectatorView {
     pub armies: Vec<SpectatorArmy>,
     pub events: Vec<SpectatorEvent>,
     pub test_nodes: Vec<RegionId>,
+    #[serde(default)]
+    pub date: Option<DateView>,
+    #[serde(default)]
+    pub calendar: Option<CalendarView>,
 }
 
 // ---------------------------------------------------------------------------
@@ -1498,6 +1636,17 @@ pub enum PolicySetting {
         #[serde(default)]
         method: Option<String>,
     },
+    /// Standing war policy toward one seat (design chapter 36, section 2.6). When
+    /// both sides of a war have `accept_white_peace_after_months` set, an armistice
+    /// (white peace) comes into force once neither side has gained or lost a region
+    /// to the other for the longer of the two and of 36 months. `None` withdraws it.
+    WarPolicy {
+        seat: SeatId,
+        #[serde(default)]
+        accept_white_peace_after_months: Option<u16>,
+        #[serde(default)]
+        accept_cession_max: u8,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1509,7 +1658,14 @@ pub enum Action {
     WithdrawOffer { offer: u32 },
     SignTreaty { offer: u32 },
     DeclineOffer { offer: u32 },
-    BreakTreaty { treaty: u32 },
+    /// Repudiate a treaty. With `notice` on a treaty whose standing clauses are
+    /// open-ended (`months: 0`), give notice instead: those clauses end at the close
+    /// of the next round and nothing is breached.
+    BreakTreaty {
+        treaty: u32,
+        #[serde(default)]
+        notice: bool,
+    },
     SetPolicy { setting: PolicySetting },
     /// `priority` is 0..=9 and lower numbers are served first (default 5).
     StartProject { spec: ProjectSpec, priority: Option<u8> },
@@ -1536,6 +1692,16 @@ pub enum Action {
     MilitaryOrder { army: u32, order: ArmyOrder },
     /// Formally withdraw from the match. Irreversible; the seat scores -1.
     Forfeit,
+    /// Add, remove or reorder a standing order (see [`Directive`]).
+    Directive {
+        op: DirectiveOp,
+        #[serde(default)]
+        id: Option<u32>,
+        #[serde(default)]
+        directive: Option<Directive>,
+        #[serde(default)]
+        position: Option<u16>,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

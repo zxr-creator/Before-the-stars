@@ -6,7 +6,8 @@
 //! bts                                   start the game in its own window (packaged use)
 //! bts serve   [--port 7878] [--web apps/web/dist] [--require-tokens]
 //! bts run     [--seed S] [--rounds N] [--ai hard,medium,medium,easy] [--regions 48] [--horizon 2880] [--every 20] [--matches M]
-//!             [--curve out.csv] [--checkpoints DIR --at m1,m2,...] [--save out.json] [--first K] [--threads T]
+//!             [--calendar standard|quick] [--curve out.csv] [--checkpoints DIR [--at m1,m2,... | --at-years -1000,1000,...]]
+//!             [--save out.json] [--first K] [--threads T]   (--horizon M: development clock of 12-month rounds)
 //! bts verify  [--seed S] [--rounds N]
 //! bts observe --seat N [--url http://127.0.0.1:7878] [--token T]
 //! bts act     --seat N --file actions.json [--url ...] [--token T]
@@ -303,7 +304,7 @@ fn serve(args: &Args, app_mode: bool, ready: Option<Ready>) {
 }
 
 fn print_table(s: &Session) {
-    println!("round {:>3}  month {:>4}  phase {:?}", s.m.round(), s.m.month(), s.m.phase());
+    println!("round {:>3}  month {:>5}  {}  phase {:?}", s.m.round(), s.m.month(), s.m.date().label, s.m.phase());
     for d in s.m.diagnostics() {
         println!(
             "  seat {} {:<11} {:<10} pop {:>7} reg {:>2} tech {:>3} (tier {}) prac {:>2} army {:>5} stab {:>2} food {:>3}% sci {:<5} gov {:>2} ftl {:>2}{}",
@@ -318,7 +319,7 @@ fn print_table(s: &Session) {
             d.soldiers,
             d.stability,
             d.food_bp / 100,
-            d.sci_method.map(|m| format!("y{}", m / 12)).unwrap_or_else(|| "-".into()),
+            d.sci_method.map(|m| bts_engine::calendar::year_label(s.m.config().calendar.date(m).0)).unwrap_or_else(|| "-".into()),
             d.gov_streak,
             d.ftl_streak,
             d.overlord.map(|o| format!(" under {o}")).unwrap_or_default()
@@ -327,7 +328,15 @@ fn print_table(s: &Session) {
 }
 
 fn run_config(args: &Args) -> MatchConfig {
-    let mut cfg = MatchConfig { seed: args.get("seed", "riverland"), regions: args.num("regions", 48), horizon: args.num("horizon", 2880), pace_bp: args.num("pace", 10_000), ..Default::default() };
+    let mut cfg = MatchConfig { seed: args.get("seed", "riverland"), regions: args.num("regions", 48), pace_bp: args.num("pace", 10_000), ..Default::default() };
+    cfg.calendar = match args.get("calendar", "standard").as_str() {
+        "quick" => bts_engine::calendar::CalendarId::Quick,
+        _ => bts_engine::calendar::CalendarId::Standard,
+    };
+    if args.has("horizon") {
+        // a development clock: twelve-month rounds from 5000 BC
+        cfg.calendar = MatchConfig::fixture_calendar(args.num("horizon", 2880u32) / 12);
+    }
     let ai = args.get("ai", "hard,medium,medium,easy");
     let kinds: Vec<ControllerKind> = ai.split(',').filter_map(controller).collect();
     cfg.controllers = if kinds.len() == 4 { kinds } else { vec![ControllerKind::NativeMedium; 4] };
@@ -337,8 +346,17 @@ fn run_config(args: &Args) -> MatchConfig {
 
 /// Calibration checkpoints requested with `--checkpoints DIR --at m1,m2,...`: the
 /// match is saved at the first round boundary at or after each month.
-fn checkpoint_months(args: &Args) -> Vec<u32> {
+fn checkpoint_months(args: &Args, cfg: &MatchConfig) -> Vec<u32> {
     let mut v: Vec<u32> = args.get("at", "").split(',').filter_map(|x| x.trim().parse().ok()).collect();
+    // historical years (negative = BC); by default the era checkpoints of design section 10
+    let years = if v.is_empty() { args.get("at-years", "-1000,1000,1700,1900,2100") } else { args.get("at-years", "") };
+    for y in years.split(',').filter_map(|x| x.trim().parse::<i32>().ok()) {
+        let astro = bts_engine::calendar::astronomical(y);
+        let m = (astro - cfg.calendar.start_astro_year()) * 12;
+        if m >= 0 {
+            v.push(m as u32);
+        }
+    }
     v.sort_unstable();
     v
 }
@@ -346,13 +364,13 @@ fn checkpoint_months(args: &Args) -> Vec<u32> {
 /// Run one match to its end or the round limit, recording the curve and writing
 /// checkpoints when asked. Returns the session and its curve rows.
 fn run_one(cfg: MatchConfig, args: &Args, rounds: u32, every: u32, print: bool) -> (Session, Vec<bts_engine::curve::CurveRow>) {
+    let mut pending = checkpoint_months(args, &cfg);
     let mut s = Session::new(cfg, 7);
     let want_curve = args.has("curve");
     if want_curve {
         s.m.record_curve(true);
     }
     let dir = args.flags.get("checkpoints").cloned();
-    let mut pending = checkpoint_months(args);
     let mut rows = Vec::new();
     let mut since = 0;
     while !s.m.finished() && s.m.round() <= rounds {
@@ -368,7 +386,8 @@ fn run_one(cfg: MatchConfig, args: &Args, rounds: u32, every: u32, print: bool) 
                     break;
                 }
                 pending.remove(0);
-                let path = Path::new(d).join(format!("{}-m{:05}.json", s.m.config().seed, s.m.month()));
+                let year = s.m.date().year;
+                let path = Path::new(d).join(format!("{}-{}{}.json", s.m.config().seed, year.abs(), if year < 0 { "bc" } else { "ad" }));
                 std::fs::create_dir_all(d).expect("checkpoint directory");
                 std::fs::write(&path, s.save()).expect("write checkpoint");
             }
@@ -405,7 +424,7 @@ fn run(args: &Args) {
         let seed = cfg.seed.clone();
         let (s, rows) = run_one(cfg, args, rounds, every, !args.has("quiet"));
         print_table(&s);
-        println!("finished: {}  winner: {:?}  elapsed {:.1}s  state hash {:016x}", s.m.finished(), s.m.winner(), start.elapsed().as_secs_f64(), s.m.state_hash());
+        println!("finished: {}  winner: {:?}  {}  elapsed {:.1}s  state hash {:016x}", s.m.finished(), s.m.winner(), s.m.date().label, start.elapsed().as_secs_f64(), s.m.state_hash());
         if let Some(path) = args.flags.get("save") {
             std::fs::write(path, s.save()).expect("write save");
         }
@@ -450,7 +469,8 @@ fn run(args: &Args) {
     let mut all_rows = Vec::new();
     for (i, seed, winner, month, diag, rows, secs) in results {
         let line: Vec<String> = diag.iter().map(|d| format!("{}:{}p/{}r/{}t", d.seat, d.population, d.regions, d.understood)).collect();
-        println!("match {i:>2}  winner {:?}  month {month:>5}  {:.1}s  {}", winner, secs, line.join("  "));
+        let date = bts_engine::calendar::year_label(run_config(args).calendar.date(month).0);
+        println!("match {i:>2}  winner {:?}  month {month:>5} ({date})  {:.1}s  {}", winner, secs, line.join("  "));
         all_rows.extend(rows.into_iter().map(|r| (seed.clone(), r)));
     }
     if let Some(path) = args.flags.get("curve") {

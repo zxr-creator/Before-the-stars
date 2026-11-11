@@ -735,6 +735,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             food_reserve_months: civ.food_reserve_months,
             labor_weights: LaborCategory::ALL.iter().map(|l| (*l, civ.labor_weights[l.index()])).collect(),
             mobilization_bp: civ.mobilization_bp,
+            war_policies: civ.war_policy.iter().enumerate().filter_map(|(o, p)| p.map(|(m, c)| WarPolicyView { seat: o as SeatId, accept_white_peace_after_months: Some(m), accept_cession_max: c })).collect(),
         },
         factions,
         mobilization_cap_bp: economy::mobilization_cap(w, seat),
@@ -1298,10 +1299,10 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     let objectives = ObjectivesView { agendas, milestones, victory: victory_view };
 
     // ---- briefing: recorded events plus standing conditions ----------------------------------------------
-    let mut briefing = civ.briefing.clone();
+    let mut briefing = crate::sim::chronicle::briefing_view(civ);
     if month == 0 {
         let home = &w.regions[civ.capital as usize];
-        briefing.push(BriefingItem { severity: "info".into(), title: format!("{} people are camped at {}", group(population as i64), home.name), detail: "They live by gathering, hunting and fishing, with stores for a few months. There is no currency, school, religion or state budget. Each round is one year; standing arrangements continue on their own.".into(), region: Some(civ.capital), panel: "map".into() });
+        briefing.push(BriefingItem { severity: "info".into(), title: format!("{} people are camped at {}", group(population as i64), home.name), detail: if w.round_months() == 12 { "They live by gathering, hunting and fishing, with stores for a few months. There is no currency, school, religion or state budget. Each round is one year; standing arrangements continue on their own.".into() } else { format!("They live by gathering, hunting and fishing, with stores for a few months. There is no currency, school, religion or state budget. This round lasts {} years; standing orders carry your plans through it, year by year.", w.round_months() / 12) }, region: Some(civ.capital), panel: "map".into() });
         briefing.push(BriefingItem { severity: "info".into(), title: "A makers' circle already compares methods".into(), detail: "As people work, practitioners will report problems that current methods do not explain. Those leads appear in the knowledge panel, where they can be followed up and then investigated.".into(), region: None, panel: "knowledge".into() });
         briefing.push(BriefingItem { severity: "info".into(), title: "Only a share of spare labour answers a call".into(), detail: "Food comes first. Of the rest, custom lets the community call up a limited share for common projects such as building, surveying or settling new land. Institutions can raise that share later.".into(), region: None, panel: "economy".into() });
         briefing.push(BriefingItem { severity: "info".into(), title: "The land around is unrecorded".into(), detail: "A supplied survey party can record a neighbouring region; a settling party can then found a camp there.".into(), region: None, panel: "projects".into() });
@@ -1343,8 +1344,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         seat,
         month,
         round: w.round,
-        months_per_round: w.cfg.months_per_round,
-        horizon: w.cfg.horizon,
+        months_per_round: w.round_months(),
+        horizon: w.cfg.horizon(),
         phase: w.phase,
         window: w.window,
         ready: civ.ready,
@@ -1367,6 +1368,9 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         chronicle: civ.chronicle.clone(),
         receipts: civ.receipts.clone(),
         units: units_view(),
+        date: Some(date_view(&w.cfg, month)),
+        calendar: Some(calendar_view(w)),
+        directives: civ.directives.iter().map(|d| DirectiveView { id: d.id, directive: d.directive.clone(), last_result: d.last_result.clone(), last_status: d.last_status.clone(), last_month: d.last_month }).collect(),
     }
 }
 
@@ -1511,10 +1515,12 @@ pub fn spectate(w: &World) -> SpectatorView {
         match_id: w.match_id.clone(),
         month: w.month,
         round: w.round,
-        months_per_round: w.cfg.months_per_round,
-        horizon: w.cfg.horizon,
+        months_per_round: w.round_months(),
+        horizon: w.cfg.horizon(),
         phase: w.phase,
         window: w.window,
+        date: Some(date_view(&w.cfg, w.month)),
+        calendar: Some(calendar_view(w)),
         outcome: w.outcome.as_ref().map(|o| SpectatorOutcome { finished_month: o.month, winner: o.winner, reason: o.reason.clone() }),
         world: WorldFrame { width: w.width, height: w.height, region_count: w.regions.len() as u16 },
         regions,
@@ -1522,5 +1528,34 @@ pub fn spectate(w: &World) -> SpectatorView {
         armies,
         events,
         test_nodes: w.test_nodes.clone(),
+    }
+}
+
+/// The date of the month about to be simulated after `month` completed months.
+pub fn date_view(cfg: &MatchConfig, month: Month) -> DateView {
+    let (year, m) = crate::util::date(cfg, month);
+    DateView { year, month: m, label: crate::calendar::year_label(year) }
+}
+
+/// The calendar as every seat sees it: public scenario information.
+pub fn calendar_view(w: &World) -> CalendarView {
+    let cal = &w.cfg.calendar;
+    let start = cal.round_start_month(w.round).unwrap_or(w.month);
+    let months = w.round_months();
+    let horizon = cal.horizon();
+    CalendarView {
+        id: cal.key().to_string(),
+        start: date_view(&w.cfg, 0),
+        horizon: date_view(&w.cfg, horizon),
+        horizon_month: horizon,
+        reward_reference: date_view(&w.cfg, cal.reward_reference()),
+        reward_reference_month: cal.reward_reference(),
+        rounds: cal.rounds(),
+        round_months: months,
+        round_start: date_view(&w.cfg, start),
+        round_end: date_view(&w.cfg, (start + months).min(horizon)),
+        next_round_months: if w.round < cal.rounds() { cal.round_months(w.round + 1) } else { 0 },
+        last_round_months: w.last_round_months,
+        segments: cal.segments().iter().map(|s| CalendarSegment { first_round: s.first_round, last_round: s.last_round, years_per_round: s.years_per_round, from: s.from, to: s.to }).collect(),
     }
 }

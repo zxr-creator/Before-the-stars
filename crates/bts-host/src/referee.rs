@@ -185,8 +185,12 @@ struct NewMatch {
     seed: Option<String>,
     #[serde(default)]
     regions: Option<u16>,
+    /// A development clock of twelve-month rounds from 5000 BC ending at this month.
     #[serde(default)]
     horizon: Option<u32>,
+    /// "standard" (525 rounds, 5000 BC to AD 2500) or "quick" (230 rounds, same dates).
+    #[serde(default)]
+    calendar: Option<String>,
     #[serde(default)]
     pace_bp: Option<u32>,
     #[serde(default)]
@@ -252,7 +256,14 @@ fn config_from<A: AgentSlot>(n: NewMatch) -> Result<MatchConfig, String> {
         if !(120..=6000).contains(&h) || h % 12 != 0 {
             return Err("horizon must be a multiple of 12 between 120 and 6000 months".into());
         }
-        cfg.horizon = h;
+        cfg.calendar = MatchConfig::fixture_calendar(h / 12);
+    }
+    if let Some(c) = n.calendar {
+        cfg.calendar = match c.trim() {
+            "standard" => bts_engine::calendar::CalendarId::Standard,
+            "quick" => bts_engine::calendar::CalendarId::Quick,
+            _ => return Err("calendar must be \"standard\" or \"quick\"".into()),
+        };
     }
     if let Some(p) = n.pace_bp {
         cfg.pace_bp = p.clamp(1000, 30_000);
@@ -310,6 +321,10 @@ pub struct MatchSummary {
     pub month: Month,
     pub months_per_round: u32,
     pub horizon: Month,
+    /// The historical date of the month about to be simulated (ruleset 3.0).
+    pub date: Option<DateView>,
+    /// The round schedule and where this round sits in it.
+    pub calendar: Option<CalendarView>,
     pub phase: Phase,
     pub window: u8,
     pub finished: bool,
@@ -531,8 +546,10 @@ impl<A: AgentSlot> Host<A> {
             regions: cfg.regions,
             round: s.m.round(),
             month: s.m.month(),
-            months_per_round: cfg.months_per_round,
-            horizon: cfg.horizon,
+            months_per_round: cfg.round_months(s.m.round()),
+            horizon: cfg.horizon(),
+            date: Some(bts_engine::observe::date_view(cfg, s.m.month())),
+            calendar: Some(s.m.calendar_view()),
             phase: s.m.phase(),
             window: s.m.window(),
             finished: s.m.finished(),

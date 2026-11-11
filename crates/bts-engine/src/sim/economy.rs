@@ -1559,6 +1559,7 @@ pub fn step(w: &mut World, seat: SeatId) {
         if done {
             let id = w.id();
             let month = w.month;
+            let when = crate::util::event_label(&w.cfg, month);
             let name = w.regions[ri].name.clone();
             w.civs[si].ftl.assemblies.push(Assembly { id, yard_region: ri as RegionId, built: month, retired: false });
             let count = w.civs[si].ftl.assemblies.len();
@@ -1571,7 +1572,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 Some(ri as RegionId),
                 "assembly",
                 true,
-                vec![format!("Assembly #{id} accepted in month {month}")],
+                vec![format!("Assembly #{id} accepted in {when}")],
             );
         }
     }
