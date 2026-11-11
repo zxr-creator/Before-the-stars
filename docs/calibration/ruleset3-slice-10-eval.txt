@@ -1,0 +1,137 @@
+Ruleset 3.0 slices 10 and 13: eras, charters, golden and dark ages, traditions.
+Ruleset bts-rules/3.0.0-s10, content bts-content/3.0.0-s10, protocol bts-protocol/2.2,
+policy bts-native/1.3.0. 32 matches, standard calendar, 60-region Earth-like world,
+hard,medium,medium,easy, eval-0..31. Release build, Apple M5 Pro.
+   BTS_ERA_TRACE=1 bts run --matches 32 --seed eval --ai hard,medium,medium,easy --curve eval.csv 2> trace.txt
+   python3 scripts/calib_report.py eval.csv --techs 300 --practices 174
+(The version bump re-derives every world, so rows are not seed-for-seed comparable with
+slice 6c. The batch ran before research capacity was capped at one researcher-month a
+post under the research charters, which only lowers a few seats' capacity slightly.)
+
+Timing after the slice:
+- native, cargo test --release -p bts-ai --test perf -- --ignored: 525 rounds in 34.7 s;
+  per round p50 56.3 ms, p95 109.0 ms, max 144.4 ms (budget p95 <= 150 ms, match <= 60 s).
+- WebAssembly (Node, apps/web/scripts/wasm-calendar-bench.mjs eval-0): 63.1 s; per round
+  p50 99.0 ms, p95 248.6 ms, max 297.2 ms (budget p95 <= 400 ms).
+- bts verify: repeated inputs and checkpoint recovery reproduce the same state.
+
+Calibration steps (32 seeds each): b1 the design's score bounds: 95% of crossings golden,
+food and order always full; Classical proof at 1,000,000 residents entered late (largest
+regions 0.4-1.0 M around 1000 BC), and no seat reached the Industrial era because no AI
+built powder works and landlocked seats had no harbour. b2 Classical town 750,000, harbour
+or roads, operating = half rate or half staffed, AI builds the next proof; score parts
+food 98/85%, order 80/50, golden 75: still 41-95% golden. b3 food 99/90%, order 90/65,
+golden 85, dark 50, strain 2 + 10x, Classical modernization counts Classical works,
+signature share among works of the slot's era, AI tradition choice against Standard-map
+norms. final: Monastic Learning's fertility cost x0.98 (was -200 bp absolute, -5%).
+
+Crossings (ERA_TRACE; points out of 25; food% and stability are averages over the crossing)
+ crossing into    n  food order modern integ score | food% stab obsol% modern% | golden steady dark
+     Classical  122  25.0  24.0    4.8  22.9  76.7 | 100.0   90      0      29 |   6 (5%) 116   0 (0%)
+      Medieval  121  25.0  17.5    5.8  23.6  71.9 | 100.0   83     70      30 |   3 (2%) 118   0 (0%)
+  Early Modern  121  25.0  20.3    2.4  24.8  72.4 | 100.0   85     84      16 |  12 (10%) 109   0 (0%)
+    Industrial  110  25.0  22.9   17.0  24.6  89.5 |  99.9   89     50      50 |  82 (75%)  28   0 (0%)
+        Modern  104  24.9  23.4   20.5  24.7  93.5 |  99.7   91     40      60 |  86 (83%)  18   0 (0%)
+   Information   88  24.7  24.0   23.1  24.2  95.9 |  99.5   91     35      65 |  80 (91%)   8   0 (0%)
+         Space   63  24.7  21.1    6.2  24.8  76.9 |  99.3   86     79      21 |  17 (27%)  45   1 (2%)
+            AI    2  24.5   0.5    0.0  20.0  45.0 |  99.0   64     97       3 |   0 (0%)   1   1 (50%)
+all 731: golden 286 (39%), dark 2 (0%)
+charters held at the end of crossings: road_and_law 120, republic_of_letters 120, planned_electrification 103, open_networks 87, laissez_faire 85, guild_charters 65, monastic_learning 59, frontier_charter 47, national_railways 19, planetary_protection 17, welfare_state 15, automation_drive 5, academies 2, machine_stewardship 2, chartered_companies 2, standing_army 1, mass_mobilization 1
+
+curve /private/tmp/claude-501/-Users-XRZHONG-Desktop-civalization-evolve-game-before-the-stars/51cb0a6c-72c9-426b-b7d9-8a0846aacd0c/scratchpad/s10/final.csv: 32 matches, 96000 seat-decade rows; targets scaled by 60/48 for the world
+
+Population of the median seat (IQR over seats with land) and the world (median over matches)
+    date    median                 IQR   target  ratio |     world    target  ratio
+ 5000 BC     243 k     239 k-245 k        240 k   1.01 |     969 k     1.2 M   0.80
+ 3000 BC     1.5 M     1.1 M-2.0 M        800 k   1.91 |     6.2 M     3.8 M   1.64
+ 1000 BC     2.9 M     2.2 M-3.5 M        2.5 M   1.17 |    11.4 M    12.5 M   0.91
+    AD 1     3.4 M     2.5 M-4.7 M        5.0 M   0.68 |    14.3 M    25.0 M   0.57
+ AD 1000     5.8 M     2.9 M-8.3 M        8.0 M   0.73 |    22.6 M    40.0 M   0.57
+ AD 1500     7.9 M     3.6 M-13.5 M      11.0 M   0.72 |    37.5 M    56.2 M   0.67
+ AD 1700    14.5 M     3.7 M-52.1 M      15.0 M   0.97 |    99.6 M    75.0 M   1.33
+ AD 1800    32.1 M     4.6 M-84.2 M      20.0 M   1.61 |   194.8 M   106.2 M   1.83
+ AD 1900    57.9 M     7.3 M-120.0 M     60.0 M   0.96 |   297.1 M   312.5 M   0.95
+ AD 1950    58.2 M    10.5 M-145.7 M    110.0 M   0.53 |   333.4 M   562.5 M   0.59
+ AD 2000    72.0 M    19.1 M-177.5 M    230.0 M   0.31 |   441.2 M    1.25 B   0.35
+ AD 2100    99.2 M    52.7 M-230.3 M    400.0 M   0.25 |   572.3 M    2.12 B   0.27
+ AD 2200   150.4 M    75.8 M-289.3 M    480.0 M   0.31 |   717.9 M    2.50 B   0.29
+ AD 2300   195.0 M    81.7 M-324.8 M          -      - |   879.0 M    2.50 B   0.35
+world peak (median over matches): 1.07 B; target 1.88 B-3.75 B
+
+Era milestones: first sampled decade at which a seat had it (median seat; IQR over seats that reached it)
+ node    median                   IQR  reached              window verdict
+ T007   4525 BC    4640 BC-4327 BC     128/128   4800 BC-4000 BC   in window
+ T008   4600 BC    4705 BC-4530 BC     128/128   4800 BC-4000 BC   in window
+ T010   4425 BC    4530 BC-4092 BC     128/128   4800 BC-4000 BC   in window
+ T011   4140 BC    4280 BC-3787 BC     128/128   4500 BC-3500 BC   in window
+ T015   4080 BC    4180 BC-3950 BC     128/128   4500 BC-3500 BC   in window
+ T025   3040 BC    3312 BC-2837 BC     128/128   3500 BC-2500 BC   in window
+ T022   3025 BC    3162 BC-2877 BC     128/128   3300 BC-2300 BC   in window
+ T023   1370 BC    1500 BC-1175 BC     128/128   1500 BC-600 BC    in window
+ T024   2790 BC    2922 BC-2515 BC     128/128   1500 BC-AD 300    early by 1290
+ T027   1525 BC    1630 BC-1310 BC     128/128   1500 BC-AD 300    early by 25
+ T028    635 BC     942 BC-27 BC       128/128   1500 BC-AD 300    in window
+ T029   1420 BC    1582 BC-1097 BC     128/128   1500 BC-AD 300    in window
+ T030    AD 140      70 BC-AD 360      127/128    AD 500-AD 1300   early by 360
+ T036    AD 305     AD 200-AD 510      123/128    AD 500-AD 1300   early by 195
+ T048   AD 1410    AD 1150-AD 1570     123/128   AD 1350-AD 1550   in window
+  SCI   AD 1575    AD 1380-AD 1790     123/128   AD 1550-AD 1700   in window
+ T080   AD 1725    AD 1530-AD 1872     120/128   AD 1750-AD 1850   early by 25
+ T060   AD 1705    AD 1515-AD 1870     119/128   AD 1750-AD 1850   early by 45
+ T061   AD 1620    AD 1430-AD 1827     122/128   AD 1750-AD 1850   early by 130
+ T100   AD 1770    AD 1590-AD 1935     120/128   AD 1850-AD 1920   early by 80
+ T111   AD 2055    AD 1820-AD 2092      92/128   AD 1940-AD 2000   late by 55
+ T142   AD 2190    AD 1970-AD 2192      88/128   AD 2000-AD 2080   late by 110
+ T147     never    AD 2042-AD 2307      46/128   AD 2060-AD 2140   median seat never
+ T162     never    AD 2162-AD 2260      10/128   AD 2150-AD 2220   median seat never
+ T167     never    AD 2232-AD 2300       4/128   AD 2180-AD 2260   median seat never
+
+technologies understood at AD 2300: leading seat median 69% (range 50%-84%); median seat 62% (range 46%-80%); highest ever 268/300
+practices established at AD 2300: leading seat median 56% (range 55%-59%); median seat 55% (range 53%-56%); highest ever 102/174
+
+Era entry: first sampled decade in the era (median seat, seats never entering counted as later; spread over seats that entered)
+          era    median       p10                   IQR       p90  entered              window verdict
+    Classical   1230 BC   1550 BC    1430 BC-990 BC        230 BC  123/128   1400 BC-500 BC    in window
+     Medieval    AD 180    190 BC      60 BC-AD 375        AD 607  122/128    AD 400-AD 900    early by 220
+ Early Modern   AD 1490   AD 1170    AD 1290-AD 1700      AD 1940  121/128   AD 1400-AD 1600   in window
+   Industrial   AD 1810   AD 1493    AD 1577-AD 1970      AD 2096  112/128   AD 1760-AD 1850   in window
+       Modern   AD 1920   AD 1660    AD 1727-AD 2020      AD 2114  104/128   AD 1880-AD 1930   in window
+  Information   AD 2130   AD 1797    AD 1890-AD 2140      AD 2210   88/128   AD 1960-AD 2010   late by 120
+        Space     never   AD 1970    AD 2020-AD 2255      AD 2320   63/128   AD 2030-AD 2090   median seat never
+           AI     never   AD 2418    AD 2430-AD 2470      AD 2482    2/128   AD 2090-AD 2160   median seat never
+
+Era entry by controller (median year among seats that entered; entered/seats)
+          era           NativeEasy           NativeHard         NativeMedium
+    Classical     950 BC  28/32         1390 BC  32/32         1310 BC  63/64     
+     Medieval     AD 530  27/32            AD 0  32/32          AD 110  63/64     
+ Early Modern    AD 1755  26/32         AD 1330  32/32         AD 1430  63/64     
+   Industrial    AD 1970  25/32         AD 1770  32/32         AD 1650  55/64     
+       Modern    AD 2010  25/32         AD 1890  29/32         AD 1790  50/64     
+  Information    AD 2120  24/32         AD 2015  24/32         AD 1925  40/64     
+        Space    AD 2270  15/32         AD 2120  16/32         AD 2070  32/64     
+           AI          -   0/32         AD 2450   2/32               -   0/64     
+
+Crossings completed: 731; golden ages 286 (39%), dark ages 2 (0%), steady 443
+
+machine slot at AD 2300 among 110 seats offered it: steam 50 (45%), engine 41 (37%), wire 19 (17%); median mastery 10000 bp
+frontier slot at AD 2300 among 84 seats offered it: atom 22 (26%), network 36 (43%), living 26 (31%); median mastery 10000 bp
+
+Against the targets
+- Era entry (median seat, design table 37 §0.1): Classical, Early Modern, Industrial and
+  Modern in window; Medieval 220 years early (its knowledge, T030, is 360 years early as
+  in every slice); Information 120 years late and Space/AI reached by a minority (T111,
+  T142 and the AI-era knowledge are late, as in slice 6c). Leaders (p10) are one era ahead
+  of the median until 1800 and the spread stays within two eras before 1900.
+- Ages: 39% of crossings golden (the Industrial, Modern and Information crossings, whose
+  works are mostly modern), 0.3% dark. Food and integrity are nearly always full in
+  all-AI play; order now costs points where the obsolete share is high (Medieval 17.5,
+  Early Modern 20.3); dark ages need a crisis during a crossing (war losses, famine or an
+  epidemic) and stay rare.
+- Traditions at AD 2300: machine steam 45%, engine 37%, wire 17%; frontier network 43%,
+  living 31%, atom 26%, synthetic 0 (no seat's labour is the binding constraint: most
+  working-age people hold no post late in the game).
+- Population: median seat 0.73 at AD 1000, 0.72 at 1500, 0.96 at 1900, 0.53 at 1950 and
+  0.25-0.31 from 2000 to 2200; world peak 1.07 B (slice 6c 0.96 B). The late gap remains.
+- Knowledge: golden ages (channel x1.10) bring the industrial milestones forward (T061
+  130 years early, T100 80 early); technology completion of the leading seat 69%
+  (target 70-85%), median seat 62%. No victories (unchanged).

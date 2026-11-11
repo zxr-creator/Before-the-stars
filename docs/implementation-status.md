@@ -11,6 +11,7 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | World generation (08, 37 §5) | Implemented, simplified | Since ruleset 3.0 slice 4 a generated Earth-like planet by default (wrapped 2,000 x 1,000 map, plates, climate bands and rain shadows, terrain and climate zones, geology tags for deposits; `docs/units-and-scale.md` section 13); the flat classic map remains for fixtures. Seeded Voronoi regions (24/48/72), downhill rivers, coasts and sea links, correlated deposits, viable starts with guaranteed reachable copper, iron, coal and rare minerals, three fixed test nodes. The real Earth (slice 16) is not built; the client draws a region that crosses the date line only once, clipped at the map edge. Derivation uses a keyed integer hash rather than HMAC-SHA256; `public_seed: false` mixes in server entropy |
 | Economy and production (02, 21) | Abstracted | About sixty facility types carry the 34 recipes and 10 capital modules with inputs, shaft/electric/compute services, upkeep, condition and storage throttles. Goods are pooled per civilization with a per-region carriage efficiency set by transport grade and distance, not per-shipment logistics. No prices, money or private balance sheets: the limit on what a government can direct is the callable-labour share raised by institutions |
 | Industrial traditions (22) | Implemented as content | Water/wind, steam, diesel and electric power are separate facilities with real fuel and site limits; generators, grids and motors bridge them; fission, fusion and orbital power follow. No route skips electricity, electronics, computing or orbit |
+| Eras and traditions (37 §3-4) | Implemented, adapted | Ten eras entered by decision once knowledge and a built proof stand, crossings scored into golden, steady or dark ages, 24 charters, two tradition slots with exclusive works, unit variants, branch evidence and seeded drawbacks (ruleset 3.0 slices 10 and 13; adaptations listed below). The client does not yet show or set them |
 | Population (32) | Implemented, simplified | Sparse blocks keyed by region × lineage × religion with 81 annual age cells, nine-month lagged birth intensity, one combined mortality calculation, annual ageing, migration that moves real counts. One access class per region; qualifications are counted per region rather than per block |
 | Education (19, 32 §8) | Implemented | All 24 courses with entrants, teachers, class sizes, venues, materials and months. Students and teachers leave the labour pool; graduates are usable next month; founding cohorts teach themselves slowly. Authorization states (review due, dormant) are not modelled |
 | Knowledge (31) | Implemented | Fixed 300-node graph (atlas, doc 37, doc 39) with rival families, locks, revisit studies, fragile know-how and investigation lines; states hinted → discovered → investigating → understood → prototyped → adopted; evidence from actual sector activity, contact and paid exploratory studies; research classes need qualified staff and facilities; licences shorten work but never create operators. T048/T117/T121 corrections applied |
@@ -222,6 +223,48 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   (in 50-year rounds automatic research had filled the lines with cheap side nodes and
   left critical investigations centuries without capacity). The land factor's neutral
   point is 48% of capacity. Calibration: `docs/calibration/ruleset3-slice-6c-eval.txt`.
+
+- **Slices 10 and 13, eras and traditions (done, moved ahead of slices 7-9 at the user's
+  request).** `sim::eras` (design chapter 37, sections 3-4; numbers in
+  `docs/units-and-scale.md` section 17). Ten eras from Ancient to AI (Interstellar sealed
+  until the objective is revealed), each entered by `Action::EnterEra` once its knowledge
+  is understood and its built proof stands; crossings of 600 down to 120 months strain
+  stability by the share of posts in works two or more eras behind; a score of food,
+  order, modernization and integrity ends each crossing in a golden age, a steady time or
+  a dark age with the design's effects; 24 charters (`Action::ChooseCharter`, one per era,
+  two in a golden age) acting through productivity, stability, research, recruitment,
+  militia, mobilization, administration, construction, upkeep, mortality, fertility,
+  automation and compute; the expected basket by era as the hook of slice 11. Two
+  tradition slots (`Action::ChooseTradition`; machine from the Industrial era, frontier
+  from the Information era) shown as Steampunk, Dieselpunk, Electropunk, Atompunk,
+  Cyberpunk, Biopunk and AI-punk with the sober names beneath; mastery from signature
+  works; nine exclusive works and five exclusive methods (`content.rs`, buildable only
+  under `TRAD:<path>`, every recipe mass-balanced); seven unit variants fixed at
+  recruitment (`Army.variant`); branch-node evidence from the held tradition's works only
+  (doc 39 section 1.5; contact and studies as before, capture not built); tradition
+  institutions C168-C174 recognizable under their path; switching by a ten-year reform
+  project with a 600-month cooldown; public era and traditions among met seats; trust
+  drift and the joint-programme discount for shared paths; the drawbacks as seeded,
+  bounded hazards (coal smoke, oil dependence, grid faults and conductor hunger, reactor
+  incidents, network incidents, biofoundry contamination and long validation, labour
+  displacement). Adaptations to the content that exists, each named in the code: the
+  Classical proof is a region of 750,000 (the 60-region map spreads people thinner than
+  doc 37's table assumed); the Early Modern harbour may be roads in three regions for a
+  seat without a coast; operating means half rate or half staffed; the Space proof's
+  off-world outpost is the orbital station; the AI proof counts computing centres on
+  accelerator clusters as AI-era works until slice 7's automated stages; the signature
+  share is taken among works of the slot's era; space charters act on the existing space
+  works until slice 15; the Welfare State and Mass Mobilization carry stand-in costs until
+  slice 11's basket; Compute Commons has no treaty clause; variant interactions between
+  swarms and cyber-augmented forces and fuel degradation wait for slice 8. The native AI
+  enters an era when its expected crossing score reaches its aim (Hard 85, Medium 70,
+  Easy at once) or its patience runs out, never into a likely dark age in a long round,
+  builds the next proof once the knowledge is in, scores charters by its situation,
+  commits each slot 20-60 years after it opens by its endowment against Standard-map
+  norms and its signature posts, builds its path's works, raises tradition branch
+  nodes in research, and switches only in a dark age. Ruleset `bts-rules/3.0.0-s10`,
+  content `bts-content/3.0.0-s10`, protocol `bts-protocol/2.2` (additions only), policy
+  `bts-native/1.3.0`. Calibration: `docs/calibration/ruleset3-slice-10-eval.txt`.
 
 ## Known calibration gaps
 

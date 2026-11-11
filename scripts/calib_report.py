@@ -12,7 +12,11 @@ For a curve written by `bts run --matches M --curve CURVE.csv` it prints:
   - when the curve has the columns (slice 6r and later): completion shares at AD 2300
     of technologies understood and practices established (leading seat and median seat
     per match; design chapter 39 tables 1.3 and 2.4), and population-weighted fertility
-    diagnostics of the median seat (food factor, birth intensity, land pressure).
+    diagnostics of the median seat (food factor, birth intensity, land pressure);
+  - when the curve has the era columns (slice 10 and later): era entry dates by era
+    (median seat counting seats that never entered as later, the spread over seats
+    that entered, the window of design table 37 §0.1), entries by controller, golden
+    and dark ages per crossing, and the shares of the traditions held at AD 2300.
 Standard library only. Years are signed (negative = BC).
 """
 import csv
@@ -131,6 +135,72 @@ def main():
                 continue
             r = s[len(s) // 2]
             print(f"{yr(want):>8} {int(r['fert_food_bp']):>6} {int(r['fert_intensity_bp']):>7} {int(r['cap_ratio_bp']):>8} {int(r['land_bp']):>6}")
+    era_report(rows)
+
+
+ERA_NAMES = ["Ancient", "Classical", "Medieval", "Early Modern", "Industrial", "Modern", "Information", "Space", "AI", "Interstellar"]
+ERA_WINDOWS = {1: (-1400, -500), 2: (400, 900), 3: (1400, 1600), 4: (1760, 1850), 5: (1880, 1930), 6: (1960, 2010), 7: (2030, 2090), 8: (2090, 2160)}
+TRADITIONS = ["steam", "engine", "wire", "atom", "network", "living", "synthetic"]
+
+
+def era_report(rows):
+    if "era" not in rows[0]:
+        return
+    seats = sorted({(r["seed"], r["seat"]) for r in rows})
+    ctrl = {(r["seed"], r["seat"]): r["controller"] for r in rows}
+    first = defaultdict(dict)
+    for r in rows:
+        k = (r["seed"], r["seat"])
+        e = int(r["era"])
+        for x in range(1, e + 1):
+            if x not in first[k]:
+                first[k][x] = int(r["year"])
+    print()
+    print("Era entry: first sampled decade in the era (median seat, seats never entering counted as later; spread over seats that entered)")
+    print(f"{'era':>13} {'median':>9} {'p10':>9} {'IQR':>21} {'p90':>9} {'entered':>8} {'window':>19} verdict")
+    for e in range(1, 9):
+        v = [first[k][e] for k in seats if e in first[k]]
+        if not v:
+            print(f"{ERA_NAMES[e]:>13} {'never':>9}")
+            continue
+        allv = v + [10**6] * (len(seats) - len(v))
+        m = statistics.median_high(allv)
+        lo, hi = ERA_WINDOWS[e]
+        verdict = "in window" if lo <= m <= hi else (f"early by {lo - m:.0f}" if m < lo else (f"late by {m - hi:.0f}" if m < 10**6 else "median seat never"))
+        ms = yr(int(m)) if m < 10**6 else "never"
+        print(f"{ERA_NAMES[e]:>13} {ms:>9} {yr(int(q(v, .1))):>9} {yr(int(q(v, .25))):>10}-{yr(int(q(v, .75))):<10} {yr(int(q(v, .9))):>9} {len(v):>4}/{len(seats):<3} {yr(lo):>9}-{yr(hi):<9} {verdict}")
+    print()
+    print("Era entry by controller (median year among seats that entered; entered/seats)")
+    kinds = sorted(set(ctrl.values()))
+    print(f"{'era':>13} " + " ".join(f"{c:>20}" for c in kinds))
+    for e in range(1, 9):
+        cells = []
+        for c in kinds:
+            ks = [k for k in seats if ctrl[k] == c]
+            v = [first[k][e] for k in ks if e in first[k]]
+            cells.append(f"{(yr(int(statistics.median(v))) if v else '-'):>10} {len(v):>3}/{len(ks):<3}    ")
+        print(f"{ERA_NAMES[e]:>13} " + " ".join(f"{x:>20}" for x in cells))
+    last = {}
+    for r in rows:
+        last[(r["seed"], r["seat"])] = r
+    golden = sum(int(r["golden"]) for r in last.values())
+    dark = sum(int(r["dark"]) for r in last.values())
+    crossings = sum(max(0, int(r["era"]) - (1 if int(r["crossing"]) else 0)) for r in last.values())
+    print()
+    print(f"Crossings completed: {crossings}; golden ages {golden} ({golden / max(crossings, 1):.0%}), dark ages {dark} ({dark / max(crossings, 1):.0%}), steady {crossings - golden - dark}")
+    print("Ages by era of the crossing are not in the curve; per-seat totals: golden " + str(sorted(int(r['golden']) for r in last.values())) + "; dark " + str(sorted(int(r['dark']) for r in last.values())))
+    years = sorted({int(r["year"]) for r in rows})
+    y = min(years, key=lambda s: (abs(s - 2300), s))
+    at = [r for r in rows if int(r["year"]) == y and int(r["regions"]) > 0]
+    print()
+    for col, slot, offer in (("trad_machine", "machine", 4), ("trad_frontier", "frontier", 6)):
+        eligible = [r for r in at if int(r["era"]) >= offer]
+        counts = defaultdict(int)
+        for r in eligible:
+            counts[int(r[col])] += 1
+        parts = ", ".join(f"{(TRADITIONS[k - 1] if k else 'unaligned')} {n} ({n / max(len(eligible), 1):.0%})" for k, n in sorted(counts.items()))
+        mast = [int(r["mastery_" + slot]) for r in eligible if int(r[col])]
+        print(f"{slot} slot at {yr(y)} among {len(eligible)} seats offered it: {parts}; median mastery {statistics.median(mast) if mast else 0:.0f} bp")
 
 
 if __name__ == "__main__":
