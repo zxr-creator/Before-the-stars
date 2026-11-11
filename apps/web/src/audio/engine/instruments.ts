@@ -141,7 +141,14 @@ export class Synth {
   private ksBuffer(kind: 'harp' | 'pluck' | 'harpsi', midi: number): KsEntry {
     const key = kind + midi;
     const hit = this.ks.get(key);
-    if (hit) return hit;
+    if (hit) {
+      // most recently used last (a Map keeps insertion order)
+      this.ks.delete(key);
+      this.ks.set(key, hit);
+      return hit;
+    }
+    // a bounded cache: the least recently used string is forgotten (at most about 14 MB)
+    if (this.ks.size >= 32) this.ks.delete(this.ks.keys().next().value as string);
     const sr = this.ctx.sampleRate;
     const f = mtof(midi);
     const P = kind === 'harp' ? { t60: 4.2 - (midi - 48) * 0.05, bright: 0.45, pos: 0.21, s: 0.5, dur: 3.2 }
@@ -151,7 +158,8 @@ export class Synth {
     // the loop delay is N + s samples (the loss filter adds s); playbackRate corrects the rest
     const N = Math.max(4, Math.floor(sr / f - P.s));
     const f0 = sr / (N + P.s);
-    const len = Math.floor(P.dur * sr);
+    // long enough for the string to fall about 40 dB; short high notes keep memory low
+    const len = Math.floor(Math.min(P.dur, 0.4 + t60 * 0.7) * sr);
     const buf = this.ctx.createBuffer(1, len, sr);
     const y = buf.getChannelData(0);
     const r = rng(midi * 131 + kind.length);

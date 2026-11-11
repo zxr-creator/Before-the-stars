@@ -127,13 +127,34 @@ function target(s: AppState): MusicTarget | null {
   return cachedTarget;
 }
 
+/** An era or mood change waits this long to be sure (an observer's fast playback can flick
+ *  between war and peace or across an era boundary several times in a few seconds). */
+const SETTLE_MS = 4000;
+let pendingKey = '';
+let pendingAt = 0;
+
 function update(initial: boolean): void {
   const s = getState();
   const tg = target(s);
   const k = tg ? `${tg.key}|${tg.mood}|${tg.intensity.toFixed(2)}` : 'none';
   if (engine && k !== lastTargetKey) {
-    lastTargetKey = k;
-    engine.setTarget(tg ? { key: tg.key, mood: tg.mood, intensity: tg.intensity } : null);
+    const was = lastTargetKey.split('|').slice(0, 2).join('|');
+    const next = k.split('|').slice(0, 2).join('|');
+    // immediate: the first target, a forced one, silence, the title, or only the intensity changed
+    const immediate = initial || !lastTargetKey || forced !== undefined || !tg || tg.mood === 'title' || was.endsWith('|title') || was === next;
+    const now = performance.now();
+    if (!immediate && pendingKey !== next) {
+      pendingKey = next;
+      pendingAt = now;
+      setTimeout(() => update(false), SETTLE_MS + 50);
+    }
+    if (immediate || (pendingKey === next && now - pendingAt >= SETTLE_MS)) {
+      lastTargetKey = k;
+      pendingKey = '';
+      engine.setTarget(tg ? { key: tg.key, mood: tg.mood, intensity: tg.intensity } : null);
+    }
+  } else if (k === lastTargetKey) {
+    pendingKey = '';
   }
   events(s, initial);
 }

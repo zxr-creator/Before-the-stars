@@ -59,7 +59,11 @@ export class Conductor {
   /** Recordings to use instead of (or under) a composed piece; none ship (tracks.ts). */
   recorded: ((key: ScoreKey, mood: Mood, roll: number) => Recording | null) | null = null;
 
-  constructor(ctx: BaseAudioContext, out: AudioNode, seed = Date.now() >>> 0) {
+  /**
+   * `offline`: the whole graph is built before an OfflineAudioContext renders, so a bus must
+   * never be disconnected while building (that would silence it from time zero).
+   */
+  constructor(ctx: BaseAudioContext, out: AudioNode, seed = Date.now() >>> 0, private offline = false) {
     this.ctx = ctx;
     this.synth = new Synth(ctx);
     this.seed = seed;
@@ -239,7 +243,7 @@ export class Conductor {
     }
     for (const f of this.fading) this.schedule(f, until);
     this.fading = this.fading.filter((f) => {
-      if (now < f.done) return true;
+      if (now < f.done || this.offline) return true;
       f.bus.disconnect();
       f.wet.disconnect();
       f.echo.disconnect();
@@ -250,10 +254,14 @@ export class Conductor {
 
   /** A short cue built from the leitmotif in the current key; the score ducks under it. */
   sting(kind: StingKind, at: number): number {
-    const key = this.current?.piece.key ?? this.target?.key ?? 'title';
+    const piece = this.current?.piece;
+    const key = piece?.key ?? this.target?.key ?? 'title';
     const sc = SCORES[key];
-    const tonic = sc.tonic > 66 ? sc.tonic - 12 : sc.tonic;
-    const mode = kind === 'defeat' ? 'aeolian' : kind === 'victory' ? 'ionian' : sc.mode === 'phrygian' || sc.mode === 'aeolian' ? 'dorian' : sc.mode;
+    // in the key and mode of what is playing, so the cue sits inside the music
+    const home = piece?.tonic ?? sc.tonic;
+    const tonic = home > 66 ? home - 12 : home;
+    const playing = piece?.mood === 'war' ? sc.warMode : sc.mode;
+    const mode = kind === 'defeat' ? 'aeolian' : kind === 'victory' ? 'ionian' : playing;
     const spb = kind === 'defeat' ? 0.95 : 0.62;
     const out = this.stingBus;
     const play = (inst: Inst, deg: number, beat: number, beats: number, v: number, oct = 0) =>

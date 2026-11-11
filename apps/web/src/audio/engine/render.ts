@@ -42,6 +42,7 @@ export async function render(spec: RenderSpec) {
   let form = '';
   let stepAt: number[] = [];
   let finalWin: [number, number] | null = null;
+  let pieceTonic: number | null = null;
   const fin = (p: { sec: (b: number) => number; beats: number }) => { const s = 0.05 + p.sec(p.beats - 4); finalWin = [s + 0.3, s + 3]; };
   if (spec.kind === 'main') {
     const p = mainThemePiece(spec.key, spec.mood, seed);
@@ -59,11 +60,11 @@ export async function render(spec: RenderSpec) {
     const p = buildPiece(spec.key, spec.mood, seed);
     seconds = p.durSec + 3;
     form = p.form;
-    if (spec.kind === 'piece') { const s = p.sec(p.beats - 4); finalWin = [s + 0.3, s + 3]; }
+    if (spec.kind === 'piece') { fin(p); pieceTonic = p.tonic; }
   }
   const ctx = new OfflineAudioContext(2, Math.ceil(seconds * sr), sr);
   const out = chain(ctx);
-  const c = new Conductor(ctx, out, seed);
+  const c = new Conductor(ctx, out, seed, true);
   const t0 = performance.now();
   if (spec.kind === 'main') {
     c.setIntensity(spec.intensity ?? 1);
@@ -103,7 +104,7 @@ export async function render(spec: RenderSpec) {
   const buf = await ctx.startRendering();
   const L = buf.getChannelData(0);
   const R = buf.getChannelData(1);
-  const tonicPc = SCORES[spec.key].tonic % 12;
+  const tonicPc = (pieceTonic ?? SCORES[spec.key].tonic) % 12;
   return { sr, seconds, form, schedMs, analysis: analyse(L, R, sr, tonicPc, finalWin), wav: wav16(L, R, sr), spectrogram: spectrogram(L, R, sr, spec.name), stepAt };
 }
 

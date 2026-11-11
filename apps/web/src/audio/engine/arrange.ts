@@ -31,6 +31,8 @@ export interface NoteEv {
 export interface Piece {
   key: ScoreKey;
   mood: Mood;
+  /** MIDI of degree 1 in the melody's octave (the era's key, sometimes shifted). */
+  tonic: number;
   bpm: number;
   beats: number;
   events: NoteEv[];
@@ -477,11 +479,14 @@ export function buildPiece(key: ScoreKey, mood: Mood, seed: number, opts: PieceO
   const r = rng(seed);
   const war = mood === 'war';
   const mode = war ? sc.warMode : sc.mode;
-  const tonic = sc.tonic;
   const bpm = (war ? sc.warBpm : sc.bpm) * (0.97 + r() * 0.06);
   const forms = key === 'title' ? [TITLE_FORM] : war ? WAR_FORMS : PEACE_FORMS;
   const fi = opts.form ?? Math.floor(r() * forms.length);
   const plan = opts.sections ?? forms[fi % forms.length];
+  // now and then a neighbouring key, so a long session does not sit in one key
+  // (single statements and the title stay in the home key)
+  const shift = opts.sections || key === 'title' ? 0 : [0, 0, 0, -2, 2, -3][Math.floor(r() * 6)];
+  const tonic = sc.tonic + shift;
 
   const theme = (k: 'M' | 'E1' | 'E2') => (k === 'M' ? sc.main : k === 'E1' ? sc.themes[0] : sc.themes[1]);
   const bars: Bar[] = [];
@@ -531,7 +536,7 @@ export function buildPiece(key: ScoreKey, mood: Mood, seed: number, opts: PieceO
   const events = o.ev.sort((x, y) => x.t - y.t);
   const tail = Math.max(...events.map((e) => sec(e.t + e.d)));
   return {
-    key, mood, bpm, beats, events, sec, durSec: Math.max(sec(beats), tail),
+    key, mood, tonic, bpm, beats, events, sec, durSec: Math.max(sec(beats), tail),
     rest: sc.rest[0] + r() * (sc.rest[1] - sc.rest[0]),
     reverb: sc.reverb, echo: sc.echo, gain: war ? sc.warGain : sc.gain,
     form: plan.map((s) => (s.kind === 'theme' ? s.theme + (s.vary ? `~${s.vary}` : '') : s.kind)).join(' '),
