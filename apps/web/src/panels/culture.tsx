@@ -7,6 +7,7 @@ import { Icon } from '../icons';
 import { ActionNote, Badge, Btn, Checklist, Empty, Est, Meter, RegionLink, SeatDot, Section, Tabs, Why, cx, work } from '../ui';
 import type { Tone } from '../ui';
 import { act, civColor, civName, openPanel, useApp } from '../store';
+import { LoreFold } from '../lore';
 
 type View = 'practices' | 'peoples' | 'religion';
 const PTONE: Record<PracticeState, Tone> = { recognized: 'info', reforming: 'gold', enacted: 'ok', established: 'accent' };
@@ -84,6 +85,7 @@ function Practice({ obs, p }: { obs: Observation; p: PracticeCard }) {
       {open ? (
         <div class="practice-body">
           <p>{tc(p.behavior)}</p>
+          <LoreFold kind="practice" name={p.name} />
           <p class="muted small"><b>{t('Needs:')}</b>{sp()}{tc(p.requirements)}</p>
           {p.known_requirements.length ? <Checklist items={tcChecks(p.known_requirements)} /> : null}
           {p.enables.length ? <ul class="enables">{p.enables.map((e) => <li><Icon name="right" size={10} /> {tc(e)}</li>)}</ul> : null}

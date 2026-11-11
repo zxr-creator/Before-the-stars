@@ -1,0 +1,1106 @@
+[
+ {
+  "id": "C001",
+  "en": {
+   "intro": "Before anything could be stored outside a human head, a community's knowledge lived in its people: which spring fails in a dry year, which root must be soaked before it is eaten, how far the ancestors walked to reach this valley. Songs, genealogies and place names work as a kind of compression, packing advice into forms that are easy to repeat and hard to garble. Aboriginal Australian songlines map routes across hundreds of kilometres in the order of their verses. The costs are time and fragility. An elder who dies before teaching takes a whole library along, and whatever the listeners never heard simply stops existing."
+  },
+  "zh-Hans": {
+   "intro": "在任何东西能存放到人脑之外以前，一个群体的知识就活在人身上：哪眼泉水旱年会断，哪种根茎要先浸泡才能吃，祖先走了多远才来到这片河谷。歌谣、谱系和地名是一种压缩术，把经验装进好记又不易走样的形式里。澳大利亚原住民的“歌之路”按诗句的先后标出穿越大地的路线，绵延数百公里。代价是时间，也是脆弱：一位老人来不及传授就离世，便带走了一整座书库；听众从未听过的东西，就此不复存在。"
+  },
+  "zh-Hant": {
+   "intro": "在任何東西能存放到人腦之外以前，一個群體的知識就活在人身上：哪眼泉水旱年會斷，哪種根莖要先浸泡才能吃，祖先走了多遠才來到這片河谷。歌謠、譜系和地名是一種壓縮術，把經驗裝進好記又不易走樣的形式裡。澳大利亞原住民的「歌之路」按詩句的先後標出穿越大地的路線，綿延數百公里。代價是時間，也是脆弱：一位老人來不及傳授就離世，便帶走了一整座書庫；聽眾從未聽過的東西，就此不復存在。"
+  }
+ },
+ {
+  "id": "C002",
+  "en": {
+   "intro": "Every society has had to answer an awkward question: who looks after those who cannot look after themselves? The oldest answer is family, widened by marriage and memory into a web of people who owe one another. The injured hunter still receives his share; a widow's children are fed by her brothers; a grandmother minds the infants so their parents can work. Archaeologists have found skeletons tens of thousands of years old whose healed injuries imply long care by others. The web is strong but partial. What it gives to kin it often withholds from everyone else, and the carers' hours are never free.",
+   "quote": {
+    "text": "No man is an island, entire of itself; every man is a piece of the continent, a part of the main.",
+    "source": "John Donne, Devotions upon Emergent Occasions, Meditation XVII (1624)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "每个社会都得回答一个尴尬的问题：照顾不了自己的人，由谁来照顾？最古老的答案是家人，再由婚姻和记忆扩展成一张彼此亏欠的关系网。受伤的猎手照样分到一份肉，寡妇的孩子由她的兄弟养活，祖母看着婴儿，好让孩子的父母出门干活。考古学家发现过数万年前的骸骨，上面的旧伤早已愈合，可见伤者曾被他人长期照料。这张网结实，却有亲疏之分：给了亲族的，往往就不给外人；照护者的时间也从来不是白来的。",
+   "quote": {
+    "text": "没有人是一座孤岛，可以自全；每个人都是大陆的一片，整体的一部分。",
+    "source": "约翰·多恩《突发事件的祷告》第十七篇沉思（1624）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "每個社會都得回答一個尷尬的問題：照顧不了自己的人，由誰來照顧？最古老的答案是家人，再由婚姻和記憶擴展成一張彼此虧欠的關係網。受傷的獵手照樣分到一份肉，寡婦的孩子由她的兄弟養活，祖母看著嬰兒，好讓孩子的父母出門幹活。考古學家發現過數萬年前的骸骨，上面的舊傷早已癒合，可見傷者曾被他人長期照料。這張網結實，卻有親疏之分：給了親族的，往往就不給外人；照護者的時間也從來不是白來的。",
+   "quote": {
+    "text": "沒有人是一座孤島，可以自全；每個人都是大陸的一片，整體的一部分。",
+    "source": "約翰·多恩《突發事件的禱告》第十七篇沉思（1624）"
+   }
+  }
+ },
+ {
+  "id": "C003",
+  "en": {
+   "intro": "When a herd is on the move or a roof must go up before the rains, someone has to say \"now\" and be obeyed. Many small societies managed this without permanent rulers: authority was lent for the task and taken back afterwards. On the Great Plains, several peoples appointed camp police for the communal bison hunt, with power to punish anyone who charged early and scattered the herd; when the hunt ended, so did their power. The arrangement works only if the lending is real. The hard part was never choosing a leader. It was getting the powers handed back on time."
+  },
+  "zh-Hans": {
+   "intro": "畜群要迁走，屋顶要赶在雨季前盖好，总得有人喊一声“现在”，而且有人听。许多小型社会并不设常任的首领，而是把权威借给某项任务，事毕收回。北美大平原上的一些部族在集体猎野牛时指派营地纠察，谁抢先冲出去惊散了牛群，纠察就有权惩罚他；狩猎一结束，这份权力也随之终止。这种安排只有在“借”真的是借时才管用。难的从来不是推举领头人，而是到期把权力收回来。"
+  },
+  "zh-Hant": {
+   "intro": "畜群要遷走，屋頂要趕在雨季前蓋好，總得有人喊一聲「現在」，而且有人聽。許多小型社會並不設常任的首領，而是把權威借給某項任務，事畢收回。北美大平原上的一些部族在集體獵野牛時指派營地糾察，誰搶先衝出去驚散了牛群，糾察就有權懲罰他；狩獵一結束，這份權力也隨之終止。這種安排只有在「借」真的是借時才管用。難的從來不是推舉領頭人，而是到期把權力收回來。"
+  }
+ },
+ {
+  "id": "C004",
+  "en": {
+   "intro": "A good harvest is a problem as much as a gift: the grain must be dried, guarded from mice and damp, and shared through the lean months without starting a feud. Pooling stores turns one household's bad luck into everyone's slightly smaller ration. In the High Atlas of Morocco, villages long kept an agadir, a fortified communal store in which each family had its own locked cell under a guardian chosen by the village. The bargain is plain. Shortage is spread more fairly, but someone must hold the key, and every rationing rule is an argument about who deserves how much."
+  },
+  "zh-Hans": {
+   "intro": "丰收既是礼物也是难题：粮食要晾干，要防鼠防潮，还得在青黄不接的几个月里分下去而不闹出仇怨。把储粮合在一起，一户人家的坏运气就变成了大家各少吃一口。在摩洛哥的高阿特拉斯山区，村落长期共用一种名为“阿加迪尔”的设防粮仓，每户人家各有一间上锁的小室，由村里推举的看守照管。这笔交易很清楚：短缺分摊得更公平了，可钥匙总得有人掌管，而每一条配给规矩，都是在争论谁该分多少。"
+  },
+  "zh-Hant": {
+   "intro": "豐收既是禮物也是難題：糧食要晾乾，要防鼠防潮，還得在青黃不接的幾個月裡分下去而不鬧出仇怨。把儲糧合在一起，一戶人家的壞運氣就變成了大家各少吃一口。在摩洛哥的高阿特拉斯山區，村落長期共用一種名為「阿加迪爾」的設防糧倉，每戶人家各有一間上鎖的小室，由村裡推舉的看守照管。這筆交易很清楚：短缺分攤得更公平了，可鑰匙總得有人掌管，而每一條配給規矩，都是在爭論誰該分多少。"
+  }
+ },
+ {
+  "id": "C005",
+  "en": {
+   "intro": "Some knowledge refuses to be put into words. How hard to hit the flint, when the clay feels right, how a net knot should sit under the thumb: these are learned by watching a master's hands and being corrected, again and again, until one's own hands know. Apprenticeship turns that slow imitation into an obligation on both sides, the learner's labour paid for in skill. Japanese craft traditions still describe the method as \"stealing with the eyes\". Its limit is built in. A master can pass on only what the master knows, and a skill nobody practises dies within a generation.",
+   "quote": {
+    "text": "Blue comes from the indigo plant, yet it is bluer than the indigo.",
+    "source": "Xunzi, “An Exhortation to Learning”"
+   }
+  },
+  "zh-Hans": {
+   "intro": "有些知识不肯被说成话。燧石该敲多重，黏土摸上去什么时候算合适，网结在拇指下该怎样服帖，这些只能看着师傅的手学，一遍遍被纠正，直到自己的手也记住。学徒制把这种缓慢的模仿变成双方的义务：学徒出力，换来手艺。日本的匠人传统至今把这种学法称为“用眼睛偷”。它的边界是天生的：师傅只能传他会的东西，一门没人再做的手艺，一代人之内就会失传。",
+   "quote": {
+    "text": "青，取之于蓝，而青于蓝。",
+    "source": "《荀子·劝学》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "有些知識不肯被說成話。燧石該敲多重，黏土摸上去什麼時候算合適，網結在拇指下該怎樣服帖，這些只能看著師傅的手學，一遍遍被糾正，直到自己的手也記住。學徒制把這種緩慢的模仿變成雙方的義務：學徒出力，換來手藝。日本的匠人傳統至今把這種學法稱為「用眼睛偷」。它的邊界是天生的：師傅只能傳他會的東西，一門沒人再做的手藝，一代人之內就會失傳。",
+   "quote": {
+    "text": "青，取之於藍，而青於藍。",
+    "source": "《荀子·勸學》"
+   }
+  }
+ },
+ {
+  "id": "C006",
+  "en": {
+   "intro": "Plant too early and frost takes the seed; too late and the crop meets the floods. Communities learned to read the year by signs that repeat: the first dawn rising of a bright star, the flowering of a tree, the return of a bird. In Hawaii, the rising of the Pleiades at dusk opened the Makahiki, a season of tribute, games and rest from war. A shared reckoning lets many households act together, clearing a channel or setting out on a migration on the same morning. When the keepers of the count make a mistake, nobody loses honour; the seedlings simply drown.",
+   "quote": {
+    "text": "If the seasons of farming are not interfered with, there will be more grain than can be eaten.",
+    "source": "Mencius, Book I (King Hui of Liang), Part I"
+   }
+  },
+  "zh-Hans": {
+   "intro": "种早了，种子冻死；种晚了，庄稼撞上洪水。人们学会用年年重复的征兆来读一年：一颗亮星初现于晨空，某种树开了花，某种鸟飞了回来。在夏威夷，昴星团在黄昏升起，便开启了马卡希基节，那是纳贡、竞技和止战休养的季节。共同的岁时让许多人家能在同一天早上一起动手，疏通沟渠或启程迁徙。掌管历数的人算错了，没有谁会丢掉体面，只是秧苗被水淹了。",
+   "quote": {
+    "text": "不违农时，谷不可胜食也。",
+    "source": "《孟子·梁惠王上》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "種早了，種子凍死；種晚了，莊稼撞上洪水。人們學會用年年重複的徵兆來讀一年：一顆亮星初現於晨空，某種樹開了花，某種鳥飛了回來。在夏威夷，昴星團在黃昏升起，便開啟了馬卡希基節，那是納貢、競技和止戰休養的季節。共同的歲時讓許多人家能在同一天早上一起動手，疏通溝渠或啟程遷徙。掌管歷數的人算錯了，沒有誰會丟掉體面，只是秧苗被水淹了。",
+   "quote": {
+    "text": "不違農時，谷不可勝食也。",
+    "source": "《孟子·梁惠王上》"
+   }
+  }
+ },
+ {
+  "id": "C007",
+  "en": {
+   "intro": "Pasture, woodland and fishing grounds were long held not by one owner but by a community, with rules about who may graze, cut or catch, and when. Shared ground let poor households keep a cow and gather fuel, and rotation gave the land time to recover. The arrangement is older and sturdier than its reputation: in the Swiss village of Törbel, a rule agreed in 1517 barred anyone from sending more cows to the alpine meadows than he could feed through the winter. Commons fail when boundaries blur or nobody watches, and watching is work."
+  },
+  "zh-Hans": {
+   "intro": "牧场、林地和渔场长期不属于某一个主人，而属于一个群体，由规矩决定谁能在何时放牧、砍柴或捕鱼。共用的土地让穷人家也能养一头牛、拾一捆柴，轮流休养又给了土地恢复的时间。这种安排比它的名声更古老，也更结实：瑞士山村托尔贝尔在1517年议定，任何人送上高山草场的牛，不得多于他能喂过冬的数目。地界一模糊、无人看守，共用便会失败，而看守本身就是活计。"
+  },
+  "zh-Hant": {
+   "intro": "牧場、林地和漁場長期不屬於某一個主人，而屬於一個群體，由規矩決定誰能在何時放牧、砍柴或捕魚。共用的土地讓窮人家也能養一頭牛、拾一捆柴，輪流休養又給了土地恢復的時間。這種安排比它的名聲更古老，也更結實：瑞士山村托爾貝爾在1517年議定，任何人送上高山草場的牛，不得多於他能餵過冬的數目。地界一模糊、無人看守，共用便會失敗，而看守本身就是活計。"
+  }
+ },
+ {
+  "id": "C008",
+  "en": {
+   "intro": "Water runs downhill, and so do grievances. Whoever sits at the head of a canal can take what the tail end needs, so every irrigating community must settle who opens the gate, in what order, and who turns out to dig silt each spring. On Bali, the subak associations of farmers who share one water source have long met to set planting dates and divide the flow, coordinating across whole watersheds. Deliberation does not make the river larger. It makes the shortage visible, the turns predictable, and the upstream neighbour answerable to the people below."
+  },
+  "zh-Hans": {
+   "intro": "水往低处流，怨气也一样。坐在渠首的人能把渠尾需要的水先拿走，所以每个靠灌溉过日子的群体都得议定：谁开闸，按什么次序，每年春天谁出工清淤。巴厘岛的苏巴克是共用同一水源的农人组织，长期以来一起商定插秧的时间、分配水流，并在整条流域上相互协调。议事不会让河水变多，但能让短缺摆到明处，让轮次可以预期，让上游的邻居对下游的人有个交代。"
+  },
+  "zh-Hant": {
+   "intro": "水往低處流，怨氣也一樣。坐在渠首的人能把渠尾需要的水先拿走，所以每個靠灌溉過日子的群體都得議定：誰開閘，按什麼次序，每年春天誰出工清淤。巴厘島的蘇巴克是共用同一水源的農人組織，長期以來一起商定插秧的時間、分配水流，並在整條流域上相互協調。議事不會讓河水變多，但能讓短缺擺到明處，讓輪次可以預期，讓上游的鄰居對下游的人有個交代。"
+  }
+ },
+ {
+  "id": "C009",
+  "en": {
+   "intro": "Once a household holds something that lasts, a field, a herd, a house or a debt, it must decide what happens when its head dies. Clear rules of succession let a family plant trees it will not live to harvest and mend walls for its grandchildren, because the work will not be seized by the first strong claimant. The same rules decide who is left out: younger sons sent away, daughters given a dowry instead of land, or, among the Minangkabau of Sumatra, ancestral land passing from mother to daughter while sons look elsewhere. Debts were inherited too, and could weigh on heirs for generations."
+  },
+  "zh-Hans": {
+   "intro": "一户人家一旦拥有长久的东西——一块田、一群牲口、一所房子、一笔债——就得决定当家人死后怎么办。继承规矩清楚了，一家人才肯种下自己吃不到果子的树，替孙辈修墙，因为这些心血不会被第一个强横的人夺走。同样的规矩也决定了谁被排除在外：幼子被打发出门，女儿只得嫁妆而分不到地；而在苏门答腊的米南加保人中，祖传的田地由母亲传给女儿，儿子另谋出路。债务同样会被继承，有时压得后人好几代喘不过气。"
+  },
+  "zh-Hant": {
+   "intro": "一戶人家一旦擁有長久的東西——一塊田、一群牲口、一所房子、一筆債——就得決定當家人死後怎麼辦。繼承規矩清楚了，一家人才肯種下自己吃不到果子的樹，替孫輩修牆，因為這些心血不會被第一個強橫的人奪走。同樣的規矩也決定了誰被排除在外：幼子被打發出門，女兒只得嫁妝而分不到地；而在蘇門答臘的米南加保人中，祖傳的田地由母親傳給女兒，兒子另謀出路。債務同樣會被繼承，有時壓得後人好幾代喘不過氣。"
+  }
+ },
+ {
+  "id": "C010",
+  "en": {
+   "intro": "A common store becomes something sterner when its rules are fixed in advance: who pays in after a good year, who may draw after a flood, and what happens when the bins run low. The point is to turn charity into an obligation that does not depend on the mood of the powerful. In Song dynasty China, the scholar Zhu Xi set up a community granary in Fujian in 1171, lending grain in spring and taking it back with modest interest after the harvest. Such schemes saved lives while the stocks were real and the accounts honest, and collapsed when their keepers quietly emptied them.",
+   "quote": {
+    "text": "When the granaries are full, people know propriety; when food and clothing are sufficient, they know honour and shame.",
+    "source": "Guanzi, “Shepherding the People”"
+   }
+  },
+  "zh-Hans": {
+   "intro": "当共同的储粮有了事先定好的规矩——丰年谁该交纳，水灾后谁可支取，仓里见底时怎么办——它就变得更硬朗了。要紧的是把施舍变成义务，不再看有权者的脸色。南宋时，朱熹于1171年在福建崇安创设社仓，春天贷出粮食，秋收后连同少量利息收回。这样的办法在仓中真有粮、账目真清楚的时候救活过许多人；一旦主事者暗中把仓掏空，也就随之垮掉。",
+   "quote": {
+    "text": "仓廪实则知礼节，衣食足则知荣辱。",
+    "source": "《管子·牧民》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "當共同的儲糧有了事先定好的規矩——豐年誰該交納，水災後誰可支取，倉裡見底時怎麼辦——它就變得更硬朗了。要緊的是把施捨變成義務，不再看有權者的臉色。南宋時，朱熹於1171年在福建崇安創設社倉，春天貸出糧食，秋收後連同少量利息收回。這樣的辦法在倉中真有糧、賬目真清楚的時候救活過許多人；一旦主事者暗中把倉掏空，也就隨之垮掉。",
+   "quote": {
+    "text": "倉廩實則知禮節，衣食足則知榮辱。",
+    "source": "《管子·牧民》"
+   }
+  }
+ },
+ {
+  "id": "C011",
+  "en": {
+   "intro": "A promise made in private is only as good as memory and nerve. A promise made before witnesses becomes the community's business: if it is broken, others can say what was agreed. Early peoples staged their bargains in public, sealing them with a shared meal, a clasp of hands, an exchanged token or a notched stick split so that each party kept half. When quarrels came, respected elders heard both sides and sought a settlement both families could live with, usually compensation rather than punishment. Among the Nuer of South Sudan, the leopard-skin chief mediated blood feuds by arranging payment in cattle. Mediation persuades; it cannot compel.",
+   "quote": {
+    "text": "A person without good faith: I do not see how such a one can get on.",
+    "source": "Confucius, Analects, Book II"
+   }
+  },
+  "zh-Hans": {
+   "intro": "私下许的诺，靠的只是记性和胆量；当众许下的诺，就成了大家的事：一旦反悔，旁人说得出当初约定了什么。早期的人们把交易摆在明处，用一顿共餐、一次握手、一件交换的信物，或一根刻了痕、劈成两半各执一片的木签来作数。起了争执，有威望的长者听取双方陈述，寻一个两家都过得下去的了结，往往是赔偿而非惩罚。南苏丹的努尔人中，“豹皮酋长”以牛只赔偿来调停血仇。调解背后没有强力，它能劝说，不能强迫。",
+   "quote": {
+    "text": "人而无信，不知其可也。",
+    "source": "《论语·为政》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "私下許的諾，靠的只是記性和膽量；當眾許下的諾，就成了大家的事：一旦反悔，旁人說得出當初約定了什麼。早期的人們把交易擺在明處，用一頓共餐、一次握手、一件交換的信物，或一根刻了痕、劈成兩半各執一片的木籤來作數。起了爭執，有威望的長者聽取雙方陳述，尋一個兩家都過得下去的了結，往往是賠償而非懲罰。南蘇丹的努爾人中，「豹皮酋長」以牛隻賠償來調停血仇。調解背後沒有強力，它能勸說，不能強迫。",
+   "quote": {
+    "text": "人而無信，不知其可也。",
+    "source": "《論語·為政》"
+   }
+  }
+ },
+ {
+  "id": "C012",
+  "en": {
+   "intro": "Strangers are useful and dangerous in roughly equal measure. They bring salt, news and new techniques, and they may also bring disease, spies or a raiding party. Customs of reception turn the encounter into a ritual with rules: arrival announced, weapons set aside, food offered, a host made answerable for the guest's conduct and safety. Among the Pashtun, the code of melmastia obliges hospitality even to an enemy who asks for it. Such customs open a narrow door for trade and learning without handing out membership, land or trust. Guests leave; that is part of the arrangement."
+  },
+  "zh-Hans": {
+   "intro": "外来者带来的好处和危险，大约一样多。他们带来盐、消息和新手艺，也可能带来疾病、探子或一支劫掠的队伍。接待的习俗把相遇变成一套有规矩的仪式：先通报来意，放下兵器，奉上食物，由一位主人为客人的言行和安全担保。普什图人的待客之道要求，即便是仇人登门求助，也须款待。这类习俗为贸易和学习开了一扇窄门，却不因此给予成员身份、土地或信任。客人终究要走，这本身就是约定的一部分。"
+  },
+  "zh-Hant": {
+   "intro": "外來者帶來的好處和危險，大約一樣多。他們帶來鹽、訊息和新手藝，也可能帶來疾病、探子或一支劫掠的隊伍。接待的習俗把相遇變成一套有規矩的儀式：先通報來意，放下兵器，奉上食物，由一位主人為客人的言行和安全擔保。普什圖人的待客之道要求，即便是仇人登門求助，也須款待。這類習俗為貿易和學習開了一扇窄門，卻不因此給予成員身份、土地或信任。客人終究要走，這本身就是約定的一部分。"
+  }
+ },
+ {
+  "id": "C013",
+  "en": {
+   "intro": "Memory dies with the people who hold it; an office outlives them. Once a community appoints recorders and keeps their tallies, tablets or knotted cords where others can check them, debts, duties and past decisions survive the death of everyone involved. In the Inca state, specialists called khipukamayuq kept knotted-string records of tribute, labour and stores, and read them out when asked. Records shift power in two directions at once. They let the weak point to what was promised, and they let whoever controls the storeroom decide what is remembered, what is mislaid and what is never set down at all."
+  },
+  "zh-Hans": {
+   "intro": "记忆随掌握它的人一同死去，官署却活得比人长久。一个群体一旦任命记录员，并把他们的刻符、泥板或结绳存放在旁人可以查核的地方，债务、职责和过往的裁定便能在当事人全部过世之后依然留存。印加国家有一批称为“奇普卡马约克”的专门人员，用绳结记录贡赋、劳役和库存，需要时当众解读。记录同时朝两个方向改变权力：它让弱者能指出当初的承诺，也让掌管库房的人决定什么被记住，什么被弄丢，什么从来没被记下。"
+  },
+  "zh-Hant": {
+   "intro": "記憶隨掌握它的人一同死去，官署卻活得比人長久。一個群體一旦任命記錄員，並把他們的刻符、泥板或結繩存放在旁人可以查核的地方，債務、職責和過往的裁定便能在當事人全部過世之後依然留存。印加國家有一批稱為「奇普卡馬約克」的專門人員，用繩結記錄貢賦、勞役和庫存，需要時當眾解讀。記錄同時朝兩個方向改變權力：它讓弱者能指出當初的承諾，也讓掌管庫房的人決定什麼被記住，什麼被弄丟，什麼從來沒被記下。"
+  }
+ },
+ {
+  "id": "C014",
+  "en": {
+   "intro": "When a faith gathers enough followers and enough provision, it tends to build institutions that outlast any preacher: kitchens, hostels, almshouses, and rooms where the young learn to recite sacred texts. The Sikh langar, a free communal kitchen at every gurdwara, has fed all comers seated together on the floor since the sixteenth century. Buddhist monasteries across Asia stored grain, sheltered travellers and trained novices. Such organizations reach people that rulers ignore. They also draw lines: relief may favour the faithful, and teaching follows doctrine, so what is learned depends on what the founders permitted."
+  },
+  "zh-Hans": {
+   "intro": "一种信仰一旦聚集了足够多的信众和供给，往往会建立比任何一位传道者都长久的机构：施食的厨房、收留行旅的客舍、救济院，还有教年轻人诵读经典的屋子。锡克教每座谒师所都设有“朗格尔”免费公厨，自十六世纪以来，来者不论身份，同席坐地而食。遍布亚洲的佛教寺院也曾储粮、收留行旅、培养沙弥。这样的组织照顾到官府顾不上的人，却也划出界线：救济可能偏向本教信众，教学跟着教义走，学到什么，取决于创立者允许什么。"
+  },
+  "zh-Hant": {
+   "intro": "一種信仰一旦聚集了足夠多的信眾和供給，往往會建立比任何一位傳道者都長久的機構：施食的廚房、收留行旅的客舍、救濟院，還有教年輕人誦讀經典的屋子。錫克教每座謁師所都設有「朗格爾」免費公廚，自十六世紀以來，來者不論身份，同席坐地而食。遍佈亞洲的佛教寺院也曾儲糧、收留行旅、培養沙彌。這樣的組織照顧到官府顧不上的人，卻也劃出界線：救濟可能偏向本教信眾，教學跟著教義走，學到什麼，取決於創立者允許什麼。"
+  }
+ },
+ {
+  "id": "C015",
+  "en": {
+   "intro": "Neighbours who are not kin and share no creed can still agree to catch one another when they fall. Members pay in regularly, in grain, coin or labour, and draw out when sickness, fire or a funeral comes. Rotating savings clubs run on the same trust: the Yoruba esusu, and similar circles across West Africa and the Caribbean, let each member take the whole pot in turn. Mutual aid of this kind costs real effort. Someone must collect, keep accounts and chase the member who stops paying, and a club is only as solvent as its worst season."
+  },
+  "zh-Hans": {
+   "intro": "不是亲戚、也不同信仰的邻居，照样可以约好在彼此跌倒时伸手接住。成员定期交纳粮食、钱或劳力，遇上疾病、火灾或丧事时再支取。轮流储蓄的会社靠的也是这份信任：约鲁巴人的“埃苏苏”以及西非和加勒比各地类似的会，让每个成员轮流拿走整笔会钱。这种互助运转起来要花真力气：总得有人收钱、记账，去追讨那个不再交纳的成员；一个会能撑多久，取决于它最难熬的那一季。"
+  },
+  "zh-Hant": {
+   "intro": "不是親戚、也不同信仰的鄰居，照樣可以約好在彼此跌倒時伸手接住。成員定期交納糧食、錢或勞力，遇上疾病、火災或喪事時再支取。輪流儲蓄的會社靠的也是這份信任：約魯巴人的「埃蘇蘇」以及西非和加勒比各地類似的會，讓每個成員輪流拿走整筆會錢。這種互助運轉起來要花真力氣：總得有人收錢、記賬，去追討那個不再交納的成員；一個會能撐多久，取決於它最難熬的那一季。"
+  }
+ },
+ {
+  "id": "C016",
+  "en": {
+   "intro": "A community that cannot afford full-time soldiers can still defend itself by taking turns. Every eligible household sends someone for a season, a night watch or a campaign, and a roll shows who has served and who still owes. The same principle raised labour for walls and canals. In classical Athens, citizens were expected to arm themselves at their own cost and serve when called, and the city's strength rested on that shared burden. Rotation spreads risk, but never evenly: the rich buy substitutes, exemptions multiply, arrears pile up, and a service that began as a duty can harden into coercion."
+  },
+  "zh-Hans": {
+   "intro": "养不起常备兵的群体，可以靠轮班来保卫自己。每户合格的人家出一个人，守一季、值一夜或随一次出征，名册上记着谁服过役、谁还欠着。同样的办法也用来征集修城挖渠的劳力。在古典时代的雅典，公民须自备武装、应召出战，城邦的力量就建立在这份共同承担的负担上。轮值分摊了风险，却从不均匀：富人雇人顶替，豁免越来越多，欠役越积越多，起初的义务也可能慢慢变成强迫。"
+  },
+  "zh-Hant": {
+   "intro": "養不起常備兵的群體，可以靠輪班來保衛自己。每戶合格的人家出一個人，守一季、值一夜或隨一次出征，名冊上記著誰服過役、誰還欠著。同樣的辦法也用來徵集修城挖渠的勞力。在古典時代的雅典，公民須自備武裝、應召出戰，城邦的力量就建立在這份共同承擔的負擔上。輪值分攤了風險，卻從不均勻：富人僱人頂替，豁免越來越多，欠役越積越多，起初的義務也可能慢慢變成強迫。"
+  }
+ },
+ {
+  "id": "C017",
+  "en": {
+   "intro": "Land cannot be moved, but the right to use it can. Once boundaries are agreed and terms set down, a family with more fields than hands can lease some to a family with more hands than fields, and both are better off. Tenants who know their terms will last can afford to drain, manure and terrace. Old Babylonian clay tablets record many field leases with rent paid as a share of the harvest, often a third or a half. A contract creates no new land, though. It moves existing rights around, and when lenders and landlords hold the pen, the terms tend to favour them."
+  },
+  "zh-Hans": {
+   "intro": "土地搬不走，使用土地的权利却可以转手。一旦地界议定、条款写明，田多人少的人家就能把一部分地租给人多田少的人家，两边都得益。佃户若知道租约会长久有效，才肯花力气排水、施肥、修梯田。古巴比伦时期的泥板记录了许多田地租约，租金以收成的一定份额交付，常见三分之一或一半。可契约并不创造新的土地，它只是挪动既有的权利；笔若握在债主和地主手里，条款往往偏向他们。"
+  },
+  "zh-Hant": {
+   "intro": "土地搬不走，使用土地的權利卻可以轉手。一旦地界議定、條款寫明，田多人少的人家就能把一部分地租給人多田少的人家，兩邊都得益。佃戶若知道租約會長久有效，才肯花力氣排水、施肥、修梯田。古巴比倫時期的泥板記錄了許多田地租約，租金以收成的一定份額交付，常見三分之一或一半。可契約並不創造新的土地，它只是挪動既有的權利；筆若握在債主和地主手裡，條款往往偏向他們。"
+  }
+ },
+ {
+  "id": "C018",
+  "en": {
+   "intro": "When enough potters, weavers or smiths crowd into one town, they start to organize: agreeing on standards, training apprentices, deciding who may sell in the market and caring for members' widows. Guilds protected quality and gave craftsmen collective weight against merchants and lords. In medieval Europe a journeyman often had to submit a \"masterpiece\", a finished work assessed by the masters, before he could open his own shop. The walls that kept bad work out kept outsiders out too. Entry fees, limited places and family preference turned many guilds into closed circles guarding a monopoly."
+  },
+  "zh-Hans": {
+   "intro": "当足够多的陶工、织工或铁匠聚在一座城里，他们就开始组织起来：议定标准，培养学徒，规定谁可以在市集上出售，照顾成员的遗孀。行会守住了质量，也让工匠在商人和领主面前有了集体的分量。中世纪欧洲的帮工往往要交出一件由师傅们评定的“杰作”，才能开设自己的作坊。挡住劣货的那堵墙，也挡住了外人：入会费、有限的名额和对亲属的偏爱，让许多行会变成守着垄断的封闭圈子。"
+  },
+  "zh-Hant": {
+   "intro": "當足夠多的陶工、織工或鐵匠聚在一座城裡，他們就開始組織起來：議定標準，培養學徒，規定誰可以在市集上出售，照顧成員的遺孀。行會守住了品質，也讓工匠在商人和領主面前有了集體的分量。中世紀歐洲的幫工往往要交出一件由師傅們評定的「傑作」，才能開設自己的作坊。擋住劣貨的那堵牆，也擋住了外人：入會費、有限的名額和對親屬的偏愛，讓許多行會變成守著壟斷的封閉圈子。"
+  }
+ },
+ {
+  "id": "C019",
+  "en": {
+   "intro": "Packing thousands of people together creates problems no household can solve alone: water must arrive, waste must leave, streets must stay passable, and fires must be fought before they spread. Towns answered by stretching old village duties of shared upkeep into standing offices and obligations. In republican Rome, the aediles answered for streets, markets and public games, and householders were obliged to keep the stretch of street before their own doors in repair. Titles alone cleaned nothing. What mattered was whether their holders had staff, materials and the authority to make neighbours pay their share.",
+   "quote": {
+    "text": "Man is by nature a political animal.",
+    "source": "Aristotle, Politics, Book I (tr. Benjamin Jowett, 1885)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "成千上万人挤在一处，便生出任何一户都解决不了的问题：水要引进来，污物要运出去，街道要保持通行，火要在蔓延之前扑灭。城镇的回答，是把村落里共同维护的老义务扩展成常设的职守。在共和时代的罗马，营造官负责街道、市场和公共竞技，而各家各户有义务把自家门前的那一段街道修好。头衔本身清扫不了任何东西，要紧的是任职的人有没有人手、材料，以及让邻里分担费用的权威。",
+   "quote": {
+    "text": "人天生是政治的动物。",
+    "source": "亚里士多德《政治学》第一卷"
+   }
+  },
+  "zh-Hant": {
+   "intro": "成千上萬人擠在一處，便生出任何一戶都解決不了的問題：水要引進來，汙物要運出去，街道要保持通行，火要在蔓延之前撲滅。城鎮的回答，是把村落裡共同維護的老義務擴展成常設的職守。在共和時代的羅馬，營造官負責街道、市場和公共競技，而各家各戶有義務把自家門前的那一段街道修好。頭銜本身清掃不了任何東西，要緊的是任職的人有沒有人手、材料，以及讓鄰里分擔費用的權威。",
+   "quote": {
+    "text": "人天生是政治的動物。",
+    "source": "亞里士多德《政治學》第一卷"
+   }
+  }
+ },
+ {
+  "id": "C020",
+  "en": {
+   "intro": "Rules that live only in the memory of elders can be bent by whoever the elders fear. Writing them down and following fixed steps, hearing the complaint, summoning the parties, weighing the evidence, recording the outcome, makes justice more predictable, if not always fairer. Hammurabi's stele, set up around 1750 BC, displayed nearly three hundred rulings in public stone and invited a wronged man to have its words read to him. Procedure binds the strong a little, which is why they work so hard to control who may bring a case, who interprets the words and who carries out the sentence.",
+   "quote": {
+    "text": "To no one will we sell, to no one will we refuse or delay, right or justice.",
+    "source": "Magna Carta (1215), clause 40"
+   }
+  },
+  "zh-Hans": {
+   "intro": "只活在长老记忆里的规矩，很容易被长老所畏惧的人扭弯。把规矩写下来，并按既定步骤办事——受理申诉、传唤双方、权衡证据、记下结果——裁断就变得可以预期，虽然未必更公平。约公元前1750年立起的汉谟拉比石碑，把近三百条判例刻在公开的石头上，还请受了冤屈的人到碑前，让人把碑文念给他听。程序多少束缚了强者，所以强者总是费尽心思去掌控谁能告状、谁来解释条文、谁去执行判决。",
+   "quote": {
+    "text": "我们不向任何人出卖、也不对任何人拒绝或拖延权利与公正。",
+    "source": "《大宪章》（1215）第四十条"
+   }
+  },
+  "zh-Hant": {
+   "intro": "只活在長老記憶裡的規矩，很容易被長老所畏懼的人扭彎。把規矩寫下來，並按既定步驟辦事——受理申訴、傳喚雙方、權衡證據、記下結果——裁斷就變得可以預期，雖然未必更公平。約公元前1750年立起的漢謨拉比石碑，把近三百條判例刻在公開的石頭上，還請受了冤屈的人到碑前，讓人把碑文念給他聽。程序多少束縛了強者，所以強者總是費盡心思去掌控誰能告狀、誰來解釋條文、誰去執行判決。",
+   "quote": {
+    "text": "我們不向任何人出賣、也不對任何人拒絕或拖延權利與公正。",
+    "source": "《大憲章》（1215）第四十條"
+   }
+  }
+ },
+ {
+  "id": "C021",
+  "en": {
+   "intro": "Trade between strangers founders on one fear: who hands over first? Escrow answers by placing goods or payment with a trusted keeper who releases them only when both sides have done their part. Merchant arbitration lets disputes be settled by people who know the trade, and settled fast. English fairs held \"piepowder courts\", named for the dusty feet of travelling dealers, which decided a quarrel before the fair packed up and the parties vanished. These services cost space, staff and reputation, and they work only where the keeper can be reached and trusted; war or isolation can strand goods in the middle of a deal."
+  },
+  "zh-Hans": {
+   "intro": "陌生人之间做买卖，卡在一个担心上：谁先交货？第三方托管的办法，是把货物或货款交给一个可信的保管人，等双方都履约了才放出。商事仲裁则让懂行的人来了结纠纷，而且要快。英格兰的集市设有“灰脚法庭”，得名于四处奔走的商贩满脚尘土，要赶在集市收摊、当事人散去之前把争执断清。这类服务要占用场地、人手和名声，只有在保管人找得到、信得过的地方才管用；战争或隔绝都可能让货物困在半途。"
+  },
+  "zh-Hant": {
+   "intro": "陌生人之間做買賣，卡在一個擔心上：誰先交貨？第三方託管的辦法，是把貨物或貨款交給一個可信的保管人，等雙方都履約了才放出。商事仲裁則讓懂行的人來了結糾紛，而且要快。英格蘭的集市設有「灰腳法庭」，得名於四處奔走的商販滿腳塵土，要趕在集市收攤、當事人散去之前把爭執斷清。這類服務要佔用場地、人手和名聲，只有在保管人找得到、信得過的地方才管用；戰爭或隔絕都可能讓貨物困在半途。"
+  }
+ },
+ {
+  "id": "C022",
+  "en": {
+   "intro": "A merchant who sends everything on one ship can lose everything when it sinks. Pooling money and goods with others spreads the risk and makes larger ventures possible, provided everyone trusts the accounts. Medieval Mediterranean traders used the commenda: a stay-at-home investor supplied capital, a travelling partner supplied labour and nerve, and profits were split as agreed when the voyage returned. Assyrian merchants trading at Kanesh in Anatolia ran long-term pooled funds as early as the nineteenth century BC. Pooling creates no wealth by itself. It gathers what already exists, and when a venture fails, the losses must fall where the agreed shares say."
+  },
+  "zh-Hans": {
+   "intro": "把全部身家装上一艘船的商人，船一沉就血本无归。把钱和货跟别人合在一起，风险就分散了，更大的买卖也做得成，前提是人人信得过账目。中世纪地中海的商人用一种叫“康曼达”的合约：坐地的出资人出本钱，远行的合伙人出力气和胆量，船回来后按约分利。早在公元前十九世纪，在安纳托利亚的卡内什经商的亚述人就有长期的合股资金。合股本身不创造财富，它只是把已有的聚拢起来；买卖失败时，亏损也得按约定的份额落到各人头上。"
+  },
+  "zh-Hant": {
+   "intro": "把全部身家裝上一艘船的商人，船一沉就血本無歸。把錢和貨跟別人合在一起，風險就分散了，更大的買賣也做得成，前提是人人信得過賬目。中世紀地中海的商人用一種叫「康曼達」的合約：坐地的出資人出本錢，遠行的合夥人出力氣和膽量，船回來後按約分利。早在公元前十九世紀，在安納托利亞的卡內什經商的亞述人就有長期的合股資金。合股本身不創造財富，它只是把已有的聚攏起來；買賣失敗時，虧損也得按約定的份額落到各人頭上。"
+  }
+ },
+ {
+  "id": "C023",
+  "en": {
+   "intro": "An apprentice learns one master's craft; a school teaches a set course to whoever enrols, year after year, from texts and records that do not vanish when a teacher dies. That repeatability is the breakthrough. Sumerian scribal schools, known as the \"tablet house\", drilled pupils through copied word lists, proverbs and sums, and some of their exercise tablets survive with a teacher's model beside the pupil's attempt. A school needs fed students, paid teachers, a lasting building and reliable texts, so for most of history only a few could attend. One schoolroom educates a handful; it does not make a lettered people.",
+   "quote": {
+    "text": "Jade that is not carved does not become a vessel; a person who does not learn does not know the Way.",
+    "source": "Book of Rites, “Record of Learning”"
+   }
+  },
+  "zh-Hans": {
+   "intro": "学徒学的是一位师傅的手艺；学校却年复一年，按一套既定的课程教给任何入学的人，靠的是不会因教师去世而消失的教材和记录。这种可重复，正是突破所在。苏美尔人的书吏学校被称为“泥板之家”，学生在那里抄词表、抄谚语、做算题，留存至今的一些习字泥板上，老师的范本和学生的摹写并排而列。学校需要有饭吃的学生、有报酬的教师、长久的校舍和可靠的教材，所以在历史上大多数时候，只有少数人上得起。一间学堂只能教出几个人，造不出一个人人读书的民族。",
+   "quote": {
+    "text": "玉不琢，不成器；人不学，不知道。",
+    "source": "《礼记·学记》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "學徒學的是一位師傅的手藝；學校卻年復一年，按一套既定的課程教給任何入學的人，靠的是不會因教師去世而消失的教材和記錄。這種可重複，正是突破所在。蘇美爾人的書吏學校被稱為「泥板之家」，學生在那裡抄詞表、抄諺語、做算題，留存至今的一些習字泥板上，老師的範本和學生的摹寫並排而列。學校需要有飯吃的學生、有報酬的教師、長久的校舍和可靠的教材，所以在歷史上大多數時候，只有少數人上得起。一間學堂只能教出幾個人，造不出一個人人讀書的民族。",
+   "quote": {
+    "text": "玉不琢，不成器；人不學，不知道。",
+    "source": "《禮記·學記》"
+   }
+  }
+ },
+ {
+  "id": "C024",
+  "en": {
+   "intro": "Knowledge is scattered across languages, and every border it crosses costs a translator's years. Gathering texts from distant regions, rendering them faithfully and storing them where others can consult them multiplies what a community can know without having to rediscover it. In ninth-century Baghdad, Hunayn ibn Ishaq and his circle turned Greek medical and philosophical works into Syriac and Arabic, comparing several manuscripts to establish a sound text. Translation is never neutral or free. Errors propagate, rival versions compete, and copies must be paid for, housed and protected, or a whole borrowed tradition can vanish in a single fire."
+  },
+  "zh-Hans": {
+   "intro": "知识散落在不同的语言里，它每跨过一道边界，都要耗去译者多年的光阴。把远方的文献搜集起来，忠实地译出，存放在旁人可以查阅的地方，一个群体不必重新发现，就能知道得多得多。九世纪的巴格达，侯奈因·伊本·伊斯哈格和他的同道把希腊的医学与哲学著作译成叙利亚文和阿拉伯文，还比对多种抄本以求可靠的文本。翻译从来不是中立的，也不是免费的：错误会一路流传，不同译本互相争胜，抄本要花钱、要安置、要保护，否则一场大火就能让整套借来的传统化为乌有。"
+  },
+  "zh-Hant": {
+   "intro": "知識散落在不同的語言裡，它每跨過一道邊界，都要耗去譯者多年的光陰。把遠方的文獻蒐集起來，忠實地譯出，存放在旁人可以查閱的地方，一個群體不必重新發現，就能知道得多得多。九世紀的巴格達，侯奈因·伊本·伊斯哈格和他的同道把希臘的醫學與哲學著作譯成敘利亞文和阿拉伯文，還比對多種抄本以求可靠的文字。翻譯從來不是中立的，也不是免費的：錯誤會一路流傳，不同譯本互相爭勝，抄本要花錢、要安置、要保護，否則一場大火就能讓整套借來的傳統化為烏有。"
+  }
+ },
+ {
+  "id": "C025",
+  "en": {
+   "intro": "Choosing people by birth or favour is easy; choosing them by what they can actually do takes a test. An examination sets a task that can be judged, and in principle anyone who passes may hold the post. Imperial China ran the most famous system. From the Sui and Tang dynasties onward candidates sat written examinations, and under the Song their names were sealed and their papers recopied by clerks so that graders could not recognize a friend's handwriting. Tests reward what they measure and nothing else. Families who can afford years of study capture them, and a certificate earned long ago says little about skill today."
+  },
+  "zh-Hans": {
+   "intro": "凭出身或恩宠挑人很容易；要看一个人实际能做什么，就得考。考试设定一项可以评判的任务，原则上谁通过了，谁就能任职。中国的科举最为著名：自隋唐起，应考者参加笔试；到了宋代，试卷要糊名，再由书吏誊录，考官便认不出熟人的笔迹。考试只奖励它所测量的东西。供得起多年苦读的家族会把它把持住，而一张多年前取得的凭证，也说明不了今天的本事。"
+  },
+  "zh-Hant": {
+   "intro": "憑出身或恩寵挑人很容易；要看一個人實際能做什麼，就得考。考試設定一項可以評判的任務，原則上誰通過了，誰就能任職。中國的科舉最為著名：自隋唐起，應考者參加筆試；到了宋代，試卷要糊名，再由書吏謄錄，考官便認不出熟人的筆跡。考試只獎勵它所測量的東西。供得起多年苦讀的家族會把它把持住，而一張多年前取得的憑證，也說明不了今天的本事。"
+  }
+ },
+ {
+  "id": "C026",
+  "en": {
+   "intro": "A state that collects taxes in grain, cloth and labour from a thousand villages needs people who do nothing else: counting, storing, moving, auditing. Specialized offices with written budgets let rulers know what they have before they spend it, and let local and central tasks be divided rather than fought over. Ming China's Yellow Registers, compiled every ten years, listed households and their tax and labour obligations across the empire. Bureaucracy has a poor reputation and earns some of it. Collecting, tallying and checking eat hours, the numbers drift from reality, and an office can come to serve itself instead of the work it records."
+  },
+  "zh-Hans": {
+   "intro": "一个国家要从上千个村庄征收粮食、布匹和劳役，就需要一批专干这件事的人：清点、储存、转运、审核。有了专门的官署和成文的预算，统治者在花钱之前就知道手里有多少，地方与中央的事务也能分工，而不是互相争抢。明代的黄册每十年编造一次，载录全国人户及其赋役。官僚体制名声不好，也有几分是自找的：征收、统计和核对都吞噬工时，数字会慢慢偏离实情，一个衙门也可能转而为自己服务，而不是为它所记录的事务服务。"
+  },
+  "zh-Hant": {
+   "intro": "一個國家要從上千個村莊徵收糧食、布匹和勞役，就需要一批專幹這件事的人：清點、儲存、轉運、審核。有了專門的官署和成文的預算，統治者在花錢之前就知道手裡有多少，地方與中央的事務也能分工，而不是互相爭搶。明代的黃冊每十年編造一次，載錄全國人戶及其賦役。官僚體制名聲不好，也有幾分是自找的：徵收、統計和核對都吞噬工時，數字會慢慢偏離實情，一個衙門也可能轉而為自己服務，而不是為它所記錄的事務服務。"
+  }
+ },
+ {
+  "id": "C027",
+  "en": {
+   "intro": "Study that pays off only after decades needs someone willing to wait. Rulers, wealthy families and civic treasuries have funded scholars, libraries and instruments, and colleges gave learning a permanent address, with salaries, rules and successors. Nalanda in Bihar drew students from across Asia for centuries, supported by the revenues of villages granted to it by kings. Patronage buys time, not truth. Sponsors choose the questions they want answered and sometimes the answers too, and a college full of learned people knows only what it has managed to test. When the money moves, the scholars often follow it.",
+   "quote": {
+    "text": "The End of our Foundation is the knowledge of Causes, and secret motions of things; and the enlarging of the bounds of Human Empire, to the effecting of all things possible.",
+    "source": "Francis Bacon, New Atlantis (1627)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "要几十年后才见成效的学问，需要有人肯等。君王、富家和城邦的公库曾出资供养学者、藏书和仪器，学院则让学问有了固定的门牌：俸禄、规章和传人。比哈尔的那烂陀数百年间吸引着亚洲各地的学子，靠的是君王捐赠给它的村庄所纳的租赋。资助买到的是时间，不是真理。出资者挑选他们想要解答的问题，有时连答案也一并挑好；一所满是饱学之士的学院，所知道的也只是它设法检验过的东西。钱一挪走，学者往往也跟着走。",
+   "quote": {
+    "text": "我们这所机构的宗旨，在于认识事物的原因与隐秘的运动，扩展人类统御的疆界，以成就一切可能之事。",
+    "source": "弗朗西斯·培根《新大西岛》（1627）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "要幾十年後才見成效的學問，需要有人肯等。君王、富家和城邦的公庫曾出資供養學者、藏書和儀器，學院則讓學問有了固定的門牌：俸祿、規章和傳人。比哈爾的那爛陀數百年間吸引著亞洲各地的學子，靠的是君王捐贈給它的村莊所納的租賦。資助買到的是時間，不是真理。出資者挑選他們想要解答的問題，有時連答案也一併挑好；一所滿是飽學之士的學院，所知道的也只是它設法檢驗過的東西。錢一挪走，學者往往也跟著走。",
+   "quote": {
+    "text": "我們這所機構的宗旨，在於認識事物的原因與隱秘的運動，擴展人類統御的疆界，以成就一切可能之事。",
+    "source": "弗朗西斯·培根《新大西島》（1627）"
+   }
+  }
+ },
+ {
+  "id": "C028",
+  "en": {
+   "intro": "Ideas improve when people who disagree may say so in front of others and survive the experience. Public argument puts claims where rivals can attack them, and peer criticism turns that attack into a duty rather than an insult. In Tibetan Buddhist debate, a standing challenger presses a seated defender, punctuating each point with a loud clap, and a feeble reply draws laughter from the courtyard. Argument sharpens questions and exposes muddle, but it cannot settle how heavy a stone is; only measurement does that. It also needs real room for dissent, which the powerful rarely grant without a struggle.",
+   "quote": {
+    "text": "Give me the liberty to know, to utter, and to argue freely according to conscience, above all liberties.",
+    "source": "John Milton, Areopagitica (1644)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "持不同意见的人能当众说出来，而且说完还平安无事，思想才会进步。公开论辩把主张摆到对手可以攻击的地方，同行批评则把这种攻击变成一种本分，而不是冒犯。在藏传佛教的辩经中，站着的发问者向坐着的答辩者步步进逼，每说一句便重重击掌，答得软弱便会引来满院的笑声。论辩能磨利问题、揭穿糊涂，却定不了一块石头有多重，那只能靠测量。它还需要容得下异议的真实空间，而有权势者很少不经一番争斗就让出这片空间。",
+   "quote": {
+    "text": "给我依良心自由地认识、表达和辩论的自由，这是高于一切的自由。",
+    "source": "约翰·弥尔顿《论出版自由》（1644）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "持不同意見的人能當眾說出來，而且說完還平安無事，思想才會進步。公開論辯把主張擺到對手可以攻擊的地方，同行批評則把這種攻擊變成一種本分，而不是冒犯。在藏傳佛教的辯經中，站著的發問者向坐著的答辯者步步進逼，每說一句便重重擊掌，答得軟弱便會引來滿院的笑聲。論辯能磨利問題、揭穿糊塗，卻定不了一塊石頭有多重，那隻能靠測量。它還需要容得下異議的真實空間，而有權勢者很少不經一番爭鬥就讓出這片空間。",
+   "quote": {
+    "text": "給我依良心自由地認識、表達和辯論的自由，這是高於一切的自由。",
+    "source": "約翰·彌爾頓《論出版自由》（1644）"
+   }
+  }
+ },
+ {
+  "id": "C029",
+  "en": {
+   "intro": "A result that only its discoverer can produce is a rumour with good manners. Reproducible-evidence communities insist that methods be described fully enough for strangers to repeat them, that failures be reported, and that a claim stands only after independent teams get the same answer. When Robert Boyle published his air-pump experiments in 1660, he described them in deliberate detail and named the people present, so that others could judge and try them. The habit is expensive: repeating someone else's work earns little glory and consumes budgets. And no vote, however large, can make nature agree.",
+   "quote": {
+    "text": "Nullius in verba: take nobody's word for it.",
+    "source": "Motto of the Royal Society of London (1663), after Horace, Epistles I.1"
+   }
+  },
+  "zh-Hans": {
+   "intro": "只有发现者本人才做得出来的结果，不过是一则举止得体的传闻。可复现证据共同体要求：方法要写得足够完整，让陌生人也能照做；失败要如实报告；一项主张要等独立的团队得出同样的答案，才算站得住。1660年罗伯特·玻意耳发表他的抽气机实验时，特意写得巨细无遗，还列出在场的人，好让旁人评判、重做。这种习惯代价不小：重复别人的工作没什么荣耀，还要消耗预算。而无论票数多大，投票都不能让自然点头。",
+   "quote": {
+    "text": "不凭任何人的一面之词。",
+    "source": "伦敦皇家学会箴言“Nullius in verba”（1663），语出贺拉斯《书信集》第一卷第一首"
+   }
+  },
+  "zh-Hant": {
+   "intro": "只有發現者本人才做得出來的結果，不過是一則舉止得體的傳聞。可復現證據共同體要求：方法要寫得足夠完整，讓陌生人也能照做；失敗要如實報告；一項主張要等獨立的團隊得出同樣的答案，才算站得住。1660年羅伯特·玻意耳發表他的抽氣機實驗時，特意寫得鉅細無遺，還列出在場的人，好讓旁人評判、重做。這種習慣代價不小：重複別人的工作沒什麼榮耀，還要消耗預算。而無論票數多大，投票都不能讓自然點頭。",
+   "quote": {
+    "text": "不憑任何人的一面之詞。",
+    "source": "倫敦皇家學會箴言「Nullius in verba」（1663），語出賀拉斯《書信集》第一卷第一首"
+   }
+  }
+ },
+ {
+  "id": "C030",
+  "en": {
+   "intro": "The dyer knows acids, the smith knows heat, the glassworker knows sand, and each guards those secrets as a livelihood. Bring them together and a problem one trade finds impossible may be routine for another. Sharing across crafts weakens the monopolies guilds were built to protect, so it usually needs something in return: payment, reciprocity, or a promise not to pass the trick on. Venice was so anxious to keep its glassmakers' methods on the island of Murano that it forbade the craftsmen to leave the republic. Exchange combines specialities, and it also leaks them.",
+   "quote": {
+    "text": "When three of us walk together, one of the others is sure to be my teacher.",
+    "source": "Confucius, Analects, Book VII"
+   }
+  },
+  "zh-Hans": {
+   "intro": "染工懂酸，铁匠懂火，玻璃匠懂沙，各自把这些诀窍当饭碗守着。把他们聚到一起，某一行束手无策的难题，在另一行可能只是家常便饭。跨行交流削弱了行会原本要守护的垄断，所以通常要有所回报：报酬、互惠，或者答应不把窍门外传。威尼斯为了把玻璃匠的手艺留在穆拉诺岛上，竟然禁止这些工匠离开共和国。交流把各门专长结合起来，也让它们泄露出去。",
+   "quote": {
+    "text": "三人行，必有我师焉。",
+    "source": "《论语·述而》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "染工懂酸，鐵匠懂火，玻璃匠懂沙，各自把這些訣竅當飯碗守著。把他們聚到一起，某一行束手無策的難題，在另一行可能只是家常便飯。跨行交流削弱了行會原本要守護的壟斷，所以通常要有所回報：報酬、互惠，或者答應不把竅門外傳。威尼斯為了把玻璃匠的手藝留在穆拉諾島上，竟然禁止這些工匠離開共和國。交流把各門專長結合起來，也讓它們洩露出去。",
+   "quote": {
+    "text": "三人行，必有我師焉。",
+    "source": "《論語·述而》"
+   }
+  }
+ },
+ {
+  "id": "C031",
+  "en": {
+   "intro": "Once a technique can be taught, someone will want to sell the teaching without giving away the whole trade. Licences divide a bundle of things that used to travel together: the right to use a method, the drawings, the hands-on instruction, the guarantee that it works. The Republic of Venice passed one of the first general patent laws in 1474, granting the inventor of a new device ten years' protection once it was registered and shown to work. Such rights are bounded by design and by nature. They last only as long as someone can enforce them, and no contract can make a trained mind forget what it has seen.",
+   "quote": {
+    "text": "He who receives an idea from me, receives instruction himself without lessening mine; as he who lights his taper at mine, receives light without darkening me.",
+    "source": "Thomas Jefferson, letter to Isaac McPherson (13 August 1813)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "一门技术一旦能够传授，就会有人想出售传授本身，又不想把整门行当拱手送人。许可把过去捆在一起的东西拆开来：使用某种方法的权利、图纸、手把手的传授、管用的担保。威尼斯共和国在1474年颁布了最早的通行专利法令之一，新装置经呈报备案、证明可用之后，发明者可获十年保护。这类权利既受设计的约束，也受本性的约束：只有在有人能够执行的时候才算数，而任何契约都不能让一个受过训练的头脑忘掉它见过的东西。",
+   "quote": {
+    "text": "从我这里得到一个想法的人，自己受了教益，却并不减少我的所有；正如在我的烛火上点燃蜡烛的人，得到了光亮，却并不使我陷入黑暗。",
+    "source": "托马斯·杰斐逊致艾萨克·麦克弗森的信（1813年8月13日）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "一門技術一旦能夠傳授，就會有人想出售傳授本身，又不想把整門行當拱手送人。許可把過去捆在一起的東西拆開來：使用某種方法的權利、圖紙、手把手的傳授、管用的擔保。威尼斯共和國在1474年頒佈了最早的通行專利法令之一，新裝置經呈報備案、證明可用之後，發明者可獲十年保護。這類權利既受設計的約束，也受本性的約束：只有在有人能夠執行的時候才算數，而任何契約都不能讓一個受過訓練的頭腦忘掉它見過的東西。",
+   "quote": {
+    "text": "從我這裡得到一個想法的人，自己受了教益，卻並不減少我的所有；正如在我的燭火上點燃蠟燭的人，得到了光亮，卻並不使我陷入黑暗。",
+    "source": "托馬斯·傑斐遜致艾薩克·麥克弗森的信（1813年8月13日）"
+   }
+  }
+ },
+ {
+  "id": "C032",
+  "en": {
+   "intro": "Teaching every child to read and reckon sounds like a single decision. In practice it means training teachers by the thousand, producing cheap books, building rooms and persuading families to give up a child's labour for years. Prussia made schooling compulsory in the eighteenth century, yet enforcement took generations. Japan's Education Order of 1872 aimed at a country with no household lacking learning, and in some districts parents rioted over the fees and the lost labour. Basic education widens who can take part in public life. A law cannot graduate anyone, though, and schools that demand one belief teach obedience along with the alphabet.",
+   "quote": {
+    "text": "In teaching, there should be no distinction of classes.",
+    "source": "Confucius, Analects, Book XV"
+   }
+  },
+  "zh-Hans": {
+   "intro": "教每个孩子读书算数，听起来是一道命令就能办成的事。实际上，它意味着成千上万地培养教师，印制廉价的课本，盖起教室，还要说服一家人放弃孩子好几年的劳力。普鲁士在十八世纪就规定儿童必须入学，真正落实却花了几代人的时间。日本1872年颁布《学制》，期望做到“邑无不学之户”，一些地方的家长却因学费和失去劳力而闹起了风潮。基础教育扩大了参与公共生活的人群。但法令不能让任何人毕业，要求统一信仰的学校，在教人识字的同时也在教人顺从。",
+   "quote": {
+    "text": "有教无类。",
+    "source": "《论语·卫灵公》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "教每個孩子讀書算數，聽起來是一道命令就能辦成的事。實際上，它意味著成千上萬地培養教師，印製廉價的課本，蓋起教室，還要說服一家人放棄孩子好幾年的勞力。普魯士在十八世紀就規定兒童必須入學，真正落實卻花了幾代人的時間。日本1872年頒佈《學制》，期望做到「邑無不學之戶」，一些地方的家長卻因學費和失去勞力而鬧起了風潮。基礎教育擴大了參與公共生活的人群。但法令不能讓任何人畢業，要求統一信仰的學校，在教人識字的同時也在教人順從。",
+   "quote": {
+    "text": "有教無類。",
+    "source": "《論語·衛靈公》"
+   }
+  }
+ },
+ {
+  "id": "C033",
+  "en": {
+   "intro": "A wage bought hours instead of harvests, and the factory gate turned work into a contract with a clock inside it. A household's fortunes now hung on whether the plant kept running, whether the foreman was fair, and what happened after a crushed hand. Mill towns in Lancashire and New England rang bells for starting, eating and stopping, and posted rules that fined lateness. Large employers were not only private: Venice's state Arsenal had kept thousands of shipwrights on its rolls centuries earlier. The contract promised pay and the right to leave, but leaving meant little in a town with one employer and no savings.",
+   "quote": {
+    "text": "The greatest improvement in the productive powers of labour, and the greater part of the skill, dexterity, and judgment with which it is any where directed, or applied, seem to have been the effects of the division of labour.",
+    "source": "Adam Smith, The Wealth of Nations, Book I, ch. 1 (1776)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "工资买的是钟点，而不再是收成；工厂大门把劳动变成了一纸带着时钟的契约。一户人家的日子从此取决于工厂是否开工、工头是否公道，以及有人轧伤了手之后怎么办。英格兰兰开夏和美国新英格兰的纺织小镇用钟声安排上工、吃饭和收工，墙上贴着迟到罚钱的章程。大规模雇工也不只是私人的事：早在几百年前，威尼斯的国营兵工厂就养着成千上万的造船工匠。契约许诺报酬，也许诺离开的自由；可在只有一个雇主、家无余粮的小镇上，离开往往无从谈起。",
+   "quote": {
+    "text": "劳动生产力最大的改进，以及运用劳动时所表现的更大的熟练、技巧和判断力，似乎都是分工的结果。",
+    "source": "亚当·斯密《国富论》第一篇第一章（1776）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "工資買的是鐘點，而不再是收成；工廠大門把勞動變成了一紙帶著時鐘的契約。一戶人家的日子從此取決於工廠是否開工、工頭是否公道，以及有人軋傷了手之後怎麼辦。英格蘭蘭開夏和美國新英格蘭的紡織小鎮用鐘聲安排上工、吃飯和收工，牆上貼著遲到罰錢的章程。大規模僱工也不只是私人的事：早在幾百年前，威尼斯的國營兵工廠就養著成千上萬的造船工匠。契約許諾報酬，也許諾離開的自由；可在只有一個僱主、家無餘糧的小鎮上，離開往往無從談起。",
+   "quote": {
+    "text": "勞動生產力最大的改進，以及運用勞動時所表現的更大的熟練、技巧和判斷力，似乎都是分工的結果。",
+    "source": "亞當·斯密《國富論》第一篇第一章（1776）"
+   }
+  }
+ },
+ {
+  "id": "C034",
+  "en": {
+   "intro": "One worker asking for a raise is a nuisance; a whole shift asking at once is a negotiation. Representation let people who shared a trade elect someone to speak for them, collect dues, keep a strike fund and sign agreements on pay, hours and safety. The eight-hour day was argued for long before it was won; Melbourne's stonemasons secured it in 1856 by downing tools. Bargaining rarely made anyone richer overnight. A stoppage cost wages first, and the members who voted for it ate less while it lasted. What changed was who could be heard, and what an employer had to explain."
+  },
+  "zh-Hans": {
+   "intro": "一个工人要求加薪是麻烦，一整班人同时开口就是谈判。劳工代表制让同一行当的人推举代言者，收取会费，攒下罢工基金，就工资、工时和安全签订协议。“八小时工作制”喊了很多年才落到实处：1856年，墨尔本的石匠放下工具，率先争得了它。集体谈判很少让谁一夜致富。停工先停的是工钱，投票赞成的人在罢工期间自己少吃几顿。真正改变的是谁的声音能被听见，以及雇主必须给出怎样的解释。"
+  },
+  "zh-Hant": {
+   "intro": "一個工人要求加薪是麻煩，一整班人同時開口就是談判。勞工代表制讓同一行當的人推舉代言者，收取會費，攢下罷工基金，就工資、工時和安全簽訂協議。「八小時工作制」喊了很多年才落到實處：1856年，墨爾本的石匠放下工具，率先爭得了它。集體談判很少讓誰一夜致富。停工先停的是工錢，投票贊成的人在罷工期間自己少吃幾頓。真正改變的是誰的聲音能被聽見，以及僱主必須給出怎樣的解釋。"
+  }
+ },
+ {
+  "id": "C035",
+  "en": {
+   "intro": "Owners who could not run a business, and managers who did not own one, needed a written bargain between them. Professional enterprise governance separated the money from the management: shareholders elected a board, the board hired salaried officers, and accounts were audited so that absent owners could judge results they never saw being made. The Dutch East India Company, chartered in 1602, showed both sides at once, raising capital from more than a thousand investors while its directors proved notoriously hard to hold to account. The arrangement let firms outlive their founders and outgrow one family's purse. It also created a permanent temptation to manage for the manager.",
+   "quote": {
+    "text": "The directors of such companies, however, being the managers rather of other people's money than of their own, it cannot well be expected, that they should watch over it with the same anxious vigilance with which the partners in a private copartnery frequently watch over their own.",
+    "source": "Adam Smith, The Wealth of Nations, Book V, ch. 1 (1776)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "会出钱却不会经营的人，会经营却不出钱的人，需要一份白纸黑字的约定。职业化的企业治理把出资和经营分开：股东选出董事会，董事会聘用领薪的经理人，账目经过审计，好让不在场的所有者评判他们从未亲眼见过的经营。1602年特许成立的荷兰东印度公司把两面都演了出来：它从上千名投资者手里募得资本，而它的董事们却出了名地难以问责。这种安排让企业能活得比创始人更久，长得比一个家族的钱袋更大，也留下一个永远的诱惑——为经理人自己而经营。",
+   "quote": {
+    "text": "然而这类公司的董事，管理的是别人的钱而不是自己的钱，因此很难指望他们会像私人合伙企业的合伙人照看自己的钱那样，怀着同样焦虑的警觉去照看它。",
+    "source": "亚当·斯密《国富论》第五篇第一章（1776）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "會出錢卻不會經營的人，會經營卻不出錢的人，需要一份白紙黑字的約定。職業化的企業治理把出資和經營分開：股東選出董事會，董事會聘用領薪的經理人，賬目經過審計，好讓不在場的所有者評判他們從未親眼見過的經營。1602年特許成立的荷蘭東印度公司把兩面都演了出來：它從上千名投資者手裡募得資本，而它的董事們卻出了名地難以問責。這種安排讓企業能活得比創始人更久，長得比一個家族的錢袋更大，也留下一個永遠的誘惑——為經理人自己而經營。",
+   "quote": {
+    "text": "然而這類公司的董事，管理的是別人的錢而不是自己的錢，因此很難指望他們會像私人合夥企業的合夥人照看自己的錢那樣，懷著同樣焦慮的警覺去照看它。",
+    "source": "亞當·斯密《國富論》第五篇第一章（1776）"
+   }
+  }
+ },
+ {
+  "id": "C036",
+  "en": {
+   "intro": "Building a fountain is a ceremony; keeping it running for a century is a budget. Public-service responsibility meant a government counting not only what it promised but what it could pay for every year: the cleaners, the pipe menders, the road gangs and the clerks who tracked them. Around AD 97 Rome's water commissioner Frontinus wrote a careful treatise, having found the aqueducts riddled with illegal taps and their work gangs diverted to private jobs. A duty with its own office and its own line in the accounts has someone to blame when the water stops. A promise without that line is a speech.",
+   "quote": {
+    "text": "Let the good of the people be the supreme law.",
+    "source": "Cicero, On the Laws, Book III"
+   }
+  },
+  "zh-Hans": {
+   "intro": "修一座喷泉是典礼，让它流淌一百年是预算。公共服务的预算与责任，意味着政府不仅要算清自己许诺了什么，还要算清每年付得起什么：清扫工、修管匠、养路队，以及给他们记账的书吏。公元97年前后，罗马的供水官弗朗提努斯写下一部详尽的论著，因为他发现输水道上偷接的水管随处可见，养护工队还被挪去给私人干活。一项职责有了专门的官署和账目上的一行，断水时才找得到人问责。没有列入账目的承诺，只是一篇演说。",
+   "quote": {
+    "text": "人民的福祉应是最高的法律。",
+    "source": "西塞罗《论法律》第三卷"
+   }
+  },
+  "zh-Hant": {
+   "intro": "修一座噴泉是典禮，讓它流淌一百年是預算。公共服務的預算與責任，意味著政府不僅要算清自己許諾了什麼，還要算清每年付得起什麼：清掃工、修管匠、養路隊，以及給他們記賬的書吏。公元97年前後，羅馬的供水官弗朗提努斯寫下一部詳盡的論著，因為他發現輸水道上偷接的水管隨處可見，養護工隊還被挪去給私人幹活。一項職責有了專門的官署和賬目上的一行，斷水時才找得到人問責。沒有列入賬目的承諾，只是一篇演說。",
+   "quote": {
+    "text": "人民的福祉應是最高的法律。",
+    "source": "西塞羅《論法律》第三卷"
+   }
+  }
+ },
+ {
+  "id": "C037",
+  "en": {
+   "intro": "Amateurs talk about battles; professionals talk about supply. A standing command made war a trade, with ranks, schooling, written orders and ledgers of who was fed, paid, wounded or punished. Prussia answered its defeat in 1806 by building a general staff that studied campaigns the way clerks study accounts. Responsibility did not end with the fighting: the Lieber Code of 1863, issued to American armies in the field, set down what soldiers might and might not do to prisoners and civilians. Professionals still consume people and money. The difference is that someone has signed for every order.",
+   "quote": {
+    "text": "War is a matter of vital importance to the state: the ground of life and death, the road to survival or ruin. It must be examined with care.",
+    "source": "Sunzi, The Art of War, ch. 1"
+   }
+  },
+  "zh-Hans": {
+   "intro": "外行谈战斗，内行谈补给。常设的职业指挥把战争变成一门行当：有军衔、有训练、有成文的命令，还有记载谁领了粮、谁领了饷、谁负了伤、谁受了罚的簿册。1806年惨败之后，普鲁士建起总参谋部，像账房先生核账一样研究历次战役。责任也不随枪声停止而结束：1863年颁给美国野战部队的《利伯守则》，白纸黑字写明了军人对俘虏和平民能做什么、不能做什么。职业军人照样消耗人力和钱粮，区别在于每一道命令都有人签了字。",
+   "quote": {
+    "text": "兵者，国之大事，死生之地，存亡之道，不可不察也。",
+    "source": "《孙子兵法·计篇》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "外行談戰鬥，內行談補給。常設的職業指揮把戰爭變成一門行當：有軍銜、有訓練、有成文的命令，還有記載誰領了糧、誰領了餉、誰負了傷、誰受了罰的簿冊。1806年慘敗之後，普魯士建起總參謀部，像賬房先生核賬一樣研究歷次戰役。責任也不隨槍聲停止而結束：1863年頒給美國野戰部隊的《利伯守則》，白紙黑字寫明瞭軍人對俘虜和平民能做什麼、不能做什麼。職業軍人照樣消耗人力和錢糧，區別在於每一道命令都有人簽了字。",
+   "quote": {
+    "text": "兵者，國之大事，死生之地，存亡之道，不可不察也。",
+    "source": "《孫子兵法·計篇》"
+   }
+  }
+ },
+ {
+  "id": "C038",
+  "en": {
+   "intro": "A field you cannot prove is yours is hard to borrow against and easy to lose. Property registers wrote down who held what, under which burdens, so that land and enterprises could be pledged, inherited, merged or wound up without a fight at every funeral. England's Domesday Book of 1086 was a royal survey of taxable holdings rather than a register of title, yet it set the habit of asking whose land this was. Later systems, such as the Torrens title adopted in South Australia in 1858, made the register itself the proof. Registration created no wealth; it only made claims legible, and therefore enforceable."
+  },
+  "zh-Hans": {
+   "intro": "一块你证明不了是自己的地，很难拿去抵押，却很容易丢掉。产权登记写明谁持有什么、背着哪些负担，于是土地和产业可以抵押、继承、合并或清算，不必每逢丧事就打一场官司。1086年英格兰的《末日审判书》是王室清查应税产业的册籍，算不上产权登记，却养成了追问“这地是谁的”的习惯。后来，1858年南澳大利亚采用的托伦斯制度，让登记簿本身成为权属的凭证。登记并不创造财富，它只让权利清晰可读，因而可以执行。"
+  },
+  "zh-Hant": {
+   "intro": "一塊你證明不了是自己的地，很難拿去抵押，卻很容易丟掉。產權登記寫明誰持有什麼、揹著哪些負擔，於是土地和產業可以抵押、繼承、合併或清算，不必每逢喪事就打一場官司。1086年英格蘭的《末日審判書》是王室清查應稅產業的冊籍，算不上產權登記，卻養成了追問「這地是誰的」的習慣。後來，1858年南澳大利亞採用的託倫斯制度，讓登記簿本身成為權屬的憑證。登記並不創造財富，它只讓權利清晰可讀，因而可以執行。"
+  }
+ },
+ {
+  "id": "C039",
+  "en": {
+   "intro": "Hunger rarely arrives evenly. Basic-provision responsibility pooled a community's risk so that a bad harvest, a dead breadwinner or a long illness did not sink one household alone. The Elizabethan Poor Law of 1601 made each English parish raise a rate for its own poor, an arrangement that lasted more than two centuries and was argued over for all of them. Song dynasty China kept state almshouses, clinics and paupers' cemeteries. Provision also let children stay at their lessons instead of going out to earn. But a promise of relief feeds no one until the grain, the carers and the money actually arrive.",
+   "quote": {
+    "text": "The aged are cared for to the end of their days, the able-bodied have work to do, the young are brought up, and widowers, widows, orphans, the childless and the sick are all provided for.",
+    "source": "Book of Rites, “The Conveyance of Rites”"
+   }
+  },
+  "zh-Hans": {
+   "intro": "饥饿从不平均地降临。基本供给的责任把一个共同体的风险汇在一起，让一场歉收、一位顶梁柱的离世或一场久病，不至于压垮单独一户人家。英格兰1601年的《济贫法》要求各教区为本地穷人征收济贫税，这套办法延续了两百多年，也被争论了两百多年。北宋设居养院、安济坊和漏泽园，收养孤老、医治贫病、掩埋无主之尸。有了供给，孩子才能继续读书，而不必早早出去谋生。可是，救济的许诺喂不饱任何人，要等粮食、照护者和钱真正到了才算数。",
+   "quote": {
+    "text": "使老有所终，壮有所用，幼有所长，矜、寡、孤、独、废疾者皆有所养。",
+    "source": "《礼记·礼运》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "飢餓從不平均地降臨。基本供給的責任把一個共同體的風險匯在一起，讓一場歉收、一位頂樑柱的離世或一場久病，不至於壓垮單獨一戶人家。英格蘭1601年的《濟貧法》要求各教區為本地窮人徵收濟貧稅，這套辦法延續了兩百多年，也被爭論了兩百多年。北宋設居養院、安濟坊和漏澤園，收養孤老、醫治貧病、掩埋無主之屍。有了供給，孩子才能繼續讀書，而不必早早出去謀生。可是，救濟的許諾喂不飽任何人，要等糧食、照護者和錢真正到了才算數。",
+   "quote": {
+    "text": "使老有所終，壯有所用，幼有所長，矜、寡、孤、獨、廢疾者皆有所養。",
+    "source": "《禮記·禮運》"
+   }
+  }
+ },
+ {
+  "id": "C040",
+  "en": {
+   "intro": "Every ruler likes review in principle and dislikes it in particular. Bounded power means that an order is only as good as the document authorizing it, and that someone outside the issuer's command can say so and make it stick. Its history is a ledger of small, hard-won procedures: the English Bill of Rights of 1689 forbidding the crown to suspend laws without Parliament, the writ of habeas corpus that makes a jailer produce his prisoner before a judge, a court annulling a minister's decree. Review is slow, and it guarantees no correct decisions. It does make someone answerable for the wrong ones.",
+   "quote": {
+    "text": "So that power cannot be abused, things must be so arranged that power checks power.",
+    "source": "Montesquieu, The Spirit of the Laws, Book XI, ch. 4 (1748)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "每个掌权者原则上都欢迎审查，具体到自己头上就不那么欢迎了。有限的公共权力意味着：一道命令的效力不超过授权它的文书，而且有不受发令者节制的人可以指出这一点，并让它算数。它的历史由一桩桩来之不易的小程序写成：1689年英格兰的《权利法案》不许国王未经议会擅自中止法律；人身保护令迫使看守把囚犯带到法官面前；法院宣布一位大臣的政令无效。审查很慢，也不保证决定正确，但它能让错误的决定有人负责。",
+   "quote": {
+    "text": "要防止滥用权力，就必须通过事物的安排，以权力制约权力。",
+    "source": "孟德斯鸠《论法的精神》第十一章第四节（1748）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "每個掌權者原則上都歡迎審查，具體到自己頭上就不那麼歡迎了。有限的公共權力意味著：一道命令的效力不超過授權它的文書，而且有不受發令者節制的人可以指出這一點，並讓它算數。它的歷史由一樁樁來之不易的小程序寫成：1689年英格蘭的《權利法案》不許國王未經議會擅自中止法律；人身保護令迫使看守把囚犯帶到法官面前；法院宣佈一位大臣的政令無效。審查很慢，也不保證決定正確，但它能讓錯誤的決定有人負責。",
+   "quote": {
+    "text": "要防止濫用權力，就必須通過事物的安排，以權力制約權力。",
+    "source": "孟德斯鳩《論法的精神》第十一章第四節（1748）"
+   }
+  }
+ },
+ {
+  "id": "C041",
+  "en": {
+   "intro": "An empire is too large for one pair of eyes, so it borrows thousands and then worries about them. Hierarchical appointment meant officials owed their posts to superiors who could transfer, promote or dismiss them; inspection meant sending other officials to check. Chinese dynasties from the Han onward kept censors who could impeach even senior ministers, and Charlemagne sent pairs of envoys, usually a bishop and a count, to look into the conduct of his counts. Rotation kept prefects from growing roots. The weakness is structural: each layer filters what rises to the next, and an error at the top travels down with full authority.",
+   "quote": {
+    "text": "Who will guard the guards themselves?",
+    "source": "Juvenal, Satires, VI"
+   }
+  },
+  "zh-Hans": {
+   "intro": "帝国大到一双眼睛看不过来，只好借来成千上万双，再为这些眼睛操心。层级任命意味着官员的职位来自上级，上级可以调任、提拔或罢免他们；监察则是另派官员去核查。从汉代起，中国历代设御史，可以弹劾位高权重的大臣；查理曼派出成对的钦差，通常一位主教搭配一位伯爵，去查访各地伯爵的作为。任期轮换让地方长官扎不下根。它的弱点出在结构上：每一层都在过滤送往上一层的消息，而顶层的错误会带着十足的权威一路传下去。",
+   "quote": {
+    "text": "谁来看守看守者？",
+    "source": "尤维纳利斯《讽刺诗》第六首"
+   }
+  },
+  "zh-Hant": {
+   "intro": "帝國大到一雙眼睛看不過來，只好借來成千上萬雙，再為這些眼睛操心。層級任命意味著官員的職位來自上級，上級可以調任、提拔或罷免他們；監察則是另派官員去核查。從漢代起，中國曆代設御史，可以彈劾位高權重的大臣；查理曼派出成對的欽差，通常一位主教搭配一位伯爵，去查訪各地伯爵的作為。任期輪換讓地方長官扎不下根。它的弱點出在結構上：每一層都在過濾送往上一層的訊息，而頂層的錯誤會帶著十足的權威一路傳下去。",
+   "quote": {
+    "text": "誰來看守看守者？",
+    "source": "尤維納利斯《諷刺詩》第六首"
+   }
+  }
+ },
+ {
+  "id": "C042",
+  "en": {
+   "intro": "Federation is what happens when communities want a common roof but refuse to share a kitchen. Members keep reserved powers, delegate others to a shared government, and write down how the arrangement may be amended and who pays for the common defence. The Old Swiss Confederacy grew from alpine valleys swearing mutual aid; the Haudenosaunee confederacy bound five, later six, nations under a council that sought consensus. Such contracts are slow by design. Every important change has to be negotiated with members who can say no, and a shared budget never means shared private purses.",
+   "quote": {
+    "text": "In the compound republic of America, the power surrendered by the people is first divided between two distinct governments, and then the portion allotted to each subdivided among distinct and separate departments. Hence a double security arises to the rights of the people.",
+    "source": "James Madison, The Federalist No. 51 (1788)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "所谓联邦，就是几个共同体想合住一个屋檐下，却不愿合用一个灶台。成员保留一部分权力，把另一部分让渡给共同的政府，并写明这份约定如何修订、共同防务由谁出钱。旧瑞士邦联起于阿尔卑斯山谷之间互相援助的盟誓；豪德诺索尼联盟把五个、后来是六个民族联结在一个议事会之下，决议力求一致同意。这类契约天生就慢：每项重大改变都要同有权说“不”的成员一一协商，而共同的预算也从不意味着共用私人的钱袋。",
+   "quote": {
+    "text": "在美国这个复合共和国里，人民让渡的权力先在两个不同的政府之间划分，分给每个政府的那一份再在不同而分立的部门之间细分。人民的权利由此得到双重保障。",
+    "source": "詹姆斯·麦迪逊《联邦党人文集》第51篇（1788）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "所謂聯邦，就是幾個共同體想合住一個屋簷下，卻不願合用一個灶臺。成員保留一部分權力，把另一部分讓渡給共同的政府，並寫明這份約定如何修訂、共同防務由誰出錢。舊瑞士邦聯起於阿爾卑斯山谷之間互相援助的盟誓；豪德諾索尼聯盟把五個、後來是六個民族聯結在一個議事會之下，決議力求一致同意。這類契約天生就慢：每項重大改變都要同有權說「不」的成員一一協商，而共同的預算也從不意味著共用私人的錢袋。",
+   "quote": {
+    "text": "在美國這個複合共和國裡，人民讓渡的權力先在兩個不同的政府之間劃分，分給每個政府的那一份再在不同而分立的部門之間細分。人民的權利由此得到雙重保障。",
+    "source": "詹姆斯·麥迪遜《聯邦黨人文集》第51篇（1788）"
+   }
+  }
+ },
+ {
+  "id": "C043",
+  "en": {
+   "intro": "Neighbours who will meet again tomorrow have reasons to settle today. A standing dispute arrangement gives rival polities a known place, procedure and panel for quarrels over borders, debts and seized ships, so that not every grievance becomes a war. The Jay Treaty of 1794 sent American and British claims to mixed commissions that sat for years; in 1872 a tribunal at Geneva ordered Britain to compensate the United States for the raider Alabama, and Britain paid. Such bodies lower the risk of fighting without abolishing it. Their awards hold only as long as someone is willing and able to make them hold.",
+   "quote": {
+    "text": "Covenants, without the Sword, are but Words, and of no strength to secure a man at all.",
+    "source": "Thomas Hobbes, Leviathan, ch. 17 (1651)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "明天还要见面的邻居，今天就有理由把事情了结。常设的争端安排让彼此对立的政体有了固定的场所、程序和裁断人，去处理边界、债务和扣押船只之类的纠纷，不必事事都诉诸战争。1794年的《杰伊条约》把美英之间的索赔交给混合委员会，一审就是好几年；1872年，日内瓦的仲裁庭裁定英国就“亚拉巴马号”袭击舰一事赔偿美国，英国照付了。这类机构降低了开战的风险，却消除不了它。裁决能否生效，取决于是否有人愿意、也有能力让它生效。",
+   "quote": {
+    "text": "没有刀剑的信约只是一纸空言，毫无力量保障任何人。",
+    "source": "托马斯·霍布斯《利维坦》第十七章（1651）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "明天還要見面的鄰居，今天就有理由把事情了結。常設的爭端安排讓彼此對立的政體有了固定的場所、程序和裁斷人，去處理邊界、債務和扣押船隻之類的糾紛，不必事事都訴諸戰爭。1794年的《傑伊條約》把美英之間的索賠交給混合委員會，一審就是好幾年；1872年，日內瓦的仲裁庭裁定英國就「亞拉巴馬號」襲擊艦一事賠償美國，英國照付了。這類機構降低了開戰的風險，卻消除不了它。裁決能否生效，取決於是否有人願意、也有能力讓它生效。",
+   "quote": {
+    "text": "沒有刀劍的信約只是一紙空言，毫無力量保障任何人。",
+    "source": "托馬斯·霍布斯《利維坦》第十七章（1651）"
+   }
+  }
+ },
+ {
+  "id": "C044",
+  "en": {
+   "intro": "No single laboratory could check everything, so laboratories learned to divide the doubting. A research commons pools results, samples and instruments under agreed terms, and assigns teams to repeat one another's work instead of all chasing the same prize. In 1887 astronomers launched the Carte du Ciel, splitting the whole sky among some twenty observatories; it dragged on for decades, and several never finished their zones. That is the honest record of such networks: real gains from specialization, real quarrels over credit, free riders, and the quiet dependence of small members on large ones. Every one of those problems ends up written into the agreement."
+  },
+  "zh-Hans": {
+   "intro": "没有哪个实验室能核验一切，于是实验室们学会了分工怀疑。科研共享把成果、样本和仪器按约定的条件汇在一起，并安排各个团队重复彼此的工作，而不是一窝蜂去抢同一个奖。1887年，天文学家发起“天图”计划，把整个天空分给约二十座天文台；工作拖了几十年，好几家始终没有完成自己的天区。这就是这类网络的真实账本：专业分工带来实打实的收益，也带来署名之争、搭便车，以及小成员对大成员悄无声息的依赖。这些问题最后都要写进协议。"
+  },
+  "zh-Hant": {
+   "intro": "沒有哪個實驗室能核驗一切，於是實驗室們學會了分工懷疑。科研共享把成果、樣本和儀器按約定的條件匯在一起，並安排各個團隊重複彼此的工作，而不是一窩蜂去搶同一個獎。1887年，天文學家發起「天圖」計畫，把整個天空分給約二十座天文臺；工作拖了幾十年，好幾家始終沒有完成自己的天區。這就是這類網路的真實賬本：專業分工帶來實打實的收益，也帶來署名之爭、搭便車，以及小成員對大成員悄無聲息的依賴。這些問題最後都要寫進協議。"
+  }
+ },
+ {
+  "id": "C045",
+  "en": {
+   "intro": "Some work stays safe only as long as someone is allowed to stop it. Hazardous-engineering review puts independent inspectors between a project's timetable and its risks, gives them the right to halt the work, and requires emergency stocks and compensation funds before anything is switched on. Its rules are usually written in the wake of disaster: Britain appointed its first inspectors of coal mines in 1850, after decades of underground explosions. Whether the reviewers answer to a civil authority or a military chain matters less than whether their stop order is obeyed. Review costs money, delays schedules, and promises nothing like zero risk."
+  },
+  "zh-Hans": {
+   "intro": "有些工作之所以安全，只因为有人有权叫停它。危险工程审查在工程的进度和风险之间安插独立的检查员，赋予他们停工的权力，并要求在任何设备启动之前备好应急物资和赔偿基金。它的规矩往往是在灾难之后写成的：英国在井下爆炸接连发生几十年之后，才于1850年任命了第一批煤矿检查员。审查者向民事机关负责还是向军事指挥链负责，不如他们的停工令是否被执行来得要紧。审查要花钱、会拖慢进度，也绝不承诺零风险。"
+  },
+  "zh-Hant": {
+   "intro": "有些工作之所以安全，只因為有人有權叫停它。危險工程審查在工程的進度和風險之間安插獨立的檢查員，賦予他們停工的權力，並要求在任何設備啟動之前備好應急物資和賠償基金。它的規矩往往是在災難之後寫成的：英國在井下爆炸接連發生幾十年之後，才於1850年任命了第一批煤礦檢查員。審查者向民事機關負責還是向軍事指揮鏈負責，不如他們的停工令是否被執行來得要緊。審查要花錢、會拖慢進度，也絕不承諾零風險。"
+  }
+ },
+ {
+  "id": "C046",
+  "en": {
+   "intro": "Skills wear out faster than the people who hold them. Lifelong training keeps courses, teachers and practice placements open to adults, and pays enough for a weaver, a clerk or a miner to spend months learning something else instead of starving while they try. Denmark's folk high schools, inspired by N. F. S. Grundtvig and opened from 1844, offered adults residential courses with no examinations at all. Retraining never makes workers out of thin air. It takes real months, real teachers and a willing learner, and the old skill, the lost wages and the years already spent do not vanish because a programme has a hopeful name.",
+   "quote": {
+    "text": "When a course comes to its end, it changes; by changing it finds a way through; finding a way through, it endures.",
+    "source": "Book of Changes (Yijing), Great Commentary, Part II"
+   }
+  },
+  "zh-Hans": {
+   "intro": "技能比掌握它的人老得更快。终身培训为成年人保留课程、教师和实习岗位，并提供足够的生活费，让织工、文员或矿工能花几个月学一门新手艺，而不是一边学一边挨饿。丹麦从1844年起受格隆维启发开办民众高等学校，让成年人住校学习，而且根本不设考试。再培训不会凭空造出劳力：它要花实实在在的月份、真正的教师，还要一个愿意学的人；旧手艺、少挣的工钱和已经投进去的岁月，也不会因为计划起了个充满希望的名字就消失。",
+   "quote": {
+    "text": "穷则变，变则通，通则久。",
+    "source": "《周易·系辞下》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "技能比掌握它的人老得更快。終身培訓為成年人保留課程、教師和實習崗位，並提供足夠的生活費，讓織工、文員或礦工能花幾個月學一門新手藝，而不是一邊學一邊捱餓。丹麥從1844年起受格隆維啟發開辦民眾高等學校，讓成年人住校學習，而且根本不設考試。再培訓不會憑空造出勞力：它要花實實在在的月份、真正的教師，還要一個願意學的人；舊手藝、少掙的工錢和已經投進去的歲月，也不會因為計畫起了個充滿希望的名字就消失。",
+   "quote": {
+    "text": "窮則變，變則通，通則久。",
+    "source": "《周易·繫辭下》"
+   }
+  }
+ },
+ {
+  "id": "C047",
+  "en": {
+   "intro": "Information about a person outlives the reason it was collected. Accountable data use sets rules for who may gather records and for what purpose, who may see or sell them, and who pays when they leak or prove wrong. Access logs, identity checks and a right of appeal turn an invisible trade into something a person can question. The German state of Hesse passed a data protection law in 1970, and Sweden's Data Act of 1973 was among the first national laws of its kind. No rule can make a missing record true, and no algorithm can either; accountability only tells you whom to ask."
+  },
+  "zh-Hans": {
+   "intro": "关于一个人的信息，总比收集它的理由活得更久。可问责的数据使用为此立下规矩：谁可以采集记录、用于什么目的、谁可以查看或出售，记录泄露或出错时由谁承担责任。访问日志、身份核验和申诉权，把一桩看不见的买卖变成了个人可以追问的事情。1970年，德国黑森州通过了一部数据保护法；1973年，瑞典的《数据法》成为最早的全国性同类法律之一。没有哪条规则能让缺失的记录变成真的，算法也不能；问责只告诉你该去问谁。"
+  },
+  "zh-Hant": {
+   "intro": "關於一個人的資訊，總比收集它的理由活得更久。可問責的資料使用為此立下規矩：誰可以採集記錄、用於什麼目的、誰可以檢視或出售，記錄洩露或出錯時由誰承擔責任。訪問日誌、身份核驗和申訴權，把一樁看不見的買賣變成了個人可以追問的事情。1970年，德國黑森州通過了一部資料保護法；1973年，瑞典的《資料法》成為最早的全國性同類法律之一。沒有哪條規則能讓缺失的記錄變成真的，演算法也不能；問責只告訴你該去問誰。"
+  }
+ },
+ {
+  "id": "C048",
+  "en": {
+   "intro": "Whoever owns the roads, the housing and the network ends up governing the people who use them. A corporate network jurisdiction is a chartered arrangement in which a firm runs services, controls access and settles disputes for residents and staff. The idea is older than it sounds: the Hudson's Bay Company's charter of 1670 handed it rule over a vast territory, and the model town of Pullman, Illinois, built in the 1880s, came with parks, a library, company-set rents and no saloons. Such places can coordinate well and serve quickly. They can also make leaving expensive and turn every service into a toll."
+  },
+  "zh-Hans": {
+   "intro": "谁拥有道路、住房和网络，最后往往就管着使用它们的人。企业网络辖区是一种特许安排：由企业为居民和员工经营服务、控制准入、裁断纠纷。这个主意比听上去要古老：1670年的特许状把广袤的土地交给哈德逊湾公司治理；19世纪80年代兴建的伊利诺伊州普尔曼模范镇有公园和图书馆，房租由公司定，镇上不许开酒馆。这样的地方可以协调得很好，服务也来得快；它也可能让离开的代价高昂，把每一项服务都变成关卡上的买路钱。"
+  },
+  "zh-Hant": {
+   "intro": "誰擁有道路、住房和網路，最後往往就管著使用它們的人。企業網路轄區是一種特許安排：由企業為居民和員工經營服務、控制准入、裁斷糾紛。這個主意比聽上去要古老：1670年的特許狀把廣袤的土地交給哈德遜灣公司治理；19世紀80年代興建的伊利諾伊州普爾曼模範鎮有公園和圖書館，房租由公司定，鎮上不許開酒館。這樣的地方可以協調得很好，服務也來得快；它也可能讓離開的代價高昂，把每一項服務都變成關卡上的買路錢。"
+  }
+ },
+ {
+  "id": "C049",
+  "en": {
+   "intro": "An adviser that never sleeps is still only an adviser. Verifiable algorithmic advisers are validated models that officials may consult on scheduling, forecasting or casework, on condition that their training data is authorized, their errors are logged and a named person decides. The arrangement descends from older habits: actuarial tables that priced risk, and forecasters who learned to publish how often their predictions failed. Good advisers make officials faster and sometimes wiser; bad ones make mistakes at scale and with confidence. The rule that matters is the boring one: the advice, the decision and the person who signed it are recorded separately, so the record can be checked later."
+  },
+  "zh-Hans": {
+   "intro": "一个从不睡觉的顾问，终究还是顾问。可验证的算法顾问，是官员在排班、预测或案件处理中可以参考的、经过验证的模型，前提是训练所用的数据已获授权，差错有记录，最后拍板的是有名有姓的人。这套安排承袭了更早的习惯：给风险定价的精算表，以及学会公布自己的预报有多常落空的预报员。好的顾问让官员更快，有时也更明智；坏的顾问会成批地、信心十足地犯错。真正要紧的规矩很乏味：建议、决定和签字的人分开记录，以便日后核查。"
+  },
+  "zh-Hant": {
+   "intro": "一個從不睡覺的顧問，終究還是顧問。可驗證的演算法顧問，是官員在排班、預測或案件處理中可以參考的、經過驗證的模型，前提是訓練所用的資料已獲授權，差錯有記錄，最後拍板的是有名有姓的人。這套安排承襲了更早的習慣：給風險定價的精算表，以及學會公佈自己的預報有多常落空的預報員。好的顧問讓官員更快，有時也更明智；壞的顧問會成批地、信心十足地犯錯。真正要緊的規矩很乏味：建議、決定和簽字的人分開記錄，以便日後核查。"
+  }
+ },
+ {
+  "id": "C050",
+  "en": {
+   "intro": "Handing work to a machine is still delegation, and every delegation needs a written scope. Bounded algorithmic administration lets auditable systems carry out defined tasks on their own, such as allocating clinic appointments, checking routine permits or scheduling repairs, while the law states what they may not touch and how they are shut down. A good scheme plans for its own failure: a degraded manual mode, staff who still remember the paper process, and an appeal that reaches a human being. Its efficiency is real but conditional. Data errors, outages and maintenance all cost money, and an unappealable decision is no less arbitrary for being computed."
+  },
+  "zh-Hans": {
+   "intro": "交给机器办事，仍然是授权；凡是授权，都需要白纸黑字的权限范围。有限度的算法行政，允许可审计的系统自行完成限定的事务，比如分配门诊号、核验例行许可、安排设备检修，同时由法律写明它们不得触碰什么、如何关停。好的方案会为自己的失灵做准备：一个降级运行的人工模式，一批还记得纸面流程的工作人员，以及一条能找到真人的申诉渠道。它的效率是真的，却有条件：数据错误、停机和维护都要花钱，而一项无法申诉的决定，并不因为是算出来的就少一分专断。"
+  },
+  "zh-Hant": {
+   "intro": "交給機器辦事，仍然是授權；凡是授權，都需要白紙黑字的權限範圍。有限度的演算法行政，允許可審計的系統自行完成限定的事務，比如分配門診號、核驗例行許可、安排設備檢修，同時由法律寫明它們不得觸碰什麼、如何關停。好的方案會為自己的失靈做準備：一個降級運行的人工模式，一批還記得紙面流程的工作人員，以及一條能找到真人的申訴渠道。它的效率是真的，卻有條件：資料錯誤、停機和維護都要花錢，而一項無法申訴的決定，並不因為是算出來的就少一分專斷。"
+  }
+ },
+ {
+  "id": "C051",
+  "en": {
+   "intro": "Some decisions a society chooses to keep in human hands, not because people are always better but because someone must be able to refuse. Reserved human powers list those decisions, keep the staff and procedures needed to carry them out by hand, and fund the jobs and recovery plans that make the reservation real. Restraint has its price. A community that bans an automated service must actually do without it, not quietly buy it from next door. The habit is older than the machines: good navies kept teaching navigation by the stars long after better instruments became standard, so that a failed system would not mean a lost ship."
+  },
+  "zh-Hans": {
+   "intro": "有些决定，社会选择留在人的手里，不是因为人总是更高明，而是因为必须有人能够说“不”。保留的人类权力列明这些决定，保留以人工完成它们所需的人手和程序，并为相应的岗位和恢复方案拨出经费，让这份保留名副其实。克制是有代价的：一个禁止某项自动化服务的社会，就得真的放弃它，而不是悄悄从隔壁买来用。这个习惯比机器更古老：好的海军在更先进的仪器普及之后，仍长期教授凭星辰导航，免得系统一失灵，船也跟着迷航。"
+  },
+  "zh-Hant": {
+   "intro": "有些決定，社會選擇留在人的手裡，不是因為人總是更高明，而是因為必須有人能夠說「不」。保留的人類權力列明這些決定，保留以人工完成它們所需的人手和程序，併為相應的崗位和恢復方案撥出經費，讓這份保留名副其實。克制是有代價的：一個禁止某項自動化服務的社會，就得真的放棄它，而不是悄悄從隔壁買來用。這個習慣比機器更古老：好的海軍在更先進的儀器普及之後，仍長期教授憑星辰導航，免得系統一失靈，船也跟著迷航。"
+  }
+ },
+ {
+  "id": "C052",
+  "en": {
+   "intro": "A network nobody owns outright still has to be fixed by somebody on a wet Tuesday night. Shared operation puts cables, nodes and exchanges under community, public or cooperative control, with written rights for contributors, paid technicians and common procedures for repairs and upgrades. The cooperative idea came from older trades: the Rochdale Pioneers of 1844 ran their shop on one member, one vote. Guifi.net in Catalonia, begun in 2004, grew into a community network of tens of thousands of nodes built largely by its own users. Shared ownership changes who decides and who profits. It does not abolish maintenance, capital or meetings."
+  },
+  "zh-Hans": {
+   "intro": "一张谁都不独占的网络，到了下雨的周二深夜，照样得有人去修。共同运营把线缆、节点和交换设施交给社区、公共机构或合作社掌管，写明出资出力者的权利，雇用领薪的技术人员，并为维修和升级定下共同的规程。合作社的办法来自更早的行当：1844年的罗奇代尔先锋社按“一人一票”经营一家小店。2004年起步于西班牙加泰罗尼亚的社区网络“吉菲网”，主要由用户自己动手搭建，节点发展到数以万计。共同所有改变的是谁说了算、谁得好处，却省不掉维护、资金和开会。"
+  },
+  "zh-Hant": {
+   "intro": "一張誰都不獨佔的網路，到了下雨的週二深夜，照樣得有人去修。共同運營把線纜、節點和交換設施交給社區、公共機構或合作社掌管，寫明出資出力者的權利，僱用領薪的技術人員，併為維修和升級定下共同的規程。合作社的辦法來自更早的行當：1844年的羅奇代爾先鋒社按「一人一票」經營一家小店。2004年起步於西班牙加泰羅尼亞的社區網路「吉菲網」，主要由使用者自己動手搭建，節點發展到數以萬計。共同所有改變的是誰說了算、誰得好處，卻省不掉維護、資金和開會。"
+  }
+ },
+ {
+  "id": "C053",
+  "en": {
+   "intro": "The strangest office ever created has an occupant that cannot be tired, bribed or flattered, and cannot be blamed in the usual way either. Under AI-led highest administration, a lawful authority hands the top executive functions to a high-autonomy system, after independent audit and an actual transfer of control rather than a ceremonial one. Nobody need claim that the system is conscious or wise. It is judged like any administration, by budgets kept, services delivered and errors corrected, and it runs only while energy, maintenance and auditors keep it running. Whoever authorized it remains answerable for having done so."
+  },
+  "zh-Hans": {
+   "intro": "这是有史以来最奇特的职位：坐在上面的，不会疲倦，收买不动，也不吃奉承；可同样也没法用寻常的办法向它问责。在人工智能主导的最高行政之下，合法的权威经过独立审计，把最高层的执行职能交给一套高自主系统，而且是真正移交控制权，不是走个仪式。没有人需要声称这套系统有意识，或者英明。人们像评判任何一届行政一样评判它：预算是否守住，服务是否送达，错误是否改正；而且只有能源、维护和审计员都在，它才运转得下去。授权的人，仍要为这次授权负责。"
+  },
+  "zh-Hant": {
+   "intro": "這是有史以來最奇特的職位：坐在上面的，不會疲倦，收買不動，也不吃奉承；可同樣也沒法用尋常的辦法向它問責。在人工智慧主導的最高行政之下，合法的權威經過獨立審計，把最高層的執行職能交給一套高自主系統，而且是真正移交控制權，不是走個儀式。沒有人需要聲稱這套系統有意識，或者英明。人們像評判任何一屆行政一樣評判它：預算是否守住，服務是否送達，錯誤是否改正；而且只有能源、維護和審計員都在，它才運轉得下去。授權的人，仍要為這次授權負責。"
+  }
+ },
+ {
+  "id": "C054",
+  "en": {
+   "intro": "When a device can sharpen attention, steady a hand or extend a sense, the old questions return in new clothes: who may use it, for which jobs, and what happens to those who decline. Augmented-person rules set qualifications for augmented workers and athletes, safety standards for the devices, and rules of identity and liability for acts done with their help. The nearest precedent is the medical certificate: pilots and divers have long held licences that depend on regular examinations. A law cannot build a single implant. Nor may it quietly turn the unaugmented into second-class members; careful charters state that they keep every right they had."
+  },
+  "zh-Hans": {
+   "intro": "当某种装置能让注意力更集中、手更稳、感官伸得更远，老问题便换了新面目回来：谁可以用，可以用于哪些工作，拒绝使用的人又会怎样。增强人资格制度为经过增强的劳动者和运动员设定资质，为装置设定安全标准，并规定借助它们所做之事的身份认定与责任归属。最接近的先例是体检证明：飞行员和潜水员的执照，向来取决于定期的身体检查。法律造不出一件植入装置；它也不该悄悄把未增强的人变成二等成员，审慎的章程会白纸黑字写明，他们原有的权利一样不少。"
+  },
+  "zh-Hant": {
+   "intro": "當某種裝置能讓注意力更集中、手更穩、感官伸得更遠，老問題便換了新面目回來：誰可以用，可以用於哪些工作，拒絕使用的人又會怎樣。增強人資格制度為經過增強的勞動者和運動員設定資質，為裝置設定安全標準，並規定藉助它們所做之事的身份認定與責任歸屬。最接近的先例是體檢證明：飛行員和潛水員的執照，向來取決於定期的身體檢查。法律造不出一件植入裝置；它也不該悄悄把未增強的人變成二等成員，審慎的章程會白紙黑字寫明，他們原有的權利一樣不少。"
+  }
+ },
+ {
+  "id": "C055",
+  "en": {
+   "intro": "Every cycle leaks. Ecological responsibility treats soil, water, waste and materials as accounts that must balance over years, with named duties for farms, industries and towns and a bill for whoever does the damage. Its roots are old and practical: in Edo-period Japan farmers paid cities for night soil to manure their fields, and Tokugawa edicts restricted felling on stripped mountains. Modern versions add measurement and liability, so that a polluted river becomes someone's debt rather than everyone's misfortune. Cycles still consume energy and lose material at every turn; responsibility only decides who keeps the books.",
+   "quote": {
+    "text": "If close-meshed nets are not cast into the pools, there will be more fish and turtles than can be eaten; if axes enter the hill forests only in due season, there will be more timber than can be used.",
+    "source": "Mencius, Book I (King Hui of Liang), Part I"
+   }
+  },
+  "zh-Hans": {
+   "intro": "所有的循环都会漏。生态责任把土壤、水、废弃物和物料当作一本需要逐年轧平的账，给农田、产业和城镇分派具名的义务，并让造成损害的一方买单。它的根子古老而务实：江户时代的日本，农民付钱向城市收购粪尿，用来肥田；德川幕府也颁令限制在林木耗尽的山上砍伐。现代的做法加上了计量和赔偿责任，让一条被污染的河成为某个人的债，而不是所有人的不幸。循环每转一圈照样耗能、照样损耗物料，责任只决定由谁来记账。",
+   "quote": {
+    "text": "数罟不入洿池，鱼鳖不可胜食也；斧斤以时入山林，材木不可胜用也。",
+    "source": "《孟子·梁惠王上》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "所有的循環都會漏。生態責任把土壤、水、廢棄物和物料當作一本需要逐年軋平的賬，給農田、產業和城鎮分派具名的義務，並讓造成損害的一方買單。它的根子古老而務實：江戶時代的日本，農民付錢向城市收購糞尿，用來肥田；德川幕府也頒令限制在林木耗盡的山上砍伐。現代的做法加上了計量和賠償責任，讓一條被汙染的河成為某個人的債，而不是所有人的不幸。循環每轉一圈照樣耗能、照樣損耗物料，責任只決定由誰來記賬。",
+   "quote": {
+    "text": "數罟不入洿池，魚鱉不可勝食也；斧斤以時入山林，材木不可勝用也。",
+    "source": "《孟子·梁惠王上》"
+   }
+  }
+ },
+ {
+  "id": "C056",
+  "en": {
+   "intro": "Some projects outlast everyone who voted for them. An intergenerational commitment binds a community to finance and maintain works whose benefits arrive long after the people who paid for them, with registers of assets and duties, funds that cannot be raided, and rules for handing the job on. The Dutch water boards are the classic case: Rijnland's received its charter in 1255 and still keeps the polders dry. Such commitments must also allow revision, because no generation can decide everything for the next. And they cut both ways: a new regime that inherits the dikes inherits the debts as well."
+  },
+  "zh-Hans": {
+   "intro": "有些工程比所有为它投票的人都活得长。代际工程承诺让一个共同体为这样的工程筹钱、维护，哪怕受益者要在付钱的人离开很久之后才出现。为此要有资产与义务的登记簿、不许挪用的基金，以及交接这份差事的规矩。荷兰的水务局是经典的例子：莱茵兰水务局在1255年获得特许，至今仍在让圩田保持干燥。这类承诺也必须允许修订，因为没有哪一代人能替下一代决定一切。它还是双向的：接手堤坝的新政权，也一并接手了债务。"
+  },
+  "zh-Hant": {
+   "intro": "有些工程比所有為它投票的人都活得長。代際工程承諾讓一個共同體為這樣的工程籌錢、維護，哪怕受益者要在付錢的人離開很久之後才出現。為此要有資產與義務的登記簿、不許挪用的基金，以及交接這份差事的規矩。荷蘭的水務局是經典的例子：萊茵蘭水務局在1255年獲得特許，至今仍在讓圩田保持乾燥。這類承諾也必須允許修訂，因為沒有哪一代人能替下一代決定一切。它還是雙向的：接手堤壩的新政權，也一併接手了債務。"
+  }
+ },
+ {
+  "id": "C057",
+  "en": {
+   "intro": "When an order takes months to arrive, someone on the spot must be trusted to act, and someone at home must be able to judge afterwards whether that trust was kept. Authority under delay writes down how long messages take, what local commanders and officials may decide alone, how receipt is acknowledged, and what happens when contact is lost. History is full of the gap: the Battle of New Orleans was fought in January 1815, two weeks after peace had been signed at Ghent. Spanish colonial officials could answer an unworkable royal decree with a famous formula: I obey, but I do not carry it out."
+  },
+  "zh-Hans": {
+   "intro": "当一道命令要走上几个月，就得有人在现场被信任去行动，也得有人在后方能够事后判断，这份信任有没有被辜负。时延下的权威写明消息要走多久、当地的指挥官和官员可以独自决定什么、如何回执确认，以及失去联络时怎么办。历史上满是这样的空档：1815年1月的新奥尔良之战，打响在根特和约签订两周之后。西班牙殖民地的官员面对行不通的王室敕令，可以用一句有名的套话回复：“我服从，但不执行。”"
+  },
+  "zh-Hant": {
+   "intro": "當一道命令要走上幾個月，就得有人在現場被信任去行動，也得有人在後方能夠事後判斷，這份信任有沒有被辜負。時延下的權威寫明訊息要走多久、當地的指揮官和官員可以獨自決定什麼、如何回執確認，以及失去聯絡時怎麼辦。歷史上滿是這樣的空檔：1815年1月的新奧爾良之戰，打響在根特和約簽訂兩週之後。西班牙殖民地的官員面對行不通的王室敕令，可以用一句有名的套話回覆：「我服從，但不執行。」"
+  }
+ },
+ {
+  "id": "C058",
+  "en": {
+   "intro": "In a sealed habitat, air is not a market good but a shared lung. Life-support contracts set out who maintains the air, water, power and evacuation systems, what reserves must be kept, who may declare an emergency and what powers come with it while it lasts. They borrow from older places where nature allows no improvisation: winter crews at polar stations, submarine crews, the sea's ancient duty to rescue anyone in peril regardless of flag. One rule is absolute. Once provision has been promised to a habitat, no resident may be cut off from it on grounds of nationality, debt or faction."
+  },
+  "zh-Hans": {
+   "intro": "在封闭的栖居地里，空气不是商品，而是共用的一副肺。生命保障契约写明谁维护空气、水、能源和撤离系统，必须保有多少储备，谁有权宣布紧急状态，以及紧急状态期间随之而来的权力。它借鉴了那些自然不容即兴发挥的地方：极地考察站的越冬队员、潜艇艇员，以及海上自古以来救助一切遇险者、不问国旗的义务。有一条规矩是绝对的：一旦承诺了对某处栖居地的供给，任何居民都不得因国籍、债务或派系而被断供。"
+  },
+  "zh-Hant": {
+   "intro": "在封閉的棲居地裡，空氣不是商品，而是共用的一副肺。生命保障契約寫明誰維護空氣、水、能源和撤離系統，必須保有多少儲備，誰有權宣佈緊急狀態，以及緊急狀態期間隨之而來的權力。它借鑑了那些自然不容即興發揮的地方：極地考察站的越冬隊員、潛艇艇員，以及海上自古以來救助一切遇險者、不問國旗的義務。有一條規矩是絕對的：一旦承諾了對某處棲居地的供給，任何居民都不得因國籍、債務或派系而被斷供。"
+  }
+ },
+ {
+  "id": "C059",
+  "en": {
+   "intro": "Law has recognized odd persons before. Corporations sue and are sued, and in 2017 New Zealand declared the Whanganui River a legal person, with guardians to speak for it. A recognition plan prepares, in advance and in cold blood, for claims that some machine or unknown entity should count as a subject of rights or duties. It asks how identity can be shown to persist, what the entity can actually do and who answers for its acts, and it sets the lawful process for deciding. It asserts nothing about machine consciousness and expects no visitors. Its whole virtue is not having to improvise in a crisis."
+  },
+  "zh-Hans": {
+   "intro": "法律以前就承认过一些古怪的“人”。公司可以起诉，也可以被诉；2017年，新西兰宣布旺格努伊河为法律意义上的人，由监护人代它发声。非生物主体承认预案，就是提前、冷静地为这样的主张做准备：某种机器或未知的实体是否应当算作权利与义务的主体。它追问如何证明身份始终连续、这个实体实际能做什么、谁为它的行为负责，并规定作出决定的合法程序。它不断言机器有意识，也不等待任何来客。它全部的好处，在于危机来临时不必临场发挥。"
+  },
+  "zh-Hant": {
+   "intro": "法律以前就承認過一些古怪的「人」。公司可以起訴，也可以被訴；2017年，紐西蘭宣佈旺格努伊河為法律意義上的人，由監護人代它發聲。非生物主體承認預案，就是提前、冷靜地為這樣的主張做準備：某種機器或未知的實體是否應當算作權利與義務的主體。它追問如何證明身份始終連續、這個實體實際能做什麼、誰為它的行為負責，並規定作出決定的合法程序。它不斷言機器有意識，也不等待任何來客。它全部的好處，在於危機來臨時不必臨場發揮。"
+  }
+ },
+ {
+  "id": "C060",
+  "en": {
+   "intro": "Libraries rarely burn in one dramatic night; more often they rot through neglect, budget cuts and formats nobody can read. A recoverable archive guards against both. Copies are kept in separate places, on media chosen to last, in codes a stranger could learn, and staff rehearse restoring them the way soldiers rehearse drills. Norway's seed vault on Svalbard, opened in 2008, keeps duplicate samples from seed banks around the world inside a frozen mountain. An archive preserves knowledge, rights and the record of past accidents. It cannot preserve the people who knew how to use them, and a copied file is not fresh evidence.",
+   "quote": {
+    "text": "My life has a limit, but knowledge has none.",
+    "source": "Zhuangzi, “The Secret of Caring for Life”"
+   }
+  },
+  "zh-Hans": {
+   "intro": "图书馆很少在一夜大火中毁掉，更多的是在疏于照管、经费削减和无人能读的格式中慢慢烂掉。可恢复的文明档案要同时防备这两种结局：副本分存在不同的地方，用选来耐久的载体，以陌生人也能学会的编码写成，工作人员还要像士兵操练一样反复演练恢复。2008年启用的挪威斯瓦尔巴全球种子库，在冰封的山体里保存着世界各地种子库送来的备份样本。档案保存知识、权利和过往事故的记录，却保存不了懂得如何使用它们的人；复制出来的文件，也不是新的证据。",
+   "quote": {
+    "text": "吾生也有涯，而知也无涯。",
+    "source": "《庄子·养生主》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "圖書館很少在一夜大火中毀掉，更多的是在疏於照管、經費削減和無人能讀的格式中慢慢爛掉。可恢復的文明檔案要同時防備這兩種結局：副本分存在不同的地方，用選來耐久的媒介，以陌生人也能學會的編碼寫成，工作人員還要像士兵操練一樣反覆演練恢復。2008年啟用的挪威斯瓦爾巴全球種子庫，在冰封的山體裡儲存著世界各地種子庫送來的備份樣本。檔案保存知識、權利和過往事故的記錄，卻儲存不了懂得如何使用它們的人；複製出來的檔案，也不是新的證據。",
+   "quote": {
+    "text": "吾生也有涯，而知也無涯。",
+    "source": "《莊子·養生主》"
+   }
+  }
+ },
+ {
+  "id": "C061",
+  "en": {
+   "intro": "A planet's polities can sign a charter in an afternoon; integrating them takes decades of administration. A constitutional global community is a multilevel order in which members keep their own governments but accept a common charter with real powers over budgets, security, adjudication and services, plus agreed rules for disputes and for leaving. The closest precedent is far smaller: in 1787 the American states replaced their Articles of Confederation, under which the centre could request money but not collect it, with a constitution that could tax. Signatures are the cheap part. What counts is whether common institutions are staffed, funded and obeyed where they were not wanted.",
+   "quote": {
+    "text": "The law of nations shall be founded on a federation of free states.",
+    "source": "Immanuel Kant, Perpetual Peace, Second Definitive Article (1795)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "全球各政体签一份宪章，一个下午就够了；真正把它们整合起来，却要几十年的行政功夫。宪政全球共同体是一种多层级的秩序：成员保有各自的政府，同时接受一部共同的宪章，它在预算、安全、裁断和公共服务上握有真实的权力，争端如何解决、成员如何退出，也都有约定的规则。最接近的先例规模要小得多：1787年，美国各州用一部能够征税的宪法，取代了《邦联条例》——在那之下，中央只能请求拨款，却无权收钱。签字是最便宜的一步，要紧的是共同的机构在并不情愿的地方，是否有人手、有经费、有人服从。",
+   "quote": {
+    "text": "国际法应当以自由国家的联盟为基础。",
+    "source": "伊曼努尔·康德《永久和平论》第二项正式条款（1795）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "全球各政體籤一份憲章，一個下午就夠了；真正把它們整合起來，卻要幾十年的行政功夫。憲政全球共同體是一種多層級的秩序：成員保有各自的政府，同時接受一部共同的憲章，它在預算、安全、裁斷和公共服務上握有真實的權力，爭端如何解決、成員如何退出，也都有約定的規則。最接近的先例規模要小得多：1787年，美國各州用一部能夠徵稅的憲法，取代了《邦聯條例》——在那之下，中央只能請求撥款，卻無權收錢。簽字是最便宜的一步，要緊的是共同的機構在並不情願的地方，是否有人手、有經費、有人服從。",
+   "quote": {
+    "text": "國際法應當以自由國家的聯盟為基礎。",
+    "source": "伊曼努爾·康德《永久和平論》第二項正式條款（1795）"
+   }
+  }
+ },
+ {
+  "id": "C062",
+  "en": {
+   "intro": "A negotiated standing institution leaves its members wide autonomy at home but hands a small set of final powers to bodies they cannot easily walk away from: the last word in disputes, a common security force, a shared budget and officials to carry decisions out. What separates it from an ordinary alliance is that the delegation is real. The League of Nations showed the alternative: its council generally needed unanimity, and in 1935 it could neither prevent nor reverse Italy's invasion of Ethiopia. A body whose members keep a veto over everything, or their own right to make war abroad, is a meeting, not a government.",
+   "quote": {
+    "text": "They shall beat their swords into plowshares, and their spears into pruninghooks: nation shall not lift up sword against nation, neither shall they learn war any more.",
+    "source": "Isaiah 2:4, King James Version (1611)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "协商建立的常设全球机构让成员在本土保有广泛的自治，却把一小组终局性的权力交给它们不能轻易退出的机构：纠纷的最后裁断、共同的安全力量、共享的经费，以及执行决定的官员。它与普通同盟的区别，在于权力确实让渡了出去。国际联盟展示过反面的结局：它的行政院一般须全体一致才能作出决定，1935年，它既没能阻止、也没能扭转意大利对埃塞俄比亚的入侵。成员若对一切事务都保留否决权，或保留各自对外开战的权力，这个机构就只是一场会议，而不是一个政府。",
+   "quote": {
+    "text": "他们要将刀打成犁头，把枪打成镰刀。这国不举刀攻击那国，他们也不再学习战事。",
+    "source": "《以赛亚书》2:4，和合本（1919）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "協商建立的常設全球機構讓成員在本土保有廣泛的自治，卻把一小組終局性的權力交給它們不能輕易退出的機構：糾紛的最後裁斷、共同的安全力量、共享的經費，以及執行決定的官員。它與普通同盟的區別，在於權力確實讓渡了出去。國際聯盟展示過反面的結局：它的行政院一般須全體一致才能作出決定，1935年，它既沒能阻止、也沒能扭轉義大利對衣索比亞的入侵。成員若對一切事務都保留否決權，或保留各自對外開戰的權力，這個機構就只是一場會議，而不是一個政府。",
+   "quote": {
+    "text": "他們要將刀打成犁頭，把槍打成鐮刀。這國不舉刀攻擊那國，他們也不再學習戰事。",
+    "source": "《以賽亞書》2:4，和合本（1919）"
+   }
+  }
+ },
+ {
+  "id": "C063",
+  "en": {
+   "intro": "Conquest can unify a map in a few campaigns; governing what was taken is another matter. Globally unified command governance places every resident under one chain of command, whether built by amalgamation or by force, and it is judged by whether that chain actually delivers services, settles succession and corrects its own officials. The Qin unified the Chinese states in 221 BC, imposed common weights, coinage and laws, and collapsed within fifteen years; the Han dynasty that followed kept much of the machinery but governed with more patience. Occupation is not administration. Obedience has to be earned again every year with service, fairness and appeal."
+  },
+  "zh-Hans": {
+   "intro": "征服可以在几场战役里把地图涂成一种颜色，治理到手的土地却是另一回事。全球统一指挥治理把每一位居民都置于同一条指挥链之下，无论它是由合并还是由武力建成的；评判它的标准，是这条链条能否真正提供服务、安排好权力接续、纠正自己的官员。秦在公元前221年统一六国，统一度量衡、钱币和法令，不到十五年便土崩瓦解；继起的汉朝沿用了大部分制度，却治理得更有耐心。占领不等于治理。服从必须年年用服务、公正和申诉渠道重新换来。"
+  },
+  "zh-Hant": {
+   "intro": "征服可以在幾場戰役裡把地圖塗成一種顏色，治理到手的土地卻是另一回事。全球統一指揮治理把每一位居民都置於同一條指揮鏈之下，無論它是由合併還是由武力建成的；評判它的標準，是這條鏈條能否真正提供服務、安排好權力接續、糾正自己的官員。秦在公元前221年統一六國，統一度量衡、錢幣和法令，不到十五年便土崩瓦解；繼起的漢朝沿用了大部分制度，卻治理得更有耐心。佔領不等於治理。服從必須年年用服務、公正和申訴渠道重新換來。"
+  }
+ },
+ {
+  "id": "C064",
+  "en": {
+   "intro": "The farther a site lies from home, the more its people depend on promises made in advance. A common mission charter binds the founding authorities to one set of rules for remote facilities: who may explore and extract what, who bears which hazards, how costs are shared, who commands when contact fails, and how the arrangement is maintained for decades. The Antarctic Treaty of 1959 is the nearest precedent, freezing territorial claims so that research stations could cooperate rather than compete. A charter cannot erase what one party already knows, nor the debts and liabilities it brings along. It can only make the next disaster somebody's clear responsibility."
+  },
+  "zh-Hans": {
+   "intro": "一处站点离家越远，那里的人就越依赖事先作出的承诺。跨站点共同使命章程让各创始权威为遥远的设施订立同一套规则：谁可以勘探、开采什么，谁承担哪些风险，费用如何分摊，失去联络时由谁指挥，以及这套安排如何维持几十年。最接近的先例是1959年的《南极条约》，它冻结了领土主张，让各国的考察站以合作代替竞争。章程抹不掉任何一方已经掌握的知识，也抹不掉它带进来的债务与责任；它只能让下一场灾难成为某个人明确的责任。"
+  },
+  "zh-Hant": {
+   "intro": "一處站點離家越遠，那裡的人就越依賴事先作出的承諾。跨站點共同使命章程讓各創始權威為遙遠的設施訂立同一套規則：誰可以勘探、開採什麼，誰承擔哪些風險，費用如何分攤，失去聯絡時由誰指揮，以及這套安排如何維持幾十年。最接近的先例是1959年的《南極條約》，它凍結了領土主張，讓各國的考察站以合作代替競爭。章程抹不掉任何一方已經掌握的知識，也抹不掉它帶進來的債務與責任；它只能讓下一場災難成為某個人明確的責任。"
+  }
+ }
+]

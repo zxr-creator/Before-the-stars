@@ -14,7 +14,9 @@ export type Block =
   | { kind: 'goods' }
   | { kind: 'states' }
   | { kind: 'seats' }
-  | { kind: 'objective' };
+  | { kind: 'objective' }
+  /** The seat's disclosed cards, each a link to its details and encyclopedia entry. */
+  | { kind: 'encyclopedia'; tree: 'tech' | 'civics' };
 
 export interface TopicAction { label: string; panel?: PanelKey; overlay?: OverlayKey }
 
@@ -200,6 +202,7 @@ export const TOPICS: Topic[] = [
       p('Research capacity is work per month from qualified people in a makers’ circle or an institute. It is not a currency: what you do not use is lost.'),
       p('The technology tree lays out only the cards you have disclosed and the links you have learned. There are no placeholders for what is still unknown, and no totals.'),
       note('“Extrapolated” and “fictional” badges mark cards that go beyond established science.'),
+      { kind: 'encyclopedia', tree: 'tech' },
     ],
     actions: [{ label: 'Open the technology tree', overlay: 'tech' }, { label: 'Open knowledge', panel: 'knowledge' }],
     see: ['card', 'people', 'culture'],
@@ -217,6 +220,7 @@ export const TOPICS: Topic[] = [
       ),
       p('Lineages have tendencies that drift slowly with how people actually live. A religion may emerge, or not; a secular path is fully viable.'),
       p('The civics tree shows practices by group, with their requirement checklists and what each enables.'),
+      { kind: 'encyclopedia', tree: 'civics' },
     ],
     actions: [{ label: 'Open the civics tree', overlay: 'civics' }, { label: 'Open culture', panel: 'culture' }],
     see: ['knowledge', 'politics'],

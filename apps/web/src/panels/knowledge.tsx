@@ -10,6 +10,7 @@ import { ActionNote, Badge, Btn, Checklist, Empty, Est, Meter, Section, Tabs, Wh
 import type { Tone } from '../ui';
 import { act, consumeIntent, setWide, useApp } from '../store';
 import { StudyForm } from './projects';
+import { LorePassage } from '../lore';
 
 type View = 'frontier' | 'graph' | 'implementation' | 'history';
 
@@ -403,6 +404,7 @@ function TechDetail({ obs, t: card, onBack, onOpen }: { obs: Observation; t: Tec
         <h3>{tc(card.name)}</h3>
         <div class="row wrap"><StateBadge state={card.state} /> <LabelBadge label={card.label} /></div>
       </header>
+      <LorePassage kind="tech" name={card.name} />
       <Section title={t('What it makes possible')}>
         <p>{tc(card.capability)}</p>
         {card.enables.length ? <ul class="enables">{tcAll(card.enables).map((e) => <li><Icon name="right" size={10} /> {e}</li>)}</ul> : null}

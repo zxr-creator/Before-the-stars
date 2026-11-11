@@ -16,6 +16,7 @@ import type { LNode, TreeLayout } from './layout';
 import { Art, TreeChart } from './TreeView';
 import type { ChartApi } from './TreeView';
 import { enableIcon, groupHue, practiceArt, techArt } from './art';
+import { LorePassage } from '../lore';
 import './trees.css';
 
 const CARD_W = 264;
@@ -410,6 +411,7 @@ function TechDrawer({ obs, card, project, busy, onClose, onOpen }: {
     <Drawer art={techArt(card.name, card.field, card.handle)} kicker={tc(card.field)} title={tc(card.name)} onClose={onClose} label={t('Card: {name}', { name: tc(card.name) })}
       badges={<><span class={cx('tree-state', 'is-' + card.state)} title={t(KSTATE_HELP[card.state] ?? '')}><Icon name={KSTATE_ICON[card.state] ?? 'info'} size={12} /> {t(KSTATE_LABEL[card.state])}</span><LabelBadge label={card.label} /></>}>
       <p class="tree-state-help">{t(KSTATE_HELP[card.state] ?? '')}</p>
+      <LorePassage kind="tech" name={card.name} />
       <Block title={t('What it makes possible')}>
         <p>{tc(card.capability)}</p>
         <EnableList list={card.enables} />
@@ -655,6 +657,7 @@ function PracticeDrawer({ obs, card, project, busy, onClose, onOpen }: {
     <Drawer art={practiceArt(card.name, card.group, card.handle)} kicker={tc(card.group)} title={tc(card.name)} onClose={onClose} label={t('Card: {name}', { name: tc(card.name) })}
       badges={<span class={cx('tree-state', 'is-' + card.state)} title={t(PSTATE_HELP[card.state] ?? '')}><Icon name={PSTATE_ICON[card.state] ?? 'info'} size={12} /> {t(PSTATE_LABEL[card.state])}</span>}>
       <p class="tree-state-help">{t(PSTATE_HELP[card.state] ?? '')}</p>
+      <LorePassage kind="practice" name={card.name} />
       <Block title={t('How people behave')}>
         <p>{tc(card.behavior)}</p>
         <EnableList list={card.enables} />
