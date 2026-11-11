@@ -1,10 +1,15 @@
-// Sound settings: volumes, mute, title music and interface sounds. Shown in the game menu
-// and, from the title screen, in a small panel opened by the Sound button.
+// Sound settings: volumes, mute, the music source (recordings, the composed score, or
+// both), what is playing, title music, interface sounds, and the credits of every
+// recording with its licence. Shown in the game menu and, from the title screen, in a
+// small panel opened by the Sound button.
 import { useEffect, useState } from 'preact/hooks';
 import { t, useLocale } from '../i18n';
 import { cx } from '../ui';
-import { setAudioSettings, useAudioSettings, type AudioSettings } from './settings';
+import { setAudioSettings, useAudioSettings, type AudioSettings, type MusicSource } from './settings';
 import { audioStatus, subscribeAudioStatus, toggleMute, type AudioStatus } from './index';
+import { useNowPlaying } from './playing';
+import { trackLine } from './NowPlaying';
+import type { TrackInfo } from './engine/tracks';
 import './audio.css';
 
 function useAudioStatus(): AudioStatus {
@@ -42,18 +47,68 @@ function Check({ label, checked, onChange, testid }: { label: string; checked: b
   );
 }
 
+const ERA_HEADINGS: [string, string][] = [
+  ['title', 'Title screen'], ['ancient', 'Ancient era'], ['classical', 'Classical era'], ['earlyModern', 'Early modern era'],
+  ['industrial', 'Industrial era'], ['modern', 'Modern era'], ['space', 'Space age'],
+];
+
+/** Every recording, by era, with performer, licence and source page. Loaded when opened. */
+export function MusicCredits() {
+  useLocale();
+  const [tracks, setTracks] = useState<TrackInfo[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    import('./engine/tracks').then((m) => { if (live) setTracks(m.RECORDED_TRACKS); }).catch(() => { if (live) setFailed(true); });
+    return () => { live = false; };
+  }, []);
+  if (failed) return <p class="snd-note">{t('The list of recordings could not be loaded.')}</p>;
+  if (!tracks) return <p class="snd-note">{t('Loading…')}</p>;
+  return (
+    <div class="snd-credits" data-testid="sound-credits">
+      <p>{t('Every recording here is in the public domain or dedicated to it (CC0): both the music and the performance. Each licence is as stated on the source page.')}</p>
+      {ERA_HEADINGS.map(([era, heading]) => {
+        const list = tracks.filter((x) => x.eras[0] === era);
+        if (!list.length) return null;
+        return (
+          <section key={era}>
+            <h4>{t(heading)}</h4>
+            <ul>
+              {list.map((x) => (
+                <li key={x.id} data-testid="sound-credit">
+                  <span class="snd-cr-title">{t(x.title)}{x.moods.includes('war') ? <> · {t('war music')}</> : null}</span>
+                  <span>{t('{composer}; performed by {performer}', { composer: t(x.composer), performer: t(x.performer) })}</span>
+                  <span class="snd-cr-meta">
+                    {t(x.license)} · <a href={x.source} target="_blank" rel="noopener noreferrer">{t('source')}</a>
+                    {x.excerpt ? <> · {t('excerpt')}</> : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+const SOURCES: [MusicSource, string][] = [['recorded', 'Recorded music'], ['generated', 'Generated score'], ['both', 'Both, in turn']];
+
 export function SoundSettings({ dark, compact }: { dark?: boolean; compact?: boolean }) {
   useLocale();
   const s = useAudioSettings();
   const st = useAudioStatus();
+  const playing = useNowPlaying();
   const [more, setMore] = useState(!compact);
+  const [credits, setCredits] = useState(false);
   const set = (p: Partial<AudioSettings>) => setAudioSettings(p);
   const note = st === 'unavailable' ? t('This browser offers no Web Audio, so the game is silent.')
     : st === 'error' ? t('The sound could not be started.')
     : s.muted ? t('Muted. Press M to turn the sound back on.')
     : st === 'idle' ? t('Sound starts after your first click or key press.')
     : st === 'loading' ? t('Starting the sound…')
-    : t('The music is composed by the game as you play, and follows your civilization through the ages.');
+    : s.musicSource === 'generated' ? t('The music is composed by the game as you play, and follows your civilization through the ages.')
+    : t('The music is public-domain recordings chosen for each age, in peace and at war; the game\'s own score fills the gaps and plays the fanfares.');
   return (
     <div class={cx('snd', dark && 'is-dark')} data-testid="sound-settings">
       <div class="snd-head">
@@ -71,12 +126,28 @@ export function SoundSettings({ dark, compact }: { dark?: boolean; compact?: boo
       </div>
       {more ? <Slider label={t('Master volume')} value={s.master} disabled={s.muted} testid="sound-master" onInput={(v) => set({ master: v })} /> : null}
       <Slider label={t('Music')} value={s.music} disabled={s.muted} testid="sound-music" onInput={(v) => set({ music: v })} />
+      <fieldset class="snd-source" data-testid="sound-source">
+        <legend>{t('Music source')}</legend>
+        {SOURCES.map(([v, label]) => (
+          <label key={v}>
+            <input type="radio" name={compact ? 'snd-source-menu' : 'snd-source'} value={v} checked={s.musicSource === v} data-testid={`sound-source-${v}`} onChange={() => set({ musicSource: v })} />
+            <span>{t(label)}</span>
+          </label>
+        ))}
+      </fieldset>
+      {playing && !s.muted ? (
+        <p class="snd-playing" data-testid="sound-now-playing">{t('Now playing: {track}', { track: trackLine(playing) })}</p>
+      ) : null}
       {more ? (
         <>
           <Slider label={t('Effects')} value={s.effects} disabled={s.muted || !s.uiSounds} testid="sound-effects" onInput={(v) => set({ effects: v })} />
           <Check label={t('Music on the title screen too')} checked={s.titleMusic} testid="sound-title-music" onChange={(v) => set({ titleMusic: v })} />
           <Check label={t('Interface sounds (end of round, orders, notices)')} checked={s.uiSounds} testid="sound-ui" onChange={(v) => set({ uiSounds: v })} />
           <p class="snd-note" role="status">{note}</p>
+          <button type="button" class="linklike snd-credits-toggle" aria-expanded={credits} data-testid="sound-credits-toggle" onClick={() => setCredits(!credits)}>
+            {credits ? t('Hide the music credits') : t('Music credits and licences')}
+          </button>
+          {credits ? <MusicCredits /> : null}
         </>
       ) : null}
     </div>

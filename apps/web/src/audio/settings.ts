@@ -12,9 +12,14 @@ export interface AudioSettings {
   titleMusic: boolean;
   /** Short interface sounds: end of round, order accepted or refused, notifications. */
   uiSounds: boolean;
+  /** What plays as music: public-domain recordings, the score the game composes, or both in turn. */
+  musicSource: MusicSource;
 }
 
-export const AUDIO_DEFAULTS: AudioSettings = { master: 0.8, music: 0.7, effects: 0.6, muted: false, titleMusic: true, uiSounds: true };
+export type MusicSource = 'recorded' | 'generated' | 'both';
+const SOURCES: MusicSource[] = ['recorded', 'generated', 'both'];
+
+export const AUDIO_DEFAULTS: AudioSettings = { master: 0.8, music: 0.7, effects: 0.6, muted: false, titleMusic: true, uiSounds: true, musicSource: 'recorded' };
 const KEY = 'bts.audio';
 
 const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : d);
@@ -30,6 +35,7 @@ function load(): AudioSettings {
       muted: typeof v.muted === 'boolean' ? v.muted : AUDIO_DEFAULTS.muted,
       titleMusic: typeof v.titleMusic === 'boolean' ? v.titleMusic : AUDIO_DEFAULTS.titleMusic,
       uiSounds: typeof v.uiSounds === 'boolean' ? v.uiSounds : AUDIO_DEFAULTS.uiSounds,
+      musicSource: SOURCES.includes(v.musicSource as MusicSource) ? v.musicSource as MusicSource : AUDIO_DEFAULTS.musicSource,
     };
   } catch {
     return { ...AUDIO_DEFAULTS };

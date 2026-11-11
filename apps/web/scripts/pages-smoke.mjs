@@ -70,7 +70,11 @@ let expectTrouble = false;
 function watch(page) {
   page.on('pageerror', (e) => { if (!expectTrouble) problems.push(`page error: ${e.message}`); });
   page.on('console', (m) => { if (m.type() === 'error' && !expectTrouble) problems.push(`console error: ${m.text()}`); });
-  page.on('requestfailed', (r) => { if (!expectTrouble) problems.push(`request failed: ${r.url()} (${r.failure()?.errorText})`); });
+  page.on('requestfailed', (r) => {
+    // a recording streams from a blob URL; leaving the page or changing track cancels that read
+    if (r.url().startsWith('blob:') && r.failure()?.errorText === 'net::ERR_ABORTED') return;
+    if (!expectTrouble) problems.push(`request failed: ${r.url()} (${r.failure()?.errorText})`);
+  });
   page.on('request', (r) => {
     const url = r.url();
     if (url.startsWith('data:') || url.startsWith('blob:')) return;
