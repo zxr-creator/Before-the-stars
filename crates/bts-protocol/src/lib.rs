@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// `ForeignCiv.traditions`, `ArmyView.variant`, `SpectatorCiv.era`,
 /// `SpectatorCiv.traditions`, `Action::EnterEra`, `Action::ChooseCharter`,
 /// `Action::ChooseTradition`).
-pub const PROTOCOL_VERSION: &str = "bts-protocol/2.2";
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.3";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -401,6 +401,9 @@ pub struct Observation {
     /// and 4; protocol 2.2). Absent in older observations.
     #[serde(default)]
     pub era: Option<EraView>,
+    /// Hash of the public building tree (`GET /api/building-tree`; protocol 2.3).
+    #[serde(default)]
+    pub building_tree_hash: String,
 }
 
 /// A civilization's place on the era ladder and what goes with it.
@@ -689,6 +692,9 @@ pub struct UnitsView {
     pub service_unit: String,
     /// Lower bound, in residents, of each settlement class in ascending order.
     pub settlement_bounds: Vec<(SettlementKind, u32)>,
+    /// Lower bound, in city residents, of each class of principal city (protocol 2.3).
+    #[serde(default)]
+    pub city_bounds: Vec<(SettlementKind, u32)>,
     /// Bounds on orders that name a number of people.
     #[serde(default)]
     pub limits: PeopleLimits,
@@ -833,6 +839,12 @@ pub struct OwnCiv {
     #[serde(default)]
     pub deaths_by_cause: Vec<DeathCount>,
     pub migration_last_round: i32,
+    #[serde(default)]
+    pub migration: MigrationView,
+    #[serde(default)]
+    pub immigration: Immigration,
+    #[serde(default)]
+    pub emigration: Emigration,
     pub goods: Vec<GoodLine>,
     pub quals: Vec<QualCount>,
     pub labor: LaborSummary,
@@ -918,8 +930,185 @@ pub struct RecipeRun {
     pub missing: Vec<Good>,
 }
 
+/// Who may immigrate (design chapter 38, section 3.6).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Immigration {
+    /// No voluntary immigrants; refugees still cross at half the rate.
+    Closed,
+    /// Qualified working-age people and their children, at most 0.1% of the
+    /// population a year.
+    #[default]
+    Selective,
+    Open,
+}
+
+/// Whether the seat's people may leave (design chapter 38, section 3.6).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Emigration {
+    #[default]
+    Free,
+    /// Emigrants need twice the gain; stability -1 in every region.
+    Restricted,
+}
+
+/// The public building tree (design chapter 37, section 8.9): every building,
+/// stage and upgrade of the content, the same for every seat and every match of a
+/// content version. Technology and practice requirements are masked to their era
+/// and field; sealed content (the jump works and the interstellar era) is absent.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BuildingTree {
+    pub content_version: String,
+    /// FNV-1a 64 of the tree's JSON with this field empty, hexadecimal.
+    pub hash: String,
+    pub lines: Vec<LineDef>,
+    pub nodes: Vec<BuildingNode>,
+    pub edges: Vec<UpgradeEdgeView>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LineDef {
+    pub key: String,
+    pub name: String,
+    pub category: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BuildingNode {
+    pub key: String,
+    pub name: String,
+    pub category: String,
+    pub line: String,
+    pub stage: u8,
+    pub era: u8,
+    /// The tradition whose exclusive work it is, if any.
+    pub tradition: Option<String>,
+    pub site: String,
+    pub desc: String,
+    pub cost: Vec<GoodQty>,
+    pub work: i64,
+    pub build_months: u16,
+    pub general_posts: u32,
+    pub skilled_posts: Vec<JobSpec>,
+    pub upkeep: Vec<GoodQty>,
+    pub provides: Vec<String>,
+    /// Land a level takes, thousandths of a land unit.
+    pub land_milli: i64,
+    /// Residents a level houses (housing only).
+    pub houses: i64,
+    pub max_level: u16,
+    pub requires: ReqExpr,
+}
+
+/// A masked requirement: each technology or practice leaf is one node, shown only
+/// by its era and field, never by name or identifier.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ReqExpr {
+    None,
+    All { of: Vec<ReqExpr> },
+    Any { of: Vec<ReqExpr> },
+    Tech { era: u8, field: String },
+    Practice { era: u8, field: String },
+    Facility { key: String },
+    Tradition { key: String },
+    Religion,
+    Other { text: String },
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UpgradeEdgeView {
+    pub from: String,
+    pub to: String,
+    /// "upgrade" or "alternative" (built new beside the old, not converted).
+    pub kind: String,
+    /// Share of the successor's bill and work an upgrade costs, basis points.
+    pub cost_bp: u16,
+    pub work_bp: u16,
+}
+
+/// A region's principal city (design chapter 38, section 2). Its people are the
+/// region's people; size and class are derived each month.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CityView {
+    pub name: String,
+    /// Residents of the city (an estimate for regions the seat does not govern).
+    pub residents: u32,
+    pub class: SettlementKind,
+}
+
+/// What a governed region's land, city, food reach and network are doing
+/// (design chapter 37, sections 8.6-8.8; chapter 38, sections 2-5).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UrbanView {
+    /// Share of residents in the towns and city, basis points.
+    pub urban_share_bp: u16,
+    pub site_score: i32,
+    pub primacy_bp: u16,
+    /// Land in thousandths of a land unit.
+    pub land_total_milli: i64,
+    pub land_urban_milli: i64,
+    pub land_industrial_milli: i64,
+    pub land_farmland_milli: i64,
+    pub land_pasture_milli: i64,
+    pub land_forest_milli: i64,
+    pub land_wild_milli: i64,
+    /// Field levels the arable land the town leaves can hold.
+    pub arable_left: u16,
+    pub housed: u32,
+    pub informal: u32,
+    /// Residents who can be fed from the common stock beyond the region's own
+    /// food, and the food access factor behind it (basis points).
+    pub provision_capacity: u32,
+    pub access_bp: u16,
+    /// Residents fed at most this month (own food plus provisioning).
+    pub feedable: u32,
+    /// City factor terms: access bonus and congestion, basis points.
+    pub access_bonus_bp: u16,
+    pub congestion_bp: u16,
+    /// Defence factor of the city against the newest armies, basis points (10,000 = none).
+    pub defence_bp: u16,
+    /// Attractiveness to migrants, basis points (may be negative).
+    pub attractiveness: i32,
+    /// Voluntary out-migration ceiling of the best mode, basis points a year.
+    pub mobility_cap_bp: u16,
+    /// Network levels and best stage by mode: roads, canals, harbour, railway, air, urban transit.
+    pub network: Vec<NetworkLine>,
+    /// Links from this region: least loss for general goods and freight capacity.
+    pub links: Vec<LinkView>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct NetworkLine {
+    pub mode: String,
+    pub stage: u8,
+    pub levels: u16,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct LinkView {
+    pub region: RegionId,
+    pub loss_bp: u16,
+    /// kt a month.
+    pub capacity: u32,
+}
+
+/// People who moved over the last resolved round (design chapter 38, section 3).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct MigrationView {
+    pub internal: u32,
+    pub emigrated: u32,
+    pub immigrated: u32,
+    pub refugees: u32,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FacilityView {
+    /// Two or more eras behind the seat's era with a successor it can build: upkeep
+    /// +25% and counted in an era crossing's strain (design chapter 37, section 8.3).
+    #[serde(default)]
+    pub obsolete: bool,
     /// General-post saving from shared support, basis points, as it applies in the
     /// coming month (it shrinks when the region's freight is congested); not a
     /// goods/output multiplier.
@@ -1143,6 +1332,9 @@ pub struct OwnRegion {
     /// Labour productivity by sector with its factors (ruleset 3.0 slice 6).
     #[serde(default)]
     pub productivity: Vec<ProductivityView>,
+    /// City, land, provisioning and network (protocol 2.3).
+    #[serde(default)]
+    pub urban: UrbanView,
 }
 
 /// A region's shared infrastructure and the economies of scale it carries
@@ -1214,6 +1406,10 @@ pub struct RegionView {
     /// Climate zone (generator 2.0; public geography like terrain).
     #[serde(default)]
     pub climate: Option<ClimateZone>,
+    /// The principal city (protocol 2.3): its name for every region the seat has
+    /// seen, its size and class as of the seat's knowledge.
+    #[serde(default)]
+    pub city: Option<CityView>,
 }
 
 /// An epidemic in a region (design chapter 36, section 3.2).
@@ -1462,14 +1658,14 @@ pub struct InstitutionLoad {
     pub capacity: u32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GoodQty {
     pub good: Good,
     /// Base units of the good (rations, tonnes or lots).
     pub amount: i64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct JobSpec {
     pub qual: Option<Qual>,
     /// People per facility level.
@@ -1567,6 +1763,9 @@ pub struct FacilityType {
     pub stage: u8,
     #[serde(default)]
     pub era: u8,
+    /// Kinds an upgrade in place leads to ([`ProjectSpec::Upgrade`]).
+    #[serde(default)]
+    pub upgrades_to: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -2043,6 +2242,12 @@ pub enum ProjectSpec {
     FtlDeployment,
     /// Replace one assembly and hand over to a relief crew.
     FtlReplacement,
+    /// Convert `levels` levels of `from` in place into `to`, the next stage of its
+    /// building line (design chapter 37, section 8.3): 60% of `to`'s bill and work
+    /// (rounded up), its crew, site power and minimum months in full. The levels
+    /// stop work when the order is placed and join `to` when it completes;
+    /// cancelling returns them. Edges are listed in the building tree.
+    Upgrade { region: RegionId, from: String, to: String, levels: u16 },
     /// Revisit study of a rival family's question (design chapter 39, section 1.4):
     /// names a known member of the family by its handle; for 240 months after it
     /// completes, the seat's evidence on that family is no longer held back.
@@ -2100,6 +2305,13 @@ pub enum PolicySetting {
     /// both sides of a war have `accept_white_peace_after_months` set, an armistice
     /// (white peace) comes into force once neither side has gained or lost a region
     /// to the other for the longer of the two and of 36 months. `None` withdraws it.
+    /// Border policy (design chapter 38, section 3.6): who may come to live here
+    /// and whether the seat's people may leave. Default `selective` and `free`.
+    Borders {
+        immigration: Immigration,
+        #[serde(default)]
+        emigration: Emigration,
+    },
     WarPolicy {
         seat: SeatId,
         #[serde(default)]

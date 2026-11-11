@@ -117,6 +117,98 @@ export interface Observation {
   directives?: DirectiveView[];
   /** bts-protocol/2.2: era, charters, golden or dark age and traditions. */
   era?: EraView | null;
+  /** bts-protocol/2.3: hash of the public building tree (GET /api/building-tree). */
+  building_tree_hash?: string;
+}
+
+/** bts-protocol/2.3: who may immigrate, and whether the seat's people may leave. */
+export type Immigration = 'closed' | 'selective' | 'open';
+export type Emigration = 'free' | 'restricted';
+
+/** bts-protocol/2.3: the public building tree, the same for every seat and match. */
+export interface BuildingTree {
+  content_version: string;
+  hash: string;
+  lines: { key: string; name: string; category: string }[];
+  nodes: BuildingNode[];
+  edges: { from: string; to: string; kind: 'upgrade' | 'alternative'; cost_bp: number; work_bp: number }[];
+}
+
+export interface BuildingNode {
+  key: string;
+  name: string;
+  category: string;
+  line: string;
+  stage: number;
+  era: number;
+  tradition: string | null;
+  site: string;
+  desc: string;
+  cost: GoodQty[];
+  work: number;
+  build_months: number;
+  general_posts: number;
+  skilled_posts: JobSpec[];
+  upkeep: GoodQty[];
+  provides: string[];
+  land_milli: number;
+  houses: number;
+  max_level: number;
+  requires: ReqExpr;
+}
+
+/** A masked requirement: technologies and practices appear only by era and field. */
+export type ReqExpr =
+  | { kind: 'none' }
+  | { kind: 'all'; of: ReqExpr[] }
+  | { kind: 'any'; of: ReqExpr[] }
+  | { kind: 'tech'; era: number; field: string }
+  | { kind: 'practice'; era: number; field: string }
+  | { kind: 'facility'; key: string }
+  | { kind: 'tradition'; key: string }
+  | { kind: 'religion' }
+  | { kind: 'other'; text: string };
+
+/** bts-protocol/2.3: a region's principal city. */
+export interface CityView {
+  name: string;
+  residents: number;
+  class: SettlementKind;
+}
+
+/** bts-protocol/2.3: a governed region's city, land, food reach and network. */
+export interface UrbanView {
+  urban_share_bp: number;
+  site_score: number;
+  primacy_bp: number;
+  land_total_milli: number;
+  land_urban_milli: number;
+  land_industrial_milli: number;
+  land_farmland_milli: number;
+  land_pasture_milli: number;
+  land_forest_milli: number;
+  land_wild_milli: number;
+  arable_left: number;
+  housed: number;
+  informal: number;
+  provision_capacity: number;
+  access_bp: number;
+  feedable: number;
+  access_bonus_bp: number;
+  congestion_bp: number;
+  defence_bp: number;
+  attractiveness: number;
+  mobility_cap_bp: number;
+  network: { mode: string; stage: number; levels: number }[];
+  links: { region: RegionId; loss_bp: number; capacity: number }[];
+}
+
+/** bts-protocol/2.3: people who moved over the last round. */
+export interface MigrationView {
+  internal: number;
+  emigrated: number;
+  immigrated: number;
+  refugees: number;
 }
 
 /** bts-protocol/2.2: a civilization's place on the era ladder (design chapter 37, section 3). */
@@ -394,6 +486,10 @@ export interface OwnCiv {
   /** bts-protocol/1.3: the last round's deaths by cause; they add up to `deaths_last_round`. */
   deaths_by_cause?: DeathCount[];
   migration_last_round: number;
+  /** bts-protocol/2.3 */
+  migration?: MigrationView;
+  immigration?: Immigration;
+  emigration?: Emigration;
   goods: GoodLine[];
   quals: QualCount[];
   labor: LaborSummary;
@@ -460,6 +556,8 @@ export interface RecipeRun {
 }
 
 export interface FacilityView {
+  /** bts-protocol/2.3: two or more eras behind with a successor the seat can build. */
+  obsolete?: boolean;
   scale_saving_bp?: number;
   kind: string;
   name: string;
@@ -541,6 +639,8 @@ export interface OwnRegion {
   infrastructure?: InfraView;
   /** Labour productivity by sector (bts-protocol/2.0, ruleset 3.0 slice 6). */
   productivity?: ProductivityView[];
+  /** bts-protocol/2.3: city, land, provisioning and network. */
+  urban?: UrbanView;
 }
 
 export interface ForeignRegion {
@@ -572,6 +672,8 @@ export interface RegionView {
   outbreak?: OutbreakView | null;
   /** Climate zone (generator 2.0). */
   climate?: ClimateZone | null;
+  /** bts-protocol/2.3: the principal city as this seat knows it. */
+  city?: CityView | null;
 }
 
 export interface ForeignCiv {
@@ -823,6 +925,8 @@ export interface FacilityType {
   line?: string;
   stage?: number;
   era?: number;
+  /** bts-protocol/2.3: kinds an upgrade in place leads to. */
+  upgrades_to?: string[];
 }
 
 export interface CourseType {
@@ -1140,7 +1244,9 @@ export type ProjectSpec =
   | { kind: 'ftl_deployment' }
   | { kind: 'ftl_replacement' }
   /** Revisit study of a rival family's question (bts-protocol/2.1). */
-  | { kind: 'revisit'; card: string };
+  | { kind: 'revisit'; card: string }
+  /** bts-protocol/2.3: convert levels in place into the next stage (60% of its bill and work). */
+  | { kind: 'upgrade'; region: RegionId; from: string; to: string; levels: number };
 
 export type ManageOp = 'pause' | 'resume' | 'cancel';
 
@@ -1165,7 +1271,9 @@ export type PolicySetting =
    */
   | { kind: 'method'; region: RegionId; facility: string; method?: string | null }
   /** bts-protocol/1.3: accept a white peace with `seat` after this many months of unchanged lines (null withdraws). */
-  | { kind: 'war_policy'; seat: SeatId; accept_white_peace_after_months?: number | null; accept_cession_max?: number };
+  | { kind: 'war_policy'; seat: SeatId; accept_white_peace_after_months?: number | null; accept_cession_max?: number }
+  /** bts-protocol/2.3: border policy. */
+  | { kind: 'borders'; immigration: Immigration; emigration?: Emigration };
 
 export type Action =
   | { kind: 'select_contacts'; seats: SeatId[] }
@@ -1453,6 +1561,8 @@ export interface UnitsView {
   service_unit: string;
   /** Lower bound, in residents, of each settlement class in ascending order. */
   settlement_bounds: [SettlementKind, number][];
+  /** bts-protocol/2.3: lower bound, in city residents, of each class of principal city. */
+  city_bounds?: [SettlementKind, number][];
   /** Bounds on orders that name a number of people. */
   limits?: PeopleLimits;
 }
