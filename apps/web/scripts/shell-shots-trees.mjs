@@ -68,6 +68,28 @@ async function shot(page, name) {
   await page.screenshot({ path: `${OUT}tree-${name}.png` });
   log('wrote', `tree-${name}.png`);
 }
+/**
+ * The information rule with a virtualized chart: the chart places exactly the disclosed
+ * cards (its data-cards count), and every card in the DOM (only those near the viewport
+ * are rendered) is one of them.
+ */
+async function assertExactCards(page, handles, what) {
+  const placed = Number(await page.getAttribute(tid('tree-viewport'), 'data-cards'));
+  assert(placed === handles.length, `${what}: the chart places exactly the disclosed cards (${placed} vs ${handles.length})`);
+  const shown = await page.$$eval(`${tid('tree-card')}, ${tid('tree-lead')}`, (els) => els.map((e) => e.getAttribute('data-handle')));
+  const known = new Set(handles);
+  assert(shown.length > 0 && shown.every((h) => known.has(h)), `${what}: every rendered card is a disclosed one`);
+}
+/** Open a card's details through the search (the chart renders only cards near the view). */
+async function openCard(page, card, title = card.name) {
+  await page.fill(tid('tree-search'), card.name);
+  await page.press(tid('tree-search'), 'Enter');
+  await page.waitForSelector(tid('tree-detail'));
+  await page.fill(tid('tree-search'), '');
+  if (title) await page.waitForFunction((n) => document.querySelector('[data-testid="tree-detail"] h3')?.textContent === n, title, { timeout: 4000 });
+}
+const techIds = (o) => [...o.knowledge.techs.map((c) => c.handle), ...o.knowledge.leads.map((l) => 'lead-' + l.handle)];
+const pracIds = (o) => o.culture.practices.map((c) => c.handle);
 async function openTree(page, which) {
   await page.keyboard.press('Escape');
   await page.click(tid(which === 'tech' ? 'rail-techtree' : 'rail-civics'));
@@ -80,7 +102,7 @@ try {
   let obs = await match('tree-early', 3);
   let { context, page } = await open('en');
   await openTree(page, 'tech');
-  assert(await page.locator(tid('tree-card')).count() === obs.knowledge.techs.length, 'tech tree shows exactly the disclosed cards (early)');
+  await assertExactCards(page, techIds(obs), 'tech tree (early)');
   assert(await page.locator(tid('tree-lead')).count() === obs.knowledge.leads.length, 'frontier column shows exactly the open leads');
   await shot(page, 'tech-early');
   if (obs.knowledge.leads.length) {
@@ -101,7 +123,7 @@ try {
   await page.keyboard.press('c');
   await page.waitForSelector(tid('overlay-civics'));
   obs = await getObs();
-  assert(await page.locator(tid('tree-card')).count() === obs.culture.practices.length, 'civics tree shows exactly the disclosed practices (early)');
+  await assertExactCards(page, pracIds(obs), 'civics tree (early)');
   await shot(page, 'civics-early');
   await page.keyboard.press('Escape');
   await page.waitForSelector(tid('overlay-civics'), { state: 'detached' });
@@ -112,7 +134,7 @@ try {
   log(`late match: round ${obs.round}, ${obs.knowledge.techs.length} techs, ${obs.knowledge.leads.length} leads, ${obs.culture.practices.length} practices`);
   ({ context, page } = await open('en'));
   await openTree(page, 'tech');
-  assert(await page.locator(tid('tree-card')).count() === obs.knowledge.techs.length, 'tech tree shows exactly the disclosed cards (late)');
+  await assertExactCards(page, techIds(obs), 'tech tree (late)');
   await shot(page, 'tech-late');
   // Detail drawer: a card that can be investigated if there is one, else any discovered card.
   const want = obs.knowledge.techs.find((c) => c.can_investigate && c.state === 'discovered') ?? obs.knowledge.techs.find((c) => c.state === 'investigating') ?? obs.knowledge.techs[obs.knowledge.techs.length - 1];
@@ -123,8 +145,7 @@ try {
   await page.waitForSelector(tid('tree-detail'));
   await shot(page, 'tech-search-first-hit');
   await page.fill(tid('tree-search'), '');
-  await page.evaluate((h) => document.querySelector(`[data-testid="tree-card"][data-handle="${h}"]`).click(), want.handle);
-  await page.waitForSelector(tid('tree-detail'));
+  await openCard(page, want);
   assert((await page.textContent(`${tid('tree-detail')} h3`)) === want.name, 'drawer shows the chosen card');
   await shot(page, 'tech-detail');
   await page.locator('.tree-drawer-body').evaluate((el) => el.scrollTo(0, el.scrollHeight));
@@ -144,8 +165,7 @@ try {
   // An adopted card, for the gilded state and its "enables" list.
   const adopted = obs.knowledge.techs.filter((c) => c.state === 'adopted' && c.enables.length).pop();
   if (adopted) {
-    await page.evaluate((h) => document.querySelector(`[data-testid="tree-card"][data-handle="${h}"]`).click(), adopted.handle);
-    await page.waitForSelector(tid('tree-detail'));
+    await openCard(page, adopted);
     await shot(page, 'tech-detail-adopted');
     await page.keyboard.press('Escape');
   }
@@ -160,11 +180,10 @@ try {
   await page.click(tid('tree-tab-civics'));
   await page.waitForSelector(tid('overlay-civics'));
   await page.waitForTimeout(300);
-  assert(await page.locator(tid('tree-card')).count() === obs.culture.practices.length, 'civics tree shows exactly the disclosed practices (late)');
+  await assertExactCards(page, pracIds(obs), 'civics tree (late)');
   await shot(page, 'civics-late');
   const practice = obs.culture.practices.find((c) => c.state === 'recognized') ?? obs.culture.practices.find((c) => c.state === 'enacted') ?? obs.culture.practices[obs.culture.practices.length - 1];
-  await page.evaluate((h) => document.querySelector(`[data-testid="tree-card"][data-handle="${h}"]`).click(), practice.handle);
-  await page.waitForSelector(tid('tree-detail'));
+  await openCard(page, practice);
   await shot(page, 'civics-detail');
   await page.keyboard.press('Escape');
   await page.fill(tid('tree-search'), 'school');
@@ -178,16 +197,14 @@ try {
   ({ context, page } = await open('zh-Hans'));
   await openTree(page, 'tech');
   await shot(page, 'zh-tech-late');
-  await page.evaluate((h) => document.querySelector(`[data-testid="tree-card"][data-handle="${h}"]`).click(), want.handle);
-  await page.waitForSelector(tid('tree-detail'));
+  await openCard(page, want, null);
   await shot(page, 'zh-tech-detail');
   await page.keyboard.press('Escape');
   await page.keyboard.press('c');
   await page.waitForSelector(tid('overlay-civics'));
   await page.waitForTimeout(300);
   await shot(page, 'zh-civics-late');
-  await page.evaluate((h) => document.querySelector(`[data-testid="tree-card"][data-handle="${h}"]`).click(), practice.handle);
-  await page.waitForSelector(tid('tree-detail'));
+  await openCard(page, practice, null);
   await shot(page, 'zh-civics-detail');
   const missing = await page.evaluate(() => window.__btsI18n?.missing() ?? []);
   log(`zh-Hans strings without a translation this session: ${missing.length}`);
@@ -198,8 +215,7 @@ try {
   ({ context, page } = await open('en', { width: 1280, height: 720 }));
   await openTree(page, 'tech');
   await shot(page, '1280-tech');
-  await page.evaluate((h) => document.querySelector(`[data-testid="tree-card"][data-handle="${h}"]`).click(), want.handle);
-  await page.waitForSelector(tid('tree-detail'));
+  await openCard(page, want);
   await shot(page, '1280-tech-detail');
   await page.keyboard.press('Escape');
   await page.keyboard.press('c');
