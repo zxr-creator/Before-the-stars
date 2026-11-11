@@ -77,6 +77,13 @@ async function shot(page, name) {
   log('wrote', `${name}.png`);
 }
 const lang = (l) => (l === 'en' ? 'en' : 'zh-Hans');
+/** Open a card through the tree's search: the chart renders only the cards near the view. */
+async function openByName(page, name) {
+  await page.fill(tid('tree-search'), name);
+  await page.press(tid('tree-search'), 'Enter');
+  await page.waitForSelector(tid('tree-detail'));
+  await page.fill(tid('tree-search'), '');
+}
 async function drawer(page, which, card, map, locale) {
   await page.keyboard.press('Escape'); // closes an open drawer, if any
   const tab = tid(which === 'tech' ? 'tree-tab-tech' : 'tree-tab-civics');
@@ -84,7 +91,7 @@ async function drawer(page, which, card, map, locale) {
   else await page.click(tid(which === 'tech' ? 'rail-techtree' : 'rail-civics'));
   await page.waitForSelector(tid(which === 'tech' ? 'overlay-tech' : 'overlay-civics'));
   await page.waitForTimeout(300);
-  await page.evaluate((h) => document.querySelector(`[data-testid="tree-card"][data-handle="${h}"]`).click(), card.handle);
+  await openByName(page, card.name);
   await page.waitForSelector(`${tid('tree-detail')} ${tid('lore')}`, { timeout: 8000 });
   const shown = (await page.textContent(`${tid('tree-detail')} .lore-intro`)).trim();
   assert(shown === map.get(card.name)[lang(locale)].intro, `the ${which} drawer shows the passage of “${card.name}” (${locale})`);
@@ -104,7 +111,7 @@ try {
       // Every other disclosed technology also shows its own passage.
       await drawer(page, 'tech', tech, TECH, locale);
       for (const c of obs.knowledge.techs.slice(0, 12)) {
-        await page.evaluate((h) => document.querySelector(`[data-testid="tree-card"][data-handle="${h}"]`).click(), c.handle);
+        await openByName(page, c.name);
         await page.waitForFunction((want) => document.querySelector('[data-testid="tree-detail"] .lore-intro')?.textContent?.trim() === want, TECH.get(c.name)[lang(locale)].intro, { timeout: 4000 });
       }
       // Knowledge panel card detail and the culture panel's folded entry.

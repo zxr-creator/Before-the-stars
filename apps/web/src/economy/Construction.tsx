@@ -6,6 +6,8 @@
 //              production method with the alternatives side by side; expand
 //   Build      everything the seat knows how to build here, with the referee's quote
 //   Queue      the region's construction orders in the order they are served
+//   Productivity  labour productivity by sector with its factors, and the posts of
+//              every works at base, after shared support and after productivity
 //
 // Every price is the referee's quote (`OwnRegion.construction_sites`) times the
 // levels; nothing here prices an order itself (see ./works.ts). Read-only while
@@ -26,9 +28,16 @@ import {
   holders, levelsByCategory, limitsOf, methodsOf, ownRegions, queueOf, quoteFor, supportSavingAt, totalLevels,
   type Check, type MethodRow, type Quote, type QueueRow,
 } from './works';
+import { ERA_LABEL, eraLabel, lineLabel } from './labels';
+import { RegionProductivity, WorksLabour, eraText } from './Productivity';
+import { mult, postsChain } from './labour';
 import './construction.css';
 
-type Tab = 'overview' | 'works' | 'build' | 'queue';
+type Tab = 'overview' | 'works' | 'build' | 'queue' | 'productivity';
+export type WorksTabKey = Tab;
+
+/** The tab the next opening of the view starts on (set by openWorks). */
+let pendingTab: Tab | null = null;
 const TRANSPORT_KINDS = ['roads', 'port', 'rail', 'depot'];
 const REPAIR_KIND = 'parts_works';
 
@@ -51,9 +60,12 @@ export function RegionalWorks({ obs, region: initial, onClose }: { obs: Observat
   const s = useApp();
   const regions = ownRegions(obs);
   const [region, setRegion] = useState<RegionId | null>(initial ?? s.selectedRegion ?? obs.civ.capital);
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useState<Tab>(() => { const p = pendingTab; pendingTab = null; return p ?? 'overview'; });
   const [pick, setPick] = useState<string | null>(null);
-  useEffect(() => { if (initial !== null && initial !== undefined) setRegion(initial); }, [initial]);
+  useEffect(() => {
+    if (initial !== null && initial !== undefined) setRegion(initial);
+    if (pendingTab) { setTab(pendingTab); setPick(null); pendingTab = null; }
+  }, [initial]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); onClose(); }
@@ -70,6 +82,7 @@ export function RegionalWorks({ obs, region: initial, onClose }: { obs: Observat
     { key: 'works', label: t('Works and methods'), icon: 'box' },
     { key: 'build', label: t('Build'), icon: 'hammer' },
     { key: 'queue', label: t('Queue'), icon: 'scroll', n: queueLen },
+    { key: 'productivity', label: t('Productivity'), icon: 'labour' },
   ];
   return (
     <section class="works" role="dialog" aria-label={t('Regional works')} data-testid="overlay-works">
@@ -87,6 +100,10 @@ export function RegionalWorks({ obs, region: initial, onClose }: { obs: Observat
             </button>
           ))}
         </nav>
+        <span class="r3-orders">
+          <button type="button" class="works-tab" data-testid="works-standing-orders" title={t('Standing orders the referee carries out every round: build targets, research and reform agendas, settlement')}
+            onClick={() => openOverlay('orders', r ? 'build:' + r.id : null)}><Icon name="scroll" size={13} /> {t('Standing orders')}</button>
+        </span>
         {readOnly ? <span class="works-readonly" title={t('Orders cannot be given for a seat you are only watching.')}><Icon name="eye" size={13} /> {t(OBSERVING)}</span> : null}
         <button type="button" class="works-close" aria-label={t('Close (Esc)')} title={t('Close (Esc)')} data-testid="works-close" onClick={onClose}><Icon name="close" size={16} /></button>
       </header>
@@ -100,6 +117,7 @@ export function RegionalWorks({ obs, region: initial, onClose }: { obs: Observat
               {tab === 'works' ? <WorksTab obs={obs} r={r} pick={pick} onPick={setPick} /> : null}
               {tab === 'build' ? <BuildTab obs={obs} r={r} pick={pick} onPick={setPick} /> : null}
               {tab === 'queue' ? <QueueTab obs={obs} r={r} /> : null}
+              {tab === 'productivity' ? <RegionProductivity obs={obs} r={r} onWorks={(kind) => { setTab('works'); setPick(kind); }} /> : null}
             </div>
           </div>
         ) : <div class="works-main"><Empty>{t('We govern no region.')}</Empty></div>}
@@ -146,7 +164,11 @@ function RegionHeader({ obs, r, onTab }: { obs: Observation; r: RegionView; onTa
       <div class="wrh-title">
         <small>{t(SETTLEMENT_LABEL[r.settlement])}{r.id === obs.civ.capital ? ' · ' + t('Capital') : ''}</small>
         <h3 data-testid="works-region-name">{tc(r.name)}</h3>
-        <button type="button" class="linklike" onClick={() => { selectRegion(r.id, true); closeOverlay(); }}><Icon name="pin" size={11} /> {t('Show on the map')}</button>
+        <span class="wrh-links">
+          <button type="button" class="linklike" onClick={() => { selectRegion(r.id, true); closeOverlay(); }}><Icon name="pin" size={11} /> {t('Show on the map')}</button>
+          <button type="button" class="linklike" data-testid="works-build-targets" title={t('Standing build targets for this region: the referee orders levels each round until the target is reached')}
+            onClick={() => openOverlay('orders', 'build:' + r.id)}><Icon name="scroll" size={11} /> {t('Build targets')}</button>
+        </span>
       </div>
       <dl class="wrh-stats">
         <div><dt>{t('Population')}</dt><dd title={t('{n} people', { n: int(own.population) })}>{peopleNum(own.population)}</dd></div>
@@ -324,7 +346,7 @@ function WorksTab({ obs, r, pick, onPick }: { obs: Observation; r: RegionView; p
     <div class="works-split">
       <div class="works-list" role="listbox" aria-label={t('Works')}>
         <table class="table works-table2">
-          <thead><tr><th>{t('Works')}</th><th class="num">{t('Level')}</th><th>{t('Method')}</th><th class="num">{t('Staff')}</th><th>{t('Output')}</th></tr></thead>
+          <thead><tr><th>{t('Works')}</th><th class="num">{t('Level')}</th><th>{t('Method')}</th><th class="num">{t('Staff')}</th><th class="num" title={t('The productivity this works receives: posts are divided by it')}>{t('Prod.')}</th><th>{t('Output')}</th></tr></thead>
           <tbody>
             {own.facilities.map((f) => {
               const fac = obs.catalog.facilities.find((x) => x.kind === f.kind);
@@ -334,10 +356,11 @@ function WorksTab({ obs, r, pick, onPick }: { obs: Observation; r: RegionView; p
               const choice = methods.filter((m) => m.recipe.available).length > 1;
               return (
                 <tr class={cx('works-row', f.kind === sel?.kind && 'is-selected', !f.enabled && 'is-off')} data-testid={`work-row-${f.kind}`} onClick={() => onPick(f.kind)}>
-                  <th scope="row"><span class="wt-name">{tc(f.name)}</span>{blockers.length ? <small class="wt-block"><Icon name="warn" size={10} /> {tc(blockers[0])}</small> : null}</th>
+                  <th scope="row"><span class="wt-name">{tc(f.name)}</span>{fac ? <LineTag fac={fac} /> : null}{blockers.length ? <small class="wt-block"><Icon name="warn" size={10} /> {tc(blockers[0])}</small> : null}</th>
                   <td class="num"><b>{f.level}</b><small class="muted">/{f.max_level}</small></td>
                   <td>{active ? <span>{tc(active.recipe.name)}</span> : <span class="muted">–</span>}{choice ? <Badge tone={f.method ? 'accent' : 'muted'}>{f.method ? t('chosen') : t('auto')}</Badge> : null}</td>
                   <td class="num">{f.staff_needed ? <>{peopleNum(f.staffed)}<small class="muted">/{peopleNum(f.staff_needed)}</small></> : <span class="muted">–</span>}</td>
+                  <td class="num">{f.productivity_bp !== undefined && postsChain(f).base > 0 ? <small class={f.productivity_bp > 10049 ? 'pos' : f.productivity_bp < 9951 ? 'neg' : 'muted'}>{mult(f.productivity_bp)}</small> : <span class="muted">–</span>}</td>
                   <td class="wt-util"><Meter value={f.utilization_bp} max={10000} tone={f.enabled ? toneOfBp(f.utilization_bp, 8000, 4000) : 'muted'} height={5} /><small>{f.enabled ? pct(f.utilization_bp) : t('idle')}</small></td>
                 </tr>
               );
@@ -364,7 +387,7 @@ function WorkDetail({ obs, r, f }: { obs: Observation; r: RegionView; f: Facilit
   return (
     <div class="works-detail" data-testid={`work-detail-${f.kind}`}>
       <header class="wd-head">
-        <div><small>{fac ? tc(fac.category) : ''}</small><h4>{tc(f.name)}</h4></div>
+        <div><small>{fac ? tc(fac.category) : ''}</small><h4>{tc(f.name)}</h4>{fac ? <LineTag fac={fac} long /> : null}</div>
         <strong class="wd-level">{f.level}<small> / {f.max_level}</small></strong>
       </header>
       <dl class="wd-facts">
@@ -385,6 +408,8 @@ function WorkDetail({ obs, r, f }: { obs: Observation; r: RegionView; f: Facilit
       </div>
 
       {methods.length ? <MethodCompare obs={obs} r={r} f={f} fac={fac!} methods={methods} readOnly={readOnly} tag={tag} /> : null}
+
+      <WorksLabour r={r} f={f} fac={fac} />
 
       {fac ? <ExpandBlock obs={obs} r={r} fac={fac} f={f} /> : null}
       <ActionNote tag={tag} />
@@ -586,8 +611,10 @@ function BuildTab({ obs, r, pick, onPick }: { obs: Observation; r: RegionView; p
   const own = r.own!;
   const [filter, setFilter] = useState<'can' | 'all'>('can');
   const [cat, setCat] = useState('all');
+  const [era, setEra] = useState('all');
   const cats = useMemo(() => [...new Set(obs.catalog.facilities.map((f) => f.category))], [obs.catalog.facilities]);
-  const rows = obs.catalog.facilities.filter((f) => cat === 'all' || f.category === cat).map((f) => {
+  const eras = useMemo(() => [...new Set(obs.catalog.facilities.map((f) => f.era).filter((e): e is number => e !== undefined))].sort((a, b) => a - b), [obs.catalog.facilities]);
+  const rows = obs.catalog.facilities.filter((f) => (cat === 'all' || f.category === cat) && (era === 'all' || String(f.era) === era)).map((f) => {
     const q = quoteFor(r, f.kind, 1);
     const block = blocking(checks(obs, r, f, q));
     return { f, q, block, built: own.facilities.find((x) => x.kind === f.kind) };
@@ -605,13 +632,19 @@ function BuildTab({ obs, r, pick, onPick }: { obs: Observation; r: RegionView; p
             <option value="all">{t('All buildings')}</option>
             {cats.map((c) => <option value={c}>{tc(c)}</option>)}
           </select>
+          {eras.length > 1 ? (
+            <select class="select" aria-label={t('Era')} value={era} data-testid="build-era" onChange={(e) => setEra(e.currentTarget.value)}>
+              <option value="all">{t('All eras')}</option>
+              {eras.map((e) => <option value={String(e)}>{ERA_LABEL[e] ? eraText(ERA_LABEL[e]) : String(e)}</option>)}
+            </select>
+          ) : null}
         </div>
         {rows.length ? (
           <ul class="wb-list">
             {rows.map(({ f, q, block, built }) => (
               <li>
                 <button type="button" class={cx('wb-item', sel?.kind === f.kind && 'is-selected', block.length > 0 && 'is-blocked')} data-testid={`build-card-${f.kind}`} onClick={() => onPick(f.kind)}>
-                  <span class="wb-name">{block.length ? <Icon name="lock" size={11} /> : null}{tc(f.name)}</span>
+                  <span class="wb-name">{block.length ? <Icon name="lock" size={11} /> : null}{tc(f.name)}<LineTag fac={f} /></span>
                   <span class="wb-meta">{built ? t('level {n}/{max}', { n: built.level, max: q?.cap ?? built.max_level }) : q && q.cap > 0 ? t('room for {n}', { n: q.room }) : t('no site here')}{q && q.queued ? ' · ' + t('{n} queued', { n: q.queued }) : ''}</span>
                   <span class="wb-cost">{q ? <>{workMonths(q.work)}{q.crew.length ? ' · ' + t('crew {n}', { n: peopleNum(q.crew.reduce((n, c) => n + c.count, 0)) }) : ''}{q.power ? ' · ' + energy(q.power) : ''} · {fmtMonths(q.months)}</> : null}</span>
                 </button>
@@ -640,14 +673,16 @@ function BuildDetail({ obs, r, fac }: { obs: Observation; r: RegionView; fac: Fa
   return (
     <div class="works-detail" data-testid={`build-detail-${fac.kind}`}>
       <header class="wd-head">
-        <div><small>{tc(fac.category)}</small><h4>{tc(fac.name)}</h4></div>
+        <div><small>{tc(fac.category)}</small><h4>{tc(fac.name)}</h4><LineTag fac={fac} long /></div>
         <strong class="wd-level">{built?.level ?? 0}<small> / {one?.cap ?? 0}</small></strong>
       </header>
       <p class="wd-desc">{tc(fac.description)}</p>
+      <LineLadder obs={obs} fac={fac} r={r} />
       <dl class="wd-facts">
         <div><dt>{t('Site')}</dt><dd>{tc(fac.site)}</dd></div>
         <div><dt>{t('Posts per level')}</dt><dd>{fac.jobs.length ? fac.jobs.map((j, i) => <span>{i ? ' · ' : ''}<b>{peopleNum(j.count)}</b> {j.qual ? lc(QUAL_LABEL[j.qual]) : t('general labour')}</span>) : <span class="muted">{t('none')}</span>}</dd></div>
         {fac.upkeep.length ? <div><dt>{t('Upkeep per level')}</dt><dd><GoodsList items={fac.upkeep} per={t('a month')} /></dd></div> : null}
+        {fac.recipes.length > 1 ? <div><dt>{t('Methods')}</dt><dd>{fac.recipes.map((rc, i) => <span class={rc.available ? undefined : 'muted'}>{i ? ' · ' : ''}{!rc.available ? <Icon name="lock" size={9} /> : null}{tc(rc.name)}</span>)} <small class="muted">{t('choose among them once it is built')}</small></dd></div> : null}
         {base ? <div><dt>{fac.recipes.length > 1 ? t('Base method') : t('Method')}</dt><dd>{tc(base.name)}: <GoodsList items={base.inputs} empty={t('nothing')} /> <Icon name="right" size={9} /> {base.outputs.length ? <GoodsList items={base.outputs} /> : <span class="muted">{tc(base.note) || t('services')}</span>} <small class="muted">{t('per level a month')}</small></dd></div> : null}
         {fac.provides.length ? <div><dt>{t('Provides')}</dt><dd>{tcAll(fac.provides).join(' · ')}</dd></div> : null}
       </dl>
@@ -769,7 +804,47 @@ export function WorksLauncher({ obs, region }: { obs: Observation; region?: Regi
   );
 }
 
-/** Open the regional works view on a region (the overlay's argument is the region id). */
-export function openWorks(region: RegionId | null): void {
+/** Open the regional works view on a region (the overlay's argument is the region id), optionally on a tab. */
+export function openWorks(region: RegionId | null, tab?: Tab): void {
+  pendingTab = tab ?? null;
   openOverlay('works', region === null ? null : String(region));
+}
+
+// --- building lines (ruleset 3.0) -------------------------------------------------------------
+
+/** "Textiles · stage 2 · Industrial": the building line, stage and era a facility type belongs to. */
+function LineTag({ fac, long }: { fac: FacilityType; long?: boolean }) {
+  const era = eraLabel(fac.era);
+  if (!fac.line && !era) return null;
+  return (
+    <span class="r3-line wt-line" data-testid={long ? `line-${fac.kind}` : undefined}>
+      {long && fac.line ? <span>{t('{line} line, stage {n}', { line: t(lineLabel(fac.line)), n: fac.stage ?? 1 })}</span> : null}
+      {era ? <span class="r3-era" title={t('Era of this building')}>{eraText(era)}</span> : null}
+    </span>
+  );
+}
+
+/** The other buildings of the same line that the seat knows, in stage order. */
+function LineLadder({ obs, fac, r }: { obs: Observation; fac: FacilityType; r: RegionView }) {
+  if (!fac.line) return null;
+  const same = obs.catalog.facilities.filter((x) => x.line === fac.line);
+  const stages = [...new Set(same.map((x) => x.stage ?? 1))];
+  if (same.length < 2 || stages.length < 2) return null;
+  const sorted = [...same].sort((a, b) => (a.stage ?? 1) - (b.stage ?? 1) || (a.era ?? 0) - (b.era ?? 0));
+  return (
+    <div class="r3-ladder-wrap">
+      <small class="muted">{t('Buildings of this line we know, oldest first:')}</small>
+      <ol class="r3-ladder" data-testid={`ladder-${fac.kind}`}>
+        {sorted.map((x, i) => {
+          const built = r.own?.facilities.find((f) => f.kind === x.kind);
+          return (
+            <li class={cx(x.kind === fac.kind && 'is-here')}>
+              {i ? <Icon name="right" size={9} /> : null}
+              <span title={eraLabel(x.era) ? eraText(eraLabel(x.era)!) : undefined}>{tc(x.name)}{built ? ` (${built.level})` : ''}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
 }

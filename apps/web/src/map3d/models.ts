@@ -63,7 +63,7 @@ export const DEPOSIT_RGB: Record<Deposit, RGB> = {
 };
 
 export function settlementRadius(kind: SettlementKind): number {
-  return kind === 'camp' ? 6 : kind === 'village' ? 9.5 : kind === 'town' ? 13 : kind === 'city' ? 18.5 : kind === 'metropolis' ? 25 : 0;
+  return kind === 'camp' ? 6 : kind === 'village' ? 9.5 : kind === 'town' ? 13 : kind === 'city' ? 18.5 : kind === 'metropolis' || kind === 'megalopolis' ? 25 : 0;
 }
 
 /** Fan of triangles that follows the ground: worn earth, plazas, yards. */
@@ -176,8 +176,9 @@ export interface SettlementOpts {
 
 /** Height of the tallest structure, for label and marker placement. */
 export function settlementHeight(kind: SettlementKind, era: number, capital: boolean): number {
-  const base = kind === 'camp' ? 4 : kind === 'village' ? 5 : kind === 'town' ? 8.5 : kind === 'city' ? 13 : kind === 'metropolis' ? 20 : 0;
-  return base + (kind === 'city' || kind === 'metropolis' ? era * 1.6 : 0) + (capital && (kind === 'city' || kind === 'metropolis') ? 6 : 0);
+  const k = kind === 'megalopolis' ? 'metropolis' : kind;
+  const base = k === 'camp' ? 4 : k === 'village' ? 5 : k === 'town' ? 8.5 : k === 'city' ? 13 : k === 'metropolis' ? 20 : 0;
+  return base + (k === 'city' || k === 'metropolis' ? era * 1.6 : 0) + (capital && (k === 'city' || k === 'metropolis') ? 6 : 0);
 }
 
 export function buildSettlement(b: Builder, G: Ground, cx: number, cz: number, o: SettlementOpts, fx: Fx): void {

@@ -463,3 +463,10 @@
 .map-province-plan.is-compact .dev-list { max-height: 148px; }
 /* In the development view the card takes the overview map's corner; its list moves the camera. */
 .map-view.is-3d[data-mode="construction"] .map-mini { display: none; }
+
+/* Ruleset 3.0: city, epidemic and site-bonus lines in the tooltip. */
+.map-tip-city { font-style: italic; }
+.map-tip-outbreak { display: flex; align-items: center; gap: 6px; color: #5e3d5b; }
+.map-tip-outbreak .map-swatch { flex: none; }
+.map-tip-bonus { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 2px 0; }
+.map-tip-bonus > span { display: inline-flex; align-items: center; gap: 4px; }

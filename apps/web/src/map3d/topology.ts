@@ -26,7 +26,8 @@ export interface TEdge {
 export interface TRegion {
   r: RegionView;
   idx: number;
-  edges: { e: TEdge; rev: boolean }[];
+  /** Shared edges; `dx` shifts the edge's stored points into this region's frame (wrapped worlds). */
+  edges: { e: TEdge; rev: boolean; dx: number }[];
   /** Closed outline (first point not repeated), flattened x,y. */
   outline: number[];
   bbox: [number, number, number, number];
@@ -38,6 +39,9 @@ export interface TRegion {
   /** River junction point for this region (offset from the centre so towns sit on a bank). */
   rx: number;
   ry: number;
+  /** The principal city site (where the settlement stands), in this region's frame. */
+  sx: number;
+  sy: number;
 }
 
 export interface RiverCourse {
@@ -74,6 +78,8 @@ export interface Fields {
 export interface Topology {
   width: number;
   height: number;
+  /** The world width when the map wraps east-west, else 0. */
+  wrap: number;
   regions: TRegion[];
   byId: Map<number, TRegion>;
   edges: TEdge[];
@@ -153,12 +159,13 @@ export function resample(pts: number[], step: number, closed = false): number[] 
   return out;
 }
 
-function rasterizeIds(regions: TRegion[], f: Fields): void {
+function rasterizeIds(regions: TRegion[], f: Fields, offsets: number[]): void {
   const { x0, z0, cell, nx, nz, id } = f;
   id.fill(-1);
   const xs: number[] = [];
-  for (const p of regions) {
-    const o = p.outline;
+  for (const off of offsets) for (const p of regions) {
+    if (p.bbox[2] + off < x0 || p.bbox[0] + off > x0 + nx * cell) continue;
+    const o = off ? p.outline.map((v, i) => (i & 1 ? v : v + off)) : p.outline;
     const j0 = clamp(Math.floor((p.bbox[1] - z0) / cell), 0, nz - 1);
     const j1 = clamp(Math.ceil((p.bbox[3] - z0) / cell), 0, nz - 1);
     for (let j = j0; j <= j1; j++) {
@@ -191,14 +198,17 @@ function seedPolyline(seed: Uint8Array, f: Fields, pts: number[]): void {
   }
 }
 
-function buildFields(regions: TRegion[], edges: TEdge[], W: number, H: number): Fields {
+function buildFields(regions: TRegion[], edges: TEdge[], W: number, H: number, wrap: boolean): Fields {
   const cell = FIELD_CELL;
   const nx = Math.ceil((W + FIELD_MARGIN * 2) / cell), nz = Math.ceil((H + FIELD_MARGIN * 2) / cell);
   const f: Fields = {
     x0: -FIELD_MARGIN, z0: -FIELD_MARGIN, cell, nx, nz,
     id: new Int16Array(nx * nz), sd: new Float32Array(nx * nz), dCoast: new Float32Array(0), dUnk: new Float32Array(0),
   };
-  rasterizeIds(regions, f);
+  // A wrapped world is rasterised with its copies one width east and west, so every field
+  // (land, distance to coast, distance to the unknown) runs on across the date line.
+  const offsets = wrap ? [-W, 0, W] : [0];
+  rasterizeIds(regions, f, offsets);
   const n = nx * nz;
   const land = new Uint8Array(n), sea = new Uint8Array(n);
   let anyLand = false;
@@ -210,9 +220,11 @@ function buildFields(regions: TRegion[], edges: TEdge[], W: number, H: number): 
   for (let i = 0; i < n; i++) f.sd[i] = (land[i] ? inside[i] - 0.5 : -(outside[i] - 0.5)) * cell;
   const coastSeed = new Uint8Array(n), unkSeed = new Uint8Array(n);
   let anyCoast = false, anyUnk = false;
-  for (const e of edges) {
-    if (e.kind === 'coast') { seedPolyline(coastSeed, f, e.pts); anyCoast = true; }
-    else if (e.kind === 'unknown') { seedPolyline(unkSeed, f, e.pts); anyUnk = true; }
+  for (const off of offsets) for (const e of edges) {
+    if (e.kind !== 'coast' && e.kind !== 'unknown') continue;
+    const pts = off ? e.pts.map((v, i) => (i & 1 ? v : v + off)) : e.pts;
+    if (e.kind === 'coast') { seedPolyline(coastSeed, f, pts); anyCoast = true; }
+    else { seedPolyline(unkSeed, f, pts); anyUnk = true; }
   }
   const far = new Float32Array(n).fill(1e6);
   f.dCoast = anyCoast ? distanceTransform(coastSeed, nx, nz) : far;
@@ -238,17 +250,22 @@ export function regionIndexAt(f: Fields, x: number, z: number): number {
   return f.id[iz * f.nx + ix];
 }
 
-export function buildTopology(list: RegionView[], W: number, H: number): Topology {
+export function buildTopology(list: RegionView[], W: number, H: number, wrapX = false): Topology {
+  const wrap = wrapX;
+  const modW = (x: number) => (wrap ? ((x % W) + W) % W : x);
+  const near = (x: number, ref: number) => (wrap ? x + W * Math.round((ref - x) / W) : x);
+  // Vertices snap in the normalised frame (x modulo the width on a wrapped world).
   const snap = new Map<string, [number, number]>();
   const canon = (x: number, y: number): [number, number] => {
+    const xn = modW(x);
     for (let dx = -2; dx <= 2; dx++) {
       for (let dy = -2; dy <= 2; dy++) {
-        const hit = snap.get(`${x + dx},${y + dy}`);
+        const hit = snap.get(`${modW(xn + dx)},${y + dy}`);
         if (hit) return hit;
       }
     }
-    const v: [number, number] = [x, y];
-    snap.set(`${x},${y}`, v);
+    const v: [number, number] = [xn, y];
+    snap.set(`${xn},${y}`, v);
     return v;
   };
   const edgeMap = new Map<string, TEdge>();
@@ -257,33 +274,40 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
   for (const r of list) present.add(r.id);
 
   list.forEach((r, idx) => {
-    const verts: [number, number][] = [];
+    const verts: { c: [number, number]; x: number; y: number }[] = [];
     for (const pt of r.poly) {
-      const v = canon(Math.round(pt[0]), Math.round(pt[1]));
-      if (!verts.length || verts[verts.length - 1] !== v) verts.push(v);
+      const x = Math.round(pt[0]), y = Math.round(pt[1]);
+      const c = canon(x, y);
+      const ax = wrap ? c[0] + W * Math.round((x - c[0]) / W) : c[0];
+      if (!verts.length || verts[verts.length - 1].c !== c) verts.push({ c, x: ax, y: c[1] });
     }
-    if (verts.length > 1 && verts[0] === verts[verts.length - 1]) verts.pop();
+    if (verts.length > 1 && verts[0].c === verts[verts.length - 1].c) verts.pop();
+    const sx = r.city ? near(r.city.at[0], r.center[0]) : r.center[0];
+    const sy = r.city ? r.city.at[1] : r.center[1];
     const p: TRegion = {
       r, idx, edges: [], outline: [], bbox: [Infinity, Infinity, -Infinity, -Infinity],
-      cx: r.center[0], cy: r.center[1], inradius: 0, area: 0, rx: r.center[0], ry: r.center[1],
+      cx: r.center[0], cy: r.center[1], inradius: 0, area: 0, rx: r.center[0], ry: r.center[1], sx, sy,
     };
     for (let i = 0; i < verts.length; i++) {
-      const a = verts[i], b = verts[(i + 1) % verts.length];
+      const va = verts[i], vb = verts[(i + 1) % verts.length];
+      // Normalise the edge so its western end lies on the sheet.
+      const m = Math.min(va.x, vb.x);
+      const shift = wrap ? m - modW(m) : 0;
+      const a: [number, number] = [va.x - shift, va.y], b: [number, number] = [vb.x - shift, vb.y];
       const fwd = a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1]);
       const p0 = fwd ? a : b, p1 = fwd ? b : a;
       const key = `${p0[0]},${p0[1]}|${p1[0]},${p1[1]}`;
       let e = edgeMap.get(key);
       if (!e) {
-        const frame =
-          (p0[0] <= 1 && p1[0] <= 1) || (p0[0] >= W - 1 && p1[0] >= W - 1) ||
-          (p0[1] <= 1 && p1[1] <= 1) || (p0[1] >= H - 1 && p1[1] >= H - 1);
+        const xFrame = !wrap && ((p0[0] <= 1 && p1[0] <= 1) || (p0[0] >= W - 1 && p1[0] >= W - 1));
+        const frame = xFrame || (p0[1] <= 1 && p1[1] <= 1) || (p0[1] >= H - 1 && p1[1] >= H - 1);
         const seed = hash32(p0[0] * 4099 + p0[1], p1[0] * 4099 + p1[1]);
         let pts = wobble(p0[0], p0[1], p1[0], p1[1], seed, frame ? 0.05 : 0.1);
         if (frame) {
           // The world sheet ends here: fold the shore inward so land does not look cut off.
           const np = pts.length / 2;
           const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
-          const inx = p0[0] <= 1 && p1[0] <= 1 ? 1 : p0[0] >= W - 1 && p1[0] >= W - 1 ? -1 : 0;
+          const inx = !xFrame ? 0 : p0[0] <= 1 && p1[0] <= 1 ? 1 : -1;
           const iny = inx ? 0 : p0[1] <= 1 && p1[1] <= 1 ? 1 : -1;
           for (let k = 0; k < np; k++) {
             const t = k / (np - 1);
@@ -299,13 +323,13 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
         edgeMap.set(key, e);
       }
       e.regions.push(idx);
-      p.edges.push({ e, rev: !fwd });
+      p.edges.push({ e, rev: !fwd, dx: shift });
     }
-    for (const { e, rev } of p.edges) {
+    for (const { e, rev, dx } of p.edges) {
       const np = e.pts.length / 2;
       for (let k = 0; k < np - 1; k++) {
         const i = (rev ? np - 1 - k : k) * 2;
-        p.outline.push(e.pts[i], e.pts[i + 1]);
+        p.outline.push(e.pts[i] + dx, e.pts[i + 1]);
       }
     }
     let a2 = 0;
@@ -324,10 +348,17 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
     p.inradius = Number.isFinite(inr) ? inr : 0;
     // A centre that the wobble pushed outside its own outline falls back to the vertex mean.
     if (p.outline.length >= 6 && !pointInPoly(p.outline, p.cx, p.cy)) {
-      let sx = 0, sy = 0;
-      for (let i = 0; i < p.outline.length; i += 2) { sx += p.outline[i]; sy += p.outline[i + 1]; }
-      p.cx = sx / (p.outline.length / 2);
-      p.cy = sy / (p.outline.length / 2);
+      let sx2 = 0, sy2 = 0;
+      for (let i = 0; i < p.outline.length; i += 2) { sx2 += p.outline[i]; sy2 += p.outline[i + 1]; }
+      p.cx = sx2 / (p.outline.length / 2);
+      p.cy = sy2 / (p.outline.length / 2);
+    }
+    // A city site off its own land (wobble, or a coastal site on the shore) moves toward the centre.
+    if (p.outline.length >= 6 && !pointInPoly(p.outline, p.sx, p.sy)) {
+      for (let t = 0.2; t <= 1.001; t += 0.2) {
+        const x = p.sx + (p.cx - p.sx) * t, y = p.sy + (p.cy - p.sy) * t;
+        if (pointInPoly(p.outline, x, y) || t >= 1) { p.sx = x; p.sy = y; break; }
+      }
     }
     regions.push(p);
   });
@@ -355,20 +386,21 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
   const seaLanes: SeaLane[] = [];
   const passes: PassMark[] = [];
   const seen = new Set<string>();
-  const sharedEdge = (a: TRegion, b: TRegion): TEdge | null => {
-    let best: TEdge | null = null;
-    for (const { e } of a.edges) {
-      if (e.regions.length >= 2 && e.regions.includes(b.idx) && (!best || e.len > best.len)) best = e;
+  /** The longest edge shared with `b`, with its midpoint in `a`'s frame. */
+  const sharedEdge = (a: TRegion, b: TRegion): { e: TEdge; mx: number; my: number } | null => {
+    let best: { e: TEdge; mx: number; my: number } | null = null;
+    for (const { e, dx } of a.edges) {
+      if (e.regions.length >= 2 && e.regions.includes(b.idx) && (!best || e.len > best.e.len)) best = { e, mx: e.mx + dx, my: e.my };
     }
     return best;
   };
   const coastPoint = (p: TRegion, tx: number, ty: number): [number, number] | null => {
     let best: [number, number] | null = null;
     let bd = Infinity;
-    for (const { e } of p.edges) {
+    for (const { e, dx } of p.edges) {
       if (e.kind !== 'coast') continue;
-      const dd = Math.hypot(e.mx - tx, e.my - ty) + (e.frame ? 400 : 0);
-      if (dd < bd) { bd = dd; best = [e.mx, e.my]; }
+      const dd = Math.hypot(e.mx + dx - tx, e.my - ty) + (e.frame ? 400 : 0);
+      if (dd < bd) { bd = dd; best = [e.mx + dx, e.my]; }
     }
     return best;
   };
@@ -387,16 +419,19 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
       if (seen.has(key)) continue;
       seen.add(key);
       const a = p.r.id < q.r.id ? p : q, b = p.r.id < q.r.id ? q : p;
+      // Each link is laid out in the frame of its first region.
+      const brx = near(b.rx, a.rx), bcx = near(b.cx, a.cx);
       if (n.kind === 'river') {
         const e = sharedEdge(a, b);
-        const mx = e ? e.mx : (a.cx + b.cx) / 2, my = e ? e.my : (a.cy + b.cy) / 2;
+        const mx = e ? e.mx : (a.cx + bcx) / 2, my = e ? e.my : (a.cy + b.cy) / 2;
         const s1 = hash32(a.r.id * 131 + 7, b.r.id);
         const p1 = wobble(a.rx, a.ry, mx, my, s1, 0.16);
-        const p2 = wobble(mx, my, b.rx, b.ry, s1 ^ 0x5bd1e995, 0.16);
+        const p2 = wobble(mx, my, brx, b.ry, s1 ^ 0x5bd1e995, 0.16);
         rivers.push({ a: a.r.id, b: b.r.id, pts: chaikin(p1.concat(p2.slice(2)), 2) });
       } else if (n.kind === 'sea') {
-        const pa = coastPoint(a, b.cx, b.cy), pb = coastPoint(b, a.cx, a.cy);
-        if (!pa || !pb) continue;
+        const pa = coastPoint(a, bcx, b.cy), pb0 = coastPoint(b, near(a.cx, b.cx), a.cy);
+        if (!pa || !pb0) continue;
+        const pb: [number, number] = [near(pb0[0], pa[0]), pb0[1]];
         const dx = pb[0] - pa[0], dy = pb[1] - pa[1];
         const l = Math.hypot(dx, dy) || 1;
         const sign = hash32(a.r.id, b.r.id) & 1 ? 1 : -1;
@@ -408,7 +443,7 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
       } else if (n.kind === 'pass') {
         const e = sharedEdge(a, b);
         if (e) {
-          const dx = b.cx - a.cx, dy = b.cy - a.cy;
+          const dx = bcx - a.cx, dy = b.cy - a.cy;
           const l = Math.hypot(dx, dy) || 1;
           passes.push({ x: e.mx, y: e.my, ux: dx / l, uy: dy / l });
         }
@@ -416,9 +451,10 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
     }
     // River mouth: the lowest reach of a river in a region whose shore we know.
     if (p.r.river && riverLinks >= 1 && lowest) {
-      let mouth: TEdge | null = null;
-      for (const { e } of p.edges) if (e.kind === 'coast' && !e.frame && (!mouth || e.len > mouth.len)) mouth = e;
-      if (!mouth) for (const { e } of p.edges) if (e.kind === 'coast' && (!mouth || e.len > mouth.len)) mouth = e;
+      let m0: { e: TEdge; dx: number } | null = null;
+      for (const s2 of p.edges) if (s2.e.kind === 'coast' && !s2.e.frame && (!m0 || s2.e.len > m0.e.len)) m0 = s2;
+      if (!m0) for (const s2 of p.edges) if (s2.e.kind === 'coast' && (!m0 || s2.e.len > m0.e.len)) m0 = s2;
+      const mouth = m0 ? { mx: m0.e.mx + m0.dx, my: m0.e.my } : null;
       if (mouth) {
         // Run a little past the shore so the ribbon meets the sea.
         const dx = mouth.mx - p.rx, dy = mouth.my - p.ry;
@@ -430,14 +466,36 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
     }
   }
 
-  const fields = buildFields(regions, edges, W, H);
+  const fields = buildFields(regions, edges, W, H, wrap);
   const bbox: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
   for (const p of regions) {
     bbox[0] = Math.min(bbox[0], p.bbox[0]); bbox[1] = Math.min(bbox[1], p.bbox[1]);
     bbox[2] = Math.max(bbox[2], p.bbox[2]); bbox[3] = Math.max(bbox[3], p.bbox[3]);
   }
   if (!regions.length) { bbox[0] = 0; bbox[1] = 0; bbox[2] = W; bbox[3] = H; }
-  return { width: W, height: H, regions, byId, edges, rivers, seaLanes, passes, fields, bbox };
+  return { width: W, height: H, wrap: wrap ? W : 0, regions, byId, edges, rivers, seaLanes, passes, fields, bbox };
+}
+
+/**
+ * West-east extent of the known land on a wrapped world: the complement of the widest empty
+ * stretch of longitude, so land astride the date line is framed as one piece.
+ */
+export function knownSpanX(topo: Topology): [number, number] {
+  const W = topo.wrap;
+  if (!W || !topo.regions.length) return [topo.bbox[0], topo.bbox[2]];
+  const iv = topo.regions.map((p): [number, number] => {
+    const a = ((p.bbox[0] % W) + W) % W;
+    return [a, a + (p.bbox[2] - p.bbox[0])];
+  }).sort((a, b) => a[0] - b[0]);
+  let bestGap = -1, gapEnd = 0, reach = iv[0][1];
+  for (let i = 1; i < iv.length; i++) {
+    if (iv[i][0] > reach && iv[i][0] - reach > bestGap) { bestGap = iv[i][0] - reach; gapEnd = iv[i][0]; }
+    reach = Math.max(reach, iv[i][1]);
+  }
+  const wrapGap = iv[0][0] + W - reach;
+  if (wrapGap > bestGap) { bestGap = wrapGap; gapEnd = iv[0][0]; }
+  if (bestGap <= 0) return [0, W];
+  return [gapEnd, gapEnd + W - bestGap];
 }
 
 /**
@@ -448,10 +506,16 @@ export function buildTopology(list: RegionView[], W: number, H: number): Topolog
 export function boundaryChains(topo: Topology, groupOf: (p: TRegion) => number | null): Chain[] {
   interface Seg { key: number; pts: number[]; start: string; end: string; src: TRegion; used: boolean }
   const segs: Seg[] = [];
+  // Endpoint keys in the normalised frame, so pieces meet across the date line.
+  const normKey = (k: string): string => {
+    if (!topo.wrap) return k;
+    const [x, y] = k.split(',');
+    return `${((Number(x) % topo.wrap) + topo.wrap) % topo.wrap},${y}`;
+  };
   for (const p of topo.regions) {
     const g = groupOf(p);
     if (g == null) continue;
-    for (const { e, rev } of p.edges) {
+    for (const { e, rev, dx } of p.edges) {
       if (e.kind === 'unknown') continue;
       if (e.kind === 'internal') {
         const other = topo.regions[e.regions[0] === p.idx ? e.regions[1] : e.regions[0]];
@@ -461,9 +525,9 @@ export function boundaryChains(topo: Topology, groupOf: (p: TRegion) => number |
       const pts: number[] = [];
       for (let k = 0; k < np; k++) {
         const i = (rev ? np - 1 - k : k) * 2;
-        pts.push(e.pts[i], e.pts[i + 1]);
+        pts.push(e.pts[i] + dx, e.pts[i + 1]);
       }
-      const [a, b] = e.key.split('|');
+      const [a, b] = e.key.split('|').map(normKey);
       segs.push({ key: g, pts, start: rev ? b : a, end: rev ? a : b, src: p, used: false });
     }
   }
@@ -499,14 +563,19 @@ export function boundaryChains(topo: Topology, groupOf: (p: TRegion) => number |
     first.used = true;
     let cur = first;
     let closed = false;
+    const W = topo.wrap;
     for (;;) {
       if (cur.end === first.start) { closed = true; break; }
       const next = (byStart.get(cur.key + '@' + cur.end) ?? []).find((s) => !s.used);
       if (!next) break;
       next.used = true;
-      for (let i = 2; i < next.pts.length; i++) pts.push(next.pts[i]);
+      // On a wrapped world the next piece may be stored one width over: join it where it meets.
+      const shift = W ? W * Math.round((pts[pts.length - 2] - next.pts[0]) / W) : 0;
+      for (let i = 2; i < next.pts.length; i++) pts.push(i & 1 ? next.pts[i] : next.pts[i] + shift);
       cur = next;
     }
+    // A boundary that runs right round the globe does not close on itself: leave it open.
+    if (closed && W && Math.abs(pts[pts.length - 2] - pts[0]) > W / 2) closed = false;
     if (closed) pts.length -= 2;
     chains.push({ key: first.key, pts, closed, side: 1 });
   };

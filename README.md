@@ -70,7 +70,7 @@ A game can be exported to a `.btsave` file and imported again in any of the thre
 
 ### Seats, observers and languages
 
-Each of the four seats can be a human, a built-in opponent (Easy / Medium / Hard), or
+Each of the two to ten seats can be a human, a built-in opponent (Easy / Medium / Hard), or
 a language-model agent: Claude over the API, the local Claude Code or Codex
 command-line tools using their own logins, or any OpenAI-compatible endpoint. Choose **Observer mode** on the title screen to set up an AI-only match. With no
 human seat you are an **observer**: you see the whole world, a scoreboard, every
@@ -78,11 +78,19 @@ civilization's own view and each model's stated reasoning, and you control playb
 The interface is available in English, 简体中文 and 繁體中文, switchable on the title
 screen. A guided tutorial and an in-game almanac explain the systems.
 
-Language-model seats need something to talk to: an Anthropic or OpenAI-compatible API
-key (typed at setup and held in memory only, or taken from `ANTHROPIC_API_KEY` /
-`OPENAI_API_KEY`), or a logged-in `claude` or `codex` command on this machine. A seat
-whose model cannot be reached reports the error in the observer console and stops
-after three consecutive failures; the match continues without it.
+A model can take a seat in three ways, chosen at setup: **Claude Code as the agent**
+(recommended: the local `claude` plays through the game's own MCP server, `bts mcp`,
+reading its civilization and submitting orders itself, with its file, shell and web
+tools off), **Codex as the agent** (the same with `codex exec`), or a **direct API**
+(Claude or any OpenAI-compatible endpoint, one briefing and one reply per round: the
+least expensive). The CLIs use their own sign-in, or an API key given to their
+environment only; a key is never saved. Setup shows whether `claude` and `codex` are
+installed and signed in, and a **Test** button makes one tiny real call. Each seat has
+a cost guard (time, tool calls and dollars per consultation). A consultation that fails
+is retried, then the built-in steward plays that round; after repeated failures the
+seat stops until you resume it from the observer console. **Your own agent** leaves a
+seat to an agent you run yourself: the game shows its token and a ready-made MCP
+configuration for your own Claude Code or Codex session.
 
 ### The screen
 
@@ -189,7 +197,7 @@ node apps/web/scripts/pages-smoke.mjs http://127.0.0.1:8080/Before-the-stars/
 
 External agents (Claude Code, Codex, scripts) play through the same HTTP API as the
 browser, through the `bts observe | act | ready` commands, or the integrated
-`get_turn` / `submit_turn` stdio MCP adapter (`node tools/mcp.mjs`). They receive only their
+`get_turn` / `submit_turn` stdio MCP server (`bts mcp`, or `node tools/mcp.mjs` from a checkout). They receive only their
 seat's observation. See [docs/agent-api.md](docs/agent-api.md).
 
 ## Repository layout

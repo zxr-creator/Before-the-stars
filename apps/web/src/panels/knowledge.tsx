@@ -3,7 +3,7 @@
 // are no empty slots, counts or silhouettes for anything not yet discovered.
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { KnowledgeState, Lead, Observation, TechCard } from '../protocol';
-import { KSTATE_LABEL, KSTATE_ORDER, RESEARCH_LABEL, fmtDate, pct, researchMonths, tcAll, tcChecks, tn, tx, yearOf } from '../format';
+import { KSTATE_LABEL, KSTATE_ORDER, RESEARCH_LABEL, fmtDate, fmtYear, pct, researchMonths, tcAll, tcChecks, tn, tx, yearOf } from '../format';
 import { t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { ActionNote, Badge, Btn, Checklist, Empty, Est, Meter, Section, Tabs, Why, cx, work } from '../ui';
@@ -11,6 +11,9 @@ import type { Tone } from '../ui';
 import { act, consumeIntent, setWide, useApp } from '../store';
 import { StudyForm } from './projects';
 import { LorePassage } from '../lore';
+import { OrdersLink } from './orders';
+import { FamilyBlock, FragileNote, KindBadge, LinesMeter, LinesNote, familyMark, fragileLeft, linesWhy } from '../trees/insight';
+import { ERA_NAMES, techBand } from '../trees/tables';
 
 type View = 'frontier' | 'graph' | 'implementation' | 'history';
 
@@ -44,9 +47,9 @@ export function LabelBadge({ label }: { label: string }) {
   return null;
 }
 
-function reasonCannot(card: TechCard, busyHandles: Set<string>): string | null {
+function reasonCannot(obs: Observation, card: TechCard, busyHandles: Set<string>): string | null {
   if (card.state === 'investigating' || busyHandles.has(card.handle)) return t('This investigation is already under way');
-  if (card.can_investigate) return null;
+  if (card.can_investigate) return linesWhy(obs);
   const m = card.known_requirements.find((r) => !r.satisfied);
   if (m) return t('Requires: {text}', { text: tc(m.text) });
   if (card.unknown_requirements) return t('Depends on further knowledge not yet identified');
@@ -108,11 +111,13 @@ function Frontier({ obs, onOpen }: { obs: Observation; onOpen: (h: string) => vo
   return (
     <>
       <p class="panel-lede">{t('Current questions and clues. Nothing here promises a result: a lead may come to little, and a question may need knowledge nobody has named yet.')}</p>
+      <p class="orders-row"><OrdersLink obs={obs} section="research" /> <small class="muted">{t('A research agenda and automatic research keep capacity busy year by year inside long rounds.')}</small></p>
       {cap.length ? (
         <p class="cap-inline">
           {cap.map((l, i) => <span>{i ? ' · ' : ''}{tx('{label}: {used}/{capacity} {unit}', { label: t(RESEARCH_LABEL[l.class]), used: <b>{work(l.used)}</b>, capacity: work(l.capacity), unit: <small>{t('researcher-months a month in use')}</small> })}</span>)}
         </p>
       ) : <p class="note is-warn">{t('No research capacity yet: investigations will not advance until qualified people staff a makers’ circle or institute.')}</p>}
+      <LinesNote obs={obs} />
       {k.scientific_method ? <p class="note is-ok"><Icon name="good" size={13} /> {t('The scientific method is established: technology can be pursued as an explicit agenda.')}</p> : null}
 
       <Section title={t('Leads')} aside={<small class="muted">{tn(k.leads.length, '{n} unexplained report', '{n} unexplained reports')}</small>}>
@@ -124,11 +129,11 @@ function Frontier({ obs, onOpen }: { obs: Observation; onOpen: (h: string) => vo
         <ActionNote tag="lead" />
       </Section>
 
-      <Section title={t('Open questions')} aside={<small class="muted">{t('{n} workable', { n: questions.length })}</small>}>
+      <Section title={t('Open questions')} aside={<span class="row"><LinesMeter obs={obs} compact /> <small class="muted">{t('{n} workable', { n: questions.length })}</small></span>}>
         {questions.length === 0 ? <Empty>{t('No workable question is waiting. Follow up a lead, or keep practising: experience turns problems into questions.')}</Empty> : (
           <ul class="question-list">
             {questions.map((q) => {
-              const why = reasonCannot(q, researching);
+              const why = reasonCannot(obs, q, researching);
               const active = q.state === 'investigating' || researching.has(q.handle);
               return (
                 <li class={cx('card question', active && 'is-active')} data-testid="question-card">
@@ -137,7 +142,8 @@ function Frontier({ obs, onOpen }: { obs: Observation; onOpen: (h: string) => vo
                     <span class="kicker">{tc(q.field)}</span>
                     <p class="question-cap">{tc(q.capability)}</p>
                     <div class="question-meta">
-                      <StateBadge state={q.state} /> <LabelBadge label={q.label} />
+                      <StateBadge state={q.state} /> <LabelBadge label={q.label} /> <KindBadge card={q} />
+                      {familyMark(q) ? <Badge tone={familyMark(q)!.tone} icon={familyMark(q)!.icon} title={familyMark(q)!.title}>{familyMark(q)!.label}</Badge> : null}
                       <span class="muted small">{t('{label} · {n}', { label: t(RESEARCH_LABEL[q.class]), n: researchMonths(q.work_needed) })}</span>
                     </div>
                     {q.work_done > 0 || active ? <Meter value={q.work_done} max={Math.max(1, q.work_needed)} tone="gold" height={6} label={t('{done} of {needed} done', { done: work(q.work_done), needed: researchMonths(q.work_needed) })} /> : null}
@@ -327,6 +333,7 @@ function Implementation({ techs, onOpen }: { techs: TechCard[]; onOpen: (h: stri
                 <li class="impl">
                   <button type="button" class="linklike impl-name" onClick={() => onOpen(c.handle)}>{tc(c.name)}</button>
                   <LabelBadge label={c.label} />
+                  {fragileLeft(c) !== null ? <Badge tone={fragileLeft(c)! <= 20 ? 'bad' : 'warn'} icon="hourglass" title={t('Fragile know-how: lost in about {n} years unless works use it', { n: fragileLeft(c)! })}>{t('Fragile')}</Badge> : null}
                   {c.enables.length ? (
                     <ul class="enables">{tcAll(c.enables).map((e) => <li><Icon name="right" size={10} /> {e}</li>)}</ul>
                   ) : <p class="muted small">{t('No works, courses or formations we know of depend on it directly.')}</p>}
@@ -364,7 +371,7 @@ function History({ techs, leads, onOpen }: { techs: TechCard[]; leads: Lead[]; o
       <ol class="history">
         {years.map((y) => (
           <li class="history-year">
-            <span class="history-when">{t('Year {y}', { y: y.year })}</span>
+            <span class="history-when">{fmtYear((y.year - 1) * 12)}</span>
             <ul>
               {y.items.map((e) => (
                 <li class={cx('history-ev', 'ev-' + e.kind)}>
@@ -391,7 +398,7 @@ function TechDetail({ obs, t: card, onBack, onOpen }: { obs: Observation; t: Tec
   const researching = new Set(obs.projects.filter((p) => p.kind === 'research').map((p) => p.target ?? ''));
   const project = obs.projects.find((p) => p.kind === 'research' && p.target === card.handle);
   const canAct = card.state === 'discovered' || card.state === 'investigating';
-  const why = canAct ? reasonCannot(card, researching) : null;
+  const why = canAct ? reasonCannot(obs, card, researching) : null;
   const built = card.links.map((h) => obs.knowledge.techs.find((x) => x.handle === h)).filter((x): x is TechCard => !!x);
   const leadsTo = obs.knowledge.techs.filter((x) => x.links.includes(card.handle));
   return (
@@ -402,9 +409,11 @@ function TechDetail({ obs, t: card, onBack, onOpen }: { obs: Observation; t: Tec
       <header class="detail-head">
         <span class="kicker">{tc(card.field)}</span>
         <h3>{tc(card.name)}</h3>
-        <div class="row wrap"><StateBadge state={card.state} /> <LabelBadge label={card.label} /></div>
+        <div class="row wrap"><StateBadge state={card.state} /> <LabelBadge label={card.label} /> <KindBadge card={card} /></div>
       </header>
+      <FragileNote card={card} />
       <LorePassage kind="tech" name={card.name} />
+      <FamilyBlock obs={obs} card={card} onOpen={onOpen} tag="revisit-detail" Wrap={(p) => <Section title={p.title} aside={<small class="muted">{p.aside}</small>}>{p.children}</Section>} />
       <Section title={t('What it makes possible')}>
         <p>{tc(card.capability)}</p>
         {card.enables.length ? <ul class="enables">{tcAll(card.enables).map((e) => <li><Icon name="right" size={10} /> {e}</li>)}</ul> : null}
@@ -435,6 +444,7 @@ function TechDetail({ obs, t: card, onBack, onOpen }: { obs: Observation; t: Tec
       <Section title={t('Record')}>
         <dl class="kvs">
           <div class="kv"><dt>{t('Source')}</dt><dd>{tc(card.source)}</dd></div>
+          <div class="kv"><dt>{t('Era')}</dt><dd>{t(ERA_NAMES[techBand(card)] ?? '')}</dd></div>
           <div class="kv"><dt>{t('Discovered')}</dt><dd>{fmtDate(card.discovered_month)}</dd></div>
           <div class="kv"><dt>{t('Understood')}</dt><dd>{card.understood_month !== null ? fmtDate(card.understood_month) : <span class="muted">{t('not yet')}</span>}</dd></div>
         </dl>

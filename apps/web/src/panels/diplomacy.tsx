@@ -4,13 +4,14 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import type {
-  ChannelView, Clause, ClauseKind, ForeignCiv, Good, Intent, Observation, OfferView, SeatId, TreatyView,
+  AnyClause, ChannelView, ForeignCiv, Good, Intent, Observation, OfferView, ProgrammeService, Qual, SeatId, TreatyView,
 } from '../protocol';
 import { MAX_CONTACTS, MAX_MESSAGE_CHARS, NEGOTIATION_WINDOWS } from '../protocol';
 import {
-  CONTROLLER_LABEL, GOODS, GOOD_LABEL, GOOD_SHORT, INTENTS, INTENT_LABEL, STATUS_LABEL, fmtDate, fmtDateShort, fmtMonths, int,
-  displayUnit, joinList, lc, pct, qty, range, titleCase, tn,
+  CONTROLLER_LABEL, GOODS, GOOD_LABEL, GOOD_SHORT, INTENTS, INTENT_LABEL, QUAL_LABEL, STATUS_LABEL, fmtDate, fmtDateShort, fmtMonths, int,
+  displayUnit, joinList, lc, pct, people, qty, range, roundLength, titleCase, tn,
 } from '../format';
+import { eraName, traditionLabel } from '../era';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import {
@@ -18,11 +19,41 @@ import {
 } from '../ui';
 import { act, civColor, civName, consumeIntent, ready, regionName, useApp } from '../store';
 
+/** Every clause a ruleset 3.0 referee accepts, the cooperation clauses of ruleset 2.0 included. */
+type Clause = AnyClause;
+type ClauseKind = AnyClause['kind'];
+
+// i18n-table
 const CLAUSE_LABEL: Record<ClauseKind, string> = {
   goods: 'Deliver goods', knowledge: 'Hand over a method', practice: 'Describe a practice', maps: 'Share maps',
   non_aggression: 'Non-aggression', defensive_pact: 'Defensive pact', peace: 'Peace', subordination: 'Subordination',
-  cede_region: 'Cede a region',
+  cede_region: 'Cede a region', secondment: 'Second experts', joint_programme: 'Joint programme',
 };
+const SERVICE_LABEL: Record<ProgrammeService, string> = {
+  launch: 'Launch complex', orbital_yard: 'Orbital yard', high_energy: 'High-energy laboratory', undisclosed: 'An installation not known to us',
+};
+// i18n-end
+/** Lowest and highest number of experts one secondment clause may lend (bts-engine SECONDMENT_PEOPLE). */
+const SECONDMENT_PEOPLE: [number, number] = [500, 200_000];
+/** The clause's own term bounds in months, before the round's length widens them (design chapter 36, section 2.5). */
+const OWN_TERM: Partial<Record<ClauseKind, [number, number]>> = {
+  goods: [6, 240], non_aggression: [6, 600], defensive_pact: [6, 600], secondment: [6, 240], joint_programme: [12, 240],
+};
+/** Clauses that may run open-ended (months 0) until a party gives notice. */
+const OPEN_ENDED: ClauseKind[] = ['goods', 'non_aggression', 'defensive_pact'];
+
+/** Term bounds this round: at least the round's length, at most three rounds, or the clause's own bounds if wider. */
+export function termBounds(obs: Observation, kind: ClauseKind): [number, number] {
+  const own = OWN_TERM[kind] ?? [6, 240];
+  const rm = obs.calendar?.round_months ?? obs.months_per_round;
+  return [Math.max(rm, own[0]), Math.max(3 * rm, own[1])];
+}
+
+/** A clause term for reading: "10 years", or "until notice" for an open-ended one. */
+function term(months: number): string {
+  return months === 0 ? t('until notice') : fmtMonths(months);
+}
+
 const CLAUSE_HINT: Record<ClauseKind, string> = {
   goods: 'One party delivers goods, once or every month for a term. Recurring deliveries need merchant arbitration on one side.',
   knowledge: 'Records and demonstrations of a method the giver understands.',
@@ -33,6 +64,8 @@ const CLAUSE_HINT: Record<ClauseKind, string> = {
   peace: 'Ends a war between the parties.',
   subordination: 'One party accepts the other as its highest authority and pays tribute.',
   cede_region: 'Transfers sovereignty over a region.',
+  secondment: 'One party lends qualified people for a term. They live and work with the borrower and go home at the end; pay for them with goods clauses.',
+  joint_programme: 'The host’s launch complex, orbital yard or high-energy laboratory also serves the other party for the term, at a higher running cost to the host.',
 };
 
 /**
@@ -77,9 +110,11 @@ export function describeClause(obs: Observation, c: Clause, other: SeatId): stri
   const to = (s: SeatId) => who(s === obs.seat ? other : obs.seat);
   switch (c.kind) {
     case 'goods':
-      return c.months <= 1
+      return c.months === 1
         ? t('{who} delivers {amount} {good} to {to}, once', { who: who(c.from), amount: qty(c.good, c.amount_per_month), good: lc(GOOD_SHORT[c.good]), to: to(c.from) })
-        : t('{who} delivers {amount} {good} to {to} every month for {term}', { who: who(c.from), amount: qty(c.good, c.amount_per_month), good: lc(GOOD_SHORT[c.good]), to: to(c.from), term: fmtMonths(c.months) });
+        : c.months === 0
+          ? t('{who} delivers {amount} {good} to {to} every month until notice', { who: who(c.from), amount: qty(c.good, c.amount_per_month), good: lc(GOOD_SHORT[c.good]), to: to(c.from) })
+          : t('{who} delivers {amount} {good} to {to} every month for {term}', { who: who(c.from), amount: qty(c.good, c.amount_per_month), good: lc(GOOD_SHORT[c.good]), to: to(c.from), term: fmtMonths(c.months) });
     case 'knowledge': {
       const tech = obs.knowledge.techs.find((x) => x.handle === c.tech);
       return tech ? t('{who} hands over “{name}”', { who: who(c.from), name: tc(tech.name) }) : t('{who} hands over a method not known to us', { who: who(c.from) });
@@ -89,11 +124,13 @@ export function describeClause(obs: Observation, c: Clause, other: SeatId): stri
       return p ? t('{who} describes “{name}”', { who: who(c.from), name: tc(p.name) }) : t('{who} describes a practice not known to us', { who: who(c.from) });
     }
     case 'maps': return t('{who} shares maps and survey records', { who: who(c.from) });
-    case 'non_aggression': return t('Non-aggression for {term}', { term: fmtMonths(c.months) });
-    case 'defensive_pact': return t('Defensive pact for {term}', { term: fmtMonths(c.months) });
+    case 'non_aggression': return c.months === 0 ? t('Non-aggression until notice') : t('Non-aggression for {term}', { term: fmtMonths(c.months) });
+    case 'defensive_pact': return c.months === 0 ? t('Defensive pact until notice') : t('Defensive pact for {term}', { term: fmtMonths(c.months) });
     case 'peace': return t('Peace between the parties');
     case 'subordination': return t('{who} accepts {to} as highest authority, tribute {pct}', { who: who(c.from), to: to(c.from), pct: pct(c.tribute_bp) });
     case 'cede_region': return t('{who} cedes {region}', { who: who(c.from), region: regionName(obs, c.region) });
+    case 'secondment': return t('{who} lends {people} ({qual}) to {to} for {term}', { who: who(c.from), people: people(c.count), qual: t(QUAL_LABEL[c.qual]), to: to(c.from), term: term(c.months) });
+    case 'joint_programme': return t('The {service} of {who} also serves {to} for {term}', { service: lc(SERVICE_LABEL[c.service]), who: who(c.host), to: to(c.host), term: term(c.months) });
   }
 }
 
@@ -289,12 +326,16 @@ function Counterpart({ obs, other, rules, onBack }: { obs: Observation; other: F
         <div class="mini-meter"><span class="mini-label">{t('Trust')}</span><Meter value={other.trust} max={100} tone={other.trust >= 60 ? 'ok' : other.trust >= 35 ? 'warn' : 'bad'} height={7} label={t('Trust {n} of 100', { n: other.trust })} /><span class="mini-val">{other.trust}</span></div>
         <dl class="kvs">
           <div class="kv"><dt>{t('Population')}</dt><dd>{other.population_high > 0 ? <Est>{t('{n} people', { n: range(other.population_low, other.population_high) })}</Est> : <span class="muted">{t('no estimate — none of their land has been seen')}</span>}</dd></div>
+          {other.era !== null && other.era !== undefined ? <div class="kv" data-testid="counterpart-era"><dt>{t('Era')}</dt><dd>{eraName(other.era)}</dd></div> : null}
+          {other.traditions?.length ? <div class="kv" data-testid="counterpart-traditions"><dt>{t('Traditions')}</dt><dd>{other.traditions.map((k) => traditionLabel(k)).join(', ')}</dd></div> : null}
           <div class="kv"><dt>{t('Regions known')}</dt><dd>{other.regions_known}</dd></div>
           <div class="kv"><dt>{t('Armed strength')}</dt><dd><Est kind="reported">{other.military_estimate ? tc(other.military_estimate) : t('no report')}</Est></dd></div>
           <div class="kv"><dt>{t('Equipment seen')}</dt><dd>{other.observed_tier !== null ? <Est>{t('about tier {n}', { n: other.observed_tier })}</Est> : <span class="muted">{t('never observed')}</span>}</dd></div>
         </dl>
         {other.notes.length ? <ul class="plain-list notes">{other.notes.map((n) => <li>{tc(n)}</li>)}</ul> : null}
       </Section>
+
+      <WarPolicy obs={obs} other={other} />
 
       <Section title={t('Correspondence')} aside={<small class="muted">{tn(thread.length, '{n} envelope', '{n} envelopes')}</small>}>
         {thread.length === 0 ? <Empty>{t('No messages have passed between us.')}</Empty> : (
@@ -336,6 +377,40 @@ function Counterpart({ obs, other, rules, onBack }: { obs: Observation; other: F
         <ActionNote tag="treaty" />
       </Section>
     </div>
+  );
+}
+
+/** Armistice never comes sooner than this many months without ground changing hands (bts-engine military::armistices). */
+const ARMISTICE_MIN_MONTHS = 36;
+
+/**
+ * Standing war policy toward one counterpart (design chapter 36, section 2.6): accept a white peace
+ * once no region has changed hands between us for a number of months. When both governments hold
+ * such a policy, the war ends where the lines stand (an armistice) — inside a long round too.
+ */
+function WarPolicy({ obs, other }: { obs: Observation; other: ForeignCiv }) {
+  const s = useApp();
+  const cur = (obs.civ.policies.war_policies ?? []).find((p) => p.seat === other.seat);
+  const curMonths = cur?.accept_white_peace_after_months ?? null;
+  const [months, setMonths] = useState<number>(curMonths ?? ARMISTICE_MIN_MONTHS);
+  useEffect(() => { if (curMonths !== null) setMonths(curMonths); }, [curMonths]);
+  const save = (m: number | null) => void act({ kind: 'set_policy', setting: { kind: 'war_policy', seat: other.seat, accept_white_peace_after_months: m, accept_cession_max: cur?.accept_cession_max ?? 0 } }, 'war-policy');
+  const otherName = tc(other.name);
+  return (
+    <Section title={t('War policy')} aside={other.at_war ? <Badge tone="bad" icon="military">{t('At war')}</Badge> : <small class="muted">{t('a standing order for if war comes')}</small>}>
+      <p class="muted small">{t('Rounds are long: a war can run for decades before you plan again. A standing policy lets the government accept a white peace on its own — when both sides hold one and no region has changed hands between them for the longer of their two terms (at least {n} months), the war ends where the lines stand.', { n: ARMISTICE_MIN_MONTHS })}</p>
+      <div class="war-policy" data-testid="war-policy">
+        {curMonths !== null
+          ? <p class="small"><Icon name="check" size={12} /> {t('We accept an armistice with {name} after {term} without ground changing hands.', { name: otherName, term: fmtMonths(Math.max(ARMISTICE_MIN_MONTHS, curMonths)) })}</p>
+          : <p class="small"><Icon name="info" size={12} /> {t('No standing policy: a war with {name} ends only by a signed peace, conquest or subordination.', { name: otherName })}</p>}
+        <div class="form-actions">
+          <label class="inline-field"><span>{t('Accept after')}</span><NumInput value={months} min={ARMISTICE_MIN_MONTHS} max={1200} step={12} unit={t('months ({term})', { term: fmtMonths(months) })} label={t('Months without ground changing hands')} width={72} testid="war-policy-months" onChange={(v) => setMonths(Math.round(v))} /></label>
+          <Btn small kind="primary" disabled={s.busy || (curMonths !== null && curMonths === months)} testid="war-policy-set" onClick={() => save(months)}>{curMonths !== null ? t('Change the policy') : t('Accept an armistice')}</Btn>
+          {curMonths !== null ? <Btn small kind="ghost" disabled={s.busy} testid="war-policy-clear" onClick={() => save(null)}>{t('Withdraw it')}</Btn> : null}
+        </div>
+      </div>
+      <ActionNote tag="war-policy" />
+    </Section>
   );
 }
 
@@ -386,8 +461,12 @@ function Offer({ obs, o }: { obs: Observation; o: OfferView }) {
 function Treaty({ obs, t: tr }: { obs: Observation; t: TreatyView }) {
   const s = useApp();
   const [confirm, setConfirm] = useState(false);
+  const [confirmNotice, setConfirmNotice] = useState(false);
   const otherSeat = tr.parties[0] === obs.seat ? tr.parties[1] : tr.parties[0];
   const active = tr.status === 'active';
+  // open-ended standing clauses (months 0) can be ended by notice at the close of next round, with nothing breached
+  const openEnded = (tr.clauses as Clause[]).some((c) => (c.kind === 'goods' || c.kind === 'non_aggression' || c.kind === 'defensive_pact') && c.months === 0);
+  const clauses = tr.clauses as Clause[];
   return (
     <div class={cx('card treaty', 'treaty-' + tr.status)} data-testid="treaty-card">
       <div class="row-between">
@@ -395,6 +474,19 @@ function Treaty({ obs, t: tr }: { obs: Observation; t: TreatyView }) {
         <Badge tone={active ? 'ok' : tr.status === 'broken' ? 'bad' : 'muted'} icon={active ? 'seal' : undefined}>{statusLabel(tr.status, 'treaty')}</Badge>
       </div>
       <ClauseLines obs={obs} clauses={tr.clauses} summary={tr.summary} other={otherSeat} />
+      {openEnded ? <p class="muted small" data-testid="treaty-open-ended"><Icon name="clock" size={11} /> {t('Some clauses run until notice: either party may end them at the close of the next round without breaching the treaty.')}</p> : null}
+      {(tr.secondments ?? []).map((sv) => {
+        const c = clauses[sv.clause];
+        return c && c.kind === 'secondment' ? (
+          <p class="small coop-line" data-testid="treaty-secondment"><Icon name="people" size={11} /> {t('Secondment: {sent} sent, {owed} still away, {returned} home, {lost} stayed behind; due home {date}', { sent: int(sv.sent), owed: int(sv.owed), returned: int(sv.returned), lost: int(sv.lost), date: fmtDate(sv.due_month) })}</p>
+        ) : null;
+      })}
+      {(tr.programmes ?? []).map((pv) => {
+        const c = clauses[pv.clause];
+        return c && c.kind === 'joint_programme' ? (
+          <p class="small coop-line" data-testid="treaty-programme"><Icon name="rocket" size={11} /> {pv.served ? t('{service}: serving this month', { service: t(SERVICE_LABEL[c.service]) }) : t('{service}: not serving this month', { service: t(SERVICE_LABEL[c.service]) })}{pv.shortfalls ? ` · ${t('{n} months below half rate', { n: pv.shortfalls })}` : ''}</p>
+        ) : null;
+      })}
       {tr.performance.length ? (
         <Expander label={t('Performance record ({n})', { n: tr.performance.length })} open={tr.performance.length <= 3}>
           <ul class="plain-list performance">{tr.performance.map((p) => <li>{tc(p)}</li>)}</ul>
@@ -402,12 +494,22 @@ function Treaty({ obs, t: tr }: { obs: Observation; t: TreatyView }) {
       ) : <p class="muted small">{t('No deliveries or breaches recorded yet.')}</p>}
       {active ? (
         <div class="form-actions">
-          {confirm ? (
+          {confirmNotice ? (
+            <>
+              <Btn small kind="primary" disabled={s.busy} testid="treaty-notice-confirm" onClick={() => { setConfirmNotice(false); void act({ kind: 'break_treaty', treaty: tr.id, notice: true }, 'treaty'); }}>{t('Give notice — the open-ended clauses end with the next round')}</Btn>
+              <Btn small kind="ghost" onClick={() => setConfirmNotice(false)}>{t('Keep the treaty')}</Btn>
+            </>
+          ) : confirm ? (
             <>
               <Btn small kind="danger" disabled={s.busy} testid="treaty-break-confirm" onClick={() => { setConfirm(false); void act({ kind: 'break_treaty', treaty: tr.id }, 'treaty'); }}>{t('Repudiate — the breach is recorded permanently')}</Btn>
               <Btn small kind="ghost" onClick={() => setConfirm(false)}>{t('Keep the treaty')}</Btn>
             </>
-          ) : <Btn small kind="ghost" testid="treaty-break" onClick={() => setConfirm(true)}>{t('Repudiate…')}</Btn>}
+          ) : (
+            <>
+              {openEnded ? <Btn small kind="ghost" icon="clock" testid="treaty-notice" title={t('End the open-ended clauses at the close of the next round. Nothing is breached and trust is kept.')} onClick={() => setConfirmNotice(true)}>{t('Give notice…')}</Btn> : null}
+              <Btn small kind="ghost" testid="treaty-break" onClick={() => setConfirm(true)}>{t('Repudiate…')}</Btn>
+            </>
+          )}
         </div>
       ) : null}
     </div>
@@ -417,28 +519,41 @@ function Treaty({ obs, t: tr }: { obs: Observation; t: TreatyView }) {
 // --- treaty composer --------------------------------------------------------------
 
 function defaultClause(kind: ClauseKind, obs: Observation, other: ForeignCiv): Clause {
+  const [lo] = termBounds(obs, kind);
   switch (kind) {
     case 'goods': return { kind, from: obs.seat, good: 'food', amount_per_month: 50_000, months: 1 };
     case 'knowledge': return { kind, from: obs.seat, tech: '' };
     case 'practice': return { kind, from: obs.seat, practice: '' };
     case 'maps': return { kind, from: obs.seat };
-    case 'non_aggression': return { kind, months: 60 };
-    case 'defensive_pact': return { kind, months: 60 };
+    case 'non_aggression': return { kind, months: Math.max(60, lo) };
+    case 'defensive_pact': return { kind, months: Math.max(60, lo) };
     case 'peace': return { kind };
     case 'subordination': return { kind, from: other.seat, tribute_bp: 1000 };
     case 'cede_region': return { kind, from: obs.seat, region: obs.regions.find((r) => r.own && r.id !== obs.civ.capital)?.id ?? obs.civ.capital };
+    case 'secondment': return { kind, from: obs.seat, qual: (obs.civ.quals.find((q) => q.count >= 1000)?.qual ?? 'scholar') as Qual, count: 1000, months: lo };
+    case 'joint_programme': return { kind, host: obs.seat, service: 'launch', months: lo };
   }
+}
+
+/** Why a clause term is out of bounds this round, or null. Single deliveries (1) and open-ended terms (0) are allowed where the clause allows them. */
+function termProblem(obs: Observation, kind: ClauseKind, months: number): string | null {
+  const [lo, hi] = termBounds(obs, kind);
+  if (months === 0 && OPEN_ENDED.includes(kind)) return null;
+  if (kind === 'goods' && months === 1) return null;
+  return months < lo || months > hi ? t('This round a term is {lo} to {hi} months', { lo: int(lo), hi: int(hi) }) : null;
 }
 
 function clauseProblem(obs: Observation, other: ForeignCiv, c: Clause): string | null {
   switch (c.kind) {
-    case 'goods': return c.amount_per_month <= 0 ? t('Enter an amount') : c.months < 1 || c.months > 240 ? t('Term is 1 to 240 months') : null;
+    case 'goods': return c.amount_per_month <= 0 ? t('Enter an amount') : termProblem(obs, 'goods', c.months);
     case 'knowledge': return c.tech ? null : t('Choose a method');
     case 'practice': return c.practice ? null : t('Choose a practice');
     case 'non_aggression':
-    case 'defensive_pact': return c.months < 1 || c.months > 600 ? t('Term is 1 to 600 months') : null;
+    case 'defensive_pact': return termProblem(obs, c.kind, c.months);
     case 'peace': return other.at_war ? null : t('The parties are not at war');
     case 'subordination': return c.tribute_bp > 5000 ? t('Tribute is at most 50%') : null;
+    case 'secondment': return other.at_war ? t('Experts are not lent between parties at war') : c.count < SECONDMENT_PEOPLE[0] || c.count > SECONDMENT_PEOPLE[1] ? t('A secondment lends {lo} to {hi} people', { lo: int(SECONDMENT_PEOPLE[0]), hi: int(SECONDMENT_PEOPLE[1]) }) : termProblem(obs, c.kind, c.months);
+    case 'joint_programme': return other.at_war ? t('Installations are not shared between parties at war') : c.service === 'undisclosed' ? t('Choose an installation') : termProblem(obs, c.kind, c.months);
     default: return null;
   }
 }
@@ -498,6 +613,31 @@ function TreatyComposer({ obs, other, block }: { obs: Observation; other: Foreig
   );
 }
 
+/** Facility kinds of the installations a joint programme can share (bts-engine facility_of_service). */
+const SERVICE_FACILITY: Record<Exclude<ProgrammeService, 'undisclosed'>, string> = { launch: 'launch_complex', orbital_yard: 'orbital_yard', high_energy: 'high_energy' };
+
+/**
+ * A clause's term: within this round's bounds (at least one round, at most three, or the clause's
+ * own bounds where wider), or open-ended until notice where the clause allows it, or (goods) once.
+ */
+function TermField({ obs, kind, months, onChange, once }: { obs: Observation; kind: ClauseKind; months: number; onChange: (m: number) => void; once?: boolean }) {
+  const [lo, hi] = termBounds(obs, kind);
+  const open = OPEN_ENDED.includes(kind);
+  const mode = once && months === 1 ? 'once' : months === 0 && open ? 'open' : 'term';
+  const step = lo >= 120 ? 12 : 6;
+  return (
+    <span class="term-field">
+      <span class="segmented" role="radiogroup" aria-label={t('Term')}>
+        {once ? <button type="button" role="radio" aria-checked={mode === 'once'} class={cx('seg', mode === 'once' && 'is-active')} onClick={() => onChange(1)}>{t('Once')}</button> : null}
+        <button type="button" role="radio" aria-checked={mode === 'term'} class={cx('seg', mode === 'term' && 'is-active')} data-testid="clause-term-fixed" onClick={() => onChange(Math.min(hi, Math.max(lo, months > 1 ? months : lo)))}>{once ? t('Every month for a term') : t('For a term')}</button>
+        {open ? <button type="button" role="radio" aria-checked={mode === 'open'} class={cx('seg', mode === 'open' && 'is-active')} data-testid="clause-term-open" onClick={() => onChange(0)}>{t('Until notice')}</button> : null}
+      </span>
+      {mode === 'term' ? <NumInput value={months} min={lo} max={hi} step={step} unit={t('months ({term})', { term: fmtMonths(months) })} label={t('Term in months')} width={72} testid="clause-months" onChange={(v) => onChange(Math.round(v))} /> : null}
+      <small class="muted">{mode === 'open' ? t('Runs until either party gives notice; it then ends with the next round and nothing is breached.') : t('This round: {lo} to {hi} months ({length}).', { lo: int(lo), hi: int(hi), length: roundLength(obs.calendar?.round_months ?? obs.months_per_round) })}</small>
+    </span>
+  );
+}
+
 function ClauseFields({ obs, other, c, parties, onChange }: {
   obs: Observation; other: ForeignCiv; c: Clause; parties: { value: SeatId; label: string }[]; onChange: (c: Clause) => void;
 }) {
@@ -510,8 +650,8 @@ function ClauseFields({ obs, other, c, parties, onChange }: {
         <div class="clause-fields">
           {fromSel(c.from, (from) => onChange({ ...c, from }), t('Delivered by'))}
           <label class="inline-field"><span>{t('Good')}</span><Select<Good> value={c.good} options={GOODS.map((g) => ({ value: g, label: t(GOOD_LABEL[g]) }))} onChange={(good) => onChange({ ...c, good })} label={t('Good')} /></label>
-          <label class="inline-field"><span>{t('Amount')}</span><NumInput value={c.amount_per_month / 1000} min={1} max={1_000_000} unit={c.months > 1 ? t('{unit} / month', { unit: displayUnit(c.good) }) : displayUnit(c.good)} width={96} label={t('Amount')} onChange={(v) => onChange({ ...c, amount_per_month: Math.round(v * 1000) })} testid="clause-amount" /></label>
-          <label class="inline-field"><span>{t('Months')}</span><NumInput value={c.months} min={1} max={240} unit={c.months > 1 ? t('months') : t('single delivery')} label={t('Months')} width={64} onChange={(v) => onChange({ ...c, months: Math.round(v) })} /></label>
+          <label class="inline-field"><span>{t('Amount')}</span><NumInput value={c.amount_per_month / 1000} min={1} max={1_000_000} unit={c.months !== 1 ? t('{unit} / month', { unit: displayUnit(c.good) }) : displayUnit(c.good)} width={96} label={t('Amount')} onChange={(v) => onChange({ ...c, amount_per_month: Math.round(v * 1000) })} testid="clause-amount" /></label>
+          <div class="inline-field wide"><span>{t('Term')}</span><TermField obs={obs} kind="goods" once months={c.months} onChange={(months) => onChange({ ...c, months })} /></div>
         </div>
       );
     case 'knowledge': {
@@ -547,9 +687,39 @@ function ClauseFields({ obs, other, c, parties, onChange }: {
     case 'defensive_pact':
       return (
         <div class="clause-fields">
-          <label class="inline-field"><span>{t('Term')}</span><NumInput value={c.months} min={1} max={600} step={12} unit={t('months ({term})', { term: fmtMonths(c.months) })} label={t('Term in months')} onChange={(v) => onChange({ ...c, months: Math.round(v) })} /></label>
+          <div class="inline-field wide"><span>{t('Term')}</span><TermField obs={obs} kind={c.kind} months={c.months} onChange={(months) => onChange({ ...c, months })} /></div>
         </div>
       );
+    case 'secondment': {
+      // we can name only our own counts; what the other side can spare is checked when it signs
+      const mine = c.from === obs.seat;
+      const quals = (Object.keys(QUAL_LABEL) as Qual[]).filter((q) => q !== 'literate');
+      const have = (q: Qual) => obs.civ.quals.find((x) => x.qual === q);
+      const options = quals.map((q) => ({ value: q, label: mine && have(q) ? `${t(QUAL_LABEL[q])} (${int(have(q)!.count)})` : t(QUAL_LABEL[q]) }));
+      return (
+        <div class="clause-fields">
+          {fromSel(c.from, (from) => onChange({ ...c, from }), t('Lent by'))}
+          <label class="inline-field"><span>{t('Qualification')}</span><Select<Qual> value={c.qual} options={options} onChange={(qual) => onChange({ ...c, qual })} label={t('Qualification')} testid="clause-qual" /></label>
+          <label class="inline-field"><span>{t('People')}</span><NumInput value={c.count} min={SECONDMENT_PEOPLE[0]} max={SECONDMENT_PEOPLE[1]} step={100} label={t('People')} width={88} testid="clause-count" onChange={(v) => onChange({ ...c, count: Math.round(v) })} /></label>
+          <div class="inline-field wide"><span>{t('Term')}</span><TermField obs={obs} kind="secondment" months={c.months} onChange={(months) => onChange({ ...c, months })} /></div>
+          <small class="muted">{mine ? t('At most half of our holders who are not teaching may be lent. They come home at the end of the term; if the borrower repudiates or goes to war, a quarter stay behind.') : t('Ask for experts; {name} checks what it can spare when it signs. Offer goods in return.', { name: tc(other.name) })}</small>
+        </div>
+      );
+    }
+    case 'joint_programme': {
+      const known = (Object.keys(SERVICE_FACILITY) as Exclude<ProgrammeService, 'undisclosed'>[]).filter((k) => obs.catalog.facilities.some((f) => f.kind === SERVICE_FACILITY[k]));
+      const options = known.length ? known.map((k) => ({ value: k as ProgrammeService, label: t(SERVICE_LABEL[k]) })) : [{ value: 'undisclosed' as ProgrammeService, label: t('No shareable installation is known to us') }];
+      const value = known.includes(c.service as Exclude<ProgrammeService, 'undisclosed'>) ? c.service : options[0].value;
+      if (value !== c.service) queueMicrotask(() => onChange({ ...c, service: value }));
+      return (
+        <div class="clause-fields">
+          {fromSel(c.host, (host) => onChange({ ...c, host }), t('Host'))}
+          <label class="inline-field wide"><span>{t('Installation')}</span><Select<ProgrammeService> value={value} options={options} onChange={(service) => onChange({ ...c, service })} label={t('Installation')} testid="clause-service" /></label>
+          <div class="inline-field wide"><span>{t('Term')}</span><TermField obs={obs} kind="joint_programme" months={c.months} onChange={(months) => onChange({ ...c, months })} /></div>
+          <small class="muted">{t('Serves the partner in every month after the installation ran at half rate or better; each partner raises its inputs, upkeep and power by half. One installation serves at most two partners.')}</small>
+        </div>
+      );
+    }
     case 'peace':
       return <div class="clause-fields"><small class="muted">{t('Ends the war between {a} and {b}.', { a: tc(obs.civ.name), b: tc(other.name) })}</small></div>;
     case 'subordination':

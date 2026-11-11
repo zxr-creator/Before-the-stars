@@ -14,6 +14,7 @@ import { compact, peopleNum, range, tonnes } from '../format';
 import { Builder } from './builder';
 import { buildRegionDecor, decorSignature, eraOfFacilities, type DecorContext, type RegionDecor } from './decor';
 import { armyStandard, depositBadge, standardKey, YIELD_SVG, type StandardSpec } from './icons';
+import { anchorSvg, bonusSvg, outbreakSvg } from '../map/pictos';
 import { esc, LabelLayer, type LabelSpec } from './labels';
 import {
   makeGroundMaterial, makeGroundUniforms, makeModelMaterial, makeNoiseTexture, makeRibbonMaterial, makeRibbonUniforms,
@@ -25,7 +26,7 @@ import { buildParchmentDecals, disposeParchment, type ParchmentDecals } from './
 import { PropLayer, type Clearings } from './props';
 import { arcGeometry, ribbonGeometry, riverGeometry, type RibbonSpec } from './ribbons';
 import { buildTerrain, groundAt, heightAt, type Heightfield, type RiverPath } from './terrain';
-import { boundaryChains, buildTopology, chaikin, regionChain, regionIndexAt, resample, type Chain, type Topology, type TRegion } from './topology';
+import { boundaryChains, buildTopology, chaikin, knownSpanX, regionChain, regionIndexAt, resample, type Chain, type Topology, type TRegion } from './topology';
 import { clamp, hash32, hexRgb, lerp, mixRgb, sepia, smoothstep, type RGB } from './util';
 
 export type Map3DData = AtlasData;
@@ -51,7 +52,9 @@ const FOV = 30;
 const DIST_MIN = 130;
 const ZOOM_REF = 1000;
 const UNKNOWN_OWNER = '#6b6257';
-const SETTLEMENT_RANK: Record<string, number> = { wilderness: 0, camp: 1, village: 2, town: 3, city: 4, metropolis: 5 };
+const SETTLEMENT_RANK: Record<string, number> = { wilderness: 0, camp: 1, village: 2, town: 3, city: 4, metropolis: 5, megalopolis: 6 };
+/** Label scale from which a principal city's name is shown, by settlement rank. */
+const CITY_NAME_ZOOM = [9, 2.4, 1.8, 1.25, 0.85, 0.6, 0.45];
 const INK: RGB = [0.22, 0.16, 0.1];
 
 /** True when WebGL is drawn by the CPU (SwiftShader, llvmpipe and similar). */
@@ -151,7 +154,7 @@ export class Map3D {
 
   // scene nodes
   private table: THREE.Mesh;
-  private terrainMesh: THREE.Mesh | null = null;
+  private terrainMesh: THREE.Group | null = null;
   private riverMesh: THREE.Mesh | null = null;
   private borderMesh: THREE.Mesh | null = null;
   private inkMesh: THREE.Mesh | null = null;
@@ -177,6 +180,8 @@ export class Map3D {
   private badges: BadgeRef[] = [];
   private armyLabels: LabelSpec[] = [];
   private labels: LabelLayer;
+  private labelRoot: HTMLElement;
+  private labelFar = false;
   private minimap: Minimap | null = null;
 
   private ray = new THREE.Raycaster();
@@ -204,16 +209,17 @@ export class Map3D {
     this.renderer.shadowMap.type = low ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.labels = new LabelLayer(opts.labels);
+    this.labelRoot = opts.labels;
     if (opts.minimap) this.minimap = new Minimap(opts.minimap, (x, z) => this.jumpTo(x, z));
 
     this.groundU.tNoise.value = this.noiseTex;
     this.tableU = {
       tNoise: { value: this.noiseTex }, tSea: { value: null }, uRect: { value: new THREE.Vector4(0, 0, 1, 1) },
       uSheet: { value: new THREE.Vector4(800, 500, 1080, 760) }, uFrame: { value: new THREE.Vector4(800, 500, 800, 500) },
-      uTime: this.groundU.uTime, uGrid: { value: 100 },
+      uTime: this.groundU.uTime, uGrid: { value: 100 }, uPer: { value: 0 }, uWrap: { value: 0 },
     };
     this.tableMat = makeTableMaterial(this.tableU);
-    this.riverU = { tNoise: { value: this.noiseTex }, tInfo: { value: null }, uRect: this.groundU.uRect, uTime: this.groundU.uTime };
+    this.riverU = { tNoise: { value: this.noiseTex }, tInfo: { value: null }, uRect: this.groundU.uRect, uTime: this.groundU.uTime, uPer: { value: 0 } };
     this.riverMat = makeRiverMaterial(this.riverU);
     for (const u of [this.borderU, this.inkU, this.selU, this.hoverU, this.pickU, this.laneU, this.moveU, this.attackU]) u.uTime = this.groundU.uTime;
     this.inkU.uOpacity.value = 0.3;
@@ -431,12 +437,31 @@ export class Map3D {
   private clampRig(s: Rig): void {
     const W = this.data?.world.width ?? 1600, H = this.data?.world.height ?? 1000;
     s.dist = clamp(s.dist, DIST_MIN, this.distMax);
-    s.tx = clamp(s.tx, -60, W + 60);
+    if (!this.wrapW) s.tx = clamp(s.tx, -60, W + 60);
     s.tz = clamp(s.tz, -60, H + 60);
+  }
+
+  /** World width when the map wraps east-west, else 0. */
+  private get wrapW(): number {
+    return this.topo?.wrap ?? 0;
+  }
+
+  /** The copy of world x nearest the camera's target (wrapped worlds). */
+  private nearX(x: number): number {
+    const W = this.wrapW;
+    return W ? x + W * Math.round((this.cur.tx - x) / W) : x;
   }
 
   private goTo(s: Rig, animate: boolean): void {
     this.clampRig(s);
+    const W = this.wrapW;
+    if (W) {
+      // The globe turns without end: travel the short way, and keep the target within one
+      // turn by moving the current view along with it (the picture is the same).
+      s.tx += W * Math.round((this.goal.tx - s.tx) / W);
+      const k = Math.floor(s.tx / W);
+      if (k) { s.tx -= k * W; this.cur.tx -= k * W; }
+    }
     this.goal = s;
     if (!animate || this.reducedMotion) this.cur = { ...s };
     this.viewChanged();
@@ -450,8 +475,9 @@ export class Map3D {
   fit(animate = false): void {
     if (!this.topo || this.w <= 0) return;
     const b = this.topo.bbox;
+    const [x0, x1] = knownSpanX(this.topo);
     const m = 46;
-    const s = this.frameRect(b[0] - m, b[1] - m, b[2] + m, b[3] + m, 0, Math.min(30, (this.hf?.maxH ?? 0) * 0.5));
+    const s = this.frameRect(x0 - m, b[1] - m, x1 + m, b[3] + m, 0, Math.min(30, (this.hf?.maxH ?? 0) * 0.5));
     s.dist = Math.max(s.dist, 300);
     this.goTo(s, animate);
   }
@@ -462,7 +488,7 @@ export class Map3D {
     // Close enough to read the settlement and its districts, never farther than the current view.
     const size = Math.max(p.bbox[2] - p.bbox[0], p.bbox[3] - p.bbox[1]);
     const want = clamp(size * 2.6, 300, 620);
-    this.goTo({ tx: p.cx, tz: p.cy, dist: Math.min(this.goal.dist, want), heading: this.goal.heading }, animate);
+    this.goTo({ tx: p.sx, tz: p.sy, dist: Math.min(this.goal.dist, want), heading: this.goal.heading }, animate);
   }
 
   /** Look at a region from a given distance (dev harness and tests). */
@@ -543,16 +569,18 @@ export class Map3D {
     const tEnd = -o.y / d.y;
     if (!hf) return [o.x + d.x * tEnd, o.z + d.z * tEnd];
     const tStart = Math.max(0, (hf.maxH + 1 - o.y) / d.y);
+    const W = this.wrapW;
+    const wx = (x: number) => (W ? ((x % W) + W) % W : x);
     const step = 2.2;
     let prev = tStart;
     for (let t = tStart; t <= tEnd + step; t += step) {
       const tt = Math.min(t, tEnd);
       const y = o.y + d.y * tt;
-      if (y <= heightAt(hf, o.x + d.x * tt, o.z + d.z * tt)) {
+      if (y <= heightAt(hf, wx(o.x + d.x * tt), o.z + d.z * tt)) {
         let lo = prev, hi = tt;
         for (let k = 0; k < 6; k++) {
           const mid = (lo + hi) / 2;
-          if (o.y + d.y * mid <= heightAt(hf, o.x + d.x * mid, o.z + d.z * mid)) hi = mid; else lo = mid;
+          if (o.y + d.y * mid <= heightAt(hf, wx(o.x + d.x * mid), o.z + d.z * mid)) hi = mid; else lo = mid;
         }
         return [o.x + d.x * hi, o.z + d.z * hi];
       }
@@ -565,7 +593,8 @@ export class Map3D {
     if (!this.topo || this.w <= 0) return null;
     const p = this.terrainPoint(sx, sy);
     if (!p) return null;
-    const i = regionIndexAt(this.topo.fields, p[0], p[1]);
+    const W = this.wrapW;
+    const i = regionIndexAt(this.topo.fields, W ? ((p[0] % W) + W) % W : p[0], p[1]);
     return i >= 0 ? this.topo.regions[i].r.id : null;
   }
 
@@ -573,7 +602,8 @@ export class Map3D {
   regionCenter(id: RegionId): [number, number] | null {
     const p = this.topo?.byId.get(id);
     if (!p || !this.hf) return null;
-    const [x, y] = this.project(p.cx, groundAt(this.hf, p.cx, p.cy), p.cy);
+    const x0 = this.nearX(p.sx);
+    const [x, y] = this.project(x0, groundAt(this.hf, p.sx, p.sy), p.sy);
     return [x, y];
   }
 
@@ -585,7 +615,7 @@ export class Map3D {
       const s = b.sprite;
       if (!s.visible) continue;
       const hgt = s.scale.y;
-      const [x, y, ok] = this.project(s.position.x, s.position.y + hgt * 0.6, s.position.z);
+      const [x, y, ok] = this.project(this.nearX(s.position.x), s.position.y + hgt * 0.6, s.position.z);
       if (!ok) continue;
       const u = this.unitsPerPx(this.camera.position.distanceTo(s.position));
       const r = (hgt * 0.36) / u + 2;
@@ -612,9 +642,9 @@ export class Map3D {
     if (this.destroyed) return;
     this.data = d;
     this.seatRgb.clear();
-    let tsig = `${d.world.width}x${d.world.height}`;
+    let tsig = `${d.world.width}x${d.world.height}${d.world.wrap_x ? 'w' : ''}`;
     for (const r of d.regions) {
-      let known = 0, links = '';
+      let known = 0, links = r.city ? `c${r.city.at[0]},${r.city.at[1]}` : '';
       for (const n of r.neighbors) { if (n.kind === 'river') links += 'r' + n.region; if (n.kind === 'sea') links += 's' + n.region; }
       for (const n of r.neighbors) known += n.region;
       tsig += `|${r.id}:${r.terrain[0]}${r.terrain[1]}:${r.elevation}:${r.river ? 1 : 0}${r.coastal ? 1 : 0}${r.visibility === 'remembered' ? 1 : 0}:${known}${links}`;
@@ -741,18 +771,21 @@ export class Map3D {
 
   private rebuildTerrain(d: Map3DData): void {
     const t0 = performance.now();
-    const topo = buildTopology(d.regions, d.world.width, d.world.height);
+    const topo = buildTopology(d.regions, d.world.width, d.world.height, !!d.world.wrap_x);
     const tb = buildTerrain(topo);
     this.topo = topo;
     this.hf = tb.hf;
     this.riverPaths = tb.rivers;
-    for (const m of [this.terrainMesh, this.riverMesh]) {
-      if (m) { this.scene.remove(m); m.geometry.dispose(); }
+    if (this.terrainMesh) { this.scene.remove(this.terrainMesh); disposeObject(this.terrainMesh); }
+    if (this.riverMesh) { this.scene.remove(this.riverMesh); this.riverMesh.geometry.dispose(); }
+    this.terrainMesh = new THREE.Group();
+    for (const g of tb.geometries) {
+      const m = new THREE.Mesh(g, this.groundMat);
+      m.receiveShadow = true;
+      m.castShadow = true;
+      m.renderOrder = -1;
+      this.terrainMesh.add(m);
     }
-    this.terrainMesh = new THREE.Mesh(tb.geometry, this.groundMat);
-    this.terrainMesh.receiveShadow = true;
-    this.terrainMesh.castShadow = true;
-    this.terrainMesh.renderOrder = -1;
     this.scene.add(this.terrainMesh);
     this.riverMesh = new THREE.Mesh(riverGeometry(tb.rivers, tb.hf), this.riverMat);
     this.riverMesh.renderOrder = 1;
@@ -772,6 +805,10 @@ export class Map3D {
     this.tableU.uSheet.value.set(W / 2, H / 2, W / 2 + 300, H / 2 + 270);
     this.tableU.uFrame.value.set(W / 2, H / 2, W / 2, H / 2);
     this.table.position.set(W / 2, 0, H / 2);
+    // A wrapped world: the sheet has no east or west edge, and the ground's noise repeats once a turn.
+    this.tableU.uWrap.value = topo.wrap;
+    this.groundU.uPer.value = topo.wrap;
+    this.riverU.uPer.value = topo.wrap;
 
     // Sea texture: distance to certain coast, and how far the charted water reaches.
     const n = f.nx * f.nz;
@@ -965,7 +1002,7 @@ export class Map3D {
       if (!p) continue;
       const pts: number[] = [];
       const rad = Math.min(24, p.inradius * 0.7) + 4;
-      for (let k = 0; k < 40; k++) pts.push(p.cx + Math.cos((k / 40) * Math.PI * 2) * rad, p.cy + Math.sin((k / 40) * Math.PI * 2) * rad);
+      for (let k = 0; k < 40; k++) pts.push(p.sx + Math.cos((k / 40) * Math.PI * 2) * rad, p.sy + Math.sin((k / 40) * Math.PI * 2) * rad);
       marks.push({ chain: { key: id, pts, closed: true, side: 1 }, color: [0.86, 0.26, 0.16], width: 2.6, centered: true, lift: 0.8 });
     }
     this.setMesh('markMesh', marks, this.markMat(), 5);
@@ -1012,18 +1049,22 @@ export class Map3D {
     this.trafficPaths = [];
     const b = new Builder();
     const G = (x: number, z: number) => heightAt(hf, x, z);
+    const W = topo.wrap;
     for (const l of links) {
       let shared: { mx: number; my: number; len: number } | null = null;
-      for (const { e } of l.a.edges) if (e.regions.includes(l.b.idx) && (!shared || e.len > shared.len)) shared = e;
-      const mx = shared ? shared.mx : (l.a.cx + l.b.cx) / 2, mz = shared ? shared.my : (l.a.cy + l.b.cy) / 2;
+      for (const { e, dx } of l.a.edges) if (e.regions.includes(l.b.idx) && (!shared || e.len > shared.len)) shared = { mx: e.mx + dx, my: e.my, len: e.len };
+      // From settlement to settlement, the far one brought into the near one's frame.
+      const ax = l.a.sx, az = l.a.sy, bz = l.b.sy;
+      const bx = W ? l.b.sx + W * Math.round((ax - l.b.sx) / W) : l.b.sx;
+      const mx = shared ? shared.mx : (ax + bx) / 2, mz = shared ? shared.my : (az + bz) / 2;
       // Bend through the border crossing; start and end at the edge of each settlement.
-      const raw = chaikin([l.a.cx, l.a.cy, (l.a.cx + mx) / 2 + (mz - l.a.cy) * 0.08, (l.a.cy + mz) / 2 - (mx - l.a.cx) * 0.08, mx, mz, (l.b.cx + mx) / 2 + (mz - l.b.cy) * 0.08, (l.b.cy + mz) / 2 - (mx - l.b.cx) * 0.08, l.b.cx, l.b.cy], 3);
+      const raw = chaikin([ax, az, (ax + mx) / 2 + (mz - az) * 0.08, (az + mz) / 2 - (mx - ax) * 0.08, mx, mz, (bx + mx) / 2 + (mz - bz) * 0.08, (bz + mz) / 2 - (mx - bx) * 0.08, bx, bz], 3);
       const dense = resample(raw, 2.6);
       const ra = settlementRadius(l.a.r.settlement) * 0.85, rb = settlementRadius(l.b.r.settlement) * 0.85;
       const pts: number[] = [];
       for (let i = 0; i < dense.length; i += 2) {
         const x = dense[i], z = dense[i + 1];
-        if (Math.hypot(x - l.a.cx, z - l.a.cy) < ra || Math.hypot(x - l.b.cx, z - l.b.cy) < rb) continue;
+        if (Math.hypot(x - ax, z - az) < ra || Math.hypot(x - bx, z - bz) < rb) continue;
         pts.push(x, z);
       }
       if (pts.length < 6) continue;
@@ -1183,7 +1224,7 @@ export class Map3D {
       g.translate(0, hgt / 2, 0);
       const m = new THREE.Mesh(g, this.columnMats[popClass(pop)]);
       const off = settlementRadius(r.settlement) + rad + 2;
-      m.position.set(p.cx - off, groundAt(hf, p.cx - off, p.cy), p.cy);
+      m.position.set(p.sx - off, groundAt(hf, p.sx - off, p.sy), p.sy);
       m.userData.h = hgt;
       m.userData.id = r.id;
       m.renderOrder = 6;
@@ -1270,7 +1311,7 @@ export class Map3D {
       slots.set(region, i + 1);
       if (i >= MAXP) { hidden.set(region, (hidden.get(region) ?? 0) + 1); return null; }
       const sr = settlementRadius(p.r.settlement);
-      const x = p.cx + sr + 6 + (i % 3) * 7.2, z = p.cy + 5 + Math.floor(i / 3) * 7.5 - (i % 3) * 1.2;
+      const x = p.sx + sr + 6 + (i % 3) * 7.2, z = p.sy + 5 + Math.floor(i / 3) * 7.5 - (i % 3) * 1.2;
       return [x, groundAt(hf, x, z), z, i];
     };
     const standard = (x: number, y: number, z: number, spec: StandardSpec, scale: number) => {
@@ -1316,7 +1357,7 @@ export class Map3D {
         const to = topo.byId.get(a.target);
         if (to) {
           const attack = a.order === 'attack';
-          const tx = to.cx, tz = to.cy;
+          const tx = this.wrapW ? to.sx + this.wrapW * Math.round((at[0] - to.sx) / this.wrapW) : to.sx, tz = to.sy;
           const dx = tx - at[0], dz = tz - at[2];
           const l = Math.hypot(dx, dz) || 1;
           const bend = l * 0.14;
@@ -1355,7 +1396,7 @@ export class Map3D {
       const p = topo.byId.get(region);
       if (!p) continue;
       const sr = settlementRadius(p.r.settlement);
-      const x = p.cx + sr + 6 + 3 * 7.2, z = p.cy + 9;
+      const x = p.sx + sr + 6 + 3 * 7.2, z = p.sy + 9;
       this.armyLabels.push({ key: 'more:' + region, x, y: groundAt(hf, x, z) + 5, z, html: '+' + n, cls: 'm3-more', priority: 5, minZoom: 0.8, anchor: 'center', free: true });
     }
     if (b.triangles > 0) {
@@ -1385,22 +1426,47 @@ export class Map3D {
       let minZoom = rank >= 4 ? 0 : rank === 3 ? 0.5 : rank === 2 ? 0.72 : rank === 1 ? 0.95 : 1.25;
       if (own) minZoom *= 0.58;
       if (d.capital === r.id) minZoom = 0;
-      const g = groundAt(hf, p.cx, p.cy);
+      const g = groundAt(hf, p.sx, p.sy);
       const lift = this.decor.get(r.id)?.d.labelLift ?? 4;
       if (rank > 0) {
         const chip = r.owner != null ? `<i class="m3-chip" style="background:${this.colorOf(r.owner)}"></i>` : '';
         const star = d.capital === r.id ? '<b class="m3-star">★</b>' : '';
         const pop = r.own && ov.mode !== 'population' ? `<span class="m3-pop">${esc(compact(r.own.population))}</span>` : '';
+        const harbour = r.city?.natural_harbour ? `<i class="m3-harbour" title="">${anchorSvg(13)}</i>` : '';
+        const plague = r.outbreak ? `<i class="m3-outbreak">${outbreakSvg(r.outbreak.severity_band, 17)}</i>` : '';
         specs.push({
-          key: 'r' + r.id, x: p.cx, y: g + lift, z: p.cy,
-          html: `${chip}${star}<span class="m3-name">${esc(r.name)}</span>${pop}`,
-          cls: 'm3-city m3-rank' + rank + (own ? ' is-own' : '') + (rem ? ' is-rem' : '') + (forced ? ' is-focus' : ''),
+          key: 'r' + r.id, x: p.sx, y: g + lift, z: p.sy,
+          html: `${plague}${chip}${star}<span class="m3-name">${esc(r.name)}</span>${pop}${harbour}`,
+          cls: 'm3-city m3-rank' + Math.min(rank, 5) + (own ? ' is-own' : '') + (rem ? ' is-rem' : '') + (forced ? ' is-focus' : ''),
           priority, minZoom, anchor: 'above', force: forced,
+        });
+        // The principal city's own name, under the settlement, once the view is close enough.
+        if (r.city && r.city.name !== r.name && ov.mode !== 'population') {
+          let need = CITY_NAME_ZOOM[Math.min(rank, 6)];
+          if (own || d.capital === r.id) need *= 0.75;
+          specs.push({
+            key: 'c' + r.id, x: p.sx, y: g, z: p.sy + settlementRadius(r.settlement) * 0.55,
+            html: `<span>${esc(r.city.name)}</span>`, cls: 'm3-cityname' + (rem ? ' is-rem' : ''),
+            priority: priority - 8, minZoom: need, anchor: 'below',
+          });
+        }
+      } else if (r.outbreak) {
+        specs.push({
+          key: 'r' + r.id, x: p.cx, y: groundAt(hf, p.cx, p.cy) + 1.5, z: p.cy,
+          html: `<span class="m3-name">${esc(r.name)}</span><i class="m3-outbreak">${outbreakSvg(r.outbreak.severity_band, 14)}</i>`,
+          cls: 'm3-wild' + (rem ? ' is-rem' : '') + (forced ? ' is-focus' : ''), priority: priority + 5, minZoom: 0, anchor: 'center', force: forced,
         });
       } else {
         specs.push({
-          key: 'r' + r.id, x: p.cx, y: g + 1.5, z: p.cy, html: `<span class="m3-name">${esc(r.name)}</span>`,
+          key: 'r' + r.id, x: p.cx, y: groundAt(hf, p.cx, p.cy) + 1.5, z: p.cy, html: `<span class="m3-name">${esc(r.name)}</span>`,
           cls: 'm3-wild' + (rem ? ' is-rem' : '') + (forced ? ' is-focus' : ''), priority, minZoom, anchor: 'center', force: forced,
+        });
+      }
+      // An unsettled natural harbour: the anchor alone, at the city site, close up.
+      if (rank === 0 && r.city?.natural_harbour && ov.mode !== 'population') {
+        specs.push({
+          key: 'h' + r.id, x: p.sx, y: groundAt(hf, p.sx, p.sy) + 1, z: p.sy, html: `<i class="m3-harbour">${anchorSvg(14)}</i>`,
+          cls: 'm3-site' + (rem ? ' is-rem' : ''), priority: priority - 10, minZoom: 1.5, anchor: 'center', free: true,
         });
       }
       // What the region holds: sector discs under the settlement (a stacked bar in the
@@ -1420,7 +1486,7 @@ export class Map3D {
         }
         if (html) {
           specs.push({
-            key: 'w' + r.id, x: p.cx, y: g, z: p.cy + (rank ? settlementRadius(r.settlement) + 2.5 : 8), html,
+            key: 'w' + r.id, x: p.sx, y: g, z: p.sy + (rank ? settlementRadius(r.settlement) + 2.5 : 8), html,
             cls: 'm3-works' + (ov.mode === 'construction' ? ' is-dev' : ''), priority: priority - 6, minZoom: Math.max(minZoom, 0.34), anchor: 'below', force: forced,
           });
         }
@@ -1441,9 +1507,12 @@ export class Map3D {
         const parts: string[] = [];
         const add = (k: keyof typeof YIELD_SVG, v: number) => { if (v > 0) parts.push(`<span class="m3-y">${YIELD_SVG[k]}${esc(compact(v))}</span>`); };
         add('arable', sv.arable); add('pasture', sv.pasture); add('fishery', sv.fishery); add('forest', sv.forest); add('hydro', sv.hydro);
+        // Site bonuses and spice land, as the same tokens the flat atlas and the legend use.
+        for (const b of sv.bonuses ?? []) parts.push(`<span class="m3-y">${bonusSvg(b.kind, 14)}</span>`);
+        if ((sv.spice_land ?? 0) > 0) parts.push(`<span class="m3-y">${bonusSvg('spice', 14)}</span>`);
         if (parts.length) {
           specs.push({
-            key: 'y' + r.id, x: p.cx, y: g, z: p.cy + (rank ? settlementRadius(r.settlement) + 3 : 9), html: parts.join(''),
+            key: 'y' + r.id, x: p.sx, y: g, z: p.sy + (rank ? settlementRadius(r.settlement) + 3 : 9), html: parts.join(''),
             cls: 'm3-yield' + (sv.detailed ? '' : ' is-rough'), priority: 12 + (own ? 4 : 0), minZoom: 0.9, anchor: 'below',
           });
         }
@@ -1533,8 +1602,12 @@ export class Map3D {
     // In the far overview trees, deposit badges and carts are specks: they are left out, and the
     // sector discs under each name say what a region holds.
     const overview = this.unitsPerPx(this.cur.dist) > 0.95;
+    // In the overview the harbour anchors in the name plates are left out (CSS keys on this).
+    if (overview !== this.labelFar) { this.labelFar = overview; this.labelRoot.classList.toggle('is-far', overview); }
     this.props.group.visible = mode !== 'construction' && !overview;
-    this.badgeGroup.visible = mode === 'resources' || !overview;
+    // Deposit badges belong to the resources view; elsewhere they appear only close up, so a
+    // crowded late world does not drown its settlements in them.
+    this.badgeGroup.visible = mode === 'resources' || this.unitsPerPx(this.cur.dist) < 0.3;
     if (this.trafficMesh) this.trafficMesh.visible = !overview;
     // No drifting cloud shadows: they dappled the very washes the map is read by.
     this.groundU.uClouds.value = 0;
@@ -1543,9 +1616,9 @@ export class Map3D {
     this.inkU.uOpacity.value = lerp(0.58, 0.5, far);
     if (!this.reducedMotion) { this.updateSmoke(); this.updateTraffic(); }
     this.fitSprites();
-    this.renderer.render(this.scene, this.camera);
+    this.renderWorld();
     // Label thresholds follow the on-screen scale (pixels per world unit), not the raw distance.
-    this.labels.layout((x, y, z) => this.project(x, y, z), 1 / (0.7 * this.unitsPerPx(this.cur.dist)), this.w, this.h);
+    this.labels.layout((x, y, z) => this.project(this.nearX(x), y, z), 1 / (0.7 * this.unitsPerPx(this.cur.dist)), this.w, this.h);
     if (this.minimap) {
       const v: number[] = [];
       const b = this.box();
@@ -1558,6 +1631,79 @@ export class Map3D {
     this.lastDrawMs = performance.now() - t0;
     this.frames++;
   }
+
+  /** Horizontal offsets of the copies of the world that reach into the view (wrapped worlds). */
+  private wrapPasses(): number[] {
+    const W = this.wrapW, topo = this.topo;
+    if (!W || !topo) return [0];
+    let fx0 = Infinity, fx1 = -Infinity;
+    const w = this.w, h = this.h;
+    for (const [sx, sy] of [[0, 0], [w / 2, 0], [w, 0], [w, h / 2], [w, h], [w / 2, h], [0, h], [0, h / 2]]) {
+      const gp = this.groundPoint(sx, sy, this.camera);
+      if (!gp) { fx0 = this.cur.tx - W * 1.5; fx1 = this.cur.tx + W * 1.5; break; }
+      fx0 = Math.min(fx0, gp[0]); fx1 = Math.max(fx1, gp[0]);
+    }
+    const pad = 90;
+    const c0 = topo.bbox[0] - pad, c1 = topo.bbox[2] + pad;
+    const out: number[] = [];
+    for (let k = -2; k <= 2; k++) if (c1 + k * W >= fx0 && c0 + k * W <= fx1) out.push(k * W);
+    return out.length ? out : [0];
+  }
+
+  private opaqueList: THREE.Object3D[] = [];
+  private clearList: THREE.Object3D[] = [];
+
+  /**
+   * Draw the scene, and on a wrapped world its copies one width east or west where they reach
+   * into the view. The copies are drawn by moving the camera, not the scene, so every shader
+   * sees the same world positions; opaque things are drawn for every copy before any
+   * transparent ribbon or sprite, so a copy's ground never covers the other copy's overlays.
+   */
+  private renderWorld(): void {
+    const offs = this.wrapPasses();
+    if (offs.length === 1 && offs[0] === 0) {
+      this.renderer.render(this.scene, this.camera);
+      this.passes = 1;
+      return;
+    }
+    const opaque = this.opaqueList, clear = this.clearList;
+    opaque.length = 0; clear.length = 0;
+    this.scene.traverseVisible((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      if (!m || o === this.table) return;
+      const mat = Array.isArray(m) ? m[0] : m;
+      (mat.transparent ? clear : opaque).push(o);
+    });
+    const r = this.renderer, cam = this.camera;
+    const x0 = cam.position.x;
+    const auto = r.autoClear;
+    r.autoClear = false;
+    // Count the whole frame, not just its last pass (see `stats`).
+    r.info.reset();
+    r.info.autoReset = false;
+    r.clear();
+    const pass = (show: THREE.Object3D[], hide: THREE.Object3D[], table: boolean) => {
+      for (const o of hide) o.visible = false;
+      for (const o of show) o.visible = true;
+      offs.forEach((off, i) => {
+        this.table.visible = table && i === 0;
+        cam.position.x = x0 - off;
+        cam.updateMatrixWorld(true);
+        r.render(this.scene, cam);
+      });
+    };
+    pass(opaque, clear, true);
+    pass(clear, opaque, false);
+    for (const o of opaque) o.visible = true;
+    this.table.visible = true;
+    cam.position.x = x0;
+    cam.updateMatrixWorld(true);
+    r.autoClear = auto;
+    r.info.autoReset = true;
+    this.passes = offs.length;
+  }
+  /** Copies of the world drawn in the last frame (1 unless the view crosses the date line). */
+  passes = 1;
 
   private fitSprites(): void {
     const lens = this.overlay.mode === 'resources';

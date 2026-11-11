@@ -1409,7 +1409,21 @@ pub struct RegionView {
     /// The principal city (protocol 2.3): its name for every region the seat has
     /// seen, its size and class as of the seat's knowledge.
     #[serde(default)]
-    pub city: Option<CityView>,
+    pub city_size: Option<CityView>,
+    /// The region's principal city site and harbour (design chapter 38, section 2;
+    /// public geography like terrain). Absent where the generator named none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub city: Option<CitySiteView>,
+}
+
+/// Where a region's principal city stands (design chapter 38, section 2.1).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CitySiteView {
+    pub name: String,
+    /// Map position, in the same frame as `RegionView.center`.
+    pub at: [i32; 2],
+    /// A sheltered bay, estuary or fjord (section 2.3).
+    pub natural_harbour: bool,
 }
 
 /// An epidemic in a region (design chapter 36, section 3.2).

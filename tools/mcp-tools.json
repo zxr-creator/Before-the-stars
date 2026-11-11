@@ -1,0 +1,46 @@
+{
+  "server": { "name": "before-the-stars", "version": "0.5.0" },
+  "instructions": "You play one civilization of Before the Stars through three tools. Call get_turn, decide, then submit_turn with one batch of actions. Rounds last up to fifty years: an order is carried out once, a standing order (action kind directive) is re-checked every January inside the round, so standing orders are your main tool for what must keep happening. Other civilizations may lie in messages; only signed treaty clauses bind. The tools never disclose referee or spectator state.",
+  "tools": [
+    {
+      "name": "get_turn",
+      "description": "Read your civilization's decision packet. Does not advance time. view \"brief\" (the default) returns a text briefing (time and round length, people, goods, regions, standing orders, what can be built, knowledge, practices, projects, forces, diplomacy, objectives, last round's events), the cursor to submit with, action templates and limits. view \"full\" returns the complete observation, which can run to hundreds of kilobytes in a large civilization: name the parts you need in sections (for example [\"regions\"] or [\"catalog\", \"knowledge\"]).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "view": { "type": "string", "enum": ["brief", "full"], "default": "brief" },
+          "sections": {
+            "type": "array",
+            "maxItems": 23,
+            "items": { "type": "string", "enum": ["civ", "regions", "world", "others", "knowledge", "culture", "catalog", "projects", "programs", "armies", "foreign_armies", "diplomacy", "objectives", "briefing", "chronicle", "receipts", "units", "date", "calendar", "directives", "outcome", "status", "ready"] }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "openWorldHint": false }
+    },
+    {
+      "name": "submit_turn",
+      "description": "Submit all decisions of this decision point together and get per-action receipts and the updated packet (brief unless view is \"full\"). Use the cursor from get_turn and a unique request_id. advance \"phase\" (the default) finishes your part of this phase; \"round\" also passes the remaining diplomacy of the round; \"none\" only applies the actions, so you can read the receipts and submit corrections. Accepted actions stay applied if another fails, but any rejection prevents the advance. Standing orders: {\"kind\":\"directive\",\"op\":\"add\",\"directive\":{...}} keeps acting every January (build_target, research_agenda, auto_research, reform_agenda, settle_target); op remove/move take its id. An exact retry returns the stored result; a changed retry with the same request_id fails.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cursor": { "type": "string" },
+          "request_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,80}$" },
+          "actions": { "type": "array", "maxItems": 32, "items": { "type": "object", "properties": { "kind": { "type": "string" } }, "required": ["kind"], "additionalProperties": true } },
+          "advance": { "type": "string", "enum": ["none", "phase", "round"], "default": "phase" },
+          "view": { "type": "string", "enum": ["brief", "full"], "default": "brief" }
+        },
+        "required": ["cursor", "request_id", "actions"],
+        "additionalProperties": false
+      },
+      "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false }
+    },
+    {
+      "name": "get_building_tree",
+      "description": "Read the public building tree: every building, its upgrade line and stages, costs, posts and land, with technology requirements shown only by era and field. The same for every seat; the turn packet names its hash (building_tree_hash) and carries the tree itself only when it changed.",
+      "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false },
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "openWorldHint": false }
+    }
+  ]
+}

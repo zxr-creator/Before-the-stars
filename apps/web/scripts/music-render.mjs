@@ -51,11 +51,11 @@ const bundle = await build({
   globalName: 'BTSRender',
   target: 'es2020',
   plugins: [{
-    // the recorded-track manifest uses Vite's import.meta.glob; there are none to render
+    // the recorded-track catalogue uses Vite's import.meta.glob; recordings are not rendered
     name: 'no-tracks',
     setup(b) {
       b.onLoad({ filter: /engine[\\/]tracks\.ts$/ }, () => ({
-        contents: 'export const RECORDED_TRACKS = []; export function pickRecording() { return null; }',
+        contents: 'export const RECORDED_TRACKS = []; export function fitting() { return []; }',
         loader: 'ts',
       }));
     },

@@ -177,7 +177,9 @@ export const TAG = {
 export const UNIT = {
   'Subsistence warbands': '部落战团',
   'Urban-craft levies': '城邦征召军',
+  'Bronze and iron levies': '青铜铁器征召军',
   'Powder and drill': '火器操典军',
+  'Mechanized formations': '机械化兵团',
   'Industrial formations': '工业化兵团',
   'Networked forces': '网络化部队',
   'Autonomous systems': '自主系统',

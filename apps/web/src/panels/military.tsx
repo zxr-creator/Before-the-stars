@@ -10,6 +10,15 @@ import {
   Select, Why, cx, toneOfBp,
 } from '../ui';
 import { act, cancelPick, civColor, civName, consumeIntent, startPick, useApp } from '../store';
+import { GEN_ERA, genCode } from '../economy/labels';
+import { eraText } from '../economy/Productivity';
+
+/** "G4 · Mechanized formations": a formation type by its equipment generation (ruleset 3.0), else its tier. */
+function tierName(ut: UnitTier | undefined, tier: number): string {
+  if (!ut) return t('Tier {n}', { n: tier });
+  if (ut.generation === undefined) return t('Tier {n} · {name}', { n: ut.tier, name: tc(ut.name) });
+  return t('{gen} · {name}', { gen: genCode(ut.generation), name: tc(ut.name) });
+}
 
 /** Three role marks that differ by shape, not only colour. */
 export function RoleMark({ role, size = 14 }: { role: Role; size?: number }) {
@@ -72,25 +81,40 @@ export function MilitaryPanel() {
         )}
       </Section>
 
-      <Section title={t('Formation types')} aside={<small class="muted">{t('current standard: tier {n}', { n: obs.civ.military_tier })}</small>}>
-        <ul class="tier-list">{tiers.map((x) => <li><TierCard t={x} /></li>)}</ul>
+      <Section title={t('Formation types')} aside={<small class="muted">{t('current standard: {name}', { name: tierName(tiers.find((x) => x.tier === obs.civ.military_tier), obs.civ.military_tier) })}</small>}>
+        {tiers.some((x) => x.generation !== undefined) ? (
+          <p class="muted small mil-gen-lede">{t('Each formation type carries one equipment generation, G0 to G7, from warbands to orbital-supported forces. Equipment is per thousand soldiers; maneuver formations of some generations also need horses, and some generations accept substitute equipment when the usual is short.')}</p>
+        ) : null}
+        <ul class="tier-list">{tiers.map((x) => <li><TierCard t={x} current={x.tier === obs.civ.military_tier} /></li>)}</ul>
       </Section>
     </div>
   );
 }
 
-function TierCard({ t: ut }: { t: UnitTier }) {
+function TierCard({ t: ut, current }: { t: UnitTier; current?: boolean }) {
+  const gen = ut.generation;
+  const extra = ut.maneuver_extra ?? [];
+  const alt = ut.alternative ?? [];
   return (
-    <div class={cx('card tier', !ut.available && 'is-locked')} data-testid="unit-tier">
+    <div class={cx('card tier', !ut.available && 'is-locked', current && 'is-current')} data-testid="unit-tier" data-generation={gen}>
       <div class="row-between">
-        <b class="detail-title">{!ut.available ? <Icon name="lock" size={12} title={t('Requirements not met')} /> : null} {t('Tier {n} · {name}', { n: ut.tier, name: tc(ut.name) })}</b>
-        {ut.available ? <Badge tone="ok" icon="check">{t('Available')}</Badge> : <Badge tone="muted" icon="lock">{t('Not yet')}</Badge>}
+        <b class="detail-title">
+          {gen !== undefined ? <span class="mil-gen" title={t('Equipment generation {gen}', { gen: genCode(gen) })}>{genCode(gen)}</span> : null}
+          {!ut.available ? <Icon name="lock" size={12} title={t('Requirements not met')} /> : null} {gen !== undefined ? tc(ut.name) : t('Tier {n} · {name}', { n: ut.tier, name: tc(ut.name) })}
+        </b>
+        <span class="row">
+          {current ? <Badge tone="gold" icon="star">{t('Current standard')}</Badge> : null}
+          {ut.available ? <Badge tone="ok" icon="check">{t('Available')}</Badge> : <Badge tone="muted" icon="lock">{t('Not yet')}</Badge>}
+        </span>
       </div>
+      {gen !== undefined ? <p class="mil-gen-era">{t('Generation {gen} · {era}', { gen: genCode(gen), era: GEN_ERA[gen] ? eraText(GEN_ERA[gen]) : '' })}</p> : null}
       <ul class="role-names">
         {ut.role_names.map(([role, name]) => <li title={t(ROLE_HINT[role])}><RoleMark role={role} /> <span class="kicker">{t(ROLE_LABEL[role])}</span> {tc(name)}</li>)}
       </ul>
       <dl class="kvs">
         <div class="kv"><dt>{t('Equipment')}</dt><dd><GoodsList items={ut.equipment} per={t('per thousand soldiers')} empty={t('none')} /></dd></div>
+        {extra.length ? <div class="kv" data-testid="tier-maneuver-extra"><dt title={t('What a maneuver formation of this generation needs besides the equipment')}><RoleMark role="maneuver" size={11} /> {t('Maneuver also')}</dt><dd><GoodsList items={extra} per={t('per thousand soldiers')} /></dd></div> : null}
+        {alt.length ? <div class="kv" data-testid="tier-alternative"><dt title={t('Equipment that may be issued instead when the usual is short')}>{t('Substitute')}</dt><dd><GoodsList items={alt} per={t('per thousand soldiers')} /> <small class="muted">{t('issued instead when the usual equipment is short')}</small></dd></div> : null}
         <div class="kv"><dt>{t('Upkeep')}</dt><dd><GoodsList items={ut.upkeep} per={t('per thousand soldiers each month')} empty={t('none')} /></dd></div>
         <div class="kv"><dt>{t('Training')}</dt><dd>{fmtMonths(ut.training_months)}</dd></div>
       </dl>
@@ -127,7 +151,7 @@ function RecruitForm({ obs, presetRegion, onDone }: { obs: Observation; presetRe
       <b class="detail-title">{t('Raise a formation')}</b>
       <div class="form-row">
         <Field label={t('Region')}><Select value={region} options={regions.map((r) => ({ value: r.id, label: t('{name} ({n} working age)', { name: r.name, n: peopleNum(r.own!.working_age) }) }))} onChange={(v) => setRegion(v)} label={t('Recruiting region')} testid="recruit-region" /></Field>
-        <Field label={t('Type')}><Select value={tier} options={obs.catalog.unit_tiers.map((x) => ({ value: x.tier, label: t('Tier {n} · {name}', { n: x.tier, name: tc(x.name) }), disabled: !x.available }))} onChange={(v) => setTier(v)} label={t('Formation type')} /></Field>
+        <Field label={t('Type')}><Select value={tier} options={obs.catalog.unit_tiers.map((x) => ({ value: x.tier, label: tierName(x, x.tier), disabled: !x.available }))} onChange={(v) => setTier(v)} label={t('Formation type')} /></Field>
       </div>
       <div class="field">
         <span class="field-label">{t('Role')}</span>
@@ -145,7 +169,7 @@ function RecruitForm({ obs, presetRegion, onDone }: { obs: Observation; presetRe
       </Field>
       {ut ? <p class="total-line">{tx('Equipment: {equipment} · upkeep {upkeep} · {months} training', {
         // catalog equipment and upkeep are per thousand soldiers
-        equipment: <GoodsList items={ut.equipment.map((g) => ({ good: g.good, amount: Math.round((g.amount * soldiers) / 1000) }))} empty={t('none')} />,
+        equipment: <GoodsList items={[...ut.equipment, ...(role === 'maneuver' ? ut.maneuver_extra ?? [] : [])].map((g) => ({ good: g.good, amount: Math.round((g.amount * soldiers) / 1000) }))} empty={t('none')} />,
         upkeep: <GoodsList items={ut.upkeep.map((g) => ({ good: g.good, amount: Math.round((g.amount * soldiers) / 1000) }))} per={t('each month')} empty={t('none')} />,
         months: fmtMonths(ut.training_months),
       })}</p> : null}
@@ -180,11 +204,12 @@ function ArmyCard({ obs, a }: { obs: Observation; a: ArmyView }) {
     <div class={cx('card army', a.in_battle && 'is-battle')} data-testid="army-card">
       <div class="project-top">
         <div>
-          <span class="kicker">{tier ? t('Tier {n} · {name}', { n: a.tier, name: tc(tier.name) }) : t('Tier {n}', { n: a.tier })} · <RegionLink id={a.region} /></span>
+          <span class="kicker">{tierName(tier, a.tier)} · <RegionLink id={a.region} /></span>
           <b class="project-title">{tc(a.name)}</b>
         </div>
         {a.in_battle ? <Badge tone="bad" icon="warn">{t('In battle')}</Badge> : a.training_months_left > 0 ? <Badge tone="gold" icon="clock">{t('Training · {months} left', { months: fmtMonths(a.training_months_left) })}</Badge> : null}
       </div>
+      {a.variant ? <p class="muted small army-variant" data-testid="army-variant"><Icon name="flag" size={11} /> {t('Equipped as: {name}', { name: tc(a.variant) })}</p> : null}
       <ul class="army-roles">
         {a.soldiers.map(([role, n]) => (
           <li class={n === 0 ? 'is-zero' : undefined}><RoleMark role={role} /> <b>{peopleNum(n)}</b> <span>{roleName(role)}</span></li>

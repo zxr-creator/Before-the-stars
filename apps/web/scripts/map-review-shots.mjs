@@ -14,6 +14,7 @@
 //   at=capital|city|industry|farm|coast|<region id>   (resolved from the fixture file)
 //   dist=<3D camera distance>  zoom=<flat zoom factor>  hover=<region id>|at  sel=at
 //   fit=1  (3D: frame the whole known world; the tier otherwise opens on the capital)
+//   drag=<dx>  (after positioning, drag the map dx pixels sideways: e.g. across the date line)
 // and the harness's build=1, which queues a few building projects so construction shows.
 import { chromium } from 'playwright';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -36,12 +37,13 @@ const levels = (r, pred) => (r.own?.facilities ?? []).filter(pred).reduce((n, f)
 function resolveAt(file, at) {
   if (!at || !file) return null;
   const o = loadObs(file);
-  const cat = new Map(o.catalog.facilities.map((f) => [f.kind, f.category]));
+  // Spectator fixtures (?spec=1) carry no catalog and no civilisation of their own.
+  const cat = new Map((o.catalog?.facilities ?? []).map((f) => [f.kind, f.category]));
   const own = o.regions.filter((r) => r.own);
   const ind = (r) => levels(r, (f) => ['Industry', 'Power'].includes(cat.get(f.kind)));
   const food = (r) => levels(r, (f) => cat.get(f.kind) === 'Food');
   let r = null;
-  if (at === 'capital') r = o.regions.find((x) => x.id === o.civ.capital);
+  if (at === 'capital') r = o.regions.find((x) => x.id === o.civ?.capital);
   else if (at === 'city') r = [...own].sort((a, b) => b.own.population - a.own.population)[0];
   else if (at === 'industry') r = [...own].sort((a, b) => ind(b) - ind(a))[0];
   else if (at === 'farm') r = [...own].sort((a, b) => (food(b) - ind(b) * 3) - (food(a) - ind(a) * 3))[0];
@@ -164,6 +166,20 @@ for (const spec of specs) {
       // Park the pointer on the zoom buttons so no region shows a hover tooltip.
       await page.hover('[data-testid="map-zoom-in"]');
     }
+  }
+  if (p.get('drag')) {
+    const dx = Number(p.get('drag'));
+    const steps = Math.max(1, Math.ceil(Math.abs(dx) / 300));
+    for (let i = 0; i < steps; i++) {
+      const sx = dx > 0 ? w * 0.25 : w * 0.75;
+      await page.mouse.move(sx, h * 0.45);
+      await page.mouse.down();
+      await page.mouse.move(sx + dx / steps / 2, h * 0.45, { steps: 4 });
+      await page.mouse.move(sx + dx / steps, h * 0.45, { steps: 4 });
+      await page.mouse.up();
+      await page.waitForTimeout(tier === '3d' ? 300 : 60);
+    }
+    await page.hover('[data-testid="map-zoom-in"]');
   }
   await page.waitForTimeout(tier === '3d' ? 1800 : 500);
   if (p.get('hover')) {

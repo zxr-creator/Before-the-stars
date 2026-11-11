@@ -1,12 +1,16 @@
 // Standalone harness for the map (3D and flat tiers): /dev/map.html
 // Query: ?src=fixture|live|file&file=w48-r200&seed=11&n=48&mode=terrain&zoom=1.6&sel=ID&pick=1&insets=1&focus=ID&bare=1
-//        &tier=3d|flat&lang=zh-Hans&cam=x,z,dist[,headingDeg]&q=high|low|auto
-// `src=file` loads a real observation saved by scripts/map3d-worlds.mjs from dev/obs/<file>.json.
+//        &tier=3d|flat&lang=zh-Hans&cam=x,z,dist[,headingDeg]&q=high|low|auto&pan=dx,dy (pixels, after focus)
+// `src=file` loads a real observation saved by scripts/map3d-worlds.mjs from dev/obs/<file>.json;
+// add `spec=1` when the file is a spectator view (scripts/map-fixtures-r3.mjs): it is reshaped
+// into the observer's world view exactly as the observer console does.
 import { render } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { Observation } from '../src/protocol';
 import { MapView, type MapMode, type MapPick } from '../src/map/MapView';
 import { makeFixture } from './map-fixture';
+import { spectatorObservation } from '../src/observer/synthetic';
+import type { SpectatorView } from '../src/protocol';
 
 const q = new URLSearchParams(location.search);
 const num = (k: string, d: number) => (q.has(k) ? Number(q.get(k)) : d);
@@ -32,7 +36,7 @@ function Dev() {
     // Read-only: the harness never posts to the referee.
     fetch(src === 'file' ? `./obs/${q.get('file') ?? 'w48-r200'}.json` : `/api/observation?seat=${num('seat', 0)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
-      .then((o: Observation) => setLive(o))
+      .then((o: Observation | SpectatorView) => setLive(q.get('spec') === '1' ? spectatorObservation(o as SpectatorView, 'Observer') : (o as Observation)))
       .catch((e: Error) => setErr(String(e.message)));
   }, [src]);
 
@@ -60,6 +64,10 @@ function Dev() {
       if (q.has('cam')) {
         const [x, z, dist, hd] = (q.get('cam') ?? '').split(',').map(Number);
         window.__map3d?.lookAt(x, z, dist, ((hd || 0) * Math.PI) / 180);
+      }
+      if (q.has('pan')) {
+        const [px, py] = (q.get('pan') ?? '').split(',').map(Number);
+        setTimeout(() => window.__atlas?.panBy?.(px || 0, py || 0), 500);
       }
       if (z > 0) {
         const btn = document.querySelector<HTMLButtonElement>(z > 1 ? '[data-testid="map-zoom-in"]' : '[data-testid="map-zoom-out"]');

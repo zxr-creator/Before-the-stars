@@ -1,0 +1,50 @@
+/* Era banner (top bar) and era screen: rendered only when the referee sends era data. */
+.era-banner { display: inline-flex; align-items: center; gap: 8px; padding: 3px 10px 3px 4px; margin: 0 6px; border-radius: 18px; cursor: pointer; position: relative;
+  border: 1px solid var(--brass-lo); background: linear-gradient(180deg, rgba(241, 218, 152, 0.12), rgba(241, 218, 152, 0.04)); color: var(--cream); }
+.era-banner:hover { border-color: var(--brass); background: rgba(241, 218, 152, 0.18); }
+.era-banner-mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--serif); color: var(--night-0); background: var(--brass-grad); box-shadow: 0 0 0 1.5px var(--brass-deep); }
+.era-banner-text { display: flex; flex-direction: column; line-height: 1.15; text-align: left; }
+.era-banner-text b { font: 600 13.5px var(--serif); font-variant-caps: small-caps; letter-spacing: 0.06em; color: var(--brass-hi); white-space: nowrap; }
+.era-banner-text small { font: 600 10px var(--sans); color: var(--cream-3); white-space: nowrap; }
+.era-banner.is-golden { border-color: var(--brass-hi); box-shadow: 0 0 14px rgba(241, 218, 152, 0.4); }
+.era-banner.is-dark { border-color: #a8432e; }
+.era-banner.is-dark small { color: #ffb4a2; }
+.era-banner.is-transition small { color: var(--warn-night); }
+.era-banner-dot { position: absolute; right: 3px; top: 3px; width: 8px; height: 8px; border-radius: 50%; background: #f1da98; box-shadow: 0 0 6px #f1da98; }
+
+.era-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 22px 28px; color: var(--ink); background: var(--grain), var(--paper-3); }
+.era-ladder ol { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 0; list-style: none; }
+.era-ladder li { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; border-radius: 14px; background: var(--paper-2); border: 1px solid var(--line); font: 600 12px var(--sans); color: var(--ink-3); }
+.era-ladder li.is-done { color: var(--ink-2); }
+.era-ladder li.is-now { background: var(--brass-grad); color: var(--night-0); border-color: var(--brass-deep); }
+.era-ladder li.is-next { border-style: dashed; border-color: var(--brass); color: var(--accent-ink); }
+.era-dot { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: rgba(43, 38, 32, 0.12); font-size: 10.5px; }
+.era-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.era-col { display: grid; gap: 12px; }
+.era-card, .era-slot { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow-sm); }
+.era-card h3 { margin: 0 0 2px; font: 600 20px var(--serif); }
+.era-card h4, .era-slot h4 { margin: 0 0 6px; font: 600 15px var(--serif); font-variant-caps: small-caps; letter-spacing: 0.05em; }
+.era-slot header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.era-parts { display: grid; gap: 4px; margin: 6px 0 0; }
+.era-parts li { display: grid; grid-template-columns: 110px 1fr 44px; gap: 8px; align-items: center; font-size: 12px; }
+.era-charters, .era-paths { display: grid; gap: 8px; margin: 8px 0 0; padding: 0; list-style: none; }
+.era-charter { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--paper-2); display: grid; gap: 3px; }
+.era-charter.is-held { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass-lo); }
+.era-charter p { margin: 0; font-size: 12px; }
+.era-charter p.neg { color: var(--bad); }
+.era-charter .btn, .era-charter .badge { justify-self: start; margin-top: 3px; }
+.era-path { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--paper-2); }
+.era-path .btn, .era-path .badge { grid-row: 1 / span 3; grid-column: 2; }
+.era-path-genre { font: 700 9.5px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.era-path.is-held { border-color: var(--brass); }
+.era-path.is-off { opacity: 0.7; }
+.era-foot { margin-top: 14px; }
+.era-close { margin-top: 6px; }
+.era-path { grid-template-rows: auto auto auto; }
+.era-path-sober { font: 500 12px var(--sans); color: var(--ink-2); }
+.era-path-detail { grid-column: 1 / -1; margin-top: 4px; display: grid; gap: 2px; }
+.era-path-detail p { margin: 0; font-size: 12px; }
+.era-drawbacks { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 12px; }
+.era-path.is-reform { border-style: dashed; border-color: var(--brass); }
+.era-events, .era-history { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 12px; }
+.era-parts li { grid-template-columns: 110px 1fr 36px; }

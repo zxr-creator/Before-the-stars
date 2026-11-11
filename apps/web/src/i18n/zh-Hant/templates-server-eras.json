@@ -1,0 +1,218 @@
+[
+ {
+  "en": "Tradition reform: to {a} ({b})",
+  "zh": "傳統改革：轉向{a}（{b}）"
+ },
+ {
+  "en": "the crossing into the {a} era must end first ({b})",
+  "zh": "必須先結束向{a}的跨越（{b}）"
+ },
+ {
+  "en": "the knowledge of the {a} era is not yet understood",
+  "zh": "{a}的知識尚未掌握"
+ },
+ {
+  "en": "the built proof of the {a} era is missing: {b}",
+  "zh": "缺少{a}的實證工程：{b}"
+ },
+ {
+  "en": "An undiscovered technology of the {a} era ({b})",
+  "zh": "一項{a}的未發現技術（{b}）"
+ },
+ {
+  "en": "The crossing into the {a} era has ended",
+  "zh": "向{a}的跨越已經結束"
+ },
+ {
+  "en": "The {name} era begins. Choose one of its three charters.",
+  "zh": "{name}開啟。請從三項憲章中選擇一項。"
+ },
+ {
+  "en": "The {name} era begins",
+  "zh": "{name}開啟"
+ },
+ {
+  "en": "The government declared the {name} era. For {#y} years the old order will resist: stability -{#s} a month while {#p}% of posts are in works two or more eras behind. How the crossing is managed decides whether a golden or a dark age follows.",
+  "zh": "政府宣佈進入{name}。此後 {y} 年裡舊秩序會加以抵抗：只要還有 {p}% 的崗位處在落後兩個或更多時代的工程中，穩定度每月 −{s}。跨越期如何處置，將決定隨後是黃金時代還是黑暗時代。"
+ },
+ {
+  "en": "Declared in {when}",
+  "zh": "宣佈於{when}"
+ },
+ {
+  "en": "The {civ_name} enter the {name} era",
+  "zh": "{civ_name}進入{name}"
+ },
+ {
+  "en": "Travellers report that the {civ_name} now build and govern as a people of the {name} era.",
+  "zh": "旅人們傳言，{civ_name}如今已按{name}的方式營建與治理。"
+ },
+ {
+  "en": "The {a} tradition slot is open.",
+  "zh": "{a}傳統欄位已開放。"
+ },
+ {
+  "en": "A {a} tradition may be chosen",
+  "zh": "可以選擇{a}傳統"
+ },
+ {
+  "en": "{a} is a charter of the {b} era; this civilization is in the {c} era",
+  "zh": "{a}是{b}的憲章；本文明處於{c}"
+ },
+ {
+  "en": "{a} is already held",
+  "zh": "已持有{a}"
+ },
+ {
+  "en": "Charter granted: {a}",
+  "zh": "憲章已授予：{a}"
+ },
+ {
+  "en": "the charter was changed recently; another change is allowed from {a}",
+  "zh": "憲章不久前剛更換過；{a}起方可再次更換"
+ },
+ {
+  "en": "Charter changed: {a} replaces {b}",
+  "zh": "憲章已更換：{a}取代{b}"
+ },
+ {
+  "en": "{a} ({b}) belongs to the {c} slot",
+  "zh": "{a}（{b}）屬於{c}欄位"
+ },
+ {
+  "en": "the {a} slot opens with the {b} era",
+  "zh": "{a}欄位隨{b}開放"
+ },
+ {
+  "en": "The government committed the {a} slot to {b} ({c}). {d}",
+  "zh": "政府將{a}欄位交給{b}（{c}）。{d}"
+ },
+ {
+  "en": "Committed in {when}",
+  "zh": "確立於{when}"
+ },
+ {
+  "en": "{a} ({b}) held. Its exclusive works can now be built; mastery grows while its signature works run.",
+  "zh": "已持有{a}（{b}）。現在可以建造其專屬工程；其標誌性工程運轉期間，精通度會增長。"
+ },
+ {
+  "en": "this slot was switched recently; another switch is allowed from {a}",
+  "zh": "此欄位不久前剛轉向過；{a}起方可再次轉向"
+ },
+ {
+  "en": "Tradition reform begun: at least {#y} years, {w} worker-months and 500 lots of media; stability -5 while it runs. On completion {a} is held with a quarter of the present mastery.",
+  "zh": "傳統改革已啟動：至少 {y} 年、{w} 個勞動月和 500 批媒體；進行期間穩定度 −5。完成後將持有{a}，並保留現有精通度的四分之一。"
+ },
+ {
+  "en": "The tradition reform is complete: the {a} slot now holds {b} ({c}). The works of the old path keep running without their bonuses and cannot be extended.",
+  "zh": "傳統改革完成：{a}欄位現在持有{b}（{c}）。舊路線的工程會繼續運轉，但不再享有加成，也不能擴建。"
+ },
+ {
+  "en": "The {a} age has ended",
+  "zh": "{a}已經結束"
+ },
+ {
+  "en": "The {a} era may be entered",
+  "zh": "可以進入{a}"
+ },
+ {
+  "en": "{when}: a treaty repudiated",
+  "zh": "{when}：背棄了一項條約"
+ },
+ {
+  "en": "{when}: epidemic or famine killed more than 2% of the people",
+  "zh": "{when}：疫病或饑荒奪走了超過 2% 的人口"
+ },
+ {
+  "en": "Food {a} · order {b} · modernization {c} · integrity {d} = {#score}",
+  "zh": "糧食 {a} · 秩序 {b} · 現代化 {c} · 廉潔 {d} = {score}"
+ },
+ {
+  "en": "A golden age of the {name} era begins",
+  "zh": "{name}的黃金時代開啟"
+ },
+ {
+  "en": "The crossing into the {name} era was well managed. For {#y} years stability is higher, evidence gathers faster, building goes quicker and a second charter of the era may be held.",
+  "zh": "向{name}的跨越處置得當。此後 {y} 年裡穩定度更高、證據積累更快、建造更迅速，並可持有本時代的第二項憲章。"
+ },
+ {
+  "en": "A golden age of the {name} era",
+  "zh": "{name}的黃金時代"
+ },
+ {
+  "en": "A dark age of the {name} era begins",
+  "zh": "{name}的黑暗時代開啟"
+ },
+ {
+  "en": "The crossing into the {name} era went badly. For {#y} years stability is lower and research weaker; reforms and tradition switches cost half, charters change freely and more people answer the call to arms.",
+  "zh": "向{name}的跨越處置不當。此後 {y} 年裡穩定度更低、研究更弱；改革與傳統轉向的代價減半，憲章可隨意更換，應徵入伍的人也更多。"
+ },
+ {
+  "en": "A dark age of the {name} era",
+  "zh": "{name}的黑暗時代"
+ },
+ {
+  "en": "The crossing into the {name} era is complete",
+  "zh": "向{name}的跨越已經完成"
+ },
+ {
+  "en": "A steady time follows. {detail}.",
+  "zh": "隨後是平穩的年月。{detail}。"
+ },
+ {
+  "en": "Began in {when}",
+  "zh": "始於{when}"
+ },
+ {
+  "en": "Reactor incident at {name}",
+  "zh": "{name}發生反應堆事故"
+ },
+ {
+  "en": "A reactor at {name} released radioactivity. {n} people were resettled; the region's confidence will take years to return.",
+  "zh": "{name}的一座反應堆釋放了放射性物質。{n} 人被遷走；該地區的信心要數年才能恢復。"
+ },
+ {
+  "en": "Reports tell of a reactor incident at {name}.",
+  "zh": "據報{name}發生了反應堆事故。"
+ },
+ {
+  "en": "Charter: {a}",
+  "zh": "憲章：{a}"
+ },
+ {
+  "en": "Average food access {#a}% (25 points at {#b}%, none at {#c}%)",
+  "zh": "平均糧食可得性 {a}%（達到 {b}% 得 25 分，{c}% 時為 0 分）"
+ },
+ {
+  "en": "Average stability {#a} (25 points at {#b}, none at {#c})",
+  "zh": "平均穩定度 {a}（達到 {b} 得 25 分，{c} 時為 0 分）"
+ },
+ {
+  "en": "{#a}% of filled posts in works of the {b} era or the one before (25 points at 60%, none at 20%)",
+  "zh": "{a}% 的在崗人員處於{b}或上一時代的工程中（60% 得 25 分，20% 時為 0 分）"
+ },
+ {
+  "en": "{#a} event(s): -10 each",
+  "zh": "{a} 起事件：每起 −10"
+ },
+ {
+  "en": "{#a} charter place(s) free.",
+  "zh": "還有 {a} 個憲章名額空閒。"
+ },
+ {
+  "en": "A change is allowed from {a}.",
+  "zh": "{a}起方可更換。"
+ },
+ {
+  "en": "A method of the {a} not yet discovered",
+  "zh": "一項{a}的尚未發現的技術"
+ },
+ {
+  "en": "{a} — {b}",
+  "zh": "{a}——{b}"
+ },
+ {
+  "en": "From {a} to {b}",
+  "zh": "由{a}轉為{b}"
+ }
+]

@@ -10,12 +10,17 @@
 // From then on this module watches the store and the settings and tells the engine what
 // to play: the title theme, or the era of the civilization on screen in peace or war,
 // with stings for major moments and the end of the match, and short interface sounds.
+// The music is public-domain recordings (engine/recordings.ts, catalogue in tracks/),
+// the composed score, or both in turn, as the player chooses; the same gesture also
+// unlocks a few <audio> elements for the recordings (WebKit requires it).
 // M mutes and unmutes anywhere (except while typing). A hidden tab fades out and the
 // context is suspended until the page is visible again.
 import { getState, subscribe, type AppState } from '../store';
 import { getAudioSettings, setAudioSettings, subscribeAudioSettings } from './settings';
 import { musicTarget, type MusicTarget } from './era';
 import type { MusicEngine, SfxKind, StingKind } from './engine';
+import { getNowPlaying, setNowPlaying } from './playing';
+import { mountNowPlaying } from './NowPlaying';
 
 export type AudioStatus = 'idle' | 'loading' | 'running' | 'unavailable' | 'error';
 
@@ -49,10 +54,43 @@ export function subscribeAudioStatus(l: () => void): () => void {
 
 // --- start on a gesture ---------------------------------------------------------------------
 
+/** A few samples of silence, as a WAV data URL: what the elements play to be unlocked. */
+function silentWav(): string {
+  const n = 64;
+  const b = new Uint8Array(44 + n);
+  const v = new DataView(b.buffer);
+  const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) b[o + i] = s.charCodeAt(i); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  str(36, 'data'); v.setUint32(40, n, true);
+  b.fill(128, 44);
+  let s = '';
+  b.forEach((x) => { s += String.fromCharCode(x); });
+  return 'data:audio/wav;base64,' + btoa(s);
+}
+
+/** <audio> elements played (silently) inside the gesture, so they may play recordings later. */
+function unlockedElements(count: number): HTMLAudioElement[] {
+  if (typeof Audio === 'undefined') return [];
+  const src = silentWav();
+  const out: HTMLAudioElement[] = [];
+  for (let i = 0; i < count; i++) {
+    try {
+      const el = new Audio();
+      el.src = src;
+      void el.play().then(() => { if (el.src === src) el.pause(); }).catch(() => {});
+      out.push(el);
+    } catch { /* recordings fall back to the composed score */ }
+  }
+  return out;
+}
+
 function onGesture(): void {
   const st = getAudioSettings();
   if (ctx) {
     if (ctx.state === 'suspended' && !st.muted && !document.hidden) void ctx.resume().catch(() => {});
+    engine?.gesture();
     return;
   }
   // a muted player never pays for audio; unmuting (M or the settings) is itself a gesture
@@ -69,8 +107,10 @@ function onGesture(): void {
   }
   setStatus('loading');
   const c = ctx;
+  const pool = unlockedElements(3);
   import('./engine').then((m) => {
-    engine = m.createEngine(c);
+    engine = m.createEngine(c, pool);
+    engine.onNowPlaying = (t) => setNowPlaying(t);
     setStatus('running');
     applySettings();
     engine.setHidden(document.hidden);
@@ -91,6 +131,7 @@ function applySettings(): void {
     // unmuted before any sound was made: the click that did it starts the audio
     return;
   }
+  engine.setSource(s.musicSource);
   engine.setVolumes({ master: s.master, music: s.music, effects: s.uiSounds ? s.effects : 0, muted: s.muted });
   lastTargetKey = '';
   update(false);
@@ -228,6 +269,7 @@ function isTyping(e: KeyboardEvent): boolean {
 export function installAudio(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
+  mountNowPlaying();
   if (!audioCtor()) status = 'unavailable';
   const opts = { capture: true, passive: true } as AddEventListenerOptions;
   window.addEventListener('pointerdown', onGesture, opts);
@@ -249,5 +291,9 @@ export function installAudio(): void {
     /** Tests: play this target instead of the game's (undefined restores the game's). */
     force: (t: MusicTarget | null | undefined) => { forced = t; lastTargetKey = ''; update(false); },
     sting: (k: StingKind) => engine?.sting(k),
+    /** The recording now playing (null: the composed score or silence). */
+    nowPlaying: () => getNowPlaying(),
+    /** Tests: choose the music source as the settings would. */
+    source: (v: 'recorded' | 'generated' | 'both') => setAudioSettings({ musicSource: v }),
   };
 }

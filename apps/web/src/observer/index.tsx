@@ -1,5 +1,5 @@
 // Observer console: what the client shows when no seat is human. The whole
-// world on the map, a scoreboard for the four civilizations, the world's events,
+// world on the map, a scoreboard for every civilization, the world's events,
 // what each LLM agent said it was doing, and the controls that move time.
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren, JSX } from 'preact';
@@ -9,12 +9,15 @@ import type {
 } from '../protocol';
 import { NEGOTIATION_WINDOWS } from '../protocol';
 import {
-  CATEGORY_LABEL, GOOD_SHORT, PHASE_LABEL, SETTLEMENT_LABEL, STATUS_LABEL, TERRAIN_LABEL, compact, fmtNow, fmtYear, int,
-  peopleNum, qty, researchMonths, yearOf,
+  CATEGORY_LABEL, GOOD_SHORT, PHASE_LABEL, SETTLEMENT_LABEL, STATUS_LABEL, TERRAIN_LABEL, compact, fmtNow, fmtYear, int, totalRounds,
+  goodTonnes, peopleNum, qty, researchMonths, tonnes,
 } from '../format';
 import { Icon } from '../icons';
+import { eraName, traditionLabel } from '../era';
 import { Btn, Tick, cx } from '../ui';
-import { dismissResult, loadAgentLog, openOverlay, setMenu, setScreen, useApp, viewAsSeat } from '../store';
+import { dismissResult, loadAgentLog, openOverlay, refresh, setMenu, setScreen, toast, useApp, viewAsSeat } from '../store';
+import { api } from '../api';
+import '../agents/agents.css';
 import type { AppState } from '../store';
 import { t, tc, useLocale } from '../i18n';
 import { MapView } from '../map/MapView';
@@ -22,8 +25,9 @@ import { Vignette } from '../art/vignette';
 import { actionLabel } from '../panels/briefing';
 import { MomentBanner } from '../theme/hud';
 import { BrandMark } from '../theme/brand';
+import { dateTitle } from '../topbar';
 import { Emblem } from '../theme/emblem';
-import { GoodIcon } from '../theme/goods';
+import { GOOD_GROUPS, GoodIcon } from '../theme/goods';
 import { StatePlate } from '../theme/overlay';
 import { spectatorObservation } from './synthetic';
 import { Compare } from './compare';
@@ -47,13 +51,13 @@ let lastTab: Tab = 'score';
 
 const PROVIDER_LABEL: Record<string, string> = {
   'claude-api': 'Claude (API)', claude_api: 'Claude (API)', 'claude-code': 'Claude Code', claude_code: 'Claude Code',
-  codex: 'Codex', 'openai-api': 'OpenAI-compatible', openai_api: 'OpenAI-compatible', mock: 'Mock agent',
+  codex: 'Codex', 'openai-api': 'OpenAI-compatible', openai_api: 'OpenAI-compatible', mock: 'Mock agent', 'mock-agent': 'Mock agent',
 };
 const NATIVE_LABEL: Record<string, string> = {
-  native_easy: 'Built-in AI · Easy', native_medium: 'Built-in AI · Medium', native_hard: 'Built-in AI · Hard',
+  native_easy: 'Built-in AI · Easy', native_medium: 'Built-in AI · Medium', native_hard: 'Built-in AI · Hard', native_expert: 'Built-in AI · Expert (test)',
   human: 'Human', external: 'External agent',
 };
-const NATIVE_LEVEL: Record<string, string> = { native_easy: 'Easy', native_medium: 'Medium', native_hard: 'Hard' };
+const NATIVE_LEVEL: Record<string, string> = { native_easy: 'Easy', native_medium: 'Medium', native_hard: 'Hard', native_expert: 'Expert (test)' };
 
 function providerName(agent: AgentInfo): string {
   return t(PROVIDER_LABEL[agent.provider] ?? agent.provider);
@@ -131,7 +135,7 @@ export function ObserverConsole() {
   }
 
   const sideW = sideOpen ? (vw < 1360 ? SIDE_W_NARROW : SIDE_W) : 0;
-  const rounds = Math.round(sp.horizon / sp.months_per_round);
+  const rounds = totalRounds(sp);
   const finished = !!summary.finished || !!sp.outcome || sp.phase === 'finished';
   const seatOf = (seat: SeatId) => seats.find((x) => x.seat === seat);
   const show = (region: RegionId | null) => {
@@ -154,7 +158,7 @@ export function ObserverConsole() {
             <span class="observing-badge" data-testid="observer-badge"><Icon name="eye" size={12} /> {t('Observer')}</span>
           </div>
         </div>
-        <div class="topbar-date" title={t('Month {m} of {h}', { m: sp.month, h: sp.horizon })}>
+        <div class="topbar-date" title={dateTitle(sp)} data-round={sp.round}>
           <span class="date-year" data-testid="year">{fmtNow(sp)}</span>
           <span class="date-round" data-testid="observer-round" data-round={sp.round}>{t('Round {r} of {n}', { r: int(sp.round), n: int(rounds) })}</span>
         </div>
@@ -233,12 +237,11 @@ interface Row {
   cell: (c: SpectatorCiv) => ComponentChildren;
 }
 
-const SHOWN_GOODS: Good[] = ['materials', 'tools', 'metal', 'components', 'electronics', 'fuel'];
 
 function Milestone({ icon, label, month }: { icon: string; label: string; month: number | null }) {
   return (
     <span class={cx('ms', month !== null && 'is-on')} title={month !== null ? `${label} · ${fmtYear(month)}` : t('{what}: not yet', { what: label })}>
-      <Icon name={icon} size={12} />{month !== null ? <small>{yearOf(month)}</small> : null}
+      <Icon name={icon} size={12} />{month !== null ? <small>{fmtYear(month)}</small> : null}
     </span>
   );
 }
@@ -256,15 +259,23 @@ function Streak({ value, max, title }: { value: number; max: number; title: stri
 function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
   sp: SpectatorView; seats: SeatSummary[]; finished: boolean; thinkingOf: (a: AgentInfo) => number; onAgents: () => void;
 }) {
-  const civs = sp.civs;
+  // with more than six civilizations the columns compact and any row can order them (design chapter 40, section 2.7)
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const many = sp.civs.length > 6;
   const seatOf = (seat: SeatId) => seats.find((x) => x.seat === seat);
-  const civOf = (seat: SeatId) => civs.find((c) => c.seat === seat);
+  const civs0 = sp.civs;
+  const civOf = (seat: SeatId) => civs0.find((c) => c.seat === seat);
   const rows: Row[] = [
     { key: 'population', icon: 'people', label: t('Population'), rank: (c) => c.population, cell: (c) => <span title={t('{n} people', { n: int(c.population) })}><Tick value={c.population} format={(n) => peopleNum(n)} /></span> },
     { key: 'regions', icon: 'pin', label: t('Regions'), rank: (c) => c.regions, cell: (c) => <Tick value={c.regions} format={(n) => String(Math.round(n))} /> },
     {
       key: 'techs', icon: 'knowledge', label: t('Technologies'), hint: t('Understood, and how many more are discovered but not yet understood'),
       rank: (c) => c.understood, cell: (c) => <><Tick value={c.understood} format={(n) => String(Math.round(n))} /><small> / {c.discovered}</small></>,
+    },
+    {
+      key: 'era', icon: 'hourglass', label: t('Era'), hint: t('The era each civilization has entered, and the traditions it holds'),
+      rank: (c) => c.era ?? 0,
+      cell: (c) => <span data-testid={`score-era-${c.seat}`}>{c.era === undefined ? '—' : eraName(c.era)}{c.traditions?.length ? <small> · {c.traditions.map((k) => traditionLabel(k)).join(', ')}</small> : null}</span>,
     },
     { key: 'practices', icon: 'culture', label: t('Practices'), rank: (c) => c.practices, cell: (c) => <Tick value={c.practices} format={(n) => String(Math.round(n))} /> },
     {
@@ -281,16 +292,29 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
       cell: (c) => <span class={c.food_months_milli < 2000 ? 'neg' : ''}><Tick value={c.food_months_milli / 1000} format={(n) => (n >= 100 ? '99+' : n.toFixed(1))} /><small> {t('mo')}</small></span>,
     },
     {
-      key: 'goods', icon: 'box', label: t('Key goods'),
+      key: 'goods', icon: 'box', label: t('Goods by group'), hint: t('Goods in store, added up by mass within each group; the four largest groups are shown'),
       cell: (c) => {
-        const have = SHOWN_GOODS.map((g) => c.goods.find((x) => x.good === g)).filter((x): x is { good: Good; amount: number } => !!x && x.amount > 0);
-        if (!have.length) return <span class="muted">—</span>;
-        return <span class="sb-goodlist">{have.map((g) => <span title={t(GOOD_SHORT[g.good])}><GoodIcon good={g.good} size={13} />{qty(g.good, g.amount)}</span>)}</span>;
+        const groups = GOOD_GROUPS.map((g) => {
+          const lines = c.goods.filter((x) => x.amount > 0 && g.goods.includes(x.good));
+          const mass = lines.reduce((a, x) => a + goodTonnes(x.good, x.amount), 0);
+          const top = lines.sort((a, b) => goodTonnes(b.good, b.amount) - goodTonnes(a.good, a.amount))[0];
+          return { g, lines, mass, top };
+        }).filter((x) => x.mass > 0).sort((a, b) => b.mass - a.mass).slice(0, 4);
+        if (!groups.length) return <span class="muted">—</span>;
+        return (
+          <span class="sb-goodlist">
+            {groups.map(({ g, lines, mass, top }) => (
+              <span title={`${t(g.label)}: ${lines.map((x) => `${t(GOOD_SHORT[x.good])} ${qty(x.good, x.amount)}`).join(', ')}`}>
+                <GoodIcon good={top!.good} size={13} />{tonnes(mass)}
+              </span>
+            ))}
+          </span>
+        );
       },
     },
     {
       key: 'research', icon: 'flask', label: t('Research capacity'), hint: t('Researcher-months a month that staffed research posts can put into investigations'),
-      rank: (c) => c.research_capacity, cell: (c) => <Tick value={c.research_capacity} format={(n) => researchMonths(n)} />,
+      rank: (c) => c.research_capacity, cell: (c) => <span title={researchMonths(c.research_capacity)}><Tick value={c.research_capacity} format={(n) => compact(Math.round(n))} /></span>,
     },
     {
       key: 'milestones', icon: 'star', label: t('Milestones'), hint: t('Scientific method, planetary reach, interstellar reach'),
@@ -346,6 +370,8 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
     },
   ];
 
+  const sortRow = sortBy ? rows.find((r) => r.key === sortBy && r.rank) : undefined;
+  const civs = sortRow ? [...sp.civs].sort((a, b) => sortRow.rank!(b) - sortRow.rank!(a) || a.seat - b.seat) : sp.civs;
   const active = civs.filter((c) => c.status === 'active');
   const leadersOf = (row: Row): Set<SeatId> => {
     if (!row.rank) return new Set();
@@ -358,7 +384,7 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
   const withErrors = civs.map((c) => ({ c, agent: seatOf(c.seat)?.agent ?? null })).filter((x) => x.agent?.last_error);
 
   return (
-    <div class="scoreboard" data-testid="scoreboard">
+    <div class={cx('scoreboard', many && 'is-many')} data-testid="scoreboard" data-seats={civs.length} style={{ '--n': civs.length } as JSX.CSSProperties}>
       {withErrors.length ? (
         <div class="sb-errors" role="alert" data-testid="scoreboard-errors">
           {withErrors.map(({ c, agent }) => (
@@ -382,7 +408,7 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
               return (
                 <th class={cx('sb-civ', c.status !== 'active' && 'is-out')} style={{ '--civ': c.color } as JSX.CSSProperties} data-testid={`score-civ-${c.seat}`}>
                   <span class="sb-civ-band" aria-hidden="true" />
-                  <Emblem seat={c.seat} color={c.color} name={c.name} size={38} />
+                  <Emblem seat={c.seat} color={c.color} name={c.name} size={many ? 26 : 38} />
                   <b class="sb-civ-name">{tc(c.name)}</b>
                   <span class="sb-civ-ctl" title={controllerLine(c, seat)}>{agent ? <Icon name="agent" size={11} /> : null}{controllerShort(c, seat)}</span>
                   <span class="sb-civ-model" title={agent ? `${agent.model || t('default model')} · ${everyLabel(agent.consult_every)}` : undefined}>
@@ -390,7 +416,7 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
                   </span>
                   <span class="sb-civ-model">{agent ? (agent.consult_every > 1 ? t('every {n} rounds', { n: agent.consult_every }) : t('every round')) : NATIVE_LEVEL[c.controller] ? t('rule-based policy') : '\u00a0'}</span>
                   <span class="sb-civ-chip">{agent ? <AgentChip agent={agent} seconds={thinkingOf(agent)} short /> : null}</span>
-                  <Btn small nav icon="eye" testid={`view-as-${c.seat}`} title={t('View as {name}', { name: tc(c.name) })} onClick={() => void viewAsSeat(c.seat)}>{t('View as')}</Btn>
+                  <Btn small nav icon="eye" testid={`view-as-${c.seat}`} title={t('View as {name}', { name: tc(c.name) })} onClick={() => void viewAsSeat(c.seat)}>{many ? null : t('View as')}</Btn>
                 </th>
               );
             })}
@@ -401,7 +427,15 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
             const lead = leadersOf(row);
             return (
               <tr class={'sb-row sbr-' + row.key}>
-                <th scope="row" title={row.hint}><Icon name={row.icon} size={13} /><span>{row.label}</span></th>
+                <th scope="row" title={row.hint} aria-sort={sortBy === row.key ? 'descending' : undefined}>
+                  {row.rank ? (
+                    <button type="button" class={cx('sb-sort', sortBy === row.key && 'is-on')} data-testid={`score-sort-${row.key}`}
+                      title={sortBy === row.key ? t('Back to seat order') : t('Order the civilizations by {what}', { what: row.label })}
+                      onClick={() => setSortBy(sortBy === row.key ? null : row.key)}>
+                      <Icon name={row.icon} size={13} /><span>{row.label}</span>{sortBy === row.key ? <Icon name="down" size={10} /> : null}
+                    </button>
+                  ) : <><Icon name={row.icon} size={13} /><span>{row.label}</span></>}
+                </th>
                 {civs.map((c) => (
                   <td class={cx(lead.has(c.seat) && 'is-lead', c.status !== 'active' && 'is-out')}>{row.cell(c)}</td>
                 ))}
@@ -445,7 +479,7 @@ function Events({ sp, onShow }: { sp: SpectatorView; onShow: (region: RegionId |
   };
 
   if (!sp.events.length) {
-    return <div class="obs-empty"><StatePlate icon="chronicle" title={t('Nothing recorded yet')}>{t('Step or play the match: what the four civilizations live through is recorded here, year by year.')}</StatePlate></div>;
+    return <div class="obs-empty"><StatePlate icon="chronicle" title={t('Nothing recorded yet')}>{t('Step or play the match: what the civilizations live through is recorded here, round by round.')}</StatePlate></div>;
   }
   return (
     <div class="events" data-testid="events">
@@ -535,9 +569,31 @@ function LogEntry({ e }: { e: AgentLogEntry }) {
       </div>
       {e.note ? <p class="log-note">“{e.note}”</p> : <p class="log-note is-none">{t('No note this time.')}</p>}
       {e.actions.length ? <p class="log-actions">{e.actions.map((a) => <span class="log-action">{actionLabel(a)}</span>)}</p> : null}
+      {e.tool_calls || e.cost_usd || e.tokens || (e.attempts ?? 1) > 1 ? (
+        <p class="log-meta">
+          {[
+            e.tool_calls ? (e.tool_calls === 1 ? t('1 game tool call') : t('{n} game tool calls', { n: e.tool_calls })) : null,
+            (e.attempts ?? 1) > 1 ? t('{n} attempts', { n: e.attempts ?? 1 }) : null,
+            e.cost_usd ? t('${n}', { n: e.cost_usd.toFixed(3) }) : null,
+            e.tokens ? t('{n} tokens', { n: e.tokens.toLocaleString() }) : null,
+          ].filter(Boolean).join(' · ')}
+        </p>
+      ) : null}
+      {e.steward_took_over ? <p class="log-steward">{t('The steward played this round')}</p> : null}
       {e.error ? <p class="log-error"><Icon name="warn" size={12} /> <span>{e.error}</span></p> : null}
+      {e.hint ? <p class="log-hint"><Icon name="info" size={11} /> <span>{tc(e.hint)}</span></p> : null}
     </li>
   );
+}
+
+/** Resume a stopped agent seat, or stop one, then show the new state. */
+async function control(seat: SeatId, op: 'resume' | 'stop'): Promise<void> {
+  try {
+    await api.agentControl(seat, op);
+    await refresh();
+  } catch (e) {
+    toast({ tone: 'bad', title: t('The agent seat could not be changed'), detail: e instanceof Error ? e.message : String(e) });
+  }
 }
 
 function Agents({ state, sp, thinkingOf }: { state: AppState; sp: SpectatorView; thinkingOf: (a: AgentInfo) => number }) {
@@ -546,7 +602,7 @@ function Agents({ state, sp, thinkingOf }: { state: AppState; sp: SpectatorView;
   if (!seats.length) {
     return (
       <div class="obs-empty" data-testid="agents-empty">
-        <StatePlate icon="agent" title={t('All four seats are built-in AI')}>
+        <StatePlate icon="agent" title={t('Every seat is a built-in AI')}>
           {t('No language model is playing this match, so there are no notes to read. Give a seat to an LLM agent on the setup screen to watch one think.')}
         </StatePlate>
       </div>
@@ -568,19 +624,26 @@ function Agents({ state, sp, thinkingOf }: { state: AppState; sp: SpectatorView;
               <div class="agent-id">
                 <b>{tc(x.name)}</b>
                 <span><Icon name="agent" size={11} /> {providerName(agent)} · {agent.model || t('default model')}</span>
-                <span class="muted">{everyLabel(agent.consult_every)} · {agent.calls === 1 ? t('1 call so far') : t('{n} calls so far', { n: agent.calls })}</span>
+                <span class="muted">{agent.mode === 'agent' ? t('agent with the game’s tools') : agent.mode === 'oneshot' ? t('one reply per consultation') : null}{agent.mode ? ' · ' : ''}{everyLabel(agent.consult_every)} · {agent.calls === 1 ? t('1 call so far') : t('{n} calls so far', { n: agent.calls })}</span>
+                {agent.spent_usd || agent.tokens ? <span class="agent-spend">{agent.spent_usd ? t('Spent about ${n}', { n: agent.spent_usd.toFixed(2) }) : ''}{agent.spent_usd && agent.tokens ? ' · ' : ''}{agent.tokens ? t('{n} tokens', { n: agent.tokens.toLocaleString() }) : ''}</span> : null}
               </div>
               <div class="agent-side">
                 <AgentChip agent={agent} seconds={thinkingOf(agent)} />
-                <Btn small nav icon="eye" title={t('View as {name}', { name: tc(x.name) })} onClick={() => void viewAsSeat(x.seat)}>{t('View as')}</Btn>
+                <div class="agent-controls">
+                  {agent.state === 'stopped' || agent.state === 'error'
+                    ? <Btn small nav icon="play" testid={`agent-resume-${x.seat}`} onClick={() => void control(x.seat, 'resume')}>{t('Resume')}</Btn>
+                    : <Btn small kind="ghost" nav icon="pause" testid={`agent-stop-${x.seat}`} title={t('Stop consulting this agent; the steward carries on alone')} onClick={() => void control(x.seat, 'stop')}>{t('Stop')}</Btn>}
+                  <Btn small nav icon="eye" title={t('View as {name}', { name: tc(x.name) })} onClick={() => void viewAsSeat(x.seat)}>{t('View as')}</Btn>
+                </div>
               </div>
             </header>
             {agent.last_error ? (
               <div class="agent-error" role="alert" data-testid="agent-error">
                 <Icon name="warn" size={15} />
                 <div>
-                  <b>{agent.state === 'stopped' ? t('The agent has stopped. A steward carries on alone.') : agent.state === 'error' ? t('The agent failed this round. It will be tried again next round.') : t('The agent’s last error')}</b>
+                  <b>{agent.state === 'stopped' ? t('The agent has stopped. A steward carries on alone; press Resume to try again.') : agent.state === 'error' ? t('The agent failed this round; the steward played it. It will be tried again next round ({n} of {max} failures in a row).', { n: agent.errors_in_row ?? 1, max: agent.max_failures ?? 3 }) : t('The agent’s last error')}</b>
                   <span>{agent.last_error}</span>
+                  {agent.last_hint ? <span class="log-hint"><Icon name="info" size={11} /> {tc(agent.last_hint)}</span> : null}
                 </div>
               </div>
             ) : null}

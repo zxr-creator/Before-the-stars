@@ -127,14 +127,15 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
   const out: RegionDecor = {
     id: r.id, geometry: null, clear: [], smoke: fx.smoke, badges: [], labelLift: 4, beacon: null, hubs: [], placed: 0, wanted: 0,
   };
-  const kind: SettlementKind = r.settlement;
+  // A megalopolis is modelled as the largest skyline the kit has.
+  const kind: SettlementKind = r.settlement === 'megalopolis' ? 'metropolis' : r.settlement;
   const era = settlementEra(r, ctx.civEra);
   const color = ctx.seatColor(r.owner);
   const settR = settlementRadius(kind);
   const isCapital = ctx.capital === r.id;
   if (kind !== 'wilderness') {
-    buildSettlement(b, G, p.cx, p.cy, { kind, era, color, capital: isCapital, seed: hash32(r.id * 97 + 3, 0xc17), remembered }, fx);
-    out.clear.push(p.cx, p.cy, settR + 2);
+    buildSettlement(b, G, p.sx, p.sy, { kind, era, color, capital: isCapital, seed: hash32(r.id * 97 + 3, 0xc17), remembered }, fx);
+    out.clear.push(p.sx, p.sy, settR + 2);
     out.labelLift = settlementHeight(kind, era, isCapital) + 4;
   }
 
@@ -148,7 +149,7 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
     const off = rand() * Math.PI * 2;
     for (let i = 0; i < n; i++) {
       const a = off + (i / n) * Math.PI * 2;
-      const x = p.cx + Math.cos(a) * rr, z = p.cy + Math.sin(a) * rr;
+      const x = p.sx + Math.cos(a) * rr, z = p.sy + Math.sin(a) * rr;
       if (regionIndexAt(f, x, z) !== p.idx) continue;
       const sd = sampleField(f, f.sd, x, z);
       if (sd < 2.5) continue;
@@ -156,7 +157,7 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
       sites.push({ x, z, d: rr, sd, dCoast: sampleField(f, f.dCoast, x, z), river: riverDistAt(hf, x, z), slope: slopeAt(hf, x, z), ang: a });
     }
   }
-  const taken: number[] = [p.cx, p.cy, settR + 1.2];
+  const taken: number[] = [p.sx, p.sy, settR + 1.2];
   const free = (x: number, z: number, rad: number): boolean => {
     for (let i = 0; i < taken.length; i += 3) {
       const dx = x - taken[i], dz = z - taken[i + 1], rr = rad + taken[i + 2] + 0.6;
@@ -259,7 +260,7 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
           for (let i = 8; i + 9 < rv.pts.length; i += 2) {
             const x = rv.pts[i], z = rv.pts[i + 1];
             if (regionIndexAt(f, x, z) !== p.idx) continue;
-            const d = Math.abs(Math.hypot(x - p.cx, z - p.cy) - (settR + 16));
+            const d = Math.abs(Math.hypot(x - p.sx, z - p.sy) - (settR + 16));
             if (d < bestD && free(x, z, 5) && sampleField(f, f.sd, x, z) > 10) {
               bestD = d; bx = x; bz = z; bdx = rv.pts[i + 2] - rv.pts[i - 2]; bdz = rv.pts[i + 3] - rv.pts[i - 1]; found = true;
             }
@@ -306,9 +307,9 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
   if (tracks.length) {
     const dirt: RGB = era >= 3 ? [0.5, 0.5, 0.5] : [0.8, 0.7, 0.5];
     for (const [tx, tz, rad] of tracks) {
-      const dx = tx - p.cx, dz = tz - p.cy;
+      const dx = tx - p.sx, dz = tz - p.sy;
       const l = Math.hypot(dx, dz) || 1;
-      const x0 = p.cx + (dx / l) * (settR * 0.9), z0 = p.cy + (dz / l) * (settR * 0.9);
+      const x0 = p.sx + (dx / l) * (settR * 0.9), z0 = p.sy + (dz / l) * (settR * 0.9);
       const x1 = tx - (dx / l) * rad * 0.7, z1 = tz - (dz / l) * rad * 0.7;
       const len = Math.hypot(x1 - x0, z1 - z0);
       if (len < 2) continue;
@@ -332,7 +333,7 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
     const gridHub = out.hubs.find((h) => h.kind === 'grid');
     const sources = out.hubs.filter((h) => h.kind === 'thermal' || h.kind === 'hydro' || h.kind === 'nuclear' || h.kind === 'fusion' || h.kind === 'rectenna');
     if (gridHub) {
-      const lines: [number, number, number, number][] = [[gridHub.x, gridHub.z, p.cx, p.cy]];
+      const lines: [number, number, number, number][] = [[gridHub.x, gridHub.z, p.sx, p.sy]];
       for (const s of sources.slice(0, 4)) lines.push([s.x, s.z, gridHub.x, gridHub.z]);
       for (const [ax, az, bx, bz] of lines) {
         const len = Math.hypot(bx - ax, bz - az);
@@ -364,7 +365,7 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
         out.badges.push({ kind: d.kind, x: at[0], y: G(at[0], at[1]) + 9.5, z: at[1] });
       } else {
         const s = choose('dep:' + d.kind, 6, settR + 17 + i * 5, 'land', 2) ?? choose('dep:' + d.kind, 3.2, settR + 12 + i * 4, 'land', 2);
-        const x = s ? s.x : p.cx + (i - 1) * 8, z = s ? s.z : p.cy + settR + 6;
+        const x = s ? s.x : p.sx + (i - 1) * 8, z = s ? s.z : p.sy + settR + 6;
         if (s) taken.push(s.x, s.z, 6);
         out.clear.push(x, z, 2.6);
         out.badges.push({ kind: d.kind, x, y: G(x, z) + 1.2, z });
@@ -374,7 +375,7 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
   }
   if (r.test_node) {
     const s = choose('beacon', 5, settR + 14, 'land', 1.2);
-    const x = s ? s.x : p.cx + settR + 6, z = s ? s.z : p.cy - settR - 6;
+    const x = s ? s.x : p.sx + settR + 6, z = s ? s.z : p.sy - settR - 6;
     if (s) taken.push(s.x, s.z, 5);
     out.clear.push(x, z, 5);
     out.beacon = [x, Math.max(0.3, G(x, z)), z];

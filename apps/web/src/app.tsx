@@ -29,7 +29,9 @@ import { MilitaryPanel } from './panels/military';
 import { ObjectivesPanel } from './panels/objectives';
 import { ChronicleSheet, ChronicleTab } from './panels/chronicle';
 import { GameMenu } from './menu';
+import { ConnectHost } from './agents/connect';
 import { fmtYear, yearOf } from './format';
+import { StandingOrders } from './panels/orders';
 import { t, tc, useLocale } from './i18n';
 import { MomentBanner, NotifyColumn, RoundDock } from './theme/hud';
 import { BrandMark } from './theme/brand';
@@ -37,6 +39,7 @@ import { Emblem } from './theme/emblem';
 import { OverlayFrame, StatePlate } from './theme/overlay';
 import { Title } from './theme/title';
 import { TechTree, CivicsTree } from './trees';
+import { EraScreen } from './era';
 import { Almanac } from './tutorial/almanac';
 import { RegionalWorks, openWorks } from './economy/Construction';
 import { TutorialLayer } from './tutorial';
@@ -91,6 +94,7 @@ const OVERLAYS: { key: OverlayKey; icon: string; label: string; title: string; h
   { key: 'civics', icon: 'civics', label: 'Civics', title: 'Civics tree', hotkey: 'C' },
   { key: 'ledger', icon: 'layers', label: 'Ledger', title: 'Economy ledger', hotkey: 'L' },
   { key: 'works', icon: 'hammer', label: 'Works', title: 'Regional works', hotkey: 'B' },
+  { key: 'orders', icon: 'scroll', label: 'Orders', title: 'Standing orders', hotkey: 'O' },
   { key: 'almanac', icon: 'almanac', label: 'Almanac', title: 'Almanac', hotkey: '?' },
 ];
 // i18n-end
@@ -168,8 +172,8 @@ export function App() {
         const idx = e.key === '0' ? 9 : Number(e.key) - 1;
         togglePanel(PANEL_ORDER[idx]);
         e.preventDefault();
-      } else if (k === 't' || k === 'c' || k === 'l' || k === 'b') {
-        toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : k === 'b' ? 'works' : 'ledger');
+      } else if (k === 't' || k === 'c' || k === 'l' || k === 'b' || k === 'o') {
+        toggleOverlay(k === 't' ? 'tech' : k === 'c' ? 'civics' : k === 'b' ? 'works' : k === 'o' ? 'orders' : 'ledger');
         e.preventDefault();
       } else if (k === 'h') {
         togglePanel('chronicle');
@@ -213,6 +217,8 @@ export function App() {
         {s.overlay === 'almanac' ? <div class="world-overlay"><Almanac /></div> : null}
         <Toasts state={s} />
         {s.menuOpen ? <GameMenu /> : null}
+      <ConnectHost />
+        <ConnectHost />
       </div>
     );
   }
@@ -273,6 +279,7 @@ export function App() {
         <Toasts state={s} />
       </div>
       {s.menuOpen ? <GameMenu /> : null}
+      <ConnectHost />
       {s.handover !== null ? (
         <div class="overlay" role="dialog" aria-modal="true" aria-label={t('Hand over')}>
           <div class="overlay-card">
@@ -319,7 +326,9 @@ const stateRef: { current: AppState } = { current: null as unknown as AppState }
 function Overlay({ state }: { state: AppState }) {
   if (state.overlay === 'tech') return <TechTree />;
   if (state.overlay === 'civics') return <CivicsTree />;
+  if (state.overlay === 'era') return <EraScreen />;
   if (state.overlay === 'almanac') return <Almanac />;
+  if (state.overlay === 'orders' && state.obs) return <StandingOrders obs={state.obs} arg={state.overlayArg} />;
   if (state.overlay === 'works' && state.obs) {
     const arg = state.overlayArg !== null ? Number(state.overlayArg) : null;
     return <RegionalWorks obs={state.obs} region={arg !== null && Number.isFinite(arg) ? arg : null} onClose={closeOverlay} />;

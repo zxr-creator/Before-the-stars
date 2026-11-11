@@ -8,21 +8,104 @@ use crate::session::AgentConfig;
 use serde_json::{json, Value};
 
 /// A transport that can run agent seats, reduced to what the host sees of it.
-struct StubAgent;
+#[derive(Default)]
+struct StubAgent {
+    /// The private token of a consultation in progress, and of one that has ended.
+    live: Option<String>,
+    ended: Option<String>,
+    resumed: bool,
+}
 
 impl AgentSlot for StubAgent {
     fn provider(name: &str) -> Option<AgentProvider> {
         (name == "claude-api").then_some(AgentProvider { key: "claude-api", default_model: "stub-model" })
     }
     fn new(_: &AgentConfig) -> Option<StubAgent> {
-        Some(StubAgent)
+        Some(StubAgent::default())
     }
     fn summary(&self) -> AgentSummary {
-        AgentSummary { provider: "claude-api".into(), model: "stub-model".into(), consult_every: 1, state: "idle".into(), last_note: String::new(), calls: 0, last_error: None, thinking_seconds: None }
+        AgentSummary {
+            provider: "claude-api".into(),
+            model: "stub-model".into(),
+            consult_every: 1,
+            state: if self.resumed { "idle".into() } else { "stopped".into() },
+            last_note: String::new(),
+            calls: 0,
+            last_error: None,
+            last_hint: None,
+            thinking_seconds: None,
+            mode: "oneshot".into(),
+            errors_in_row: 0,
+            max_failures: 3,
+            spent_usd: 0.0,
+            tokens: 0,
+            budget_seconds: 300,
+        }
     }
     fn log(&self) -> Value {
         json!([{ "note": "what this seat privately intends" }])
     }
+    fn access(&self, token: &str) -> AgentAccess {
+        if !token.is_empty() && self.live.as_deref() == Some(token) {
+            AgentAccess::Live
+        } else if !token.is_empty() && self.ended.as_deref() == Some(token) {
+            AgentAccess::Ended
+        } else {
+            AgentAccess::None
+        }
+    }
+    fn control(&mut self, op: &str) -> Result<(), String> {
+        if op != "resume" {
+            return Err(format!("unknown control '{op}'"));
+        }
+        self.resumed = true;
+        Ok(())
+    }
+}
+
+#[test]
+fn an_agent_plays_its_own_seat_only_with_the_live_consultation_token() {
+    for require_tokens in [false, true] {
+        let mut h: Host<StubAgent> = new_match(Config { require_tokens, ..SERVER }, ["human", "claude-api", "medium", "hard"]);
+        // nobody may read or command the driven seat from outside
+        assert_eq!(get(&mut h, "/api/turn?seat=1&token=guess").status, 403);
+        h.agents[1].as_mut().unwrap().live = Some("c0ffee-live".into());
+        let packet = get(&mut h, "/api/turn?seat=1&token=c0ffee-live&view=brief");
+        assert_eq!(packet.status, 200, "{}", packet.text);
+        assert_eq!(packet.body["seat"], 1);
+        assert!(packet.body.get("observation").is_none());
+        // the token opens that seat only: not the person's seat, not a built-in seat, not the observer views
+        assert_eq!(get(&mut h, "/api/turn?seat=2&token=c0ffee-live").status, 403);
+        if require_tokens {
+            assert_eq!(get(&mut h, "/api/turn?seat=0&token=c0ffee-live").status, 403);
+        }
+        assert_eq!(get(&mut h, "/api/spectator").status, 403);
+        assert_eq!(get(&mut h, "/api/agent-log?seat=1").status, 403);
+        // it commands the seat while the consultation lasts
+        let cursor = packet.body["cursor"].as_str().unwrap().to_string();
+        let sub = json!({ "seat": 1, "token": "c0ffee-live", "request_id": "agent-1", "cursor": cursor, "actions": [{"kind": "set_policy", "setting": {"kind": "food_reserve_months", "months": 7}}], "advance": "none", "view": "brief" });
+        let done = post(&mut h, "/api/turn", sub.clone());
+        assert_eq!(done.status, 200, "{}", done.text);
+        assert_eq!(done.body["receipts"][0]["status"], "accepted");
+        // and not a moment after: the referee tells the agent to stop
+        let slot = h.agents[1].as_mut().unwrap();
+        slot.ended = slot.live.take();
+        let late = get(&mut h, "/api/turn?seat=1&token=c0ffee-live");
+        assert_eq!((late.status, late.body["error"].as_str()), (409, Some("TURN_OVER")));
+        assert_eq!(post(&mut h, "/api/turn", json!({ "seat": 1, "token": "c0ffee-live", "request_id": "agent-2", "cursor": cursor, "actions": [] })).status, 409);
+    }
+}
+
+#[test]
+fn a_stopped_agent_seat_can_be_resumed_from_this_machine_only() {
+    let mut h: Host<StubAgent> = new_match(SERVER, ["human", "claude-api", "medium", "hard"]);
+    assert_eq!(post(&mut h, "/api/agent/control", json!({ "seat": 2, "op": "resume" })).status, 404, "a built-in seat is not an agent seat");
+    assert_eq!(post(&mut h, "/api/agent/control", json!({ "seat": 1, "op": "explode" })).status, 400);
+    let ok = post(&mut h, "/api/agent/control", json!({ "seat": 1, "op": "resume" }));
+    assert_eq!(ok.status, 200, "{}", ok.text);
+    assert_eq!(ok.body["seats"][1]["agent"]["state"], "idle");
+    let mut strict: Host<StubAgent> = new_match(Config { require_tokens: true, ..SERVER }, ["human", "claude-api", "medium", "hard"]);
+    assert_eq!(post(&mut strict, "/api/agent/control", json!({ "seat": 1, "op": "resume" })).status, 403);
 }
 
 struct Out {
@@ -294,7 +377,9 @@ fn new_match_requests_are_validated() {
     for (body, needle) in [
         (json!({ "regions": 31 }), "regions must be"),
         (json!({ "horizon": 100 }), "horizon must be"),
-        (json!({ "controllers": ["human"] }), "exactly four"),
+        (json!({ "controllers": ["human"] }), "take 2 to 5 civilizations"),
+        (json!({ "regions": 200, "controllers": ["human", "easy", "easy"] }), "Huge maps take 6 to 10"),
+        (json!({ "regions": 30, "controllers": ["human", "easy", "easy", "easy"] }), "Small maps take 2 to 3"),
         (json!({ "regions": "many" }), "invalid type"),
     ] {
         let out = post(&mut h, "/api/match", body);
@@ -307,6 +392,13 @@ fn new_match_requests_are_validated() {
     // an empty body is the default match
     let r = h.handle(&Request { method: "POST", target: "/api/match", body: "", entropy: 3 });
     assert_eq!(r.status, 200);
+    // two to ten seats within the preset's range (design chapter 40, section 2.2)
+    let ten = post(&mut h, "/api/match", json!({ "regions": 200, "controllers": ["human", "easy", "easy", "easy", "easy", "medium", "medium", "medium", "hard", "hard"] }));
+    assert_eq!(ten.status, 200, "{}", ten.text);
+    assert_eq!(ten.body["seats"].as_array().unwrap().len(), 10);
+    let two = post(&mut h, "/api/match", json!({ "regions": 30, "controllers": ["human", "hard"] }));
+    assert_eq!(two.status, 200, "{}", two.text);
+    assert_eq!(two.body["seats"].as_array().unwrap().len(), 2);
 }
 
 #[test]
@@ -711,7 +803,7 @@ fn a_save_never_contains_an_api_key() {
         json!({
             "seed": "keys", "regions": 24, "controllers": ["claude-api", "claude-api", "medium", "hard"],
             "agent_options": {
-                "0": { "model": "some-model", "api_key": KEY, "base_url": format!("https://gateway-user:{KEY}@proxy.example:8443/v1/messages?api_key={KEY}&x=1#frag-{KEY}"), "effort": "high" },
+                "0": { "model": "some-model", "api_key": KEY, "base_url": format!("https://gateway-user:{KEY}@proxy.example:8443/v1/messages?api_key={KEY}&x=1#frag-{KEY}"), "effort": "high", "auth": "api_key", "budget_seconds": 120, "max_usd": 1.0, "max_calls": 999 },
                 "1": { "model": format!("model-{OTHER}"), "api_key": format!("  {OTHER}  "), "base_url": format!("proxy.example/{OTHER}/v1"), "effort": OTHER },
             },
         }),
@@ -748,7 +840,8 @@ fn a_save_never_contains_an_api_key() {
 
     // what a save does keep of the seat: provider, model, pace, and the address without its credentials
     let saved: Value = serde_json::from_str(&text).unwrap();
-    assert_eq!(saved["agent_cfgs"][0], json!({ "provider": "claude-api", "model": "some-model", "consult_every": 1, "base_url": "https://proxy.example:8443/v1/messages", "effort": "high" }));
+    // (the sign-in choice and the cost guard are kept, clamped to their bounds; the key is not)
+    assert_eq!(saved["agent_cfgs"][0], json!({ "provider": "claude-api", "model": "some-model", "consult_every": 1, "base_url": "https://proxy.example:8443/v1/messages", "effort": "high", "auth": "api_key", "budget_seconds": 120, "max_usd": 1.0, "max_calls": 60 }));
     assert_eq!(saved["agent_cfgs"][1], json!({ "provider": "claude-api", "model": "", "consult_every": 1, "base_url": null, "effort": null }));
     assert!(saved["agent_cfgs"][0].get("api_key").is_none());
 

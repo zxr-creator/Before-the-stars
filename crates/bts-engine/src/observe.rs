@@ -825,7 +825,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             // an epidemic is seen by the region's government and by anyone observing it now
             outbreak: if mine || current { r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }) } else { None },
             climate: Some(r.climate),
-            city: city_seen(w, seat, ri, mine, current),
+            city_size: city_seen(w, seat, ri, mine, current),
+            city: (!r.city_name.is_empty()).then(|| CitySiteView { name: r.city_name.clone(), at: r.city_at, natural_harbour: r.natural_harbour }),
         });
     }
 
@@ -1825,7 +1826,8 @@ pub fn spectate(w: &World) -> SpectatorView {
             test_node: w.test_nodes.contains(&r.id),
             outbreak: r.outbreak.as_ref().map(|o| OutbreakView { since: o.since, severity_band: if o.severity_bp >= 21_000 { 3 } else if o.severity_bp >= 17_000 { 2 } else { 1 } }),
             climate: Some(r.climate),
-            city: Some(CityView { name: r.city_name.clone(), residents: sizes[ri], class: crate::sim::cities::class_of(sizes[ri]) }),
+            city_size: Some(CityView { name: r.city_name.clone(), residents: sizes[ri], class: crate::sim::cities::class_of(sizes[ri]) }),
+            city: (!r.city_name.is_empty()).then(|| CitySiteView { name: r.city_name.clone(), at: r.city_at, natural_harbour: r.natural_harbour }),
         });
     }
     let civs = w

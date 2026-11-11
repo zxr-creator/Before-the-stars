@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../api';
 import { t, tc, useLocale } from '../i18n';
+import { histYear } from '../format';
 import { Icon } from '../icons';
 import { desktopShell, hasLiveMatch, installMatch, loadSaveEntry, refreshSaves, saveGame, useApp } from '../store';
 import { cx } from '../ui';
@@ -59,6 +60,7 @@ function controllerLabel(controller: string, agent?: string): string {
     case 'native_easy': return t('AI, easy');
     case 'native_medium': return t('AI, medium');
     case 'native_hard': return t('AI, hard');
+    case 'native_expert': return t('AI, expert (test)');
     default: return controller;
   }
 }
@@ -174,7 +176,7 @@ function PreviewPane({ preview, live, onConfirm, onCancel }: { preview: Preview;
       {h ? (
         <dl class="sv-facts">
           <div><dt>{t('Match')}</dt><dd>{saveLabel(h)} <small>{h.match_id}</small></dd></div>
-          <div><dt>{t('Reached')}</dt><dd>{t('Year {n}', { n: h.year })} · {t('round {n}', { n: h.round })} · {t('{n} regions', { n: h.regions })}{h.seed !== undefined ? <> · {t('seed “{seed}”', { seed: h.seed })}</> : null}</dd></div>
+          <div><dt>{t('Reached')}</dt><dd>{h.date ? histYear(h.date.year) : t('Year {n}', { n: h.year })} · {t('round {n}', { n: h.round })} · {t('{n} regions', { n: h.regions })}{h.seed !== undefined ? <> · {t('seed “{seed}”', { seed: h.seed })}</> : null}</dd></div>
           <div><dt>{t('Saved')}</dt><dd>{fmtWhen(h.created_ms)} · {h.kind === 'auto' ? t('autosave') : h.name ? t('saved as “{name}”', { name: h.name }) : t('manual save')}</dd></div>
           <div><dt>{t('Seats')}</dt><dd>
             <ul class="sv-seats">

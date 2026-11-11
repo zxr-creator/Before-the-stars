@@ -70,7 +70,11 @@ let expectTrouble = false;
 function watch(page) {
   page.on('pageerror', (e) => { if (!expectTrouble) problems.push(`page error: ${e.message}`); });
   page.on('console', (m) => { if (m.type() === 'error' && !expectTrouble) problems.push(`console error: ${m.text()}`); });
-  page.on('requestfailed', (r) => { if (!expectTrouble) problems.push(`request failed: ${r.url()} (${r.failure()?.errorText})`); });
+  page.on('requestfailed', (r) => {
+    // a recording streams from a blob URL; leaving the page or changing track cancels that read
+    if (r.url().startsWith('blob:') && r.failure()?.errorText === 'net::ERR_ABORTED') return;
+    if (!expectTrouble) problems.push(`request failed: ${r.url()} (${r.failure()?.errorText})`);
+  });
   page.on('request', (r) => {
     const url = r.url();
     if (url.startsWith('data:') || url.startsWith('blob:')) return;
@@ -91,7 +95,10 @@ async function shot(name) {
 const api = (fn, ...args) => page.evaluate(([f, a]) => window.__btsApi[f](...a), [fn, args]);
 /** The same, for calls that are expected to be refused: resolves to the error's fields. */
 const refused = (fn, ...args) => page.evaluate(([f, a]) => window.__btsApi[f](...a).then(() => null, (e) => ({ status: e.status, code: e.code, message: e.message })), [fn, args]);
-const yearShown = async () => Number(((await page.textContent(tid('year'))) ?? '').replace(/\D+/g, ''));
+/** The round the top bar shows (player and observer top bars carry it); the year there is historical since ruleset 3.0. */
+/** A historical date as the interface writes it in English: "5000 BC", "AD 1066". */
+const histLabel = (d) => (d.year < 0 ? `${-d.year} BC` : `AD ${d.year}`);
+const yearShown = async () => Number((await page.getAttribute('.topbar-date[data-round]', 'data-round')) ?? 0);
 
 async function closePanel() {
   for (let i = 0; i < 4; i++) {
@@ -154,7 +161,7 @@ async function partA() {
   assert((await page.$(tid('setup-seat-1-agent'))) === null, 'LLM agent seats are not offered without a server');
   assert((await page.$(tid('setup-seat-1-hard'))) !== null, 'built-in opponents are offered');
   await page.fill(tid('setup-seed'), 'pages-smoke');
-  await page.click(tid('setup-regions-24'));
+  await page.click(tid('setup-regions-30'));
   await shot('02-setup');
   await page.click(tid('setup-start'));
   await page.waitForSelector(tid('map-canvas'), { timeout: 30000 });
@@ -165,6 +172,8 @@ async function partA() {
   assert(obs.round === 1 && obs.phase === 'contact', 'a fresh match starts in round 1, contact phase');
   assert(summary.observer_allowed === false && summary.seats[0].controller === 'human', 'seat 1 is the person');
   assert((await page.textContent(tid('civ-name'))) === obs.civ.name, 'the top bar shows the civilization');
+  assert(summary.seats.length === 3 && obs.world.wrap_x === true && obs.calendar?.rounds === 525, 'a Small Earth-like world with three civilizations on the standard calendar');
+  assert((await page.textContent(tid('year'))) === '5000 BC' && /of 525/.test((await page.textContent(tid('dock-span'))) ?? ''), 'the date is historical and the dock counts 525 rounds');
   assert((await yearShown()) === 1, 'the match opens in year 1');
   await shot('03-match-start');
 
@@ -225,7 +234,7 @@ async function partA() {
     const year = await yearShown();
     await closePanel();
     await page.click(tid('end-round'));
-    await page.waitForFunction((y) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) > y, year, { timeout: 30000 });
+    await page.waitForFunction((y) => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) > y, year, { timeout: 30000 });
     rounds++;
     await clearToasts();
     obs = await api('observation', 0);
@@ -262,7 +271,7 @@ async function endRoundInPage() {
   if (await page.$(tid('overlay-works'))) await page.click(tid('works-close'));
   await closePanel();
   await page.click(tid('end-round'));
-  await page.waitForFunction((y) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) > y, year, { timeout: 60000 });
+  await page.waitForFunction((y) => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) > y, year, { timeout: 60000 });
   await clearToasts();
 }
 
@@ -374,7 +383,7 @@ async function partB(obs) {
   let changes = await page.evaluate(() => { window.__changes = []; window.__btsApi.onSessionChange((c) => window.__changes.push(c)); return 0; });
   await closePanel();
   await page.click(tid('end-round'));
-  await page.waitForFunction((y) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) > y, round, { timeout: 30000 });
+  await page.waitForFunction((y) => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) > y, round, { timeout: 30000 });
   changes = await page.evaluate(() => window.__changes);
   assert(changes.some((c) => c.cause === 'request' && c.request === 'POST /api/ready' && c.roundResolved), 'the page is told when a round is resolved (the autosave point)');
   assert((await api('match')).round === round + 1, 'one more round was played');
@@ -418,7 +427,7 @@ async function playRound() {
   await closePanel();
   await clearToasts();
   await page.click(tid('end-round'));
-  await page.waitForFunction((y) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) > y, year, { timeout: 30000 });
+  await page.waitForFunction((y) => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) > y, year, { timeout: 30000 });
   await settle();
   return year + 1;
 }
@@ -509,7 +518,7 @@ async function partS(obs) {
   await page.waitForSelector(tid('title-screen'), { timeout: 30000 });
   assert(!(await page.isDisabled(tid('title-continue'))), 'Continue is offered after a reload');
   const sub = (await page.textContent(tid('title-continue'))) ?? '';
-  assert(sub.includes(`Year ${m.round}`) && /autosaved/.test(sub), `Continue says which save it is ("${sub}")`);
+  assert(sub.includes(histLabel(m.date)) && /autosaved/.test(sub), `Continue says which save it is ("${sub}")`);
   await shot('08-title-continue');
   await page.click(tid('title-continue'));
   await page.waitForSelector(tid('map-canvas'));
@@ -556,8 +565,8 @@ async function partS(obs) {
   assert(/^before-the-stars-.*\.btsave$/.test(download.suggestedFilename()), `the file is named for the game (${download.suggestedFilename()})`);
   assert(exported.version === 1 && exported.text === exportText, 'the file unpacks (in Node) to exactly the session export');
   const h = exported.header;
-  assert(h.match_id === after.match_id && h.round === after.round && h.year === after.round && h.kind === 'manual', 'the header names the match, round and year');
-  assert(h.seats.length === 4 && h.seats[0].controller === 'human' && h.seats[0].name === obs.civ.name, 'the header lists the seats');
+  assert(h.match_id === after.match_id && h.round === after.round && h.date?.year === after.date.year && h.kind === 'manual', 'the header names the match, round and historical date');
+  assert(h.seats.length === 3 && h.seats[0].controller === 'human' && h.seats[0].name === obs.civ.name, 'the header lists the seats');
   assert(after.versions.includes(h.versions.ruleset) && after.versions.includes(h.versions.content) && after.versions.includes(h.versions.protocol), 'the header carries the versions the engine reports');
   assert(h.seed === 'pages-smoke' && Math.abs(h.created_ms - Date.now()) < 120000, 'the header carries the disclosed seed and the time of saving');
   note(`export: ${download.suggestedFilename()}, ${file.length} bytes for ${exportText.length} bytes of session text (${(exportText.length / file.length).toFixed(1)}:1), header ${exported.headerLength} bytes`);
@@ -569,7 +578,7 @@ async function partS(obs) {
   await page.click(tid('title-new'));
   await page.waitForSelector(tid('setup-screen'));
   await page.fill(tid('setup-seed'), 'pages-other');
-  await page.click(tid('setup-regions-24'));
+  await page.click(tid('setup-regions-30'));
   await page.click(tid('setup-start'));
   await page.waitForSelector(tid('map-canvas'), { timeout: 30000 });
   await page.waitForTimeout(400);
@@ -584,7 +593,7 @@ async function partS(obs) {
   await page.setInputFiles(tid('saves-import-input'), filePath);
   await page.waitForSelector(`${tid('saves-preview')}[data-loadable="true"]`);
   const previewText = (await page.textContent(tid('saves-preview'))) ?? '';
-  assert(previewText.includes(h.match_id) && previewText.includes(`Year ${h.year}`) && previewText.includes(obs.civ.name) && previewText.includes(h.versions.ruleset), 'the preview shows the match, year, seats and versions before anything is loaded');
+  assert(previewText.includes(h.match_id) && previewText.includes(histLabel(h.date)) && previewText.includes(obs.civ.name) && previewText.includes(h.versions.ruleset), 'the preview shows the match, year, seats and versions before anything is loaded');
   assert(/Replace the current game/.test((await page.textContent(tid('saves-preview-confirm'))) ?? ''), 'the preview asks before replacing the game in progress');
   await shot('11-import-preview');
   await page.click(tid('saves-preview-cancel'));
@@ -594,7 +603,7 @@ async function partS(obs) {
   await page.waitForSelector(`${tid('saves-preview')}[data-loadable="true"]`);
   await page.click(tid('saves-preview-confirm'));
   await page.waitForSelector(tid('saves-manager'), { state: 'detached' });
-  await page.waitForFunction((y) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) === y, h.year);
+  await page.waitForFunction((y) => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) === y, h.round);
   assert((await api('exportSession')) === exportText, 'after the import the state is byte-identical to the export');
   note(`import: from a different match (${other.match_id}, round 2), the file brought back ${h.match_id} at round ${h.round}, byte-identical to the export`);
 
@@ -1017,7 +1026,7 @@ async function partC() {
   await page.click(tid('title-observer-custom'));
   await page.waitForSelector(tid('setup-screen'));
   await page.fill(tid('setup-seed'), 'pages-watch');
-  await page.click(tid('setup-regions-48'));
+  await page.click(tid('setup-regions-60'));
   assert(await page.isVisible(tid('setup-observer-note')), 'setup says this is an observer match');
   await page.click(tid('setup-start'));
   await page.waitForSelector(tid('observer-console'), { timeout: 30000 });
@@ -1027,12 +1036,12 @@ async function partC() {
   assert(m.observer_allowed && m.seats.every((s) => s.controller.startsWith('native')), 'four built-in AIs, nobody playing');
   assert(m.round === 1 && (await yearShown()) === 1, 'nothing moves until asked');
   const world = await api('spectator');
-  assert(world.civs.length === 4 && world.regions.length === 48, 'the whole world is visible to the observer');
+  assert(world.civs.length === 4 && world.regions.length === 60, 'the whole world is visible to the observer');
   await shot('10-observer-start');
 
   // step one round
   await page.click(tid('observer-step'));
-  await page.waitForFunction(() => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) === 2, null, { timeout: 30000 });
+  await page.waitForFunction(() => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) === 2, null, { timeout: 30000 });
   await page.waitForSelector(`${tid('observer-status')}:not([data-state="busy"])`);
   await page.waitForTimeout(700);
   m = await api('match');
@@ -1042,7 +1051,7 @@ async function partC() {
   // run continuously, then pause
   await page.click(tid('observer-speed-4'));
   await page.click(tid('observer-play'));
-  await page.waitForFunction(() => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) >= 5, null, { timeout: 60000 });
+  await page.waitForFunction(() => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) >= 5, null, { timeout: 60000 });
   assert((await page.getAttribute(tid('observer-play'), 'aria-pressed')) === 'true', 'the play control shows it is playing');
   await shot('11-observer-playing');
   const pausedAt = Date.now();
@@ -1055,7 +1064,7 @@ async function partC() {
   assert(m.round === settled, `paused: the match stays at round ${settled}`);
   assert(settled - atPause <= 1, `pause takes effect after the round in hand (round ${atPause} when pressed, ${settled} at rest)`);
   assert(m.phase === 'contact', 'the paused match rests at the start of a round');
-  await page.waitForFunction((r) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) === r, settled, { timeout: 10000 });
+  await page.waitForFunction((r) => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) === r, settled, { timeout: 10000 });
   assert((await page.getAttribute(tid('observer-play'), 'aria-pressed')) === 'false', 'the play control shows it is paused');
   note(`continuous play reached year ${settled}; pause held it there (pressed at round ${atPause}, checked ${((Date.now() - pausedAt) / 1000).toFixed(1)} s later)`);
 
@@ -1063,12 +1072,12 @@ async function partC() {
   const from = settled;
   await page.evaluate(() => {
     const seen = new Set();
-    const el = () => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, ''));
+    const el = () => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0);
     window.__years = seen;
     window.__yearTimer = setInterval(() => seen.add(el()), 15);
   });
   await page.click(tid('observer-run10'));
-  await page.waitForFunction((r) => Number((document.querySelector('[data-testid="year"]')?.textContent ?? '').replace(/\D+/g, '')) === r, from + 10, { timeout: 90000 });
+  await page.waitForFunction((r) => Number(document.querySelector('.topbar-date[data-round]')?.getAttribute('data-round') ?? 0) === r, from + 10, { timeout: 90000 });
   await page.waitForSelector(`${tid('observer-status')}:not([data-state="busy"])`);
   const years = await page.evaluate(() => { clearInterval(window.__yearTimer); return [...window.__years].sort((a, b) => a - b); });
   m = await api('match');
@@ -1088,7 +1097,7 @@ async function partC() {
   await page.waitForSelector(tid('observing-badge'), { timeout: 15000 });
   assert((await page.textContent(tid('civ-name'))) === name, `the interface shows ${name}'s own view`);
   const own = await api('observation', seat);
-  assert(own.seat === seat && own.regions.length <= 48, "the perspective is that seat's own observation");
+  assert(own.seat === seat && own.regions.length <= 60, "the perspective is that seat's own observation");
   assert((await refused('actions', seat, [{ kind: 'forfeit' }]))?.status === 403, 'watching a civilization does not let the page command it');
   await shot('13-perspective');
   // its regional works can be looked at, but no control in them gives an order
@@ -1107,13 +1116,13 @@ async function partC() {
 // =====================================================================================
 async function partD() {
   if (process.env.PAGES_SKIP_BENCH) return;
-  log('D: timings in the worker (four AIs, 48 regions, standard length)');
+  log('D: timings in the worker (four AIs, 60 regions, the standard calendar)');
   await openTitle();
   // the title screen keeps the interface idle, so the numbers are the worker's own
   const result = await page.evaluate(async () => {
     const api = window.__btsApi;
     const t0 = performance.now();
-    await api.newMatch({ seed: 'pages-bench', regions: 48, controllers: ['hard', 'medium', 'medium', 'easy'] });
+    await api.newMatch({ seed: 'pages-bench', regions: 60, calendar: 'standard', controllers: ['hard', 'medium', 'medium', 'easy'] });
     const created = performance.now() - t0;
     const stamps = [];
     let idle = null;
@@ -1172,7 +1181,7 @@ async function partD() {
   const worker = page.workers()[0];
   const memory = worker ? await worker.evaluate(() => self.__btsEngine.memoryBytes()) : null;
   assert(result.rounds >= 200, `the bench match ran (${result.rounds} rounds)`);
-  note(`bench: new 48-region match ${result.created.toFixed(0)} ms; ${result.rounds} rounds in ${(result.total / 1000).toFixed(1)} s`);
+  note(`bench: new 60-region match ${result.created.toFixed(0)} ms; ${result.rounds} rounds in ${(result.total / 1000).toFixed(1)} s`);
   note(`bench: per round early (1-20) ${result.early.toFixed(1)} ms, middle ${result.middle.toFixed(1)} ms, late (last 20) ${result.late.toFixed(1)} ms, slowest ${result.slowest.toFixed(1)} ms`);
   note(`bench: interface thread never held longer than ${result.worstGap.toFixed(0)} ms while the worker played`);
   note(`bench: late spectator view ${(result.spectator / 1024).toFixed(0)} KB in ${result.spectatorMs.toFixed(0)} ms; session export ${(result.save / 1024).toFixed(0)} KB in ${result.saveMs.toFixed(0)} ms`);

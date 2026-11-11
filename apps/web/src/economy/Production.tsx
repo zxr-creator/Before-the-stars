@@ -24,7 +24,7 @@ type Filter = 'all' | 'held' | 'off';
 
 export const CATEGORY_LABEL: Record<string, string> = {
   Food: 'Food', Extraction: 'Extraction', Industry: 'Industry', Power: 'Power', Transport: 'Transport', Civic: 'Civic',
-  Education: 'Education', Research: 'Research', Space: 'Space', Other: 'Other',
+  Education: 'Education', Research: 'Research', Space: 'Space', 'Jump engineering': 'Jump engineering', Other: 'Other',
 };
 
 interface Advice { tone: 'bad' | 'warn' | 'info'; text: string; action?: { label: string; run: () => void } }
@@ -297,7 +297,8 @@ export function ProductionTab({ obs, ledger, nav, focusCard, focusRegion, focusN
   const hiddenServices = ledger.cards.length - ledger.cards.filter((c) => c.productive).length;
 
   const groups: { key: string; title: ComponentChildren; cards: FacCard[]; region?: RegionSum; glyph?: string }[] = groupBy === 'kind'
-    ? CATEGORY_ORDER.map((cat) => ({ key: cat, title: t(CATEGORY_LABEL[cat] ?? cat), glyph: cat, cards: shown.filter((c) => c.category === cat) })).filter((g) => g.cards.length)
+    // categories the order does not list (ruleset 3.0 adds some) follow it rather than vanish
+    ? [...CATEGORY_ORDER, ...new Set(shown.map((c) => c.category).filter((c) => !CATEGORY_ORDER.includes(c)))].map((cat) => ({ key: cat, title: CATEGORY_LABEL[cat] ? t(CATEGORY_LABEL[cat]) : tc(cat), glyph: cat, cards: shown.filter((c) => c.category === cat) })).filter((g) => g.cards.length)
     : regions.map((r) => ({ key: 'r' + r.region.id, title: tc(r.region.name), region: r, cards: shown.filter((c) => c.region.id === r.region.id) })).filter((g) => g.cards.length || filter === 'all');
   const toggleGroup = (k: string) => setClosed((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const toRegion = (id: number) => { setGroupBy('region'); setFilter('all'); setClosed(new Set()); requestAnimationFrame(() => regionRefs.current.get(id)?.scrollIntoView({ block: 'start' })); };

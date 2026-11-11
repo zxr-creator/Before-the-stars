@@ -15,11 +15,10 @@ import { Vignette } from '../art/vignette';
 import { GLOSSARY, SEAT_KINDS, TOPICS, TOPIC_GROUPS, blockStrings } from './topics';
 import type { Block, Topic, TopicAction } from './topics';
 import { startTutorial } from './state';
+import { SAMPLE_NAMES as SEAT_NAMES, SEAT_COLORS } from '../theme/seats';
 import './tutorial.css';
 
 const STATES: KnowledgeState[] = ['discovered', 'investigating', 'understood', 'prototyped', 'adopted'];
-const SEAT_COLORS = ['#c1503a', '#2f73a0', '#5c8a36', '#8a59a8'];
-const SEAT_NAMES = ['Amberfen', 'Longstrand', 'Riverland', 'Clearbay'];
 
 interface Hit { topic: Topic; snippet: string; term?: string }
 

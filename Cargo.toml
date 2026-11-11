@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/bts-protocol", "crates/bts-engine", "crates/bts-ai", "crates/bts-host", "crates/bts-server", "crates/bts-wasm"]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 publish = false
 

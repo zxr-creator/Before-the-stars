@@ -1,69 +1,57 @@
-// Extension point: recorded music. None ships with the game — the score is composed in
-// code — but licensed or CC0 recordings can be added later without touching the engine.
+// Recorded music: public-domain and CC0 recordings, chosen per era and mood.
 //
-// To add a recording:
-//   1. Put the audio file (ogg, opus, mp3, m4a or wav) in apps/web/src/audio/tracks/.
-//   2. Next to it put a JSON manifest with the same base name, for example
-//      apps/web/src/audio/tracks/harvest-song.json:
+// The catalogue is apps/web/src/audio/tracks/tracks.json (one entry per recording, with
+// its licence as stated on its source page; CREDITS.md beside it is the human-readable
+// copy). The audio files sit in the same folder as Opus-in-WebM, loudness-normalised to
+// about -18 LUFS. Vite emits them as separate static assets addressed relative to the
+// script that loads them (base './'), so they work from any subpath; only their URLs are
+// in this chunk, and each file is fetched when it is about to play (see recordings.ts).
 //
-//        {
-//          "file": "harvest-song.ogg",
-//          "title": "Harvest Song",
-//          "credit": "Performer or composer, year",
-//          "license": "CC0-1.0",            // or the licence you hold; keep the text in docs
-//          "source": "https://…",           // where it came from
-//          "eras": ["ancient", "classical"],// any of ancient classical earlyModern industrial
-//                                           // modern space, or "title"; omit for all
-//          "moods": ["peace"],              // "title", "peace", "war"; omit for peace
-//          "mix": "replace",                // "replace": played instead of a composed piece
-//                                           // "layer": played under the composed piece
-//          "weight": 1,                     // how often it is chosen against composed pieces
-//          "gainDb": -3                     // level trim
-//        }
+// To add a recording: put the .webm next to tracks.json and add an entry; an entry whose
+// file is missing, or which has no licence, is ignored.
 //
-// Vite bundles the files found there; when the folder is empty (as shipped) nothing is
-// added to the build. A recording is chosen in place of a composed piece with
-// probability weight / (weight + 1); its credit belongs in docs and in the almanac.
+//   eras     any of ancient classical earlyModern industrial modern space, or "title"
+//   moods    "title", "peace", "war"
+//   weight   relative chance against the other recordings that fit (default 1)
+//   gainDb   level trim on top of the normalisation (default 0)
 import type { Mood } from './arrange';
 import type { ScoreKey } from './score';
 
-export interface RecordedTrack {
-  url: string;
+export interface TrackInfo {
+  id: string;
+  file: string;
   title: string;
-  credit: string;
-  license: string;
-  eras: ScoreKey[] | null;
+  composer: string;
+  performer: string;
+  eras: ScoreKey[];
   moods: Mood[];
-  mix: 'replace' | 'layer';
+  weight?: number;
+  gainDb?: number;
+  duration: number;
+  excerpt?: string;
+  license: string;
+  licenseText: string;
+  source: string;
+  retrieved: string;
+  note: string;
+}
+
+export interface RecordedTrack extends TrackInfo {
+  url: string;
   weight: number;
   gainDb: number;
 }
 
-interface Manifest {
-  file: string; title?: string; credit?: string; license?: string; source?: string;
-  eras?: ScoreKey[]; moods?: Mood[]; mix?: 'replace' | 'layer'; weight?: number; gainDb?: number;
-}
+const catalogue = Object.values(import.meta.glob('../tracks/tracks.json', { eager: true, import: 'default' }))[0] ?? [];
+const files = import.meta.glob('../tracks/*.{webm,ogg,opus}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 
-const manifests = import.meta.glob('../tracks/*.json', { eager: true, import: 'default' }) as Record<string, Manifest>;
-const files = import.meta.glob('../tracks/*.{ogg,opus,mp3,m4a,wav}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
-
-export const RECORDED_TRACKS: RecordedTrack[] = Object.values(manifests).flatMap((m) => {
+export const RECORDED_TRACKS: RecordedTrack[] = (catalogue as TrackInfo[]).flatMap((m) => {
   const url = files[`../tracks/${m.file}`];
   if (!url || !m.license) return [];
-  return [{
-    url, title: m.title ?? m.file, credit: m.credit ?? '', license: m.license,
-    eras: m.eras?.length ? m.eras : null, moods: m.moods?.length ? m.moods : ['peace'],
-    mix: m.mix === 'layer' ? 'layer' : 'replace', weight: m.weight ?? 1, gainDb: m.gainDb ?? 0,
-  }];
+  return [{ ...m, url, weight: m.weight ?? 1, gainDb: m.gainDb ?? 0 }];
 });
 
-/** A recording for this era and mood, or null to play the composed score. */
-export function pickRecording(key: ScoreKey, mood: Mood, roll: number): RecordedTrack | null {
-  const fit = RECORDED_TRACKS.filter((x) => (!x.eras || x.eras.includes(key)) && x.moods.includes(mood));
-  if (!fit.length) return null;
-  const w = fit.reduce((s, x) => s + x.weight, 0);
-  if (roll * (w + 1) >= w) return null;
-  let acc = 0;
-  for (const x of fit) { acc += x.weight; if (roll * (w + 1) < acc) return x; }
-  return fit[fit.length - 1];
+/** The recordings that fit this era and mood. */
+export function fitting(key: ScoreKey, mood: Mood, skip?: (t: RecordedTrack) => boolean): RecordedTrack[] {
+  return RECORDED_TRACKS.filter((x) => x.eras.includes(key) && x.moods.includes(mood) && !skip?.(x));
 }

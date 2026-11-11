@@ -2533,7 +2533,7 @@ fn networks(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
             if budget == 0 || p.full() {
                 break;
             }
-            let town = r.city.as_ref().map(|c| c.residents >= 50_000).unwrap_or(false);
+            let town = r.city_size.as_ref().map(|c| c.residents >= 50_000).unwrap_or(false);
             if (town || r.id == capital.id) && line_levels(p, r, "harbour").0 == 0 && p.try_build(r, &port, 1, 5) {
                 budget -= 1;
             }

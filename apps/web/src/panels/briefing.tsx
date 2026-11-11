@@ -2,7 +2,7 @@
 import { useState } from 'preact/hooks';
 import type { BriefingItem, Observation, Receipt } from '../protocol';
 import { NEGOTIATION_WINDOWS } from '../protocol';
-import { fmtNow, titleCase, tn } from '../format';
+import { fmtNow, roundSpan, titleCase, tn } from '../format';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { Badge, Btn, Empty, Section, cx } from '../ui';
@@ -43,6 +43,7 @@ const ACTION_LABEL: Record<string, string> = {
   'start_project:ftl_deployment': 'Deployment exercise', 'start_project:ftl_replacement': 'Replacement and relief',
   manage_project: 'Manage project', investigate: 'Follow up lead', propose_reform: 'Propose reform', start_program: 'Open programme',
   manage_program: 'Manage programme', demolish: 'Demolish', military_order: 'Military order', forfeit: 'Withdraw',
+  directive: 'Standing order', repeal: 'Repeal',
 };
 
 export function actionLabel(action: string): string {
@@ -64,7 +65,9 @@ function phaseAdvice(obs: Observation): { title: string; text: string; panel?: P
     const open = obs.diplomacy.channels.filter((c) => c.open).length;
     return { title: t('Negotiation window {n} of {total}', { n: obs.window, total: NEGOTIATION_WINDOWS }), text: open ? tn(open, '{n} channel is open. One envelope per counterpart in each window.', '{n} channels are open. One envelope per counterpart in each window.') : t('No channel is open this round. You can go straight to planning.'), panel: open ? 'diplomacy' : undefined };
   }
-  return { title: t('Planning'), text: t('Settle projects, labour and orders. Ending the round resolves twelve months.') };
+  return { title: t('Planning'), text: obs.months_per_round > 12
+    ? t('Settle projects, labour, orders and standing orders. Ending the round resolves {span}; standing orders act year by year inside it.', { span: roundSpan(obs.calendar) ?? fmtNow(obs) })
+    : t('Settle projects, labour and orders. Ending the round resolves twelve months.') };
 }
 
 export function BriefingPanel() {

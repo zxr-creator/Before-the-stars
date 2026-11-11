@@ -195,13 +195,21 @@ export function buildParchmentDecals(topo: Topology, seed: number): ParchmentDec
     }
     return true;
   };
-  // Compass roses in the sheet margin, outside the neat-line.
-  quad(0, -150, H + 135, 210, 0);
-  quad(0, W + 160, -120, 150, 0);
+  // Compass roses in the sheet margin, outside the neat-line. A wrapped world has no east or
+  // west margin: its roses sit above and below the polar edges, and the doodles are laid on
+  // one turn of the globe only (its copies repeat them).
+  const wrap = topo.wrap;
+  if (wrap) {
+    quad(0, W * 0.25, H + 150, 190, 0);
+    quad(0, W * 0.75, -140, 150, 0);
+  } else {
+    quad(0, -150, H + 135, 210, 0);
+    quad(0, W + 160, -120, 150, 0);
+  }
   // Seeded doodles on a jittered grid across the sheet; those overlapped by knowledge are skipped.
   const step = 250;
   for (let gz = -1; gz * step < H + step; gz++) {
-    for (let gx = -1; gx * step < W + step; gx++) {
+    for (let gx = wrap ? 0 : -1; gx * step < (wrap ? W : W + step); gx++) {
       const hsh = hash32(gx * 73 + seed, gz * 151 + 7);
       const rand = rng(hsh);
       const x = gx * step + 40 + rand() * (step - 80), z = gz * step + 40 + rand() * (step - 80);
@@ -213,7 +221,7 @@ export function buildParchmentDecals(topo: Topology, seed: number): ParchmentDec
       if (x < -200 || z < -180 || x > W + 200 || z > H + 180) continue;
       if (show < 0.34) continue;
       if (!clear(x, z, size * 0.5)) continue;
-      const inFrame = x > 60 && z > 60 && x < W - 60 && z < H - 60;
+      const inFrame = (wrap || (x > 60 && x < W - 60)) && z > 60 && z < H - 60;
       const set = inFrame && pickSea < 0.45 ? LAND_SET : SEA_SET;
       quad(set[Math.floor(which * set.length)], x, z, size, rot);
       if (inFrame && captions.length < 3 && show > 0.8) captions.push([x, z + size * 0.62]);

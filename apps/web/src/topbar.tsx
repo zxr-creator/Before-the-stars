@@ -4,7 +4,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Good, GoodLine, Observation } from './protocol';
-import { GOOD_LABEL, GOOD_SHORT, RESEARCH_LABEL, compact, goodTonnes, goodUnit, int, pct, people, peopleNum, qty, qtySigned, researchMonths, tonnes, fmtNow } from './format';
+import { GOOD_LABEL, GOOD_SHORT, RESEARCH_LABEL, compact, goodTonnes, goodUnit, int, pct, people, peopleNum, qty, qtySigned, researchMonths, tonnes, fmtNow, histYear, roundLength, roundSpan, totalRounds } from './format';
 import { Icon } from './icons';
 import { SeatDot, Tick, cx } from './ui';
 import { humanSeatList, openOverlay, openPanel, seatName, setMenu, switchSeat, useApp } from './store';
@@ -13,6 +13,8 @@ import { getLocale, t, tc } from './i18n';
 import { Emblem } from './theme/emblem';
 import { GoodIcon } from './theme/goods';
 import { PerspectiveSwitch } from './observer/controls';
+import { BoostYield } from './space/BoostYield';
+import { EraBanner } from './era';
 
 const BASIC: Good[] = ['food', 'materials', 'tools'];
 const ADVANCED: Good[] = ['metal', 'components', 'electronics', 'fuel'];
@@ -109,13 +111,21 @@ function GoodYield({ g, obs, right }: { g: GoodLine; obs: Observation; right?: b
   );
 }
 
+/** The date plate's tooltip: the round's span and length, and where the calendar ends. */
+export function dateTitle(x: { month: number; horizon: number; months_per_round: number; calendar?: Observation['calendar'] }): string {
+  const cal = x.calendar;
+  if (!cal) return t('Month {m} of {h}', { m: x.month, h: x.horizon });
+  return t('This round: {span} ({length}). The match runs from {start} to {end}.', {
+    span: roundSpan(cal) ?? '', length: roundLength(cal.round_months), start: histYear(cal.start.year), end: histYear(cal.horizon.year),
+  });
+}
+
 export function TopBar() {
   const s = useApp();
   const obs = s.obs!;
   const summary = s.summary!;
   const civ = obs.civ;
   const watching = s.mode === 'observe';
-  const rounds = Math.round(obs.horizon / obs.months_per_round);
   const humans = humanSeatList();
   const line = (good: Good) => civ.goods.find((g) => g.good === good);
   const basics = BASIC.map(line).filter((g): g is GoodLine => !!g);
@@ -183,16 +193,19 @@ export function TopBar() {
         </div>
       </div>
 
-      <div class="topbar-date" title={t('Month {m} of {h}', { m: obs.month, h: obs.horizon })}>
+      <div class="topbar-date" title={dateTitle(obs)} data-round={obs.round}>
         <span class="date-year" data-testid="year">{fmtNow(obs)}</span>
-        <span class="date-round">{t('Round {r} of {n}', { r: int(obs.round), n: int(rounds) })}</span>
+        <span class="date-round">{t('Round {r} of {n}', { r: int(obs.round), n: int(totalRounds(obs)) })}</span>
       </div>
+
+      <EraBanner obs={obs} />
 
       {watching ? <PerspectiveSwitch compact /> : null}
 
       <div class="yields" data-tut="yields" role="group" aria-label={t('Stocks and capacities')}>
         {shownBasics.map((g) => <GoodYield g={g} obs={obs} />)}
         {shownAdvanced.map((g) => <GoodYield g={g} obs={obs} />)}
+        <BoostYield obs={obs} />
         <span class="yield-sep" aria-hidden="true" />
         <Yield id="population" icon={<Icon name="people" size={20} />} label={t('Population')} panel="people" right
           value={<><span data-testid="population" data-exact={civ.population}><Tick value={civ.population} format={(n) => peopleNum(n)} /></span>{growth ? <em class={growth < 0 ? 'neg' : 'pos'}>{(growth > 0 ? '+' : '−') + peopleNum(Math.abs(growth))}</em> : null}</>}>
