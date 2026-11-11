@@ -21,6 +21,7 @@
 
 use crate::{Difficulty, NativeAi};
 use bts_protocol::*;
+use crate::tables::tables;
 use std::collections::{HashMap, HashSet};
 
 const TIER_POWER: [i64; 6] = [1000, 2500, 6250, 15625, 39063, 97656];
@@ -460,7 +461,7 @@ impl<'a> Plan<'a> {
         let per_region = match self.diff {
             Difficulty::Easy => 2,
             Difficulty::Medium => 3,
-            Difficulty::Hard => 5,
+            Difficulty::Hard | Difficulty::Expert => 5,
         };
         if *self.builds.get(&region.id).unwrap_or(&0) >= per_region && priority > 2 {
             return false;
@@ -680,7 +681,7 @@ fn offer_value(ai: &NativeAi, obs: &Observation, offer: &OfferView) -> i64 {
                 if *from == me {
                     let work = obs.knowledge.techs.iter().find(|t| &t.handle == tech).map(|t| t.work_needed).unwrap_or(200_000);
                     let rival = their_population(obs, other) > obs.civ.population as i64;
-                    v -= work / 1000 / if rival && ai.difficulty == Difficulty::Hard { 3 } else { 6 };
+                    v -= work / 1000 / if rival && matches!(ai.difficulty, Difficulty::Hard | Difficulty::Expert) { 3 } else { 6 };
                 } else {
                     v += match obs.knowledge.techs.iter().find(|t| &t.handle == tech) {
                         Some(t) if t.state >= KnowledgeState::Understood => 0,
@@ -898,7 +899,7 @@ fn offer_margin(ai: &NativeAi, obs: &Observation, offer: &OfferView) -> i64 {
     match ai.difficulty {
         Difficulty::Easy => -5,
         Difficulty::Medium => 5 + given / 20,
-        Difficulty::Hard => 10 + given / 8,
+        Difficulty::Hard | Difficulty::Expert => 10 + given / 8,
     }
 }
 
@@ -1071,7 +1072,7 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
         let reserve = match ai.difficulty {
             Difficulty::Easy => 4,
             Difficulty::Medium => 6,
-            Difficulty::Hard => 8,
+            Difficulty::Hard | Difficulty::Expert => 8,
         };
         p.push(Action::SetPolicy { setting: PolicySetting::FoodReserveMonths { months: reserve } });
         p.push(Action::SetPolicy { setting: PolicySetting::LaborWeight { category: LaborCategory::Knowledge, weight: 8 } });
@@ -1118,6 +1119,14 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
             p.wanted.insert(l.good);
         }
     }
+    // the inputs of the fields at the best method the seat can use: planned before
+    // the fields fall back to a lower method for want of them
+    for g in [Good::Horses, Good::Fertilizer, Good::Fuel, Good::Chemicals] {
+        let supply = p.line(g).map(|l| made_in_year(l) + l.traded_in).unwrap_or(0);
+        if standing_demand(&p, &regions, g) > supply {
+            p.wanted.insert(g);
+        }
+    }
     // the jump programme's base: a year of flight hardware, and of fuel and spares in store
     if base_short(obs, "Industrial base") {
         for g in [Good::Components, Good::Electronics, Good::Hardware, Good::Conductors, Good::Metal] {
@@ -1156,7 +1165,7 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
         research(ai, &mut p);
     }
     if on("culture") {
-        culture(&mut p, capital);
+        culture(ai, &mut p, capital);
     }
     if on("economy") {
         production(&mut p, &regions, capital);
@@ -1285,7 +1294,7 @@ fn food_and_water(p: &mut Plan, regions: &[&RegionView]) {
     let step: u16 = match p.diff {
         Difficulty::Easy => 1,
         Difficulty::Medium => 2,
-        Difficulty::Hard => 3,
+        Difficulty::Hard | Difficulty::Expert => 3,
     };
     let ahead = 100 + 5 * p.diff.lookahead() as i64; // prepare for growth
     for r in regions {
@@ -1320,25 +1329,109 @@ fn food_and_water(p: &mut Plan, regions: &[&RegionView]) {
             }
         }
     }
+    // granaries for the reserve the seat aims to keep: sized to the shortfall in
+    // storage, in the largest regions first, a few orders a round
     if let Some(l) = p.line(Good::Food) {
         if let Some(cap) = l.capacity {
-            if l.stock * 10 >= cap * 7 {
-                if let Some(r) = regions.first() {
-                    p.try_build(r, "granary", 1, 3);
+            let reserve = (obs.civ.policies.food_reserve_months as i64).max(2) * pop * food_each;
+            if let (Some(ft), true) = (p.fac_type("granary"), cap < reserve || l.stock * 10 >= cap * 7) {
+                let mut short = ((reserve - cap) / GRANARY_RATIONS).max(1);
+                for r in regions.iter().take(4) {
+                    if short <= 0 {
+                        break;
+                    }
+                    let room = p.site_cap(ft, r).saturating_sub(p.level(r, "granary")) as i64;
+                    let n = short.min(room).min(SUPPLY_ORDER_MAX as i64);
+                    if n > 0 && try_build_sized(p, r, "granary", n as u16, 3) {
+                        short -= n;
+                    }
                 }
             }
         }
     }
 }
 
+/// Food and field-method technologies (public rules: the field methods and the
+/// food works of design chapter 36, section 3.3).
+const ECON_NODES: [&str; 12] = ["T005", "T006", "T011", "T020", "T021", "T056", "T094", "T095", "T130", "T132", "T133", "T135"];
+
+/// The knowledge-channel steps of design chapter 36, section 2.7 (public rules).
+const CHANNEL_NODES: [&str; 5] = ["T025", "T048", "T049", "T112", "T045"];
+
+/// Expected value of investigating a card per unit of research (design chapter 39,
+/// section 3.2), in thousandths, from the card, the public tables and the seat's own
+/// observation only. `None` when the self-block rule forbids it for now.
+fn research_score(p: &Plan, t: &TechCard, needed: &HashSet<&str>, cap_for: &dyn Fn(ResearchClass) -> i64) -> Option<i64> {
+    let tb = tables();
+    let obs = p.obs;
+    let info = tb.techs.get(&t.name);
+    // the nodes that change how fast everything else is learned (the published
+    // channel steps: writing, printing, the scientific method, digital networks)
+    // are worth as much as the goal itself
+    let channel = info.map(|i| CHANNEL_NODES.contains(&i.id.as_str())).unwrap_or(false);
+    let critical = info.map(|i| i.critical).unwrap_or(false) || channel;
+    // the self-block rule: a family member is not adopted while a rival the seat
+    // can see is victory-critical or a known requirement is waiting on, until that
+    // rival is understood
+    if let Some(f) = info.and_then(|i| i.family) {
+        if !critical && p.diff != Difficulty::Easy {
+            for rival in tb.families[f].members.iter().filter(|m| **m != t.name) {
+                // from the public family table: a rival on the goal or a channel step
+                // is protected whether or not the seat has seen it yet (static
+                // content, the same for every seat; no match state is read)
+                let rival_crit = tb.techs.get(rival).map(|i| i.critical || CHANNEL_NODES.contains(&i.id.as_str())).unwrap_or(false);
+                match obs.knowledge.techs.iter().find(|c| &c.name == rival) {
+                    Some(r) if r.state >= KnowledgeState::Understood => {}
+                    Some(r) if rival_crit || needed.contains(r.handle.as_str()) => return None,
+                    None if rival_crit => return None,
+                    _ => {}
+                }
+            }
+        }
+    }
+    let w_goal: i64 = match p.diff {
+        Difficulty::Easy => 1,
+        Difficulty::Medium => 3,
+        Difficulty::Hard => 6,
+        Difficulty::Expert => 10,
+    };
+    let below = info.map(|i| i.critical_below as i64).unwrap_or(0);
+    let v_goal = if critical { w_goal * 1000 * (10 + below.min(40)) / 10 } else { 0 };
+    let v_unlock = if needed.contains(t.handle.as_str()) { 3000 } else { 0 };
+    // family fit: a member matching the seat's incumbent is the cheap way forward
+    let v_trad = match &t.family_view {
+        Some(fv) if fv.incumbent.as_deref() == Some(t.handle.as_str()) => 500,
+        _ => 0,
+    };
+    let v_breadth = 1000;
+    // the expected loss of locking a rival the seat values: a card that would lock a
+    // discovered rival it has not understood weighs less
+    let l_lock = match &t.family_view {
+        Some(fv) if fv.incumbent.is_none() || fv.incumbent.as_deref() != Some(t.handle.as_str()) => 300 * fv.rivals_discovered.len() as i64,
+        _ => 0,
+    };
+    let value = (v_goal + v_unlock + v_trad + v_breadth - l_lock).max(100);
+    let remaining = (t.work_needed - t.work_done).max(1);
+    let cap = cap_for(t.class).max(1);
+    // months of the seat's capacity in that class, never below a year
+    let cost = (remaining * 12 / cap).max(12) + 12;
+    Some(value * 1000 / cost)
+}
+
 fn research(ai: &NativeAi, p: &mut Plan) {
     let obs = p.obs;
     let capacity: i64 = obs.civ.research.iter().map(|r| r.capacity).sum();
-    let slots = match p.diff {
-        Difficulty::Easy => 2,
-        Difficulty::Medium => 3,
-        Difficulty::Hard => 5,
-    } + (capacity / 25_000) as usize;
+    // the investigation lines the referee allows (older referees: the former slots)
+    let slots = if obs.knowledge.investigation_lines > 0 {
+        obs.knowledge.investigation_lines as usize
+    } else {
+        let base = match p.diff {
+            Difficulty::Easy => 2,
+            Difficulty::Medium => 3,
+            Difficulty::Hard | Difficulty::Expert => 5,
+        };
+        base + (capacity / 25_000) as usize
+    };
     // handles that known requirements are waiting on
     let mut needed: HashSet<&str> = HashSet::new();
     for f in &obs.catalog.facilities {
@@ -1371,21 +1464,60 @@ fn research(ai: &NativeAi, p: &mut Plan) {
     }
     let cap_for = |class: ResearchClass| -> i64 { obs.civ.research.iter().filter(|l| l.class >= class).map(|l| l.capacity).sum() };
     let class_of = |handle: &Option<String>| -> Option<ResearchClass> { handle.as_ref().and_then(|h| obs.knowledge.techs.iter().find(|t| &t.handle == h)).map(|t| t.class) };
-    let active = obs.projects.iter().filter(|x| x.kind == "research" && class_of(&x.target).map(|k| cap_for(k) > 0).unwrap_or(true)).count();
-    let _ = active;
+    let active = obs.projects.iter().filter(|x| x.kind == "research" && !x.paused).count();
     let mut cands: Vec<&TechCard> = obs.knowledge.techs.iter().filter(|t| t.can_investigate && cap_for(t.class) > 0).collect();
-    cands.sort_by_key(|t| {
-        let remaining = (t.work_needed - t.work_done).max(1);
-        let bonus = if needed.contains(t.handle.as_str()) { 3 } else { 1 };
-        (remaining / bonus, t.handle.clone())
-    });
+    let tb = tables();
+    let is_crit = |t: &TechCard| tb.techs.get(&t.name).map(|i| i.critical || CHANNEL_NODES.contains(&i.id.as_str())).unwrap_or(false);
+    if p.diff == Difficulty::Easy {
+        // the naive baseline: cheapest first, known requirements at a third
+        cands.sort_by_key(|t| {
+            let remaining = (t.work_needed - t.work_done).max(1);
+            let bonus = if needed.contains(t.handle.as_str()) { 3 } else { 1 };
+            (remaining / bonus, t.handle.clone())
+        });
+    } else {
+        let mut scored: Vec<(i64, &TechCard)> = cands.iter().filter_map(|t| research_score(p, t, &needed, &cap_for).map(|s| (s, *t))).collect();
+        scored.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.handle.cmp(&b.1.handle)));
+        cands = scored.into_iter().map(|(_, t)| t).collect();
+        // the budget split (section 3.2): shares of the lines for the critical cards,
+        // for the economy (cards a known requirement waits on, and the public food
+        // and field-method nodes) and for breadth; a share with no card goes to the
+        // others in order of score
+        let (crit_bp, econ_bp): (usize, usize) = match p.diff {
+            Difficulty::Expert => (7_500, 1_500),
+            Difficulty::Hard => (6_000, 2_500),
+            _ => (4_000, 4_000),
+        };
+        let lines = slots.max(1);
+        let crit_lines = (lines * crit_bp + 9_999) / 10_000;
+        let econ_lines = ((lines * econ_bp + 9_999) / 10_000).min(lines - crit_lines.min(lines));
+        let running_of = |pred: &dyn Fn(&TechCard) -> bool| obs.projects.iter().filter(|x| x.kind == "research" && !x.paused).filter(|x| x.target.as_ref().and_then(|h| obs.knowledge.techs.iter().find(|t| &t.handle == h)).map(|t| pred(t)).unwrap_or(false)).count();
+        let is_econ = |t: &TechCard| !is_crit(t) && (needed.contains(t.handle.as_str()) || tb.techs.get(&t.name).map(|i| ECON_NODES.contains(&i.id.as_str())).unwrap_or(false));
+        let want_crit = crit_lines.saturating_sub(running_of(&is_crit));
+        let want_econ = econ_lines.saturating_sub(running_of(&is_econ));
+        let crit: Vec<&TechCard> = cands.iter().copied().filter(|t| is_crit(t)).collect();
+        let econ: Vec<&TechCard> = cands.iter().copied().filter(|t| is_econ(t)).collect();
+        // breadth: the cheapest of the rest
+        let mut breadth: Vec<&TechCard> = cands.iter().copied().filter(|t| !is_crit(t) && !is_econ(t)).collect();
+        breadth.sort_by_key(|t| ((t.work_needed - t.work_done).max(1), t.handle.clone()));
+        let mut order: Vec<&TechCard> = Vec::new();
+        order.extend(crit.iter().take(want_crit));
+        order.extend(econ.iter().take(want_econ));
+        order.extend(breadth.iter().take(slots.saturating_sub(want_crit + want_econ)));
+        for t in &cands {
+            if !order.iter().any(|o| o.handle == t.handle) {
+                order.push(t);
+            }
+        }
+        cands = order;
+    }
     // investigations nobody can staff do not hold a slot; drop them so the reports stay honest
     for x in obs.projects.iter().filter(|x| x.kind == "research" && x.work_done == 0 && class_of(&x.target).map(|k| cap_for(k) == 0).unwrap_or(false)) {
         p.push(Action::ManageProject { project: x.id, op: ManageOp::Cancel, priority: None, position: None });
     }
     if p.long {
-        // in a long round the agenda keeps research going after these finish, and
-        // automatic research picks up what is discovered in the meantime
+        // in a long round the agenda keeps research going after these finish, in
+        // order of score, and automatic research picks up what is discovered meanwhile
         let mut agenda: Vec<String> = cands.iter().take(32).map(|t| t.handle.clone()).collect();
         agenda.extend(obs.knowledge.leads.iter().take(8).map(|l| l.handle.clone()));
         if !agenda.is_empty() {
@@ -1396,8 +1528,20 @@ fn research(ai: &NativeAi, p: &mut Plan) {
         }
     }
     for t in cands.into_iter().take(slots.saturating_sub(active)) {
-        let prio = if needed.contains(t.handle.as_str()) { 3 } else { 5 };
+        let prio = if needed.contains(t.handle.as_str()) || is_crit(t) { 3 } else { 5 };
         p.push(Action::StartProject { spec: ProjectSpec::Research { tech: t.handle.clone() }, priority: Some(prio) });
+    }
+    // revisit studies: a locked rival the seat needs (critical, or waited on) is
+    // worth reopening when nothing else would
+    if p.diff != Difficulty::Easy && !obs.projects.iter().any(|x| x.kind == "revisit") {
+        let locked = obs.knowledge.techs.iter().find(|t| {
+            t.state < KnowledgeState::Understood
+                && t.family_view.as_ref().map(|f| (f.capped || f.lock_e_bp < 8_000) && !f.revisit_active && f.incumbent.as_deref() != Some(t.handle.as_str())).unwrap_or(false)
+                && (is_crit(t) || needed.contains(t.handle.as_str()))
+        });
+        if let Some(t) = locked {
+            p.push(Action::StartProject { spec: ProjectSpec::Revisit { card: t.handle.clone() }, priority: Some(4) });
+        }
     }
     let lead_studies = obs.projects.iter().filter(|x| x.kind == "lead").count();
     for l in obs.knowledge.leads.iter().take(3usize.saturating_sub(lead_studies)) {
@@ -1412,22 +1556,167 @@ fn research(ai: &NativeAi, p: &mut Plan) {
     }
 }
 
-fn culture(p: &mut Plan, capital: &RegionView) {
+/// The world order a seat aims for (design chapter 39, section 3.3), by practice id:
+/// unified command (C063) for a seat that governs most of the land it has met or
+/// fights wars of conquest, the constitutional community (C061) for a federal seat
+/// with six or more steady regions, else negotiated institutions (C062).
+fn world_route(ai: &NativeAi, obs: &Observation) -> &'static str {
+    let own = obs.regions.iter().filter(|r| r.owner == Some(obs.seat)).count() as i64;
+    let met = obs.regions.iter().filter(|r| r.owner.is_some()).count().max(1) as i64;
+    let federal = obs.culture.practices.iter().any(|c| tables().practices.get(&c.name).map(|i| i.id == "C042").unwrap_or(false) && c.state >= PracticeState::Enacted);
+    if own * 10 >= met * 6 || ai.memory.war_target.is_some() {
+        "C063"
+    } else if federal && own >= 6 && obs.civ.stability >= 60 {
+        "C061"
+    } else {
+        "C062"
+    }
+}
+
+/// Practice ids that the chosen route rests on outright (the world order and the
+/// ancestors it needs, alternatives left open).
+fn route_closure(route: &str) -> HashSet<String> {
+    let tb = tables();
+    let mut out = HashSet::new();
+    let mut stack = vec![route.to_string(), "C064".to_string()];
+    while let Some(id) = stack.pop() {
+        if !out.insert(id.clone()) {
+            continue;
+        }
+        // what the route needs outright: alternatives stay open
+        if let Some(pre) = tb.prac_and.get(&id) {
+            stack.extend(pre.iter().cloned());
+        }
+    }
+    out
+}
+
+/// Value of reforming a practice per unit of effort (design chapter 39, section 3.3):
+/// `(effect value + route value - tension cost) / (work + 400 x load)`, in
+/// thousandths; `None` when it must not be reformed (it would close the seat's route
+/// to the common mission charter, or another member of its group is held).
+fn practice_score(p: &Plan, c: &PracticeCard, route: &HashSet<String>, forbidden: &HashSet<String>) -> Option<i64> {
+    let tb = tables();
+    let info = tb.practices.get(&c.name);
+    let id = info.map(|i| i.id.as_str()).unwrap_or("");
+    if forbidden.contains(id) {
+        return None;
+    }
+    // an exclusive rival already held: never two at once (the referee refuses it)
+    if c.exclusive_with.iter().any(|h| p.obs.culture.practices.iter().any(|x| &x.handle == h && x.state >= PracticeState::Reforming)) {
+        return None;
+    }
+    let critical = info.map(|i| i.critical).unwrap_or(false);
+    let effect = 1_000 + 150 * c.enables.len() as i64 + if critical { 1_500 + 200 * info.map(|i| i.critical_below as i64).unwrap_or(0).min(20) } else { 0 };
+    let route_v = if route.contains(id) { 3_000 } else { 0 };
+    let tension = 800 * c.tension_with.iter().filter(|h| p.obs.culture.practices.iter().any(|x| &x.handle == *h && x.state >= PracticeState::Enacted)).count() as i64;
+    let value = (effect + route_v - tension).max(100);
+    let cost = c.reform_work / 1_000 + 400 * c.load as i64 + 10;
+    Some(value * 1_000 / cost)
+}
+
+fn culture(ai: &NativeAi, p: &mut Plan, capital: &RegionView) {
     let obs = p.obs;
+    let tb = tables();
     let reforming = obs.projects.iter().filter(|x| x.kind == "reform").count();
-    let limit = if p.diff == Difficulty::Easy { 1 } else { 2 };
+    let slots = if obs.culture.reform_slots > 0 { obs.culture.reform_slots as usize } else { 2 };
+    let limit = if p.diff == Difficulty::Easy { 1 } else { slots.min(2.max(slots)) };
+    // the route to the common mission charter, chosen from AD 1900 (before then every
+    // exclusive side still leaves a route, tested in the content)
+    let year = obs.date.as_ref().map(|d| d.year).unwrap_or(0);
+    let route_id = world_route(ai, obs);
+    let route = if year >= 1900 && p.diff != Difficulty::Easy { route_closure(route_id) } else { HashSet::new() };
+    // members of exclusive groups that would close the route
+    let mut forbidden: HashSet<String> = HashSet::new();
+    if !route.is_empty() {
+        for g in &tb.groups {
+            let ids: Vec<String> = g.members.iter().filter_map(|n| tb.practices.get(n).map(|i| i.id.clone())).collect();
+            if ids.iter().any(|i| route.contains(i)) {
+                forbidden.extend(ids.into_iter().filter(|i| !route.contains(i)));
+            }
+        }
+    }
+    // exclusive choices by endowment (section 3.3) where the route says nothing:
+    // conscription for a seat that is weaker than a rival it has met, otherwise a
+    // seat-specific lean so that both sides of every group are chosen by some seats
+    for g in &tb.groups {
+        let ids: Vec<String> = g.members.iter().filter_map(|n| tb.practices.get(n).map(|i| i.id.clone())).collect();
+        if ids.iter().any(|i| forbidden.contains(i) || route.contains(i)) || ids.len() < 2 {
+            continue;
+        }
+        let pick = if g.id == "X08" {
+            let weak = obs.others.iter().any(|o| their_power(obs, o.seat) * 2 > own_power(obs) * 3);
+            if weak { 0 } else { 1 }
+        } else {
+            (mix(ai.policy_seed ^ g.id.bytes().fold(0u64, |a, b| a.wrapping_mul(31).wrapping_add(b as u64))) % ids.len() as u64) as usize
+        };
+        for (k, i) in ids.into_iter().enumerate() {
+            if k != pick {
+                forbidden.insert(i);
+            }
+        }
+    }
+    let load = &obs.culture.load;
+    let headroom = load.capacity as i64 - 4 - load.used as i64;
+    let mut cands: Vec<(i64, &PracticeCard)> = obs
+        .culture
+        .practices
+        .iter()
+        .filter(|c| c.can_reform)
+        .filter(|c| c.load as i64 <= headroom || tb.practices.get(&c.name).map(|i| i.critical).unwrap_or(false) || load.capacity == 0)
+        .filter_map(|c| practice_score(p, c, &route, &forbidden).map(|s| (s, c)))
+        .collect();
+    if p.diff == Difficulty::Easy {
+        // the naive baseline: catalogue order
+        cands.sort_by_key(|(_, c)| obs.culture.practices.iter().position(|x| x.handle == c.handle));
+    } else {
+        cands.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.handle.cmp(&b.1.handle)));
+    }
     let mut started = 0;
-    for pr in obs.culture.practices.iter().filter(|c| c.can_reform) {
+    let mut room = headroom;
+    for (_, pr) in &cands {
         if reforming + started >= limit {
             break;
         }
+        let critical = tb.practices.get(&pr.name).map(|i| i.critical).unwrap_or(false);
+        if !critical && load.capacity > 0 && pr.load as i64 > room {
+            continue;
+        }
+        room -= pr.load as i64;
         p.push(Action::ProposeReform { practice: pr.handle.clone() });
         started += 1;
     }
+    // over capacity: repeal the established practice worth least for its load
+    if load.capacity > 0 && load.used > load.capacity && p.diff != Difficulty::Easy && !obs.projects.iter().any(|x| x.kind == "repeal") {
+        let worst = obs.culture.practices.iter().filter(|c| c.state >= PracticeState::Enacted && c.load > 0).filter(|c| !tb.practices.get(&c.name).map(|i| i.critical).unwrap_or(true)).filter(|c| !route.contains(tb.practices.get(&c.name).map(|i| i.id.as_str()).unwrap_or(""))).min_by_key(|c| ((150 * c.enables.len() as i64 + 1_000) / c.load as i64, c.handle.clone()));
+        if let Some(c) = worst {
+            p.push(Action::Repeal { practice: c.handle.clone() });
+        }
+    }
     if p.long {
-        // every recognized practice, in the order the catalog lists them: reforms
-        // that become possible during the round begin when one finishes
-        let agenda: Vec<String> = obs.culture.practices.iter().filter(|c| c.state == PracticeState::Recognized).map(|c| c.handle.clone()).take(64).collect();
+        // the recognized practices worth reforming, best first: reforms that become
+        // possible during the round begin when one finishes
+        let mut rec: Vec<(i64, &PracticeCard)> = obs.culture.practices.iter().filter(|c| c.state == PracticeState::Recognized).filter_map(|c| practice_score(p, c, &route, &forbidden).map(|s| (s, c))).collect();
+        if p.diff != Difficulty::Easy {
+            rec.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.handle.cmp(&b.1.handle)));
+        }
+        // within the load the offices can carry (capacity less four), the critical
+        // practices always
+        let mut room = if load.capacity > 0 { load.capacity as i64 - 4 - load.used as i64 } else { i64::MAX };
+        let agenda: Vec<String> = rec
+            .into_iter()
+            .filter(|(_, c)| {
+                let critical = tb.practices.get(&c.name).map(|i| i.critical).unwrap_or(false);
+                if critical || (c.load as i64) <= room {
+                    room -= c.load as i64;
+                    true
+                } else {
+                    false
+                }
+            })
+            .map(|(_, c)| c.handle.clone())
+            .take(64)
+            .collect();
         if !agenda.is_empty() && limit >= 2 {
             p.directives.push(Action::Directive { op: DirectiveOp::Add, id: None, directive: Some(Directive::ReformAgenda { practices: agenda }), position: None });
         }
@@ -1560,7 +1849,7 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
     let max_open = match p.diff {
         Difficulty::Easy => 2,
         Difficulty::Medium => 4,
-        Difficulty::Hard => 6,
+        Difficulty::Hard | Difficulty::Expert => 6,
     };
     let unqualified = |r: &RegionView| -> i64 {
         let o = r.own.as_ref().unwrap();
@@ -1655,6 +1944,64 @@ fn producer<'a>(p: &Plan<'a>, g: Good) -> Option<&'a FacilityType> {
     producers(p, g).into_iter().next()
 }
 
+/// What the seat's works and fields would draw of a good in a year at full rate:
+/// every works' running method (fields at the best method the seat can use, since
+/// that is what they fall back from when the input is short) and upkeep, and never
+/// less than what it actually used.
+fn standing_demand(p: &Plan, regions: &[&RegionView], g: Good) -> i64 {
+    let mut month = 0i64;
+    for r in regions {
+        for f in r.own.as_ref().unwrap().facilities.iter().filter(|f| f.enabled && f.level > 0) {
+            let Some(ft) = p.fac_type(&f.kind) else { continue };
+            let recipe = if f.kind == "fields" {
+                ft.recipes.iter().filter(|x| x.available).last()
+            } else {
+                ft.recipes.iter().find(|x| Some(&x.key) == f.active_method.as_ref()).or_else(|| ft.recipes.iter().find(|x| x.available))
+            };
+            let per_level: i64 = recipe.map(|x| x.inputs.iter().filter(|i| i.good == g).map(|i| i.amount).sum()).unwrap_or(0) + ft.upkeep.iter().filter(|u| u.good == g).map(|u| u.amount).sum::<i64>();
+            month += per_level * f.level as i64;
+        }
+    }
+    (month * 12).max(p.line(g).map(used_in_year).unwrap_or(0))
+}
+
+/// Levels of `ft` that would close the gap between what the seat needs of `g` in a
+/// year (its standing demand and a tenth more, more again for the growth of the
+/// years a long round lasts) and what it makes and receives, at least one.
+fn levels_for_gap(p: &Plan, regions: &[&RegionView], g: Good, ft: &FacilityType) -> u16 {
+    let Some(out) = ft.recipes.iter().filter(|x| x.available).find_map(|x| x.outputs.iter().find(|o| o.good == g).map(|o| o.amount)) else { return 1 };
+    if out <= 0 {
+        return 1;
+    }
+    let demand = standing_demand(p, regions, g);
+    let supply = p.line(g).map(|l| made_in_year(l) + l.traded_in).unwrap_or(0);
+    let margin = 11_000 + 200 * p.years.min(25);
+    let gap = demand * margin / 10_000 - supply;
+    let per_year = out * 12;
+    ((gap + per_year - 1) / per_year).clamp(1, SUPPLY_ORDER_MAX as i64) as u16
+}
+
+/// Rations one level of granaries stores (public catalog figure).
+const GRANARY_RATIONS: i64 = 2_500_000;
+
+/// The most levels one order adds to a works for a good the seat is short of.
+const SUPPLY_ORDER_MAX: u16 = 12;
+
+/// Order `levels` of a works, or as many of them as the seat can supply, crew and
+/// power now (halving down to one).
+fn try_build_sized(p: &mut Plan, r: &RegionView, kind: &str, levels: u16, prio: u8) -> bool {
+    let mut n = levels.max(1);
+    loop {
+        if p.try_build(r, kind, n, prio) {
+            return true;
+        }
+        if n == 1 {
+            return false;
+        }
+        n = (n / 2).max(1);
+    }
+}
+
 fn production(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
     let obs = p.obs;
     let mut wanted: Vec<Good> = p.wanted.iter().copied().collect();
@@ -1663,10 +2010,14 @@ fn production(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
         if p.full() {
             break;
         }
-        // tools, instruments and records keep everything else running
-        let prio = if matches!(g, Good::Tools | Good::Instruments | Good::Media | Good::Spares | Good::Fuel) { 2 } else { 4 };
+        // tools, instruments and records keep everything else running; so do the
+        // inputs of the fields
+        let prio = if matches!(g, Good::Tools | Good::Instruments | Good::Media | Good::Spares | Good::Fuel | Good::Fertilizer | Good::Horses) { 2 } else { 4 };
         // try each way of making it; a plant starved of its own inputs is no reason to stop looking
         'types: for ft in producers(p, g) {
+            // orders are sized to the gap: one level a round never catches up with
+            // fields and works that grow every year
+            let want = levels_for_gap(p, regions, g, ft);
             let mut exists = false;
             let mut starved = false;
             for r in regions {
@@ -1685,8 +2036,10 @@ fn production(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
                         break 'types;
                     }
                     let idle = *p.idle.get(&r.id).unwrap_or(&0);
-                    let jobs: i64 = ft.jobs.iter().map(|j| j.count as i64).sum();
-                    if idle >= jobs / 2 && p.try_build(r, &ft.kind, 1, prio) {
+                    let jobs: i64 = ft.jobs.iter().map(|j| j.count as i64).sum::<i64>().max(1);
+                    // as many levels as the gap asks for and the region's idle hands can staff
+                    let n = (want as i64).min((idle * 2 / jobs).max(1)) as u16;
+                    if idle >= jobs / 2 && try_build_sized(p, r, &ft.kind, n, prio) {
                         break 'types;
                     }
                 }
@@ -1695,13 +2048,15 @@ fn production(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
             if exists && starved && !site_bound {
                 continue; // look for another process
             }
-            if exists && !starved {
+            // works that run well but cannot grow where they stand (site full, no idle
+            // hands) are joined by works elsewhere while the gap is more than a level
+            if exists && !starved && want <= 1 {
                 break;
             }
             let built = if ft.site_key == "any" {
-                p.workplace_region(ft).map(|r| p.try_build(r, &ft.kind, 1, prio)).unwrap_or(false)
+                p.workplace_region(ft).map(|r| try_build_sized(p, r, &ft.kind, want, prio)).unwrap_or(false)
             } else {
-                regions.iter().copied().filter(|r| p.level(r, &ft.kind) == 0 && p.site_cap(ft, r) > 0).max_by_key(|r| (p.can_crew(r, &ft.kind), *p.idle.get(&r.id).unwrap_or(&0), std::cmp::Reverse(r.id))).map(|r| p.try_build(r, &ft.kind, 2, prio)).unwrap_or(false)
+                regions.iter().copied().filter(|r| p.level(r, &ft.kind) == 0 && p.site_cap(ft, r) > 0).max_by_key(|r| (p.can_crew(r, &ft.kind), *p.idle.get(&r.id).unwrap_or(&0), std::cmp::Reverse(r.id))).map(|r| try_build_sized(p, r, &ft.kind, want.max(2), prio)).unwrap_or(false)
             };
             if built {
                 break;
@@ -1912,7 +2267,7 @@ fn new_capabilities(p: &mut Plan, regions: &[&RegionView], capital: &RegionView)
     let limit = match p.diff {
         Difficulty::Easy => 1,
         Difficulty::Medium => 2,
-        Difficulty::Hard => 3,
+        Difficulty::Hard | Difficulty::Expert => 3,
     };
     let mut cands: Vec<&FacilityType> = obs
         .catalog
@@ -1994,7 +2349,7 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
     let seat = obs.seat;
     // survey the frontier
     let surveying = obs.projects.iter().filter(|x| x.kind == "survey").count();
-    let max_surveys = if p.diff == Difficulty::Hard { 2 } else { 1 };
+    let max_surveys = if matches!(p.diff, Difficulty::Hard | Difficulty::Expert) { 2 } else { 1 };
     if surveying < max_surveys && p.stock(Good::Food) > 150_000 {
         let mut frontier: Vec<&RegionView> = obs
             .regions
@@ -2013,9 +2368,9 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
     let gap = match p.diff {
         Difficulty::Easy => 5,
         Difficulty::Medium => 3,
-        Difficulty::Hard => 2,
+        Difficulty::Hard | Difficulty::Expert => 2,
     };
-    let slack = if p.diff == Difficulty::Hard { 1 } else { 0 };
+    let slack = if matches!(p.diff, Difficulty::Hard | Difficulty::Expert) { 1 } else { 0 };
     let pop = obs.civ.population.max(1) as i64;
     if settling || obs.round < ai.memory.last_settle_round + gap || (obs.civ.admin_load as i64) >= obs.civ.admin_capacity as i64 + slack || p.stock(Good::Food) < pop * 3 * obs.units.food_per_person_month.max(1) {
         return;
@@ -2098,14 +2453,14 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
     let revealed = obs.objectives.victory.is_some();
     if ai.memory.war_target.is_none() && !at_war && p.diff != Difficulty::Easy && obs.civ.overlord.is_none() && soldiers >= 150 * K {
         let pacts: Vec<SeatId> = obs.diplomacy.treaties.iter().filter(|t| t.status == "active" && t.clauses.iter().any(|c| matches!(c, Clause::NonAggression { .. } | Clause::DefensivePact { .. }))).flat_map(|t| t.parties.iter().copied()).collect();
-        let edge = if p.diff == Difficulty::Hard { 2 } else { 3 };
+        let edge = if matches!(p.diff, Difficulty::Hard | Difficulty::Expert) { 2 } else { 3 };
         let mut best: Option<(i64, SeatId)> = None;
         for o in &neighbours {
             if obs.civ.subordinates.contains(&o.seat) || pacts.contains(&o.seat) {
                 continue;
             }
             let theirs = their_power(obs, o.seat) + their_population(obs, o.seat) * 4 * TIER_POWER[o.observed_tier.unwrap_or(0).min(1) as usize] / 1000 / 100;
-            let worthwhile = revealed || (p.diff == Difficulty::Hard && their_population(obs, o.seat) * 2 < pop && o.trust < 45);
+            let worthwhile = revealed || (matches!(p.diff, Difficulty::Hard | Difficulty::Expert) && their_population(obs, o.seat) * 2 < pop && o.trust < 45);
             if worthwhile && mine > theirs * edge && best.map(|(t, _)| theirs < t).unwrap_or(true) {
                 best = Some((theirs, o.seat));
             }
@@ -2114,7 +2469,7 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
     }
 
     // force size: a share of the population, larger under threat
-    let room_bp: i64 = if at_war { 500 } else if ai.memory.war_target.is_some() || revealed { 350 } else if threatened { 250 } else if !neighbours.is_empty() { match p.diff { Difficulty::Easy => 60, Difficulty::Medium => 120, Difficulty::Hard => 180 } } else { 0 };
+    let room_bp: i64 = if at_war { 500 } else if ai.memory.war_target.is_some() || revealed { 350 } else if threatened { 250 } else if !neighbours.is_empty() { match p.diff { Difficulty::Easy => 60, Difficulty::Medium => 120, Difficulty::Hard | Difficulty::Expert => 180 } } else { 0 };
     let target = pop * room_bp / 10_000;
     let recruiting: Vec<&ProjectView> = obs.projects.iter().filter(|x| x.kind == "recruit").collect();
     if soldiers + (recruiting.len() as i64) * 200 * K < target && recruiting.len() < 2 && obs.civ.food_fulfillment_bp >= 9500 {

@@ -151,18 +151,44 @@ pub fn carrying_capacity(w: &World, seat: SeatId, ri: usize) -> i64 {
 /// full land fewer. It is the Malthusian brake that keeps a pre-modern people near
 /// what its land and knowledge can feed, so that long-run growth follows new land
 /// and new methods rather than drifting to an explosion or to extinction.
+/// The land factor's neutral point (residents over carrying capacity, basis points;
+/// 4,650 in slice 6r, 4,800 since slice 6c),
+/// its change over one neutral span, and its bounds (ruleset 3.0 slice 6r: the
+/// pre-industrial ceiling sits where households begin to feel the land is full,
+/// well short of what the best fields could feed in a good year).
+pub const LAND_NEUTRAL_BP: i64 = 4_800;
+pub const LAND_SLOPE_BP: i64 = 1_500;
+pub const LAND_MIN_BP: i64 = 6_000;
+pub const LAND_MAX_BP: i64 = 10_500;
+/// Child survival gain (basis points) beyond which the land factor fades, gone
+/// 5,000 points later: the medieval remedies keep it, germ theory and clean water
+/// end it.
+pub const LAND_FADE_FROM_BP: i64 = 2_500;
+
 pub fn land_factor(pop: i64, capacity: i64) -> i64 {
     let ratio = pop * 10_000 / capacity.max(1);
-    (10_000 + 625 * (8_000 - ratio) / 8_000).clamp(8_000, 10_625)
+    (10_000 + LAND_SLOPE_BP * (LAND_NEUTRAL_BP - ratio) / LAND_NEUTRAL_BP).clamp(LAND_MIN_BP, LAND_MAX_BP)
 }
 
 /// The development factor of fertility (`F_dev`, basis points): schooling of young
 /// adults, life away from the land and children who survive make families smaller.
 /// Prosperity (design section 5.5) joins it with the consumption slice.
+/// Lowest development factor (ruleset 3.0 slice 6r: 6,800, a modern total
+/// fertility a little above replacement until prosperity joins it, slice 11).
+pub const DEV_FLOOR_BP: i64 = 6_800;
+
 pub fn development_factor(lit_bp: i64, urban_bp: i64, child_gain_bp: i64, prosperity_bp: i64, lifelong: bool) -> i64 {
-    let f = (10_000 - lit_bp * 1_800 / 10_000 - urban_bp * 600 / 10_000 - child_gain_bp * 600 / 10_000 - prosperity_bp * 600 / 10_000).clamp(6_200, 10_000);
+    let f = (10_000 - lit_bp * 1_500 / 10_000 - urban_bp * 600 / 10_000 - child_gain_bp * 600 / 10_000 - prosperity_bp * 600 / 10_000).clamp(DEV_FLOOR_BP, 10_000);
     (f + if lifelong { 500 } else { 0 }).min(10_000)
 }
+
+/// Months of food in store that households count as a secure buffer: a season's
+/// gap between harvests (ruleset 3.0 slice 6r). Fixed, so that fertility follows
+/// the households' food security and not the government's reserve policy.
+pub const HOUSEHOLD_BUFFER_MONTHS: i64 = 2;
+/// Food security (basis points) of households that ate in full all year but have
+/// nothing in store; a full buffer raises it to 10,000.
+pub const FOOD_SECURE_BASE: i64 = 7_000;
 
 /// People who always stay behind when a region sends people elsewhere.
 const MOVE_FLOOR: u32 = 10_000;
@@ -695,15 +721,23 @@ pub fn step(w: &mut World, seat: SeatId) {
         }).sum())
         .collect();
     let medicine = w.civs[si].stock_of(Good::Medicine) > 0;
-    // households judge their stores against the reserve the government aims for, but
-    // never against more than the stores can hold: a people without granaries is not
-    // cautious about a reserve it has nowhere to keep (ruleset 3.0: a first round of
-    // fifty years can pass before storage is known)
-    let mut reserve_target_milli = (w.civs[si].food_reserve_months as i64).clamp(2, 12) * 1000;
+    // households judge their own food security (ruleset 3.0 slice 6r): whether they
+    // have eaten in full over the past year and whether a season's buffer is in
+    // store, never the reserve the government's policy aims for. The buffer is what
+    // the stores can hold at most: a people without granaries is not anxious about
+    // a reserve it has nowhere to keep.
+    let mut buffer_milli = HOUSEHOLD_BUFFER_MONTHS * 1000;
     if need > 0 {
-        reserve_target_milli = reserve_target_milli.min((storage * 9 / 10 * 1000 / need).max(1000));
+        buffer_milli = buffer_milli.min((storage * 9 / 10 * 1000 / need).max(100));
     }
     let reserve_months_milli = if need > 0 { w.civs[si].stock_of(Good::Food).max(0) * 1000 / need } else { 12_000 };
+    let store_term = (reserve_months_milli * 10_000 / buffer_milli.max(1)).clamp(0, 10_000);
+    // per-capita supply: fields and works that raised a twentieth more than everyone
+    // eats this month make households as secure as a full buffer would
+    let made: i64 = regs.iter().map(|i| w.regions[*i].last.food_made).sum();
+    let supply_term = if need > 0 { ((made * 10_000 / need - 9_500) * 10).clamp(0, 10_000) } else { 10_000 };
+    let store_term = store_term.max(supply_term);
+    let (mut diag_food, mut diag_int, mut diag_cap, mut diag_land) = (0i64, 0i64, 0i64, 0i64);
     let lineage_default = w.civs[si].lineage;
 
     let mut births_total = 0u32;
@@ -714,7 +748,10 @@ pub fn step(w: &mut World, seat: SeatId) {
 
     let capacities: Vec<i64> = regs.iter().map(|ri| carrying_capacity(w, seat, *ri)).collect();
     for (k, &ri) in regs.iter().enumerate() {
-        let land = land_factor(w.regions[ri].population() as i64, capacities[k]);
+        // the Malthusian brake fades as children survive: households that expect
+        // their children to live plan families by other things than the land
+        // (ruleset 3.0 slice 6r)
+        let land = 10_000 + (land_factor(w.regions[ri].population() as i64, capacities[k]) - 10_000) * (10_000 - ((child_gain - LAND_FADE_FROM_BP) * 2).clamp(0, 10_000)) / 10_000;
         let secret = w.secret;
         let mut died = [0u32; NQ];
         let working_deaths;
@@ -771,14 +808,22 @@ pub fn step(w: &mut World, seat: SeatId) {
 
             // ---- births --------------------------------------------------------
             working = r.working().max(1);
-            // thin stores make households cautious well before anyone goes hungry
-            // quadratic in the reserve ratio, so households hold back well before stores run thin
-            let ratio = (reserve_months_milli * 10_000 / reserve_target_milli).clamp(0, 10_000);
-            let secure = (ratio * ratio / 10_000).clamp(300, 10_000);
+            // food security: the past year's access in this region (its food history),
+            // and the season's buffer in store; a people living from hand to mouth with
+            // full meals has most of it, hunger takes it away
+            let access = r.food_hist.iter().map(|x| *x as i64).sum::<i64>() / r.food_hist.len().max(1) as i64;
+            let secure = (access.min(10_000) * (FOOD_SECURE_BASE + (10_000 - FOOD_SECURE_BASE) * store_term / 10_000) / 10_000).clamp(300, 10_000);
             let food_factor = if food_bp >= 10_000 { secure } else { ((food_bp - 6000).max(0) * 10_000 / 4000 * 6 / 10 + 2000).min(secure) };
             let crowd_factor = if crowd <= 8500 { 10_000 } else { (10_000 - (crowd - 8500) * 2).max(2500) };
             let dev_factor = development_factor(literate_share(r), urban, child_gain, 0, lifelong);
             let health_factor = (10_000 - pressure / 4).max(6000);
+            {
+                let wgt = rpop as i64;
+                diag_food += food_factor * wgt;
+                diag_int += (custom_civ * food_factor / 10_000 * crowd_factor / 10_000 * dev_factor / 10_000 * land / 10_000) * wgt;
+                diag_cap += rpop as i64 * 10_000 / capacities[k].max(1) * wgt;
+                diag_land += land * wgt;
+            }
             let mut region_births = 0u32;
             let mut region_deaths = 0u32;
             let mut wdeaths = 0u32;
@@ -970,6 +1015,8 @@ pub fn step(w: &mut World, seat: SeatId) {
     if pop > 0 {
         civ.food_ful_bp = (food_weighted / pop as i64) as u16;
         civ.water_ful_bp = (water_weighted / pop as i64) as u16;
+        let p = pop as i64;
+        civ.diag = crate::state::CivDiag { fert_food_bp: diag_food / p, fert_intensity_bp: diag_int / p, cap_ratio_bp: diag_cap / p, land_bp: diag_land / p };
     }
     civ.pop_peak = civ.pop_peak.max(pop as u64);
     if food_bp >= 10_000 && civ.stock_of(Good::Food) >= need * 6 {

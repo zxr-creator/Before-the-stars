@@ -97,8 +97,12 @@ fn pacing_is_read_from_content() {
     let p = crate::content::pacing();
     for t in &c.techs {
         let tp = p.tiers[t.tier as usize];
-        assert_eq!((t.work, t.min_months), (tp.work_k * 1000, tp.min_months), "{}", t.id);
-        let expect = p.nodes.get(&t.id).and_then(|n| n.era.as_ref()).map(|e| p.eras[e].hint).unwrap_or(tp.hint);
+        let n = p.nodes.get(&t.id);
+        // per-node multipliers of design chapter 39, section 1.6
+        let (wbp, hbp) = (n.and_then(|n| n.work_bp).unwrap_or(10_000), n.and_then(|n| n.hint_bp).unwrap_or(10_000));
+        let months = n.and_then(|n| n.min_months).unwrap_or(tp.min_months).max(tp.min_months);
+        assert_eq!((t.work, t.min_months), (tp.work_k * 1000 * wbp / 10_000, months), "{}", t.id);
+        let expect = n.and_then(|n| n.era.as_ref()).map(|e| p.eras[e].hint).unwrap_or(tp.hint) * hbp / 10_000;
         assert_eq!(t.hint, expect, "{}", t.id);
     }
     assert!(c.techs[c.t("T049")].hint < c.techs[c.t("T048")].hint);

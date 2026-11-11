@@ -55,6 +55,13 @@ pub struct CurveRow {
     /// rations they made per worker (design chapter 36, section 4.2 targets).
     pub food_share_bp: u16,
     pub food_per_worker: i64,
+    /// Practices established (adoption complete) at the sample.
+    pub established: u32,
+    /// Last month's population-weighted fertility diagnostics (`CivDiag`).
+    pub fert_food_bp: i64,
+    pub fert_intensity_bp: i64,
+    pub cap_ratio_bp: i64,
+    pub land_bp: i64,
 }
 
 impl CurveRow {
@@ -70,7 +77,7 @@ impl CurveRow {
         for g in TRACKED_GOODS {
             h += &format!(",made_{}", serde_json::to_value(g).ok().and_then(|v| v.as_str().map(|x| x.to_string())).unwrap_or_default());
         }
-        h += ",food_share_bp,food_per_worker";
+        h += ",food_share_bp,food_per_worker,established,fert_food_bp,fert_intensity_bp,cap_ratio_bp,land_bp";
         h
     }
     pub fn csv(&self) -> String {
@@ -88,7 +95,7 @@ impl CurveRow {
         for v in self.made {
             s += &format!(",{v}");
         }
-        s += &format!(",{},{}", self.food_share_bp, self.food_per_worker);
+        s += &format!(",{},{},{},{},{},{},{}", self.food_share_bp, self.food_per_worker, self.established, self.fert_food_bp, self.fert_intensity_bp, self.cap_ratio_bp, self.land_bp);
         s
     }
 }
@@ -104,6 +111,10 @@ pub struct CurveRecorder {
     before_made: Vec<[i64; 14]>,
     before: Vec<(i64, u32, u32)>,
     last_sample: Option<Month>,
+    /// For each seat and technology, the first month at which its prerequisites were
+    /// all understood, it became a lead, it was discovered and it was understood
+    /// (0 = not yet). Read by `bts critical-path` (design chapter 39, section 8.3).
+    pub nodes: Vec<Vec<[Month; 4]>>,
 }
 
 fn traded_mass(civ: &Civ) -> i64 {
@@ -116,7 +127,7 @@ fn traded_mass(civ: &Civ) -> i64 {
 impl CurveRecorder {
     pub fn new(w: &World) -> CurveRecorder {
         let n = w.civs.len();
-        CurveRecorder { rows: Vec::new(), traded: vec![0; n], births: vec![0; n], deaths: vec![0; n], made: vec![[0; 14]; n], before_made: vec![[0; 14]; n], before: vec![(0, 0, 0); n], last_sample: None }
+        CurveRecorder { rows: Vec::new(), traded: vec![0; n], births: vec![0; n], deaths: vec![0; n], made: vec![[0; 14]; n], before_made: vec![[0; 14]; n], before: vec![(0, 0, 0); n], last_sample: None, nodes: Vec::new() }
     }
 
     pub fn before_month(&mut self, w: &World) {
@@ -140,7 +151,37 @@ impl CurveRecorder {
                 self.made[i][k] += if now >= self.before_made[i][k] { now - self.before_made[i][k] } else { now };
             }
         }
+        let c = content();
+        let tracking = !self.nodes.is_empty();
+        for (i, civ) in w.civs.iter().enumerate().filter(|_| tracking) {
+            for (t, st) in civ.tech.iter().enumerate() {
+                let rec = &mut self.nodes[i][t];
+                if rec[3] != 0 {
+                    continue;
+                }
+                if rec[0] == 0 && c.techs[t].prereq.eval(&CivCtx { world: w, seat: civ.seat }) {
+                    rec[0] = w.month;
+                }
+                if rec[1] == 0 && st.state >= ST_HINTED {
+                    rec[1] = w.month;
+                }
+                if rec[2] == 0 && st.state >= ST_DISCOVERED {
+                    rec[2] = w.month;
+                }
+                if st.state >= ST_UNDERSTOOD {
+                    rec[3] = w.month;
+                }
+            }
+        }
         self.sample_if_due(w);
+    }
+
+    /// Also record, every month, when each technology became ready, a lead,
+    /// discovered and understood for every seat (`bts critical-path`).
+    pub fn track_nodes(&mut self, w: &World) {
+        if self.nodes.is_empty() {
+            self.nodes = vec![vec![[0; 4]; content().techs.len()]; w.civs.len()];
+        }
     }
 
     /// Record a row per seat if the month about to be simulated opens a decade.
@@ -188,6 +229,11 @@ impl CurveRecorder {
                     let made: i64 = w.regions.iter().filter(|r| r.controller == Some(civ.seat)).map(|r| r.last.food_made).sum();
                     made / civ.labor.food.max(1) as i64
                 },
+                established: (0..civ.practice.len()).filter(|p| civ.established(*p)).count() as u32,
+                fert_food_bp: civ.diag.fert_food_bp,
+                fert_intensity_bp: civ.diag.fert_intensity_bp,
+                cap_ratio_bp: civ.diag.cap_ratio_bp,
+                land_bp: civ.diag.land_bp,
             });
         }
     }

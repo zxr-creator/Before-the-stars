@@ -205,6 +205,132 @@ pub fn study_result(w: &mut World, seat: SeatId, tag: usize, work: i64) -> u32 {
 }
 
 
+/// Operating facility levels and formations (in thousands of soldiers) whose
+/// requirement names each technology: the installed base of design chapter 39,
+/// section 1.4.
+pub fn installed_base(w: &World, seat: SeatId) -> Vec<i64> {
+    let c = content();
+    let mut n = vec![0i64; c.techs.len()];
+    let mut ts = Vec::new();
+    for r in w.regions.iter().filter(|r| r.controller == Some(seat)) {
+        for f in r.facilities.iter().filter(|f| f.operated && f.level > 0) {
+            let def = &c.facilities[f.kind];
+            ts.clear();
+            def.req.techs(&mut ts);
+            if let Some(run) = &f.run {
+                def.recipes[run.recipe].req.techs(&mut ts);
+            }
+            for t in &ts {
+                n[*t] += f.level as i64;
+            }
+        }
+    }
+    for a in w.armies.iter().filter(|a| a.owner == seat) {
+        ts.clear();
+        c.unit_tiers[a.tier as usize].req.techs(&mut ts);
+        for t in &ts {
+            n[*t] += (a.count() as i64 / 1000).max(1);
+        }
+    }
+    n
+}
+
+/// One rival family as a seat stands in it: the incumbent member and its share of
+/// the installed base (basis points; 0 when the seat holds no member).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FamilyStand {
+    pub incumbent: Option<usize>,
+    pub share_bp: i64,
+}
+
+/// The locks path dependence puts on a seat's technologies (design chapter 39,
+/// section 1.4), basis points: evidence and work multipliers and the discovery cap.
+#[derive(Clone, Debug)]
+pub struct Locks {
+    pub evidence_bp: Vec<i64>,
+    pub work_bp: Vec<i64>,
+    pub capped: Vec<bool>,
+    pub stands: Vec<FamilyStand>,
+}
+
+/// Lowest evidence multiplier and highest work multiplier on a victory-critical
+/// member, and the share from which a lock caps discovery.
+pub const CRITICAL_LOCK_E: i64 = 8_000;
+pub const CRITICAL_LOCK_W: i64 = 11_000;
+pub const CAP_SHARE_BP: i64 = 7_500;
+/// A revisit study lifts the evidence lock and the cap for this long.
+pub const REVISIT_MONTHS: Month = 240;
+
+pub fn locks(w: &World, seat: SeatId, installed: &[i64]) -> Locks {
+    let c = content();
+    let civ = &w.civs[seat as usize];
+    let n = c.techs.len();
+    let mut l = Locks { evidence_bp: vec![10_000; n], work_bp: vec![10_000; n], capped: vec![false; n], stands: vec![FamilyStand::default(); c.families.len()] };
+    for (fi, f) in c.families.iter().enumerate() {
+        // adopted members count their installed base, understood-only members one
+        let weight = |m: usize| if installed[m] > 0 { installed[m] } else if civ.tech[m].state >= ST_UNDERSTOOD { 1 } else { 0 };
+        let total: i64 = f.members.iter().map(|m| weight(*m)).sum();
+        if total == 0 {
+            continue;
+        }
+        let inc = *f.members.iter().max_by_key(|m| (weight(**m), std::cmp::Reverse(**m))).unwrap();
+        let mut share = weight(inc) * 10_000 / total;
+        if installed[inc] == 0 {
+            share = share.min(5_000);
+        }
+        l.stands[fi] = FamilyStand { incumbent: Some(inc), share_bp: share };
+        let refuted = f.refuted_by.iter().filter(|r| civ.tech[**r].state >= ST_UNDERSTOOD).count();
+        let revisit = civ.revisit_until.get(fi).map(|m| *m > w.month).unwrap_or(false);
+        for &r in f.members.iter().filter(|m| **m != inc) {
+            let mut e = 10_000 - 6_000 * share / 10_000;
+            let mut wk = 10_000 + 5_000 * share / 10_000;
+            for _ in 0..refuted {
+                e += (10_000 - e) / 2;
+                wk -= (wk - 10_000) / 2;
+            }
+            let mut cap = share >= CAP_SHARE_BP && refuted == 0;
+            if c.techs[r].critical {
+                e = e.max(CRITICAL_LOCK_E);
+                wk = wk.min(CRITICAL_LOCK_W);
+                cap = false;
+            }
+            if revisit {
+                e = 10_000;
+                cap = false;
+            }
+            l.evidence_bp[r] = e;
+            l.work_bp[r] = wk;
+            l.capped[r] = cap;
+        }
+    }
+    l
+}
+
+/// Investigations a seat may run at once (design chapter 39, section 1.6):
+/// `LINES_BASE + isqrt(research staff / LINES_STAFF)`, at most 24. Four times the
+/// staff give twice the extra lines. Calibrated (slices 6b-6c): the design's `2 +
+/// isqrt(staff / 50,000)` assumed the research staff of design table 36 §3.1's
+/// populations; with the staff these seats build it left a medieval seat with two
+/// lines, and printing came seven centuries late.
+pub const LINES_BASE: i64 = 4;
+pub const LINES_STAFF: i64 = 5_000;
+pub const LINES_MAX: i64 = 24;
+
+pub fn investigation_lines(w: &World, seat: SeatId) -> u32 {
+    let civ = &w.civs[seat as usize];
+    let re = research_effectiveness(civ).max(1);
+    let staff = civ.research_cap.iter().sum::<i64>() * 10_000 / re;
+    (LINES_BASE + isqrt(staff / LINES_STAFF)).min(LINES_MAX) as u32
+}
+
+/// Whether a practice id exists in this content and the seat holds it established.
+pub fn est_opt(civ: &Civ, id: &str) -> bool {
+    content().prac_ix.get(id).map(|p| civ.established(*p)).unwrap_or(false)
+}
+
+/// Months without use after which a fragile node's know-how is lost (section 1.5).
+pub const FRAGILE_MONTHS: Month = 1_200;
+
 pub fn step(w: &mut World, seat: SeatId) {
     let c = content();
     let si = seat as usize;
@@ -212,6 +338,37 @@ pub fn step(w: &mut World, seat: SeatId) {
         return;
     }
     let month = w.month;
+    let installed = installed_base(w, seat);
+    let lk = locks(w, seat, &installed);
+    let revealed = w.civs[si].milestones.interstellar.is_some();
+    // practice drags (design chapter 39, section 1.5): sunk institutions that make
+    // some questions harder to ask
+    let civ = &w.civs[si];
+    let guilds = est_opt(civ, "C018") && !est_opt(civ, "C033");
+    let state_church = est_opt(civ, "C104");
+    let mercantile = est_opt(civ, "C107");
+    let police = est_opt(civ, "C135");
+    let surveillance = est_opt(civ, "C140");
+    let drag_of = |i: usize| -> i64 {
+        let t = &c.techs[i];
+        let mut d: i64 = 10_000;
+        if guilds && t.id == "T066" {
+            d = d * 8_500 / 10_000;
+        }
+        if t.tags.contains(&Tag::Science) {
+            if state_church {
+                d = d * 9_000 / 10_000;
+            }
+            if police {
+                d = d * 9_500 / 10_000;
+            }
+        }
+        if surveillance && (t.id == "T240" || t.id == "T245") {
+            d = d * 8_000 / 10_000;
+        }
+        d
+    };
+    let contact_drag: i64 = if mercantile { 8_000 } else { 10_000 };
 
     // contact and trade context
     let met: Vec<usize> = (0..w.civs.len()).filter(|o| *o != si && w.civs[si].contacts[*o].met && w.civs[*o].status != SeatStatus::Eliminated).collect();
@@ -241,6 +398,10 @@ pub fn step(w: &mut World, seat: SeatId) {
             continue;
         }
         let tech = &c.techs[i];
+        // sealed nodes are absent until the objective is revealed (chapter 39, 1.2)
+        if tech.kind == crate::content::TechKind::Sealed && !revealed {
+            continue;
+        }
         if !tech.prereq.eval(&CivCtx { world: w, seat }) {
             continue;
         }
@@ -261,15 +422,27 @@ pub fn step(w: &mut World, seat: SeatId) {
         if terraces && tech.tags.contains(&Tag::Measure) {
             channelled = channelled * 11 / 10;
         }
-        gain = channelled + trickle;
+        // a tradition branch node takes practice evidence only from its tradition's
+        // works (slice 13); until traditions exist nobody practises it
+        if tech.tradition.is_some() && tech.kind == crate::content::TechKind::Branch {
+            channelled = 0;
+        }
+        gain = channelled + if tech.tradition.is_some() && tech.kind == crate::content::TechKind::Branch { 0 } else { trickle };
         if cross {
             gain = gain * 5 / 4;
         }
+        // path dependence: people building on a rival stop asking this question, and
+        // sunk institutions drag; on a victory-critical node never below 0.80 together
+        let mut damp = lk.evidence_bp[i] * drag_of(i) / 10_000;
+        if tech.critical {
+            damp = damp.max(CRITICAL_LOCK_E);
+        }
+        gain = gain * damp / 10_000;
         // X: methods in use among peoples we are in touch with are noticed sooner
         let mut foreign: Option<usize> = None;
         for &o in &peaceful {
             if w.civs[o].tech[i].state >= ST_PROTOTYPED {
-                gain += practice.max(100) * chan / 10_000 * contact_bp / 10_000;
+                gain += practice.max(100) * chan / 10_000 * contact_bp / 10_000 * contact_drag / 10_000;
                 foreign.get_or_insert(o);
             }
         }
@@ -280,6 +453,11 @@ pub fn step(w: &mut World, seat: SeatId) {
         };
         let st = &mut w.civs[si].tech[i];
         st.evidence += gain;
+        // the discovery cap: it stays a lead while a rival dominates, unless a
+        // peaceful contact shows it in use
+        if lk.capped[i] && foreign.is_none() {
+            st.evidence = st.evidence.min(threshold * 5 / 2 - 1);
+        }
         if st.state == ST_UNKNOWN && st.evidence >= threshold {
             st.state = ST_HINTED;
             st.disc_month = month;
@@ -316,8 +494,30 @@ pub fn step(w: &mut World, seat: SeatId) {
     }
     for t in adopt {
         let st = &mut w.civs[si].tech[t];
+        st.used_month = month;
         if st.state >= ST_UNDERSTOOD && st.state < ST_ADOPTED {
             st.state = ST_ADOPTED;
+        }
+    }
+
+    // fragile know-how (design chapter 39, section 1.5): unused for a century
+    // without archives or monastic orders, it falls back to a discovered method; the
+    // evidence stays and relearning takes half the work
+    let keepers = est_opt(&w.civs[si], "C013") || est_opt(&w.civs[si], "C088");
+    if !keepers && month % 12 == 0 {
+        let mut lost = Vec::new();
+        for (i, _) in c.techs.iter().enumerate().filter(|(_, t)| t.fragile && !t.critical) {
+            let st = &w.civs[si].tech[i];
+            if st.state >= ST_UNDERSTOOD && month >= st.used_month.max(st.und_month) + FRAGILE_MONTHS {
+                lost.push(i);
+            }
+        }
+        for i in lost {
+            let st = &mut w.civs[si].tech[i];
+            st.state = ST_DISCOVERED;
+            st.work = 0;
+            st.discount_bp = st.discount_bp.max(5_000);
+            brief(w, seat, "warning", format!("Know-how lost: {}", c.techs[i].name), "Nobody has practised it for a century and no archive kept the method. It can be relearned for half the work.".into(), None, "knowledge");
         }
     }
 

@@ -22,13 +22,13 @@ pub const FOUNDING_COHORT_MAX: i64 = 4_000;
 const TEACHING_ORDER_PLACES: i64 = 16_000;
 
 pub fn uses_labor(kind: &ProjKind) -> bool {
-    !matches!(kind, ProjKind::Research { .. } | ProjKind::LeadStudy { .. } | ProjKind::Study { .. })
+    !matches!(kind, ProjKind::Research { .. } | ProjKind::LeadStudy { .. } | ProjKind::Study { .. } | ProjKind::Revisit { .. })
 }
 
 pub fn project_class(w: &World, seat: SeatId, kind: &ProjKind) -> Option<ResearchClass> {
     let c = content();
     match kind {
-        ProjKind::Research { tech } | ProjKind::LeadStudy { tech } => Some(c.techs[*tech].class),
+        ProjKind::Research { tech } | ProjKind::LeadStudy { tech } | ProjKind::Revisit { tech, .. } => Some(c.techs[*tech].class),
         ProjKind::Study { .. } => Some(study_class(w, seat)),
         _ => None,
     }
@@ -65,6 +65,8 @@ pub fn project_title(w: &World, kind: &ProjKind, region: Option<RegionId>) -> St
         ProjKind::Resettle { from, to, people } => format!("Move {} people from {} to {}", group(*people as i64), rn(*from), rn(*to)),
         ProjKind::Recruit { role, soldiers, tier } => format!("Raise {} {} ({})", group(*soldiers as i64), c.unit_tiers[*tier as usize].roles[role.index()], region.map(rn).unwrap_or_default()),
         ProjKind::Reform { practice } => format!("Reform: {}", c.practices[*practice].name),
+        ProjKind::Revisit { tech, .. } => format!("Revisit study: {}", c.techs[*tech].name),
+        ProjKind::Repeal { practice } => format!("Repeal: {}", c.practices[*practice].name),
         ProjKind::Religion { .. } => "Advance the local movement".to_string(),
         ProjKind::FtlTrial => "Loaded jump round trip".to_string(),
         ProjKind::FtlDeployment => "Three-node deployment exercise".to_string(),
@@ -595,6 +597,23 @@ fn complete(w: &mut World, seat: SeatId, p: Project) {
             }
             let pr = &c.practices[practice];
             brief(w, seat, "good", format!("Enacted: {}", pr.name), "The institution now exists. Participation will spread gradually; its effects begin once it is established.".into(), None, "culture");
+        }
+        ProjKind::Revisit { family, tech } => {
+            let civ = &mut w.civs[si];
+            if civ.revisit_until.len() < c.families.len() {
+                civ.revisit_until.resize(c.families.len(), 0);
+            }
+            civ.revisit_until[family] = month + crate::sim::knowledge::REVISIT_MONTHS;
+            brief(w, seat, "good", format!("Revisit study completed: {}", c.techs[tech].name), "For twenty years, evidence on this question is no longer held back by the methods in use. Retooling still costs more.".into(), None, "knowledge");
+        }
+        ProjKind::Repeal { practice } => {
+            {
+                let st = &mut w.civs[si].practice[practice];
+                st.state = 1;
+                st.adoption_bp = 0;
+            }
+            let pr = &c.practices[practice];
+            brief(w, seat, "info", format!("Repealed: {}", pr.name), "The institution is dissolved. It can be reformed again later.".into(), None, "culture");
         }
         ProjKind::Religion { beliefs, name } => {
             crate::sim::culture::advance_movement(w, seat, beliefs, name);

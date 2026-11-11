@@ -188,8 +188,33 @@ fn mortality_falls_with_medicine_and_fertility_with_development() {
     assert!(c1 < 1_000 && a1 < 3_000, "child {c1}, adult {a1}");
     // pre-modern: no development drag; modern: the floor
     assert_eq!(population::development_factor(0, 0, 0, 0, false), 10_000);
-    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 10_000, false), 6_400);
-    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 10_000, true), 6_900);
+    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 0, false), 7_300);
+    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 0, true), 7_800);
     // the floor
-    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 30_000, false), 6_200);
+    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 10_000, false), population::DEV_FLOOR_BP);
+    assert_eq!(population::development_factor(10_000, 10_000, 10_000, 30_000, false), population::DEV_FLOOR_BP);
+}
+
+/// Fertility follows the households' own food security, never the government's
+/// reserve policy (ruleset 3.0 slice 6r): with a full year's access and a season's
+/// buffer in store, the food factor is whole whatever reserve the state aims for;
+/// a people living from hand to mouth keeps most of it.
+#[test]
+fn fertility_follows_household_food_security_not_reserve_policy() {
+    let factor = |reserve: u8, months_in_store: i64| {
+        let mut m = Match::new(cfg("security"), 1);
+        let pop = m.world.civ_population(0) as i64;
+        m.world.civs[0].food_reserve_months = reserve;
+        for r in m.world.regions.iter_mut() {
+            r.last.food_made = 0;
+        }
+        // the month's need plus what is left in store after eating
+        m.world.civs[0].stock[Good::Food.index()] = pop * (1 + months_in_store);
+        population::step(&mut m.world, 0);
+        m.world.civs[0].diag.fert_food_bp
+    };
+    assert_eq!(factor(12, 3), 10_000);
+    assert_eq!(factor(2, 3), 10_000);
+    let lean = factor(8, 0);
+    assert!(lean >= population::FOOD_SECURE_BASE - 100 && lean < 10_000, "{lean}");
 }

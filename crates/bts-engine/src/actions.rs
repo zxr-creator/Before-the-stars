@@ -11,6 +11,13 @@ use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
 
+/// A revisit study's work as a share of the node's work, and its minimum months
+/// (design chapter 39, section 1.4).
+pub const REVISIT_WORK_BP: i64 = 2_500;
+pub const REVISIT_MIN_MONTHS: i64 = 24;
+/// Months a repeal runs (section 2.2).
+pub const REPEAL_MONTHS: i64 = 24;
+
 pub fn tech_handle(w: &World, seat: SeatId, i: usize) -> String {
     format!("k{:07x}", draw(w.secret, &[stream("tech-handle"), seat as u64, i as u64]) & 0x0fff_ffff)
 }
@@ -169,11 +176,13 @@ fn label(a: &Action) -> String {
                 ProjectSpec::FtlTrial => "ftl_trial",
                 ProjectSpec::FtlDeployment => "ftl_deployment",
                 ProjectSpec::FtlReplacement => "ftl_replacement",
+                ProjectSpec::Revisit { .. } => "revisit",
             }
         ),
         Action::ManageProject { .. } => "manage_project".into(),
         Action::Investigate { .. } => "investigate".into(),
         Action::ProposeReform { .. } => "propose_reform".into(),
+        Action::Repeal { .. } => "repeal".into(),
         Action::StartProgram { .. } => "start_program".into(),
         Action::ManageProgram { .. } => "manage_program".into(),
         Action::Demolish { .. } => "demolish".into(),
@@ -597,9 +606,16 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if !crate::sim::projects::tech_site_ok(w, seat, ti) {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "this investigation needs a working installation that does not exist yet");
                     }
+                    let lines = crate::sim::knowledge::investigation_lines(w, seat);
+                    let running = w.civs[si].projects.iter().filter(|p| matches!(p.kind, ProjKind::Research { .. }) && !p.paused).count() as u32;
+                    if running >= lines {
+                        return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("every investigation line is in use ({lines} for the research staff this civilization has)"));
+                    }
                     let t = &c.techs[ti];
                     let discount = w.civs[si].tech[ti].discount_bp as i64;
-                    let work = scaled(t.work, w.cfg.research_pace()) * (10_000 - discount) / 10_000;
+                    // retooling: a rival standard in the installed base makes this dearer
+                    let lock_w = if t.family.is_some() { crate::sim::knowledge::locks(w, seat, &crate::sim::knowledge::installed_base(w, seat)).work_bp[ti] } else { 10_000 };
+                    let work = scaled(t.work, w.cfg.research_pace()) * (10_000 - discount) / 10_000 * lock_w / 10_000;
                     let min_months = (t.min_months as i64 * pace as i64 / 10_000).max(2);
                     let id = new_project(w, seat, ProjKind::Research { tech: ti }, None, work.max(1000), vec![], min_months, priority);
                     Ok(("Investigation funded. It advances only with qualified research staff.".into(), Some(id)))
@@ -754,6 +770,25 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                         _ => fail("CONFLICTING_ACTIONS", "the religion has already been founded"),
                     }
                 }
+                ProjectSpec::Revisit { card } => {
+                    let Some(ti) = tech_from_handle(w, seat, &card) else { return fail(UNKNOWN, "unknown method") };
+                    if w.civs[si].tech[ti].state < ST_HINTED {
+                        return fail(UNKNOWN, "unknown method");
+                    }
+                    let Some(fi) = c.techs[ti].family else { return fail("CONFLICTING_ACTIONS", "nothing holds this question back") };
+                    let installed = crate::sim::knowledge::installed_base(w, seat);
+                    let lk = crate::sim::knowledge::locks(w, seat, &installed);
+                    if lk.evidence_bp[ti] >= 10_000 && !lk.capped[ti] {
+                        return fail("CONFLICTING_ACTIONS", "nothing holds this question back");
+                    }
+                    if w.civs[si].projects.iter().any(|p| matches!(p.kind, ProjKind::Revisit { family, .. } if family == fi)) {
+                        return fail("CONFLICTING_ACTIONS", "a revisit study of this question is already under way");
+                    }
+                    // (a dark age halves it once eras exist, design chapter 37 slice 10)
+                    let work = scaled(c.techs[ti].work * REVISIT_WORK_BP / 10_000, w.cfg.research_pace());
+                    let id = new_project(w, seat, ProjKind::Revisit { family: fi, tech: ti }, None, work.max(1000), vec![], REVISIT_MIN_MONTHS, priority);
+                    Ok(("Revisit study funded: for twenty years after it completes, evidence on this question is no longer held back by the methods in use.".into(), Some(id)))
+                }
                 ProjectSpec::FtlTrial => {
                     if !w.civs[si].knows_id("T166") {
                         return fail(UNKNOWN, "unknown project");
@@ -854,10 +889,40 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
             if !p.hard.eval(&CivCtx { world: w, seat }) {
                 return fail("INSUFFICIENT_VISIBLE_BUDGET", "its real requirements are not yet met");
             }
+            // exclusive groups (design chapter 39, section 2.2): the held member is repealed first
+            if let Some(held) = crate::sim::culture::exclusive_holder(w, seat, pi) {
+                return fail("CONFLICTING_ACTIONS", format!("{} must be repealed first: a polity holds only one of them", c.practices[held].name));
+            }
+            // reform slots (section 2.3)
+            if !c.exclusive_groups.is_empty() {
+                let slots = crate::sim::culture::reform_slots(w, seat);
+                let running = w.civs[si].projects.iter().filter(|x| matches!(x.kind, ProjKind::Reform { .. })).count() as u32;
+                if running >= slots {
+                    return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("every reform slot is in use ({slots} for the institutions this civilization has)"));
+                }
+            }
+            // institutions beyond what the offices carry make reform slower
+            let mut work = scaled(p.work, w.cfg.research_pace());
+            if crate::sim::culture::institutional_load(w, seat) > crate::sim::culture::institutional_capacity(w, seat) {
+                work = work * 3 / 2;
+            }
             let capital = w.civs[si].capital;
-            let id = new_project(w, seat, ProjKind::Reform { practice: pi }, Some(capital), scaled(p.work, w.cfg.research_pace()), p.cost.clone(), 3, Some(3));
+            let id = new_project(w, seat, ProjKind::Reform { practice: pi }, Some(capital), work, p.cost.clone(), p.min_months, Some(3));
             w.civs[si].practice[pi].state = 2;
             Ok(("Reform proposed. Assemblies and officials at the capital must give it their time.".into(), Some(id)))
+        }
+        Action::Repeal { practice } => {
+            let Some(pi) = prac_from_handle(w, seat, &practice) else { return fail(UNKNOWN, "unknown practice") };
+            if w.civs[si].practice[pi].state != 3 {
+                return fail("CONFLICTING_ACTIONS", "only an enacted practice can be repealed");
+            }
+            if w.civs[si].projects.iter().any(|p| p.kind == (ProjKind::Repeal { practice: pi })) {
+                return fail("CONFLICTING_ACTIONS", "this repeal is already under way");
+            }
+            let capital = w.civs[si].capital;
+            let p = &c.practices[pi];
+            let id = new_project(w, seat, ProjKind::Repeal { practice: pi }, Some(capital), scaled(p.work / 4, w.cfg.research_pace()).max(1000), vec![], REPEAL_MONTHS, Some(3));
+            Ok(("Repeal begun: it takes at least two years and unsettles the polity while it runs.".into(), Some(id)))
         }
         Action::StartProgram { region, course, seats } => {
             let ri = own_region(w, seat, region)?;

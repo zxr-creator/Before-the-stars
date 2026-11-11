@@ -63,6 +63,9 @@ export interface ProductivityView {
 }
 export type Phase = 'contact' | 'negotiate' | 'plan' | 'finished';
 export type SeatStatus = 'active' | 'eliminated' | 'forfeited';
+// The referee also knows 'native_expert' (bts-protocol/2.1): the Expert test policy of
+// design chapter 39, section 8.3, used by headless calibration only and never offered
+// in setup or seen by the client, so it is left out of this union.
 export type ControllerKind = 'human' | 'external' | 'native_easy' | 'native_medium' | 'native_hard';
 export type Visibility = 'own' | 'visible' | 'remembered';
 export type SettlementKind = 'wilderness' | 'camp' | 'village' | 'town' | 'city' | 'metropolis' | 'megalopolis';
@@ -524,6 +527,27 @@ export interface TechCard {
   can_investigate: boolean;
   enables: string[];
   links: string[];
+  /** Kind of node: '' for the atlas and doc 37 nodes, else 'side', 'alt', 'dead', 'sealed', 'entry' or 'branch' (bts-protocol/2.1; design chapter 39). */
+  kind?: string;
+  /** The rival family, only once two of its members are discovered (bts-protocol/2.1). */
+  family_view?: FamilyView | null;
+  /** Fragile know-how: years since works last used it, while at risk (bts-protocol/2.1). */
+  fragile_risk?: number | null;
+}
+
+/** Path dependence on a family member's card (bts-protocol/2.1; design chapter 39, 7.2). */
+export interface FamilyView {
+  family: string;
+  /** Handles of the other discovered members. */
+  rivals_discovered: string[];
+  /** Handle of the member that dominates the installed base, if discovered. */
+  incumbent: string | null;
+  share_bp: number;
+  lock_e_bp: number;
+  lock_w_bp: number;
+  capped: boolean;
+  revisit_cost: number;
+  revisit_active: boolean;
 }
 
 export interface Lead {
@@ -548,6 +572,8 @@ export interface KnowledgeView {
   leads: Lead[];
   domains: StudyDomain[];
   scientific_method: boolean;
+  /** Investigations the seat may run at once (bts-protocol/2.1). */
+  investigation_lines?: number;
 }
 
 export interface PracticeCard {
@@ -565,6 +591,11 @@ export interface PracticeCard {
   links: string[];
   source: string;
   recognized_month: Month;
+  /** Era 0-8, institutional load, exclusive group and tensions (bts-protocol/2.1; design chapter 39, 2.2-2.3). */
+  era?: number;
+  load?: number;
+  exclusive_with?: string[];
+  tension_with?: string[];
 }
 
 export interface TraitView {
@@ -614,6 +645,14 @@ export interface CultureView {
   lineages: LineageView[];
   religions: ReligionView[];
   movement: MovementView | null;
+  /** Institutional load and capacity; reforms that may run at once (bts-protocol/2.1). */
+  load?: InstitutionLoad;
+  reform_slots?: number;
+}
+
+export interface InstitutionLoad {
+  used: number;
+  capacity: number;
 }
 
 export interface GoodQty {
@@ -1000,7 +1039,9 @@ export type ProjectSpec =
   | { kind: 'religion'; beliefs: string[]; name: string | null }
   | { kind: 'ftl_trial' }
   | { kind: 'ftl_deployment' }
-  | { kind: 'ftl_replacement' };
+  | { kind: 'ftl_replacement' }
+  /** Revisit study of a rival family's question (bts-protocol/2.1). */
+  | { kind: 'revisit'; card: string };
 
 export type ManageOp = 'pause' | 'resume' | 'cancel';
 
@@ -1041,6 +1082,8 @@ export type Action =
   | { kind: 'manage_project'; project: number; op: ManageOp; priority: number | null; position?: number | null }
   | { kind: 'investigate'; lead: string }
   | { kind: 'propose_reform'; practice: string }
+  /** Repeal an enacted practice (bts-protocol/2.1). */
+  | { kind: 'repeal'; practice: string }
   | { kind: 'start_program'; region: RegionId; course: string; seats: number }
   | { kind: 'manage_program'; program: number; op: ManageOp; seats: number | null }
   | { kind: 'demolish'; region: RegionId; facility: string; levels: number }

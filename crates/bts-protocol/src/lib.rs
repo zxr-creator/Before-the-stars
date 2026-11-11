@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 /// `Deposit::Minerals` retired), site bonuses and spice land in surveys, helium on gas
 /// fields, unit generations, building lines on facility types, goods shown only once
 /// known (ruleset 3.0 slice 5), productivity breakdowns (slice 6).
-pub const PROTOCOL_VERSION: &str = "bts-protocol/2.0";
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.1";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -291,6 +291,7 @@ public_enum!(ControllerKind {
     NativeEasy => "Native AI (Easy)",
     NativeMedium => "Native AI (Medium)",
     NativeHard => "Native AI (Hard)",
+    NativeExpert => "Native AI (Expert test policy)",
 });
 
 public_enum!(Visibility {
@@ -1142,6 +1143,39 @@ pub struct TechCard {
     pub enables: Vec<String>,
     /// Handles of known technologies this one was built on (only disclosed links).
     pub links: Vec<String>,
+    /// Kind of node (design chapter 39, section 1.2): "" for the original atlas and
+    /// doc 37 nodes, otherwise "side", "alt", "dead", "sealed", "entry" or "branch".
+    #[serde(default)]
+    pub kind: String,
+    /// The rival family this card belongs to, shown only once at least two of its
+    /// members are discovered; never names an undiscovered member.
+    #[serde(default)]
+    pub family_view: Option<FamilyView>,
+    /// Fragile know-how (section 1.5): years since works last used it, while it is
+    /// understood and the seat keeps no archive that would preserve it.
+    #[serde(default)]
+    pub fragile_risk: Option<u32>,
+}
+
+/// Path dependence on a family member's card (design chapter 39, section 7.2).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct FamilyView {
+    /// Family name (public content).
+    pub family: String,
+    /// Handles of the other discovered members.
+    pub rivals_discovered: Vec<String>,
+    /// Handle of the member that dominates the seat's installed base, if any.
+    pub incumbent: Option<String>,
+    /// The incumbent's share of the installed base, basis points.
+    pub share_bp: u16,
+    /// Multipliers on this card's evidence and investigation work, basis points.
+    pub lock_e_bp: u16,
+    pub lock_w_bp: u16,
+    /// Whether its lead is held back from becoming a discovery.
+    pub capped: bool,
+    /// Researcher-months of a revisit study, and whether one is in force now.
+    pub revisit_cost: i64,
+    pub revisit_active: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1169,6 +1203,9 @@ pub struct KnowledgeView {
     pub leads: Vec<Lead>,
     pub domains: Vec<StudyDomain>,
     pub scientific_method: bool,
+    /// Investigations the seat may run at once (design chapter 39, section 1.6).
+    #[serde(default)]
+    pub investigation_lines: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1187,6 +1224,19 @@ pub struct PracticeCard {
     pub links: Vec<String>,
     pub source: String,
     pub recognized_month: Month,
+    /// Era 0-8 of the institution (design chapter 39, section 2.3).
+    #[serde(default)]
+    pub era: u8,
+    /// Institutional load it adds while established.
+    #[serde(default)]
+    pub load: u8,
+    /// Handles of the recognized practices of its exclusive group: a seat holds at
+    /// most one of them and repeals the held one first (section 2.2).
+    #[serde(default)]
+    pub exclusive_with: Vec<String>,
+    /// Handles of recognized practices it is in tension with (section 2.2).
+    #[serde(default)]
+    pub tension_with: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1242,6 +1292,19 @@ pub struct CultureView {
     pub lineages: Vec<LineageView>,
     pub religions: Vec<ReligionView>,
     pub movement: Option<MovementView>,
+    /// Institutional load of the established practices and the capacity of the
+    /// offices that carry it (design chapter 39, section 2.3).
+    #[serde(default)]
+    pub load: InstitutionLoad,
+    /// Reforms that may run at once (1-4).
+    #[serde(default)]
+    pub reform_slots: u32,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct InstitutionLoad {
+    pub used: u32,
+    pub capacity: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1817,6 +1880,10 @@ pub enum ProjectSpec {
     FtlDeployment,
     /// Replace one assembly and hand over to a relief crew.
     FtlReplacement,
+    /// Revisit study of a rival family's question (design chapter 39, section 1.4):
+    /// names a known member of the family by its handle; for 240 months after it
+    /// completes, the seat's evidence on that family is no longer held back.
+    Revisit { card: String },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1915,6 +1982,10 @@ pub enum Action {
     },
     Investigate { lead: String },
     ProposeReform { practice: String },
+    /// Repeal an enacted practice (design chapter 39, section 2.2): 24 months, then it
+    /// returns to recognized. Needed before reforming another member of its
+    /// exclusive group.
+    Repeal { practice: String },
     /// `seats` are places for learners, in people (1 to 2,000,000).
     StartProgram { region: RegionId, course: String, seats: u32 },
     ManageProgram { program: u32, op: ManageOp, seats: Option<u32> },

@@ -8,6 +8,8 @@ publish.workspace = true
 [dependencies]
 bts-protocol = { path = "../bts-protocol" }
 serde.workspace = true
+# the public content tables compiled in (src/tables.rs)
+serde_json.workspace = true
 
 [dev-dependencies]
 # the referee, to drive all-native matches under audit (tests/conservation.rs); the

@@ -481,6 +481,93 @@ fn run(args: &Args) {
     }
 }
 
+/// `bts critical-path --seed S --seat K`: the victory-critical path of one seat in
+/// one simulated match (design chapter 39, section 8.3). Referee-side measurement,
+/// never available to a seat: it runs the match with node timings recorded, then
+/// reports for every victory-critical technology when its prerequisites were met,
+/// when it became a lead, was discovered and was understood, the path that bound
+/// T167 (at each node, the prerequisite understood last), each node's slack (how
+/// much later it could have been understood without delaying a critical node that
+/// depends on it), and a lower bound on T167 with the observed lead waits but every
+/// investigation at its minimum months.
+fn critical_path(args: &Args) {
+    let seat: usize = args.num("seat", 0);
+    let cfg = run_config(args);
+    let cal = cfg.calendar.clone();
+    let mut s = Session::new(cfg, 7);
+    s.m.record_node_months();
+    let rounds: u32 = args.num("rounds", 100_000);
+    while !s.m.finished() && s.m.round() <= rounds {
+        let before = s.m.round();
+        s.run_rounds(1);
+        let _ = s.m.take_curve();
+        if s.m.round() == before && !s.m.finished() {
+            break;
+        }
+    }
+    println!("match ran to {}", s.m.date().label);
+    let c = bts_engine::content::content();
+    let nodes = s.m.node_months().expect("node timings").clone();
+    let Some(times) = nodes.get(seat) else {
+        eprintln!("no seat {seat}");
+        std::process::exit(2);
+    };
+    let label = |m: u32| if m == 0 { "-".to_string() } else { bts_engine::calendar::year_label(cal.date(m).0) };
+    let crit: Vec<usize> = (0..c.techs.len()).filter(|i| c.techs[*i].critical).collect();
+    // the dependants of each node within the critical set
+    let mut deps: Vec<Vec<usize>> = vec![Vec::new(); c.techs.len()];
+    for &i in &crit {
+        let mut pre = Vec::new();
+        c.techs[i].prereq.techs(&mut pre);
+        for p in pre {
+            deps[p].push(i);
+        }
+    }
+    // lower bound: observed lead waits, investigations at their minimum months
+    let mut floor = vec![0u32; c.techs.len()];
+    let mut order: Vec<usize> = crit.clone();
+    order.sort_by_key(|i| c.techs[*i].tier);
+    for _ in 0..3 {
+        for &i in &order {
+            let t = &times[i];
+            let mut pre = Vec::new();
+            c.techs[i].prereq.techs(&mut pre);
+            let ready = pre.iter().filter(|p| c.techs[**p].critical).map(|p| floor[*p]).max().unwrap_or(0);
+            let wait = if t[2] > 0 && t[0] > 0 { t[2].saturating_sub(t[0]) } else { 0 };
+            floor[i] = ready + wait + c.techs[i].min_months;
+        }
+    }
+    println!("critical path of seat {seat} in match {} ({} critical technologies)", s.m.config().seed, crit.len());
+    println!("{:>5}  {:<46} {:>10} {:>10} {:>10} {:>10} {:>6} {:>6} {:>6}", "node", "name", "ready", "lead", "discovered", "understood", "wait y", "inv y", "slack");
+    let mut slack = vec![0u32; c.techs.len()];
+    for &i in &crit {
+        let und = times[i][3];
+        slack[i] = deps[i].iter().filter(|d| times[**d][0] > 0).map(|d| times[*d][0].saturating_sub(und)).min().unwrap_or(0);
+    }
+    // the binding path: back from T167 through the prerequisite understood last
+    let mut path = Vec::new();
+    // from T167, or from the deepest critical node understood if T167 was not reached
+    let mut at = c.tech_ix.get("T167").copied().filter(|t| times[*t][3] > 0).or_else(|| crit.iter().copied().filter(|i| times[*i][3] > 0).max_by_key(|i| (c.techs[*i].tier, times[*i][3])));
+    while let Some(i) = at {
+        path.push(i);
+        let mut pre = Vec::new();
+        c.techs[i].prereq.techs(&mut pre);
+        at = pre.into_iter().filter(|p| times[*p][3] > 0).max_by_key(|p| (times[*p][3], *p));
+    }
+    for &i in path.iter().rev() {
+        let t = &times[i];
+        let wait = if t[2] > 0 && t[0] > 0 { (t[2].saturating_sub(t[0])) / 12 } else { 0 };
+        let inv = if t[3] > 0 && t[2] > 0 { (t[3] - t[2]) / 12 } else { 0 };
+        println!("{:>5}  {:<46} {:>10} {:>10} {:>10} {:>10} {:>6} {:>6} {:>6}", c.techs[i].id, c.techs[i].name.chars().take(46).collect::<String>(), label(t[0]), label(t[1]), label(t[2]), label(t[3]), wait, inv, slack[i] / 12);
+    }
+    let t167 = c.tech_ix.get("T167").copied().unwrap_or(0);
+    println!("T167 understood: {}; lower bound with the observed lead waits and minimum investigations: {}", label(times[t167][3]), label(floor[t167]));
+    let short: Vec<String> = crit.iter().filter(|i| times[**i][3] == 0).map(|i| c.techs[*i].id.clone()).collect();
+    if !short.is_empty() {
+        println!("critical technologies never understood: {}", short.join(" "));
+    }
+}
+
 /// Print a compact report of one seat's own observation after an all-native run.
 /// Used for tuning: everything shown here is what that seat itself can see.
 fn inspect(args: &Args) {
@@ -649,7 +736,7 @@ fn main() {
     if argv.len() > 1 {
         attach_parent_console();
     }
-    const USAGE: &str = "Before the Stars\n\n  bts                    the game in its own window\n  bts serve [--port N]   referee and web client for a browser or external agents\n  bts run | verify | inspect      headless matches, determinism check, one seat's view\n  bts match | observe | act | ready   talk to a running referee\n\nSee README.md and docs/agent-api.md.";
+    const USAGE: &str = "Before the Stars\n\n  bts                    the game in its own window\n  bts serve [--port N]   referee and web client for a browser or external agents\n  bts run | verify | inspect      headless matches, determinism check, one seat's view\n  bts critical-path --seed S --seat K   a seat's victory-critical path (referee-side)\n  bts match | observe | act | ready   talk to a running referee\n\nSee README.md and docs/agent-api.md.";
     if matches!(argv.get(1).map(|s| s.as_str()), Some("--help" | "-h" | "help")) {
         println!("{USAGE}");
         return;
@@ -684,6 +771,10 @@ fn main() {
         }
         "verify" => {
             verify(&args);
+            Ok(String::new())
+        }
+        "critical-path" => {
+            critical_path(&args);
             Ok(String::new())
         }
         "observe" => http(&url, "GET", &format!("/api/observation?seat={seat}&token={token}"), None),

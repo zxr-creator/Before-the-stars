@@ -821,7 +821,8 @@ fn no_site_crew_needs_people_who_cannot_exist_yet() {
         assert!(all.tech[i], "{} can never be understood", t.id);
     }
     for (i, p) in c.practices.iter().enumerate() {
-        assert!(all.prac[i], "{} can never be enacted", p.id);
+        // tradition institutions wait for the traditions of slice 13
+        assert!(all.prac[i] || p.tradition.is_some(), "{} can never be enacted", p.id);
     }
     for (k, f) in c.facilities.iter().enumerate() {
         assert!(all.fac[k], "{} can never be built", f.key);
