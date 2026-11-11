@@ -209,7 +209,7 @@ fn the_first_outpost_to_arrive_claims_the_site_and_its_people_live_and_die_there
     assert!(site.block.total() > 0);
     let _ = (b0, d0, p0);
     // the outpost houses, feeds and waters its people from the zone store
-    assert!(m.world.civs[0].space.held(1, Good::Food) < 12_000, "the party eats its food");
+    assert!(m.world.civs[0].space.held(1, Good::Food) < 6_000, "the party eats its food");
     // inhabited, it counts for world governance
     assert_eq!(space::inhabited_sites(&m.world).len(), 1);
 }

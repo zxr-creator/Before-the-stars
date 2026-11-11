@@ -931,6 +931,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     let motors = w.civs[si].knows_id("T101");
     let prev_compute = w.civs[si].compute_supply;
     let month_now = w.month;
+    let crew_reserve = crate::sim::space::crew_reserve(w, seat);
 
     for (pi, p) in plans.iter().enumerate() {
         let ri = p.idx;
@@ -944,6 +945,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             .collect();
         queue.sort_by_key(|i| w.civs[si].projects[*i].service_key());
         let unrest_factor = 10_000 - w.regions[ri].unrest_bp as i64 * 7 / 10;
+        let reserved = crew_reserve.iter().find(|x| x.0 == ri).map(|x| x.1).unwrap_or([0; NQ]);
         let r = &mut w.regions[ri];
         let mut month = RegionMonth { seat: Some(seat), qual_employed: vec![0; NQ], tag_staff: vec![0; Tag::COUNT], ..Default::default() };
         month.infra = InfraMonth {
@@ -974,7 +976,8 @@ pub fn step(w: &mut World, seat: SeatId) {
         let mut avail = [0u32; NQ];
         let mut qsum: u32 = 0;
         for q in 0..NQ {
-            avail[q] = r.quals[q].saturating_sub(r.teachers[q]);
+            // (station crews are reserved first: design chapter 39, 5.1)
+            avail[q] = r.quals[q].saturating_sub(r.teachers[q]).saturating_sub(reserved[q]);
             qsum += avail[q];
         }
         if qsum > nonfood {
@@ -1517,7 +1520,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 let room = (boost_room * 10_000 / full.max(1)).min(10_000);
                 if room < rate {
                     rate = room;
-                    blockers |= 128;
+                    blockers |= 1024;
                     standing_down = true;
                 }
             }
@@ -1697,7 +1700,9 @@ pub fn step(w: &mut World, seat: SeatId) {
             if rec.assembly > 0 {
                 f.assembly_progress += rec.assembly * rate / 10_000;
             }
-            if rate >= 5000 {
+            // a launch stage standing down at the boost cap is a working installation
+            // (posts filled, ready to launch): design chapter 39, 4.1 and 4.6
+            if rate >= 5000 || (standing_down && base >= 5000) {
                 f.operated = true;
             }
             f.run = Some(RunStat { recipe: ridx, rate_bp: rate as u16, blockers, missing });
@@ -1750,6 +1755,12 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
     }
     civ_labor.soldiers = soldiers;
+    // station crews are employed (reserved before the works were staffed)
+    for (_, take) in &crew_reserve {
+        for q in 0..NQ {
+            qual_employed[q] += take[q];
+        }
+    }
     let civ = &mut w.civs[si];
     // everything made is booked as production where it was made; what carriage to
     // the common stock cost is booked as lost

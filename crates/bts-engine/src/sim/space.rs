@@ -784,9 +784,10 @@ pub fn apply(w: &mut World, seat: SeatId, order: SpaceOrder) -> Result<(String, 
                 return refuse("duplicate", "An outpost party is already on its way there");
             }
             let mut goods: Vec<(Good, i64)> = WORKS[W_OUTPOST].bill.to_vec();
-            // a year of food and of water and air for the party
-            merge(&mut goods, Good::Food, OUTPOST_PARTY as i64 * 12);
-            merge(&mut goods, Good::Volatiles, OUTPOST_PARTY as i64 * 13 * 12 / 1000);
+            // six months of food and of water and air for the party (the whole
+            // founding shipment fits two chemical berths)
+            merge(&mut goods, Good::Food, OUTPOST_PARTY as i64 * 6);
+            merge(&mut goods, Good::Volatiles, OUTPOST_PARTY as i64 * 13 * 6 / 1000);
             ship(w, seat, EO, Dest::Site(i), goods, OUTPOST_PARTY, Purpose::Outpost, propulsion.as_deref())
         }
         SpaceOrder::Ship { from_zone, to_zone, goods, people, site, propulsion } => {
@@ -1025,14 +1026,12 @@ pub fn stations_step(w: &mut World) {
         let mut research = 0i64;
         let mut lab_staff = 0i64;
         if !mine.is_empty() {
+            // the crews reserved for the stations before the works were staffed
             let mut free = [0i64; NQ];
-            for r in w.regions.iter().filter(|r| r.controller == Some(seat)) {
+            for (_, take) in crew_reserve(w, seat) {
                 for q in 0..NQ {
-                    free[q] += r.quals[q].saturating_sub(r.teachers[q]) as i64;
+                    free[q] += take[q] as i64;
                 }
-            }
-            for q in 0..NQ {
-                free[q] = (free[q] - w.civs[s].qual_employed.get(q).copied().unwrap_or(0) as i64).max(0);
             }
             let yard_running = w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(content().f("orbital_yard")).map(|f| f.level > 0 && f.operated).unwrap_or(false));
             let t135 = w.civs[s].knows_id("T135");
@@ -1042,16 +1041,8 @@ pub fn stations_step(w: &mut World) {
                     (st.core as usize - 1, st.modules.clone(), st.orbit as usize)
                 };
                 let z = ORBITS[orbit].zone;
-                // posts by qualification, filled from the free pool in station order
-                let mut need = [0i64; NQ];
-                for (q, k) in CORES[core].posts {
-                    need[q.index()] += *k as i64;
-                }
-                for (m, lv) in modules.iter().enumerate() {
-                    for (q, k) in MODULES[m].posts {
-                        need[q.index()] += *k as i64 * *lv as i64;
-                    }
-                }
+                // posts by qualification, filled from the reserved crews in station order
+                let need = station_needs(&w.space.stations[i]);
                 let total: i64 = need.iter().sum();
                 let mut filled = 0i64;
                 let mut staff_bp = 10_000i64;
@@ -1134,6 +1125,49 @@ pub fn stations_step(w: &mut World) {
     }
 }
 
+/// Station posts by qualification for a seat's stations, in station order.
+fn station_needs(st: &StationSt) -> [i64; NQ] {
+    let mut need = [0i64; NQ];
+    for (q, k) in CORES[st.core as usize - 1].posts {
+        need[q.index()] += *k as i64;
+    }
+    for (m, lv) in st.modules.iter().enumerate() {
+        for (q, k) in MODULES[m].posts {
+            need[q.index()] += *k as i64 * *lv as i64;
+        }
+    }
+    need
+}
+
+/// Station crews are a national programme: they are reserved from the qualified
+/// people of the seat's regions (lowest region id first) before the works are
+/// staffed. Returns, per governed region, the holders reserved by qualification.
+pub fn crew_reserve(w: &World, seat: SeatId) -> Vec<(usize, [u32; NQ])> {
+    let mut need = [0i64; NQ];
+    for st in w.space.stations.iter().filter(|s| s.owner == seat) {
+        let n = station_needs(st);
+        for q in 0..NQ {
+            need[q] += n[q];
+        }
+    }
+    if need.iter().all(|x| *x == 0) {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    for (ri, r) in w.regions.iter().enumerate().filter(|(_, r)| r.controller == Some(seat)) {
+        let mut take = [0u32; NQ];
+        for q in 0..NQ {
+            let t = need[q].min(r.quals[q].saturating_sub(r.teachers[q]) as i64).max(0);
+            take[q] = t as u32;
+            need[q] -= t;
+        }
+        if take.iter().any(|x| *x > 0) {
+            out.push((ri, take));
+        }
+    }
+    out
+}
+
 /// Whether the seat's low Earth orbit station has a shipyard module operating
 /// (doc 35 check 13 as revised by 39 §4.6).
 pub fn shipyard_operating(w: &World, seat: SeatId) -> bool {
@@ -1202,6 +1236,15 @@ fn pay_and_move(w: &mut World) {
     // departures already booked from each zone this month, by seat
     let mut used: Vec<(SeatId, u8, u8, i64)> = w.space.transits.iter().filter(|t| t.departs == Some(month)).map(|t| (t.owner, t.from, t.prop, t.payload_t)).collect();
     let mut arrived: Vec<usize> = Vec::new();
+    // lifts (the crews' supplies among them) are paid before larger shipments
+    for k in 0..w.space.transits.len() {
+        let t = &w.space.transits[k];
+        let owner = t.owner as usize;
+        if t.purpose == Purpose::Lift && t.due > 0 && w.civs[owner].status != SeatStatus::Eliminated {
+            let paid = spend(&mut w.civs[owner].space, t.due);
+            w.space.transits[k].due -= paid;
+        }
+    }
     for k in 0..w.space.transits.len() {
         let owner = w.space.transits[k].owner as usize;
         if w.civs[owner].status == SeatStatus::Eliminated {

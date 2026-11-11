@@ -171,7 +171,7 @@ impl PopBlock {
 pub struct RunStat {
     pub recipe: usize,
     pub rate_bp: u16,
-    /// Bit flags: 1 staff, 2 skills, 4 inputs, 8 shaft, 16 electricity, 32 compute, 64 condition, 128 storage full, 256 deposit, 512 unrest.
+    /// Bit flags: 1 staff, 2 skills, 4 inputs, 8 shaft, 16 electricity, 32 compute, 64 condition, 128 storage full, 256 deposit, 512 unrest, 1024 a launch stage standing down at the boost cap.
     pub blockers: u16,
     pub missing: Vec<Good>,
 }

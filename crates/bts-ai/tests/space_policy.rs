@@ -86,13 +86,13 @@ fn a_native_seat_given_space_builds_a_station_and_claims_an_outpost() {
         civ["space"]["made_total"] = 300_000.into();
         for q in [Qual::Orbital, Qual::Technician, Qual::Scientist] {
             let i = q.index();
-            let v = civ["qual_flows"]["initial"][i].as_i64().unwrap() + 200_000;
+            let v = civ["qual_flows"]["initial"][i].as_i64().unwrap() + 30_000;
             civ["qual_flows"]["initial"][i] = v.into();
         }
     }
     for q in [Qual::Orbital, Qual::Technician, Qual::Scientist] {
         let i = q.index();
-        let v = w["regions"][cap]["quals"][i].as_i64().unwrap() + 200_000;
+        let v = w["regions"][cap]["quals"][i].as_i64().unwrap() + 30_000;
         w["regions"][cap]["quals"][i] = v.into();
     }
     let mut m = Match::load_json(&w.to_string()).expect("edited save loads");

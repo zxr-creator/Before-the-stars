@@ -1994,7 +1994,7 @@ export type SpaceOrder =
   | { op: 'land'; good: Good; amount: number }
   /** Place a core ("k1"–"k4"; a higher one upgrades for 60% of its mass) or a module in an orbit. */
   | { op: 'place'; orbit: string; part: string }
-  /** Found an outpost at an unclaimed site: the outpost bill, a year of supplies and 1,000 people. */
+  /** Found an outpost at an unclaimed site: the outpost bill, six months of supplies and 1,000 people. */
   | { op: 'found_outpost'; site: string; propulsion?: string | null }
   /** Ship goods (and, to an own site from the Earth, settlers) between zone stores. */
   | { op: 'ship'; from_zone?: string | null; to_zone: string; goods?: GoodQty[]; people?: number; site?: string | null; propulsion?: string | null }
