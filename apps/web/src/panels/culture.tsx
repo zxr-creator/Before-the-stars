@@ -9,6 +9,8 @@ import type { Tone } from '../ui';
 import { act, civColor, civName, openPanel, useApp } from '../store';
 import { LoreFold } from '../lore';
 import { OrdersLink } from './orders';
+import { LoadMeter, LoadNote, PracticePills, PracticeRules, SlotsMeter, exclusiveHolder, reformBlock, repealProject } from '../trees/insight';
+import { ERA_NAMES } from '../trees/tables';
 
 type View = 'practices' | 'peoples' | 'religion';
 const PTONE: Record<PracticeState, Tone> = { recognized: 'info', reforming: 'gold', enacted: 'ok', established: 'accent' };
@@ -55,6 +57,8 @@ function Practices({ obs }: { obs: Observation }) {
     <>
       <p class="panel-lede">{t('Practices are how people actually organise themselves. A reform makes a recognised idea an institution; adoption then spreads through real participation, not by decree.')}</p>
       <p class="orders-row"><OrdersLink obs={obs} section="reform" /> <small class="muted">{t('A reform agenda proposes the next reform as soon as one can begin.')}</small></p>
+      {obs.culture.load || obs.culture.reform_slots ? <div class="meters-row"><LoadMeter obs={obs} /><SlotsMeter obs={obs} /></div> : null}
+      <LoadNote obs={obs} />
       {groups.map((g) => (
         <Section title={tc(g.group)} aside={<small class="muted">{g.items.length}</small>}>
           <ul class="practice-list">
@@ -72,13 +76,17 @@ function Practice({ obs, p }: { obs: Observation; p: PracticeCard }) {
   const [open, setOpen] = useState(p.state === 'recognized' || p.state === 'reforming');
   const project = obs.projects.find((x) => x.kind === 'reform' && x.target === p.handle);
   const unmet = p.known_requirements.find((r) => !r.satisfied);
-  const why = p.state !== 'recognized' ? null : p.can_reform ? null : unmet ? t('Requires: {what}', { what: tc(unmet.text) }) : t('Its real requirements are not yet met');
+  const why = p.state !== 'recognized' ? null : p.can_reform ? reformBlock(obs, p) : unmet ? t('Requires: {what}', { what: tc(unmet.text) }) : t('Its real requirements are not yet met');
+  const holder = p.state === 'recognized' ? exclusiveHolder(obs, p) : undefined;
+  const repealing = repealProject(obs, p);
   const builtOn = p.links.map((h) => obs.culture.practices.find((x) => x.handle === h)?.name).filter((x): x is string => !!x).map((x) => tc(x));
   return (
     <div class={cx('card practice', 'practice-' + p.state)} data-testid="practice-card">
       <button type="button" class="practice-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span class="practice-name"><Icon name={open ? 'down' : 'right'} size={11} /> {tc(p.name)}</span>
-        <Badge tone={PTONE[p.state]} title={t(PHELP[p.state])}>{t(PSTATE_LABEL[p.state])}</Badge>
+        <PracticePills card={p} eraName={(e) => t(ERA_NAMES[e] ?? String(e))} />
+        {holder ? <Badge tone="bad" icon="swap" title={t('Must repeal {name} first: a polity holds only one of them', { name: tc(holder.name) })}>{t('Exclusive')}</Badge> : p.tension_with?.length ? <Badge tone="warn" icon="warn" title={t('In tension with another practice')}>{t('Tension')}</Badge> : null}
+        <Badge tone={repealing ? 'bad' : PTONE[p.state]} title={t(PHELP[p.state])}>{repealing ? t('Repeal under way') : t(PSTATE_LABEL[p.state])}</Badge>
       </button>
       <div class="adoption" title={t('Share of people who actually take part')}>
         <Meter value={p.adoption_bp} max={10000} tone={PTONE[p.state]} height={6} label={t('Adoption {pct}', { pct: pct(p.adoption_bp) })} />
@@ -91,6 +99,7 @@ function Practice({ obs, p }: { obs: Observation; p: PracticeCard }) {
           <p class="muted small"><b>{t('Needs:')}</b>{sp()}{tc(p.requirements)}</p>
           {p.known_requirements.length ? <Checklist items={tcChecks(p.known_requirements)} /> : null}
           {p.enables.length ? <ul class="enables">{p.enables.map((e) => <li><Icon name="right" size={10} /> {tc(e)}</li>)}</ul> : null}
+          <PracticeRules obs={obs} card={p} tag="reform" />
           <p class="muted small">{tc(p.source)} · {t('recognised {date}', { date: fmtDate(p.recognized_month) })}{builtOn.length ? ` · ${t('builds on {list}', { list: joinList(builtOn) })}` : ''}</p>
           {p.state === 'recognized' ? (
             <div class="form-actions">
