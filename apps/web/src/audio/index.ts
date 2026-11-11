@@ -159,6 +159,8 @@ function update(initial: boolean): void {
   events(s, initial);
 }
 
+let lastObserverSting = -Infinity;
+
 /** Stings and interface sounds for what just happened. */
 function events(s: AppState, initial: boolean): void {
   const obs = s.mode === 'observe' && s.viewAs === null ? null : s.obs;
@@ -190,10 +192,25 @@ function events(s: AppState, initial: boolean): void {
   };
   if (!engine) return;
   const now = performance.now();
+  if (sting === 'moment' && s.mode === 'observe') {
+    // Watching a match, historic moments arrive many times a minute at speed: play
+    // them softly, at most one every so often, and not at all while fast-forwarding
+    // unless a long while has passed. Victory and defeat always sound.
+    const pb = s.playback;
+    const fast = pb.queued > 0 || (pb.playing && pb.speed >= 2);
+    const gap = fast ? 60_000 : 20_000;
+    if (now - lastObserverSting < gap) sting = null;
+    else {
+      lastObserverSting = now;
+      engine.sting('moment', fast ? 0.35 : 0.6);
+      quietUntil = now + 2500;
+      return;
+    }
+  }
   if (sting) {
     engine.sting(sting);
     quietUntil = now + 2500;
-  } else if (sfx && now >= quietUntil && getAudioSettings().uiSounds) {
+  } else if (sfx && now >= quietUntil && getAudioSettings().uiSounds && !(s.mode === 'observe' && (s.playback.playing || s.playback.queued > 0))) {
     engine.sfx(sfx);
   }
 }

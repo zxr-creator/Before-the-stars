@@ -158,9 +158,10 @@ export class MusicEngine {
     this.conductor.setTarget(t ? { key: t.key, mood: t.mood } : null, now);
   }
 
-  sting(kind: StingKind): void {
+  /** `level` scales the cue (1 = full); observer fast playback uses a softer one. */
+  sting(kind: StingKind, level = 1): void {
     if (this.ctx.state !== 'running') return;
-    this.conductor.sting(kind, this.ctx.currentTime + 0.05);
+    this.conductor.sting(kind, this.ctx.currentTime + 0.05, level);
   }
 
   sfx(kind: SfxKind): void {

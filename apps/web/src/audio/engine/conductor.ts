@@ -253,7 +253,7 @@ export class Conductor {
   }
 
   /** A short cue built from the leitmotif in the current key; the score ducks under it. */
-  sting(kind: StingKind, at: number): number {
+  sting(kind: StingKind, at: number, level = 1): number {
     const piece = this.current?.piece;
     const key = piece?.key ?? this.target?.key ?? 'title';
     const sc = SCORES[key];
@@ -265,7 +265,7 @@ export class Conductor {
     const spb = kind === 'defeat' ? 0.95 : 0.62;
     const out = this.stingBus;
     const play = (inst: Inst, deg: number, beat: number, beats: number, v: number, oct = 0) =>
-      this.synth.play(inst, tonic + degSemis(mode, deg) + oct * 12, v, at + beat * spb, beats * spb, out);
+      this.synth.play(inst, tonic + degSemis(mode, deg) + oct * 12, v * level, at + beat * spb, beats * spb, out);
     let len: number;
     if (kind === 'moment') {
       // the leitmotif's head rising to the octave, over a swelling chord
@@ -297,7 +297,9 @@ export class Conductor {
     for (const g of [this.scoreDry.gain, this.scoreWet.gain]) {
       g.cancelScheduledValues(at);
       g.setValueAtTime(g.value, at);
-      g.setTargetAtTime(kind === 'moment' ? 0.4 : 0.15, at, 0.12);
+      // a quieter cue (observer fast playback) barely dips the score
+      const dip = kind === 'moment' ? 0.4 : 0.15;
+      g.setTargetAtTime(dip + (1 - dip) * (1 - Math.min(1, level)) * 0.8, at, 0.12);
       g.setTargetAtTime(1, at + len, 1.2);
     }
     return len;
