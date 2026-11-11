@@ -33,19 +33,19 @@
     },
     {
       "tier": 4,
-      "hint": 600000,
+      "hint": 900000,
       "work_k": 2000,
       "min_months": 36
     },
     {
       "tier": 5,
-      "hint": 640000,
+      "hint": 960000,
       "work_k": 4000,
       "min_months": 30
     },
     {
       "tier": 6,
-      "hint": 800000,
+      "hint": 1000000,
       "work_k": 6000,
       "min_months": 30
     },
@@ -69,6 +69,13 @@
     }
   ],
   "eras": {
+    "bronze_age": {
+      "hint": 1600000,
+      "target": [
+        -3500,
+        -2300
+      ]
+    },
     "classical": {
       "hint": 14000000,
       "target": [
@@ -77,21 +84,21 @@
       ]
     },
     "late_antiquity": {
-      "hint": 20000000,
+      "hint": 24000000,
       "target": [
         300,
         800
       ]
     },
     "medieval": {
-      "hint": 14000000,
+      "hint": 15400000,
       "target": [
         800,
         1200
       ]
     },
     "high_medieval": {
-      "hint": 10000000,
+      "hint": 11500000,
       "target": [
         1100,
         1400
@@ -120,6 +127,12 @@
     }
   },
   "nodes": {
+    "T025": {
+      "era": "bronze_age"
+    },
+    "T022": {
+      "era": "bronze_age"
+    },
     "T023": {
       "era": "classical"
     },

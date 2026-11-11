@@ -167,18 +167,25 @@ referee's diagnostics) are `u64`; a region and an age cell stay `u32`.
   `F_custom` 3,850 (+230 with C002, -150 with C039, +600 for followers of Fruitful
   Households, +230 for Day of Rest; the design's 5,500 assumed lower survival to
   childbearing than these bands give, since with annual ageing a newborn spends on
-  average half a year in the infant band). `F_food` and `F_crowd` as in ruleset 2.0,
-  except that households judge their stores against at most what the stores can
-  hold. `F_dev = clamp(10,000 - 1,800 x literate share - 600 x urban share - 600 x
-  child survival gain - 600 x prosperity, 6,200, 10,000)`, +500 with C046; prosperity
+  average half a year in the infant band). `F_crowd` as in ruleset 2.0. `F_food`
+  (slice 6r) is the households' own food security, never the government's reserve
+  policy: when everyone ate this month, `access x (0.7 + 0.3 x max(S, Y))`, with access
+  the region's mean food fulfilment over the last twelve months, `S` the months of food
+  left in store over a household buffer of two months (at most nine tenths of what the
+  stores can hold, at least a tenth of a month) and `Y` full when this month's fields and
+  works raised 105% of what everyone eats (zero at 95%); hunger lowers it as in ruleset
+  2.0. `F_dev = clamp(10,000 - 1,500 x literate share - 600 x urban share - 600 x
+  child survival gain - 600 x prosperity, 6,800, 10,000)`, +500 with C046; prosperity
   enters with the consumption slice. `F_land` (a calibration addition, not in the
-  design) = `clamp(10,000 + 625 x (0.8 - P/K) / 0.8, 8,000, 10,625)` where `K` is
+  design) = `clamp(10,000 + 1,500 x (0.465 - P/K) / 0.465, 6,000, 10,500)` where `K` is
   what the region's land can feed with what the government knows (wild food at a
   third, fields at every level the land and practices allow by the best known
   method, pastures and fishing grounds at half), at most its water capacity: the
-  Malthusian brake that keeps a pre-modern people near its land's capacity, so that
-  long-run growth follows new land and new methods instead of drifting to an
-  explosion or to extinction. Until soil science (T056) fields are held to 20 levels
+  Malthusian brake that keeps a pre-modern people near half its land's capacity, so
+  that long-run growth follows new land and new methods instead of drifting to an
+  explosion or to extinction. It fades as children survive: its departure from 10,000
+  is scaled by `1 - clamp(2 x (child survival gain - 2,500), 0, 10,000) / 10,000`, so
+  the medieval remedies keep it and germ theory with clean water ends it. Until soil science (T056) fields are held to 20 levels
   (the best of the land; after C007 and C017 as before).
 - **Deaths by cause** partition all deaths: age and illness (base, technology,
   care), hunger and crowding (`M_hazard`), town conditions (`M_urban`), epidemic
@@ -766,14 +773,15 @@ handwork").
   volume of trade joins this factor with the market slice. C030 still adds a
   quarter.
 - **Thresholds**: a lead at `H`, discovered at `2.5 H` (or by a lead study), scaled
-  by `pace_bp`. By tier: 1.0 M, 4.0 M, 6.0 M, then 0.8, 0.6, 0.64, 0.8, 0.9, 1.1,
+  by `pace_bp`. By tier: 1.0 M, 4.0 M, 6.0 M, then 0.8, 0.9, 0.96, 1.0, 0.9, 1.1,
   1.1 M (tiers 3-9 at a fifth of the design's, because practitioner activity in these
-  economies is several times smaller than the design assumed). Nodes the graph's
-  tiers place far earlier than their history take their pacing era's `H` instead:
+  economies is several times smaller than the design assumed; tiers 4-6 raised in slice
+  6r). Nodes the graph's tiers place far earlier or later than their history take their
+  pacing era's `H` instead: bronze age (writing, alloy casting; slice 6r) 1.6 M;
   classical (iron, roads, sailing, water mills, hygiene, mechanical projection) 14 M;
-  late antiquity (recording media) 20 M; medieval (glass, mechanical timekeeping)
-  14 M; high medieval (propellants, optics, measurement, controlled trials,
-  astronomical models) 10 M; renaissance (printing) 16 M; early modern (guns,
+  late antiquity (recording media) 24 M; medieval (glass, mechanical timekeeping)
+  15.4 M; high medieval (propellants, optics, measurement, controlled trials,
+  astronomical models) 11.5 M; renaissance (printing) 16 M; early modern (guns,
   precision transmission, anatomy, vacuum, chemical analysis) 8 M; the scientific
   method node (T049) 6 M.
 - **Exploratory studies** add five units of evidence per researcher-month of the

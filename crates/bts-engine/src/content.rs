@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6r";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,7 +26,7 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6";
 /// released each slice that changes saved state carries a pre-release tag
 /// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
 /// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6";
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6r";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
 pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s5";
 
@@ -152,6 +152,9 @@ pub enum Req {
     Contact,
     Religion,
     SciMethod,
+    /// The seat holds (or held within a century) an industrial or information
+    /// tradition (design chapter 37, section 4; slice 13). Never true before then.
+    Tradition(String),
     All(Vec<Req>),
     Any(Vec<Req>),
 }
@@ -182,6 +185,7 @@ impl Req {
             Req::Contact => c.contact(),
             Req::Religion => c.religion(),
             Req::SciMethod => c.sci_method(),
+            Req::Tradition(_) => false,
             Req::All(v) => v.iter().all(|r| r.eval(c)),
             Req::Any(v) => v.iter().any(|r| r.eval(c)),
         }
@@ -290,6 +294,9 @@ impl<'a> Parser<'a> {
         if let Some(k) = t.strip_prefix("F:") {
             return Req::Fac(*self.fac_ix.get(k).unwrap_or_else(|| panic!("unknown facility {k}")));
         }
+        if let Some(k) = t.strip_prefix("TRAD:") {
+            return Req::Tradition(k.to_string());
+        }
         if let Some(n) = t.strip_prefix("POP>=") {
             return Req::Pop(n.parse().unwrap());
         }
@@ -389,6 +396,33 @@ struct TechJson {
     prereq: String,
     requirements: String,
     capability: String,
+    /// Kind of node (design chapter 39, section 1.2): absent for the nodes of the
+    /// atlas and of doc 37; "side", "alt", "dead", "sealed", "entry" or "branch".
+    #[serde(default)]
+    kind: Option<String>,
+    /// Rival family (`content/families.json`), if any.
+    #[serde(default)]
+    family: Option<String>,
+    /// Know-how lost when unused for a century without archives (section 1.5).
+    #[serde(default)]
+    fragile: bool,
+    /// Evidence source: absent for ordinary evidence, "tradition:<path>" for a
+    /// tradition branch node, "sealed" for a node absent until the objective.
+    #[serde(default)]
+    evidence: Option<String>,
+}
+
+/// What a node is in the graph of design chapter 39 (section 1.2).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TechKind {
+    /// The atlas's nodes and doc 37's.
+    Core,
+    Side,
+    Alt,
+    Dead,
+    Sealed,
+    Entry,
+    Branch,
 }
 
 #[derive(Clone, Debug)]
@@ -415,9 +449,30 @@ pub struct Tech {
     /// The era of the technology (design chapter 37, section 8.3): a works receives
     /// its productivity only if this is at most the works' era plus one.
     pub era: u8,
+    pub kind: TechKind,
+    /// Index into [`Content::families`].
+    pub family: Option<usize>,
+    pub fragile: bool,
+    /// A tradition branch node's tradition (its practice evidence comes only from
+    /// that tradition's works; slice 13). Before traditions exist only studies,
+    /// contact and capture reach it.
+    pub tradition: Option<String>,
+    /// Victory-critical (design chapter 39, section 0.2; `content/families.json`).
+    pub critical: bool,
 }
 
 fn tech_needs_facility(id: &str) -> Option<&'static str> {
+    if let Some(k) = pacing().nodes.get(id).and_then(|n| n.needs_facility.as_deref()) {
+        return match k {
+            "launch_complex" => Some("launch_complex"),
+            "high_energy" => Some("high_energy"),
+            "jump_testbed" => Some("jump_testbed"),
+            // off-world research stations and inhabited sites arrive with slice 15;
+            // until then the Earth-orbit station stands in for them
+            "orbital_station" | "offworld_station" | "offworld_inhabited" => Some("orbital_station"),
+            other => panic!("pacing.json: {id} needs an unknown installation {other}"),
+        };
+    }
     match id {
         "T147" | "T148" | "T149" | "T161" | "T162" | "T163" => Some("high_energy"),
         "T144" | "T145" | "T152" => Some("launch_complex"),
@@ -495,6 +550,20 @@ pub struct NodePacing {
     pub tier: Option<u8>,
     #[serde(default)]
     pub tags: Vec<String>,
+    /// Era band 0-9 (design chapter 37, section 8.3) where the id range misplaces it.
+    #[serde(default)]
+    pub band: Option<u8>,
+    /// Per-node multipliers of the tier's research work and lead threshold (design
+    /// chapter 39, section 1.6), basis points.
+    #[serde(default)]
+    pub work_bp: Option<i64>,
+    #[serde(default)]
+    pub hint_bp: Option<i64>,
+    #[serde(default)]
+    pub min_months: Option<u32>,
+    /// Installation the investigation needs to be operating.
+    #[serde(default)]
+    pub needs_facility: Option<String>,
 }
 
 pub fn pacing() -> &'static PacingJson {
@@ -719,6 +788,66 @@ fn tech_tags(id: &str) -> Vec<Tag> {
 }
 
 // ---------------------------------------------------------------------------
+// Rival families and exclusive groups (design chapter 39, sections 1.4 and 2.2)
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize, Default)]
+struct FamiliesJson {
+    #[serde(default)]
+    families: Vec<FamilyJson>,
+    #[serde(default)]
+    exclusive_groups: Vec<GroupJson>,
+    #[serde(default)]
+    critical_technologies: Vec<String>,
+    #[serde(default)]
+    critical_practices: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct FamilyJson {
+    id: String,
+    name: String,
+    kind: String,
+    members: Vec<String>,
+    #[serde(default)]
+    refuted_by: Vec<String>,
+    #[serde(default)]
+    critical_members: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct GroupJson {
+    id: String,
+    name: String,
+    members: Vec<String>,
+}
+
+/// Technologies that solve one problem in incompatible ways: building on one makes
+/// the others harder to learn (design chapter 39, section 1.4).
+#[derive(Clone, Debug)]
+pub struct Family {
+    pub id: String,
+    pub name: String,
+    /// "standard", "approach" or "doctrine".
+    pub kind: String,
+    pub members: Vec<usize>,
+    /// Understood refuting nodes each halve what is left of a lock.
+    pub refuted_by: Vec<usize>,
+}
+
+/// Practices of which a seat may hold at most one (section 2.2).
+#[derive(Clone, Debug)]
+pub struct ExclusiveGroup {
+    pub id: String,
+    pub name: String,
+    pub members: Vec<usize>,
+}
+
+fn families_json() -> FamiliesJson {
+    serde_json::from_str(include_str!("../../../content/families.json")).expect("families.json")
+}
+
+// ---------------------------------------------------------------------------
 // Cultural practices
 // ---------------------------------------------------------------------------
 
@@ -730,7 +859,49 @@ struct PracJson {
     prereq: String,
     requirements: String,
     behavior: String,
+    /// Era 0-8 (design chapter 39, section 2.3); costs follow it.
+    #[serde(default)]
+    era: Option<u8>,
+    /// Material preconditions (the `practice_hard` grammar plus `TRAD:<path>`).
+    #[serde(default)]
+    hard: Option<String>,
+    #[serde(default)]
+    exclusive: Option<String>,
+    #[serde(default)]
+    tension: Vec<String>,
+    #[serde(default)]
+    tradition: Option<String>,
 }
+
+/// Display name of an industrial or information tradition (design chapter 37,
+/// section 4) by its key in `TRAD:<key>`.
+pub fn tradition_name(key: &str) -> &'static str {
+    match key {
+        "steam" => "Coal and Steam",
+        "engine" => "Oil and Engine",
+        "wire" => "Current and Wire",
+        "atom" => "Atom",
+        "network" => "Network",
+        "living" => "Living Systems",
+        "synthetic" => "Synthetic Minds",
+        _ => "unknown",
+    }
+}
+
+/// Costs of a practice by era (design chapter 39, section 2.3): evidence to
+/// recognize, reform work (thousand worker-months), media (lots), minimum months,
+/// institutional load.
+pub const PRACTICE_ERA_COSTS: [(i64, i64, f64, i64, i64); 9] = [
+    (1_200, 10, 0.0, 24, 0),
+    (4_000, 40, 3.0, 60, 0),
+    (10_000, 90, 8.0, 60, 0),
+    (24_000, 160, 15.0, 72, 1),
+    (50_000, 300, 30.0, 84, 1),
+    (100_000, 550, 55.0, 96, 2),
+    (180_000, 900, 90.0, 108, 2),
+    (300_000, 1_400, 140.0, 120, 3),
+    (450_000, 2_000, 200.0, 120, 3),
+];
 
 #[derive(Clone, Debug)]
 pub struct Practice {
@@ -748,6 +919,19 @@ pub struct Practice {
     /// Index into the eight private tendencies that most affects adoption speed.
     pub affinity: usize,
     pub effect: &'static str,
+    /// Era 0-8 (design chapter 39, section 2.3).
+    pub era: u8,
+    /// Minimum months of the reform.
+    pub min_months: i64,
+    /// Institutional load while established (section 2.3).
+    pub load: i64,
+    /// Index into [`Content::exclusive_groups`].
+    pub exclusive: Option<usize>,
+    /// Practices in tension with this one (section 2.2).
+    pub tension: Vec<usize>,
+    /// A tradition institution (C168-C174): recognizable only under its tradition.
+    pub tradition: Option<String>,
+    pub critical: bool,
 }
 
 /// Material preconditions of a reform. `POP>=n` and `Q:name>=n` count people.
@@ -2336,6 +2520,8 @@ pub struct Content {
     pub graph_hash: u64,
     /// Edges of the building tree (design chapter 37, section 8.2).
     pub upgrades: Vec<UpgradeEdge>,
+    pub families: Vec<Family>,
+    pub exclusive_groups: Vec<ExclusiveGroup>,
 }
 
 impl Content {
@@ -2377,13 +2563,30 @@ fn load() -> Content {
         }
     }
     let pace = pacing();
+    let fam = families_json();
+    let family_of = |id: &str| fam.families.iter().position(|f| f.members.iter().any(|m| m == id));
+    let crit_t: std::collections::HashSet<&str> = fam.critical_technologies.iter().map(|s| s.as_str()).collect();
+    let crit_p: std::collections::HashSet<&str> = fam.critical_practices.iter().map(|s| s.as_str()).collect();
     let techs: Vec<Tech> = tj
         .iter()
         .enumerate()
         .map(|(ti, t)| {
             let tier = tiers[ti].unwrap_or(0);
             let tp = pace.tiers[tier as usize];
-            let era_hint = pace.nodes.get(&t.id).and_then(|n| n.era.as_ref()).and_then(|e| pace.eras.get(e)).map(|e| e.hint);
+            let node = pace.nodes.get(&t.id);
+            let era_hint = node.and_then(|n| n.era.as_ref()).and_then(|e| pace.eras.get(e)).map(|e| e.hint);
+            let work_bp = node.and_then(|n| n.work_bp).unwrap_or(10_000);
+            let hint_bp = node.and_then(|n| n.hint_bp).unwrap_or(10_000);
+            let kind = match t.kind.as_deref() {
+                None | Some("core") => TechKind::Core,
+                Some("side") => TechKind::Side,
+                Some("alt") => TechKind::Alt,
+                Some("dead") => TechKind::Dead,
+                Some("sealed") => TechKind::Sealed,
+                Some("entry") => TechKind::Entry,
+                Some("branch") => TechKind::Branch,
+                Some(k) => panic!("technologies.json: {} has an unknown kind {k}", t.id),
+            };
             graph_src.push_str(&format!("{}:{};", t.id, t.prereq));
             Tech {
                 id: t.id.clone(),
@@ -2397,11 +2600,16 @@ fn load() -> Content {
                 tier,
                 tags: tech_tags(&t.id),
                 class: class_for_tier(tier),
-                work: tp.work_k * 1000,
-                min_months: tp.min_months,
+                work: tp.work_k * 1000 * work_bp / 10_000,
+                min_months: node.and_then(|n| n.min_months).unwrap_or(tp.min_months).max(tp.min_months),
                 needs_facility: tech_needs_facility(&t.id),
-                hint: era_hint.unwrap_or(tp.hint),
-                era: tech_era(&t.id),
+                hint: era_hint.unwrap_or(tp.hint) * hint_bp / 10_000,
+                era: node.and_then(|n| n.band).unwrap_or_else(|| tech_era(&t.id)),
+                kind,
+                family: family_of(&t.id),
+                fragile: t.fragile,
+                tradition: t.evidence.as_deref().and_then(|e| e.strip_prefix("tradition:")).map(|x| x.to_string()),
+                critical: crit_t.contains(t.id.as_str()),
             }
         })
         .collect();
@@ -2420,19 +2628,27 @@ fn load() -> Content {
         .map(|p| {
             graph_src.push_str(&format!("{}:{};", p.id, p.prereq));
             let gi = groups.iter().position(|g| *g == p.group).unwrap() as u8;
-            let (work, media, evidence) = match gi {
+            // the catalogue-group costs of the original practices: still what the
+            // victory-critical ones cost (design chapter 39, section 2.3)
+            let (gwork, gmedia, gevidence) = match gi {
                 0 => (10, 0.0, 1200),
                 1 => (36, 3.0, 3200),
                 2 => (110, 12.0, 7000),
                 _ => (260, 30.0, 12000),
             };
+            let critical = crit_p.contains(p.id.as_str());
+            let era = p.era.unwrap_or(0).min(8);
+            let (eevidence, ework, emedia, emonths, eload) = PRACTICE_ERA_COSTS[era as usize];
+            let by_era = p.era.is_some() && !critical;
+            let (work, media, evidence) = if by_era { (ework, emedia, eevidence) } else { (gwork.min(260), gmedia, gevidence.min(12_000)) };
+            let min_months = if by_era { emonths } else { 3 };
             Practice {
                 id: p.id.clone(),
                 name: p.name.clone(),
                 group: p.group.clone(),
                 group_ix: gi,
                 prereq: pr(&p.prereq),
-                hard: pr(practice_hard(&p.id)),
+                hard: pr(p.hard.as_deref().unwrap_or_else(|| practice_hard(&p.id))),
                 requirements: p.requirements.clone(),
                 behavior: p.behavior.clone(),
                 work: work * 1000,
@@ -2440,10 +2656,21 @@ fn load() -> Content {
                 evidence_needed: evidence,
                 affinity: practice_affinity(&p.id),
                 effect: practice_effect(&p.id),
+                era,
+                min_months,
+                load: if p.era.is_some() { eload } else { 0 },
+                exclusive: p.exclusive.as_ref().and_then(|x| fam.exclusive_groups.iter().position(|g| &g.id == x)),
+                tension: Vec::new(),
+                tradition: p.tradition.clone(),
+                critical,
             }
         })
         .collect();
 
+    let mut practices = practices;
+    for (i, p) in pj.iter().enumerate() {
+        practices[i].tension = p.tension.iter().map(|x| *prac_ix.get(x).unwrap_or_else(|| panic!("practices.json: {} is in tension with unknown {x}", p.id))).collect();
+    }
     for f in facs.iter_mut() {
         f.req = pr(f.req_src);
         for r in f.recipes.iter_mut() {
@@ -2536,7 +2763,18 @@ fn load() -> Content {
     }
 
     let upgrades = upgrade_edges(&facs, &fac_ix);
+    let tid = |id: &String| *tech_ix.get(id).unwrap_or_else(|| panic!("families.json: unknown technology {id}"));
+    let pid = |id: &String| *prac_ix.get(id).unwrap_or_else(|| panic!("families.json: unknown practice {id}"));
+    let families: Vec<Family> = fam.families.iter().map(|f| Family { id: f.id.clone(), name: f.name.clone(), kind: f.kind.clone(), members: f.members.iter().map(tid).collect(), refuted_by: f.refuted_by.iter().map(tid).collect() }).collect();
+    for f in &fam.families {
+        for m in &f.critical_members {
+            assert!(f.members.contains(m), "families.json: critical member {m} outside its family");
+        }
+    }
+    let exclusive_groups: Vec<ExclusiveGroup> = fam.exclusive_groups.iter().map(|g| ExclusiveGroup { id: g.id.clone(), name: g.name.clone(), members: g.members.iter().map(pid).collect() }).collect();
     Content {
+        families,
+        exclusive_groups,
         upgrades,
         graph_hash: crate::util::fnv(graph_src.as_bytes()),
         techs,

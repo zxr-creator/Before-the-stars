@@ -63,6 +63,42 @@ pub fn admin_capacity(w: &World, seat: SeatId) -> u16 {
     cap.min(200) as u16
 }
 
+/// Institutional load (design chapter 39, section 2.3): what the seat's
+/// established practices ask of its offices.
+pub fn institutional_load(w: &World, seat: SeatId) -> i64 {
+    let c = content();
+    let civ = &w.civs[seat as usize];
+    (0..c.practices.len()).filter(|i| civ.established(*i)).map(|i| c.practices[i].load).sum()
+}
+
+/// Institutional capacity: 20, three for every level of administrative offices (at
+/// most 30 counted), ten for each of specialized administration (C026), public
+/// budgets (C036), hierarchical or federal administration (C041 or C042),
+/// algorithmic administration (C050) and statistical bureaus (C119).
+pub fn institutional_capacity(w: &World, seat: SeatId) -> i64 {
+    let civ = &w.civs[seat as usize];
+    let admin = content().f("admin");
+    let levels: i64 = w.regions.iter().filter(|r| r.controller == Some(seat)).map(|r| r.fac(admin).map(|f| f.level as i64).unwrap_or(0)).sum();
+    let e = |id: &str| crate::sim::knowledge::est_opt(civ, id);
+    20 + 3 * levels.min(30) + 10 * (e("C026") as i64 + e("C036") as i64 + (e("C041") || e("C042")) as i64 + e("C050") as i64 + e("C119") as i64)
+}
+
+/// Reforms a seat may run at once: one, and one more for each of specialized
+/// administration, public budgets and algorithmic administration (1-4).
+pub fn reform_slots(w: &World, seat: SeatId) -> u32 {
+    let civ = &w.civs[seat as usize];
+    let e = |id: &str| crate::sim::knowledge::est_opt(civ, id) as u32;
+    1 + e("C026") + e("C036") + e("C050")
+}
+
+/// The member of a practice's exclusive group the seat holds (reforming or
+/// enacted), other than the practice itself.
+pub fn exclusive_holder(w: &World, seat: SeatId, practice: usize) -> Option<usize> {
+    let c = content();
+    let g = c.practices[practice].exclusive?;
+    c.exclusive_groups[g].members.iter().copied().find(|m| *m != practice && w.civs[seat as usize].practice[*m].state >= 2)
+}
+
 pub fn admin_load(w: &World, seat: SeatId) -> u16 {
     w.regions.iter().filter(|r| r.controller == Some(seat) && r.population() > 0).count() as u16
 }
@@ -212,6 +248,17 @@ pub fn step(w: &mut World, seat: SeatId) {
     if belief_share(w, seat, "remembrance") > 3000 {
         target += 3;
     }
+    // institutions (design chapter 39, sections 2.2-2.3): tensions between established
+    // practices, a repeal under way, and load above what the offices can carry
+    let tensions = tension_pairs(w, seat);
+    target -= 2 * tensions.len() as i64;
+    if w.civs[si].projects.iter().any(|p| matches!(p.kind, ProjKind::Repeal { .. })) {
+        target -= 2;
+    }
+    let over = institutional_load(w, seat) - institutional_capacity(w, seat);
+    if over > 0 {
+        target -= (over + 3) / 4;
+    }
     if belief_share(w, seat, "open_courts") > 3000 {
         target += 2;
     }
@@ -254,6 +301,10 @@ pub fn step(w: &mut World, seat: SeatId) {
             if !p.prereq.eval(&PracEnactedCtx { world: w, seat, recognized_only: false }) {
                 continue;
             }
+            // a tradition institution only where the tradition is held (slice 13)
+            if p.tradition.is_some() {
+                continue;
+            }
             // the index counts thousands of people, so its pace does not depend on the unit of account
             let mut gain = isqrt(pop / 1000) * 7 + record / 3 + 40;
             for &o in &peaceful {
@@ -277,6 +328,11 @@ pub fn step(w: &mut World, seat: SeatId) {
                 let aff = axes[p.affinity] as i64;
                 let mut rate = 130 * (5000 + aff) / 10_000;
                 rate = rate * stability.clamp(30, 84) / 70;
+                // later institutions take hold more slowly; practices in tension at half speed
+                rate = rate * 10_000 / (10_000 + 1_500 * p.era as i64);
+                if tensions.iter().any(|(a, b)| *a == i || *b == i) {
+                    rate /= 2;
+                }
                 let st = &mut w.civs[si].practice[i];
                 st.adoption_bp = (before as i64 + rate.max(20)).min(10_000) as u16;
                 if before < ESTABLISHED_BP && st.adoption_bp >= ESTABLISHED_BP {
@@ -356,6 +412,21 @@ pub fn step(w: &mut World, seat: SeatId) {
             w.civs[si].add(Good::Media, want * got / material);
         }
     }
+}
+
+/// Pairs of established practices in tension (design chapter 39, section 2.2).
+pub fn tension_pairs(w: &World, seat: SeatId) -> Vec<(usize, usize)> {
+    let c = content();
+    let civ = &w.civs[seat as usize];
+    let mut out = Vec::new();
+    for (i, p) in c.practices.iter().enumerate() {
+        for &j in &p.tension {
+            if i < j && civ.established(i) && civ.established(j) {
+                out.push((i, j));
+            }
+        }
+    }
+    out
 }
 
 /// Media lots a fully staffed precinct with copy houses makes in a month, and the

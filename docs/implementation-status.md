@@ -142,6 +142,25 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   Prosperity in `F_city` and `F_dev` is still 0 (consumption slice). Calibration and the
   remaining late-population gap: `docs/calibration/ruleset3-slice-6-eval.txt`.
 
+- **Slice 6r, calibration repair (done).** Fertility's food factor is the households'
+  own food security (the past year's access, a two-month household buffer at most what
+  the stores hold, or a twentieth of surplus production), not the government's reserve
+  policy; the land factor's Malthusian ceiling sits at 46.5% of carrying capacity and
+  fades as children survive; the development factor's floor is 6,800. The native AI sizes
+  its supply orders to the gap between standing demand (fields at the best method,
+  works, upkeep) and supply, up to 12 levels an order with standing targets, plans the
+  fields' inputs before they run short and sizes granaries to its reserve. A
+  `bronze_age` pacing era brings writing and bronze into their windows, with the later
+  eras re-tuned in `content/pacing.json`. Ruleset `bts-rules/3.0.0-s6r`, content
+  `bts-content/3.0.0-s6r`, protocol `bts-protocol/2.1` (additions only, listed under
+  slice 6b). Calibration tooling: `scripts/calib_report.py` (population with spreads,
+  era windows, completion shares, fertility diagnostics; 32-seed batches) and four new
+  curve columns (`established`, `fert_food_bp`, `fert_intensity_bp`, `cap_ratio_bp`,
+  `land_bp`). On 32 seeds the median seat is within ±35% of design table 3.1 from
+  1000 BC to 1900 and every era milestone from storage to programmable computers is in
+  or within a century of its window; 3000 BC is about 1.9x and 2000-2200 0.3-0.5x the
+  target: `docs/calibration/ruleset3-slice-6r-eval.txt`.
+
 ## Known calibration gaps
 
 - All numeric parameters are first-pass values tuned only through all-AI matches.

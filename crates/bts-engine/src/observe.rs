@@ -69,6 +69,7 @@ fn req_items(w: &World, seat: SeatId, req: &Req, prac_enacted: bool) -> (Vec<Kno
             Req::Contact => Some(("Contact with another people".into(), ctx.contact(), None)),
             Req::Religion => Some(("A local religious tradition".into(), ctx.religion(), None)),
             Req::SciMethod => Some(("The scientific method as a working institution".into(), ctx.sci_method(), None)),
+            Req::Tradition(k) => Some((format!("The {} tradition held", crate::content::tradition_name(k)), false, None)),
             Req::All(_) | Req::Any(_) => None,
         }
     }
@@ -289,6 +290,8 @@ fn project_kind_key(kind: &ProjKind) -> &'static str {
         ProjKind::Resettle { .. } => "resettle",
         ProjKind::Recruit { .. } => "recruit",
         ProjKind::Reform { .. } => "reform",
+        ProjKind::Revisit { .. } => "revisit",
+        ProjKind::Repeal { .. } => "repeal",
         ProjKind::Religion { .. } => "religion",
         ProjKind::FtlTrial => "ftl_trial",
         ProjKind::FtlDeployment => "ftl_deployment",
@@ -912,6 +915,9 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     // ---- knowledge -------------------------------------------------------------------
     let mut techs = Vec::new();
     let mut leads = Vec::new();
+    let installed = crate::sim::knowledge::installed_base(w, seat);
+    let lk = crate::sim::knowledge::locks(w, seat, &installed);
+    let keepers = crate::sim::knowledge::est_opt(civ, "C013") || crate::sim::knowledge::est_opt(civ, "C088");
     for (i, t) in c.techs.iter().enumerate() {
         let st = &civ.tech[i];
         if st.state == ST_UNKNOWN {
@@ -947,7 +953,41 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             }
         }
         let full = projects::scaled(t.work, w.cfg.research_pace()) * (10_000 - st.discount_bp as i64) / 10_000;
+        let full = if st.state < ST_UNDERSTOOD { full * lk.work_bp[i] / 10_000 } else { full };
+        // a family is shown only between discovered members (design chapter 39, 7.2)
+        let family_view = t.family.and_then(|fi| {
+            let f = &c.families[fi];
+            let rivals: Vec<usize> = f.members.iter().copied().filter(|m| *m != i && civ.tech[*m].state >= ST_DISCOVERED).collect();
+            if rivals.is_empty() {
+                return None;
+            }
+            let stand = lk.stands[fi];
+            let incumbent = stand.incumbent.filter(|m| civ.tech[*m].state >= ST_DISCOVERED);
+            Some(FamilyView {
+                family: f.name.clone(),
+                rivals_discovered: rivals.iter().map(|m| tech_handle(w, seat, *m)).collect(),
+                incumbent: incumbent.map(|m| tech_handle(w, seat, m)),
+                share_bp: if incumbent.is_some() { stand.share_bp as u16 } else { 0 },
+                lock_e_bp: lk.evidence_bp[i] as u16,
+                lock_w_bp: lk.work_bp[i] as u16,
+                capped: lk.capped[i],
+                revisit_cost: projects::scaled(t.work * crate::actions::REVISIT_WORK_BP / 10_000, w.cfg.research_pace()),
+                revisit_active: civ.revisit_until.get(fi).map(|m| *m > w.month).unwrap_or(false),
+            })
+        });
+        let fragile_risk = if t.fragile && !t.critical && st.state >= ST_UNDERSTOOD && !keepers { Some(((w.month.saturating_sub(st.used_month.max(st.und_month))) / 12) as u32) } else { None };
         techs.push(TechCard {
+            kind: match t.kind {
+                crate::content::TechKind::Core => String::new(),
+                crate::content::TechKind::Side => "side".into(),
+                crate::content::TechKind::Alt => "alt".into(),
+                crate::content::TechKind::Dead => "dead".into(),
+                crate::content::TechKind::Sealed => "sealed".into(),
+                crate::content::TechKind::Entry => "entry".into(),
+                crate::content::TechKind::Branch => "branch".into(),
+            },
+            family_view,
+            fragile_risk,
             handle,
             name: t.name.clone(),
             field: t.group_title.clone(),
@@ -973,7 +1013,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         .filter(|tag| (0..c.techs.len()).any(|i| civ.knows(i) && c.techs[i].tags.contains(tag)))
         .map(|tag| StudyDomain { key: tag.key().to_string(), name: tag.name().to_string(), description: tag.desc().to_string() })
         .collect();
-    let knowledge = KnowledgeView { techs, leads, domains, scientific_method: civ.milestones.sci_method.is_some() };
+    let knowledge = KnowledgeView { techs, leads, domains, scientific_method: civ.milestones.sci_method.is_some(), investigation_lines: crate::sim::knowledge::investigation_lines(w, seat) };
 
     // ---- culture ------------------------------------------------------------------------
     let mut practices = Vec::new();
@@ -1015,6 +1055,10 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             links,
             source: st.source.clone(),
             recognized_month: st.rec_month,
+            era: p.era,
+            load: p.load as u8,
+            exclusive_with: p.exclusive.map(|g| c.exclusive_groups[g].members.iter().copied().filter(|m| *m != i && civ.practice[*m].state >= 1).map(|m| prac_handle(w, seat, m)).collect()).unwrap_or_default(),
+            tension_with: p.tension.iter().copied().filter(|m| civ.practice[*m].state >= 1).map(|m| prac_handle(w, seat, m)).collect(),
         });
     }
     let mut lineages = Vec::new();
@@ -1071,7 +1115,14 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             slots_remaining: RELIGION_SLOTS.saturating_sub(w.religions.len() as u8),
         }
     });
-    let culture_view = CultureView { practices, lineages, religions, movement };
+    let culture_view = CultureView {
+        practices,
+        lineages,
+        religions,
+        movement,
+        load: InstitutionLoad { used: crate::sim::culture::institutional_load(w, seat).max(0) as u32, capacity: crate::sim::culture::institutional_capacity(w, seat).max(0) as u32 },
+        reform_slots: crate::sim::culture::reform_slots(w, seat),
+    };
 
     // ---- catalog ------------------------------------------------------------------------------
     let mut cat_fac = Vec::new();
@@ -1220,7 +1271,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
                 target: match &p.kind {
                     ProjKind::Build { facility, .. } => Some(c.facilities[*facility].key.to_string()),
                     ProjKind::Research { tech } | ProjKind::LeadStudy { tech } => Some(tech_handle(w, seat, *tech)),
-                    ProjKind::Reform { practice } => Some(prac_handle(w, seat, *practice)),
+                    ProjKind::Reform { practice } | ProjKind::Repeal { practice } => Some(prac_handle(w, seat, *practice)),
+                    ProjKind::Revisit { tech, .. } => Some(tech_handle(w, seat, *tech)),
                     ProjKind::Study { tag } => Some(Tag::ALL[*tag].key().to_string()),
                     _ => None,
                 },
