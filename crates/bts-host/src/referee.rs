@@ -223,9 +223,10 @@ struct AgentOptions {
 
 /// Agent seats named in a new-match request, by seat.
 fn agents_from<A: AgentSlot>(n: &NewMatch) -> Vec<Option<AgentConfig>> {
-    let mut out = vec![None; 4];
+    let seats = n.controllers.as_ref().map_or(4, |c| c.len().clamp(2, 10));
+    let mut out = vec![None; seats];
     if let Some(c) = &n.controllers {
-        for (i, name) in c.iter().enumerate().take(4) {
+        for (i, name) in c.iter().enumerate().take(seats) {
             if let Some(p) = A::provider(name.trim()) {
                 let o = n.agent_options.get(&i.to_string()).cloned().unwrap_or_default();
                 out[i] = Some(AgentConfig {
@@ -281,8 +282,16 @@ fn config_from<A: AgentSlot>(n: NewMatch) -> Result<MatchConfig, String> {
         };
     }
     if let Some(c) = n.controllers {
-        if c.len() != 4 {
-            return Err("exactly four seats are required".into());
+        // design chapter 40, section 2.2: each map preset takes a range of seats
+        let (lo, hi, name) = match cfg.regions {
+            30 => (2, 3, "Small"),
+            60 => (2, 5, "Standard"),
+            120 => (4, 8, "Large"),
+            200 => (6, 10, "Huge"),
+            _ => (2, 10, ""),
+        };
+        if c.len() < lo || c.len() > hi {
+            return Err(if name.is_empty() { "a match takes 2 to 10 civilizations".to_string() } else { format!("{name} maps take {lo} to {hi} civilizations") });
         }
         let mut kinds = Vec::new();
         for s in &c {

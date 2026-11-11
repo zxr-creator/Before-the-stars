@@ -466,6 +466,16 @@ export interface RegionView {
   outbreak?: OutbreakView | null;
   /** Climate zone (generator 2.0). */
   climate?: ClimateZone | null;
+  /** The principal city site and natural harbour (design chapter 38, section 2; public geography). */
+  city?: CitySiteView | null;
+}
+
+/** Where a region's principal city stands (design chapter 38, section 2.1). */
+export interface CitySiteView {
+  name: string;
+  /** Map position, in the frame of `RegionView.center` (may lie past an edge on a wrapped map). */
+  at: [number, number];
+  natural_harbour: boolean;
 }
 
 export interface ForeignCiv {
