@@ -1,0 +1,91 @@
+Ruleset 3.0 slice 6b: the deeper technology graph (design chapter 39, sections 1, 3.2, 8.3).
+Ruleset bts-rules/3.0.0-s6b, content bts-content/3.0.0-s6b, protocol bts-protocol/2.1.
+32 matches, standard calendar, 60-region Earth-like world, hard,medium,medium,easy,
+technologies 300 (practices still the 64 of slice 6r at this snapshot; the final
+calibration with both graphs is in ruleset3-slice-6c-eval.txt).
+   bts run --matches 32 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+   python3 scripts/calib_report.py eval.csv --techs 300 --practices 64
+
+What happened on the way (each a 32-seed batch):
+- b1: the merged graph with the native AI's expected-value research (section 3.2) and the
+  design's investigation lines 2 + isqrt(staff / 50,000): printing AD 2100 (late by 700),
+  the median seat at 9 M in 2000, the leader at 41% of technologies by 2300. A medieval
+  seat has some 30,000 research staff, i.e. two lines.
+- b2: lines 4 + isqrt(staff / 10,000) (LINES_BASE, LINES_STAFF in sim::knowledge): no
+  change. In these eras every investigable card is started anyway; knowledge is bound by
+  evidence, not by lines or by the AI's choice (b3 and b4, with the channel-step and
+  economy shares of the research budget, gave the same populations to the decimal).
+- The slowdown is the critical recording node T030 understood 100-300 years later than in
+  slice 6r in the same worlds, and printing after it; the cause was not isolated (a build
+  without families gave the same result in a probe match, so the locks are not it). The
+  medieval thresholds of slice 6r sat at the edge of the stagnation basin found there.
+- b5 (recorded below): late antiquity 20 M, medieval 14 M, high medieval 10 M (the slice-3
+  values) and renaissance 13 M (was 16 M).
+
+curve b5.csv: 32 matches, 96000 seat-decade rows; targets scaled by 60/48 for the world
+
+Population of the median seat (IQR over seats with land) and the world (median over matches)
+    date    median                 IQR   target  ratio |     world    target  ratio
+ 5000 BC     242 k     239 k-245 k        240 k   1.01 |     968 k     1.2 M   0.80
+ 3000 BC     1.6 M     880 k-1.8 M        800 k   1.95 |     5.5 M     3.8 M   1.47
+ 1000 BC     2.6 M     1.8 M-3.3 M        2.5 M   1.03 |    10.1 M    12.5 M   0.81
+    AD 1     3.2 M     2.0 M-4.3 M        5.0 M   0.64 |    12.6 M    25.0 M   0.50
+ AD 1000     5.4 M     2.8 M-8.3 M        8.0 M   0.68 |    22.8 M    40.0 M   0.57
+ AD 1500     6.4 M     4.0 M-11.1 M      11.0 M   0.59 |    31.0 M    56.2 M   0.55
+ AD 1700     7.6 M     4.6 M-15.2 M      15.0 M   0.51 |    45.5 M    75.0 M   0.61
+ AD 1800     9.8 M     5.3 M-22.5 M      20.0 M   0.49 |    79.0 M   106.2 M   0.74
+ AD 1900    13.3 M     5.9 M-58.6 M      60.0 M   0.22 |   123.1 M   312.5 M   0.39
+ AD 1950    17.0 M     6.1 M-80.5 M     110.0 M   0.15 |   199.5 M   562.5 M   0.35
+ AD 2000    30.3 M     7.3 M-110.0 M    230.0 M   0.13 |   330.0 M    1.25 B   0.26
+ AD 2100    71.4 M    11.7 M-196.2 M    400.0 M   0.18 |   543.9 M    2.12 B   0.26
+ AD 2200   121.5 M    20.3 M-271.8 M    480.0 M   0.25 |   714.6 M    2.50 B   0.29
+ AD 2300   160.5 M    41.4 M-299.9 M          -      - |   791.9 M    2.50 B   0.32
+world peak (median over matches): 1.02 B; target 1.88 B-3.75 B
+
+Era milestones: first sampled decade at which a seat had it (median seat; IQR over seats that reached it)
+ node    median                   IQR  reached              window verdict
+ T007   4530 BC    4640 BC-4367 BC     128/128   4800 BC-4000 BC   in window
+ T008   4600 BC    4705 BC-4530 BC     128/128   4800 BC-4000 BC   in window
+ T010   4390 BC    4530 BC-4177 BC     128/128   4800 BC-4000 BC   in window
+ T011   4075 BC    4270 BC-3815 BC     128/128   4500 BC-3500 BC   in window
+ T015   4085 BC    4180 BC-3940 BC     128/128   4500 BC-3500 BC   in window
+ T025   3045 BC    3290 BC-2837 BC     128/128   3500 BC-2500 BC   in window
+ T022   3050 BC    3172 BC-2880 BC     128/128   3300 BC-2300 BC   in window
+ T023   1360 BC    1470 BC-1107 BC     128/128   1500 BC-600 BC    in window
+ T024   2795 BC    2920 BC-2537 BC     128/128   1500 BC-AD 300    early by 1295
+ T027   1495 BC    1610 BC-1277 BC     128/128   1500 BC-AD 300    in window
+ T028    395 BC     955 BC-AD 230      128/128   1500 BC-AD 300    in window
+ T029   1455 BC    1592 BC-1100 BC     128/128   1500 BC-AD 300    in window
+ T030    AD 200       AD 0-AD 390      127/128    AD 500-AD 1300   early by 300
+ T036    AD 325     AD 220-AD 482      120/128    AD 500-AD 1300   early by 175
+ T048   AD 1530    AD 1300-AD 1707     118/128   AD 1350-AD 1550   in window
+  SCI   AD 1815    AD 1640-AD 1940     117/128   AD 1550-AD 1700   late by 115
+ T080   AD 1920    AD 1750-AD 2045     115/128   AD 1750-AD 1850   late by 70
+ T060   AD 1920    AD 1750-AD 2030     115/128   AD 1750-AD 1850   late by 70
+ T061   AD 1840    AD 1665-AD 1975     115/128   AD 1750-AD 1850   in window
+ T100   AD 1960    AD 1780-AD 2075     115/128   AD 1850-AD 1920   late by 40
+ T111   AD 2095    AD 1880-AD 2150      99/128   AD 1940-AD 2000   late by 95
+ T142   AD 2245    AD 2035-AD 2265      87/128   AD 2000-AD 2080   late by 165
+ T147     never    AD 2105-AD 2360      48/128   AD 2060-AD 2140   median seat never
+ T162     never    AD 2250-AD 2320       5/128   AD 2150-AD 2220   median seat never
+ T167     never    AD 2370-AD 2370       1/128   AD 2180-AD 2260   median seat never
+
+technologies understood at AD 2300: leading seat median 66% (range 45%-73%); median seat 57% (range 22%-66%); highest ever 237/300
+practices established at AD 2300: leading seat median 96% (range 77%-98%); median seat 93% (range 62%-96%); highest ever 64/64
+
+Fertility diagnostics of the median seat (population-weighted, last month before the sample)
+    date   food  intens  pop/cap   land
+ 5000 BC      0       0        0      0
+ 3000 BC  10000    4148     3385  10343
+ 1000 BC  10000    3875     3558  10193
+    AD 1  10000    3881     3647  10090
+ AD 1000  10000    3908     3608  10172
+ AD 1500  10000    3904     3584  10209
+ AD 1700  10000    3841     3571  10228
+ AD 1800  10000    3763     4821   9899
+ AD 1900  10000    3842     4699   9971
+ AD 1950  10000    3724     5215   9804
+ AD 2000  10000    3746     4392  10000
+ AD 2100  10000    3702     8520  10000
+ AD 2200  10000    3682    11925  10000
+ AD 2300  10000    3697    10655  10000

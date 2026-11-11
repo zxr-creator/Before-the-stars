@@ -307,12 +307,20 @@ pub fn locks(w: &World, seat: SeatId, installed: &[i64]) -> Locks {
 }
 
 /// Investigations a seat may run at once (design chapter 39, section 1.6):
-/// `2 + isqrt(research staff / 50,000)`, at most 24.
+/// `LINES_BASE + isqrt(research staff / LINES_STAFF)`, at most 24. Four times the
+/// staff give twice the extra lines. Calibrated (slice 6b): the design's `2 +
+/// isqrt(staff / 50,000)` assumed the research staff of design table 36 §3.1's
+/// populations; with the staff these seats build it left a medieval seat with two
+/// lines, and printing came seven centuries late.
+pub const LINES_BASE: i64 = 4;
+pub const LINES_STAFF: i64 = 10_000;
+pub const LINES_MAX: i64 = 24;
+
 pub fn investigation_lines(w: &World, seat: SeatId) -> u32 {
     let civ = &w.civs[seat as usize];
     let re = research_effectiveness(civ).max(1);
     let staff = civ.research_cap.iter().sum::<i64>() * 10_000 / re;
-    (2 + isqrt(staff / 50_000)).min(24) as u32
+    (LINES_BASE + isqrt(staff / LINES_STAFF)).min(LINES_MAX) as u32
 }
 
 /// Whether a practice id exists in this content and the seat holds it established.

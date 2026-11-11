@@ -29,8 +29,6 @@ struct PracJson {
     #[serde(default)]
     era: Option<u8>,
     #[serde(default)]
-    exclusive: Option<String>,
-    #[serde(default)]
     tension: Vec<String>,
 }
 
@@ -100,6 +98,8 @@ pub struct Tables {
     pub groups: Vec<Group>,
     /// Practice names by id (for world-order routes).
     pub prac_name: HashMap<String, String>,
+    /// Practice prerequisites by id.
+    pub prac_prereq: HashMap<String, Vec<String>>,
 }
 
 fn ids(s: &str) -> Vec<String> {
@@ -173,6 +173,6 @@ pub fn tables() -> &'static Tables {
             .collect();
         let families = fj.families.iter().map(|f| Family { members: f.members.iter().filter_map(|m| tname.get(m).cloned()).collect(), refuted_by: f.refuted_by.iter().filter_map(|m| tname.get(m).cloned()).collect() }).collect();
         let groups = fj.exclusive_groups.iter().map(|g| Group { id: g.id.clone(), members: g.members.iter().filter_map(|m| pname.get(m).cloned()).collect() }).collect();
-        Tables { techs, practices, families, groups, prac_name: pname }
+        Tables { techs, practices, families, groups, prac_name: pname, prac_prereq: pprereq }
     })
 }

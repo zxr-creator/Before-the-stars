@@ -16,6 +16,7 @@ mod population;
 mod worldgen;
 mod goods;
 mod productivity;
+mod graph39;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
@@ -62,8 +63,8 @@ fn the_graph_is_the_same_in_every_world() {
     let a = Match::new(cfg("alpha"), 1);
     let b = Match::new(cfg("omega"), 1);
     assert_ne!(a.state_hash(), b.state_hash());
-    assert_eq!(content().techs.len(), 138);
-    assert_eq!(content().practices.len(), 64);
+    assert_eq!(content().techs.len(), 300);
+    assert!(content().practices.len() >= 64);
     assert_ne!(content().graph_hash, 0);
 }
 

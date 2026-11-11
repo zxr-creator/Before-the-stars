@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6r";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6b";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,7 +26,7 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6r";
 /// released each slice that changes saved state carries a pre-release tag
 /// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
 /// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6r";
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6b";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
 pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s5";
 
@@ -400,8 +400,10 @@ struct TechJson {
     /// atlas and of doc 37; "side", "alt", "dead", "sealed", "entry" or "branch".
     #[serde(default)]
     kind: Option<String>,
-    /// Rival family (`content/families.json`), if any.
+    /// Rival family as the drafts named it (membership is read from
+    /// `content/families.json`; kept for the client and the lore check).
     #[serde(default)]
+    #[allow(dead_code)]
     family: Option<String>,
     /// Know-how lost when unused for a century without archives (section 1.5).
     #[serde(default)]
@@ -2806,7 +2808,7 @@ mod tests {
     #[test]
     fn catalog_counts_and_graph_are_valid() {
         let c = content();
-        assert_eq!(c.techs.len(), 138);
+        assert_eq!(c.techs.len(), 300);
         assert_eq!(c.practices.len(), 64);
         assert_eq!(c.courses.len(), 24);
         // Knowledge prerequisites are acyclic: every node is reachable by repeatedly

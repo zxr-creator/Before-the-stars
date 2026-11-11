@@ -1,6 +1,187 @@
 {
   "_doc": "Rival technology families (design chapter 39, section 1.4), exclusive practice groups (section 2.2) and the victory-critical sets (section 0.2). Read by crates/bts-engine/src/content.rs and by the native AI's public tables.",
-  "families": [],
+  "families": [
+    {
+      "id": "F01",
+      "name": "Script",
+      "kind": "approach",
+      "members": [
+        "T188",
+        "T189"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F02",
+      "name": "Field system",
+      "kind": "approach",
+      "members": [
+        "T195",
+        "T196"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F03",
+      "name": "Theory of disease",
+      "kind": "doctrine",
+      "members": [
+        "T197",
+        "T053"
+      ],
+      "refuted_by": [
+        "T045",
+        "T212",
+        "T214"
+      ],
+      "critical_members": [
+        "T053"
+      ]
+    },
+    {
+      "id": "F04",
+      "name": "Printing",
+      "kind": "standard",
+      "members": [
+        "T200",
+        "T048"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F05",
+      "name": "Signalling",
+      "kind": "standard",
+      "members": [
+        "T218",
+        "T219"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F06",
+      "name": "Bulk steel",
+      "kind": "approach",
+      "members": [
+        "T222",
+        "T223"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F07",
+      "name": "Nitrogen source",
+      "kind": "approach",
+      "members": [
+        "T226",
+        "T095",
+        "T288",
+        "T312"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F08",
+      "name": "Electric distribution",
+      "kind": "standard",
+      "members": [
+        "T227",
+        "T228"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F09",
+      "name": "Aviation",
+      "kind": "approach",
+      "members": [
+        "T230",
+        "T038"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F10",
+      "name": "Computing substrate",
+      "kind": "standard",
+      "members": [
+        "T234",
+        "T111"
+      ],
+      "refuted_by": [
+        "T110"
+      ],
+      "critical_members": [
+        "T111"
+      ]
+    },
+    {
+      "id": "F11",
+      "name": "Machine intelligence",
+      "kind": "approach",
+      "members": [
+        "T243",
+        "T116"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F12",
+      "name": "Reactor line",
+      "kind": "standard",
+      "members": [
+        "T248",
+        "T249",
+        "T250",
+        "T251"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F13",
+      "name": "Launch propellant",
+      "kind": "standard",
+      "members": [
+        "T254",
+        "T255",
+        "T256"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F14",
+      "name": "AI hardware",
+      "kind": "standard",
+      "members": [
+        "T261",
+        "T117"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F15",
+      "name": "Fusion confinement",
+      "kind": "approach",
+      "members": [
+        "T264",
+        "T265"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    }
+  ],
   "exclusive_groups": [],
   "critical_technologies": [
     "T001",
