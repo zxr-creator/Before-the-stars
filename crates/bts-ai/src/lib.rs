@@ -11,7 +11,7 @@ pub mod tables;
 use bts_protocol::*;
 use serde::{Deserialize, Serialize};
 
-pub const POLICY_VERSION: &str = "bts-native/1.6.0";
+pub const POLICY_VERSION: &str = "bts-native/1.7.0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Difficulty {
@@ -77,6 +77,10 @@ pub struct Memory {
     /// era (design chapter 37, section 3; the AI waits for a prepared crossing).
     #[serde(default)]
     pub era_eligible: Option<(u8, Month)>,
+    /// Coal the site engines of last round's orders refused for want of site power
+    /// would have burned: the coal plan of the next round raises it.
+    #[serde(default)]
+    pub site_coal_short: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
