@@ -1,5 +1,5 @@
 // Observer console: what the client shows when no seat is human. The whole
-// world on the map, a scoreboard for the four civilizations, the world's events,
+// world on the map, a scoreboard for every civilization, the world's events,
 // what each LLM agent said it was doing, and the controls that move time.
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren, JSX } from 'preact';

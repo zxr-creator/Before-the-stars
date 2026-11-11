@@ -118,8 +118,9 @@ check(!st.hidden && st.master > 0.3, `visible again: resumed (master ${st.master
 if (onTitle) {
   await page.click('[data-testid="title-new"]');
   await page.waitForSelector('[data-testid="setup-screen"]');
-  const r24 = await page.$('[data-testid="setup-regions-24"]');
-  if (r24) await r24.click();
+  // the smallest map preset (Small 30 since ruleset 3.0; 24 before)
+  const small = (await page.$('[data-testid="setup-regions-30"]')) ?? (await page.$('[data-testid="setup-regions-24"]'));
+  if (small) await small.click();
   await page.click('[data-testid="setup-start"]');
 }
 await page.waitForSelector('[data-testid="map-canvas"]', { timeout: 60000 });

@@ -1,4 +1,4 @@
-// Comparison panels of the observer console: how the four civilizations have
+// Comparison panels of the observer console: how the civilizations have
 // moved over the rounds watched (one focus chart and a tile per measure), and
 // two chosen civilizations side by side. Everything is read from the referee's
 // spectator view and the console's own record of it (see history.ts).
