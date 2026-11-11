@@ -25,7 +25,7 @@ const errors = [];
 let failed = 0;
 const check = (ok, what) => { log((ok ? 'ok   ' : 'FAIL ') + what); if (!ok) failed++; };
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ args: ['--enable-precise-memory-info', '--js-flags=--expose-gc'] });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await context.newPage();
 page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
@@ -168,6 +168,35 @@ for (const key of ['modern', 'industrial']) {
   await page.waitForTimeout(23000);
   const d = await stats();
   check(d.schedMsPerSec < 2, `${key} at full intensity: ${d.schedMsPerSec.toFixed(3)} ms per second scheduling, ${d.voices} voices, ${d.liveNodes} live nodes`);
+}
+// optional soak (AUDIO_SOAK=seconds): every era in turn at full intensity, a minute each, with
+// crossfades, stings and interface sounds; JS heap (after a forced GC) and live audio nodes sampled
+const SOAK = Number(process.env.AUDIO_SOAK ?? 0);
+if (SOAK > 0) {
+  const eras = ['ancient', 'classical', 'earlyModern', 'industrial', 'modern', 'space', 'title'];
+  const soak = [];
+  const s0 = Date.now();
+  let k = 0;
+  while (Date.now() - s0 < SOAK * 1000) {
+    const key = eras[k % eras.length];
+    await A((kk) => window.__btsAudio.force({ key: kk, mood: kk === 'title' ? 'title' : (Math.random() < 0.3 ? 'war' : 'peace'), intensity: 1 }), key);
+    for (let j = 0; j < 4 && Date.now() - s0 < SOAK * 1000; j++) {
+      await page.waitForTimeout(15000);
+      if (j === 1) await A(() => window.__btsAudio.sting('moment'));
+    }
+    const m = await A(() => { if (window.gc) window.gc(); return performance.memory ? performance.memory.usedJSHeapSize / 1048576 : null; });
+    const s = await stats();
+    soak.push({ t: Math.round((Date.now() - s0) / 1000), era: key, heapMB: m === null ? null : +m.toFixed(1), liveNodes: s.liveNodes, voices: s.voices, msPerSec: +s.schedMsPerSec.toFixed(3), pieces: s.pieces });
+    k++;
+  }
+  console.table(soak);
+  const h = soak.map((x) => x.heapMB).filter((x) => x !== null);
+  if (h.length >= 4) {
+    const early = Math.max(...h.slice(1, 3));
+    const late = Math.max(...h.slice(-2));
+    check(late < early + 8, `soak: JS heap does not grow (early ${early.toFixed(1)} MB, late ${late.toFixed(1)} MB)`);
+  }
+  check(Math.max(...soak.map((x) => x.liveNodes)) < 4000, `soak: live audio nodes bounded (max ${Math.max(...soak.map((x) => x.liveNodes))})`);
 }
 await A(() => window.__btsAudio.force(undefined));
 const heap = await A(() => (performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null));
