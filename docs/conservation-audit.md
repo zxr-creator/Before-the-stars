@@ -128,8 +128,9 @@ material than the method it replaces.
   stations and helium-3 extractors deliver exactly what they draw. Volatiles also come
   from water and air plants on the Earth (renewable, like salt pans), so for volatiles the
   audit checks only that the deposits delivered no more than was made.
-- **Station crews** are people in posts filled from qualified residents no works employs;
-  a tenth of them count as aboard (they stay residents of their regions). The audit
+- **Station crews** are qualified residents reserved for the stations' posts (lowest
+  region id first) before the works are staffed, and count as employed; a tenth of them
+  count as aboard (they stay residents of their regions). The audit
   checks that no station reports more aboard than a tenth of its filled posts. Station and
   site research capacity is bounded by the people in their research posts.
 

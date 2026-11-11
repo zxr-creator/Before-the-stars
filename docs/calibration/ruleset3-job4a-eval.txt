@@ -1,0 +1,45 @@
+Ruleset 3.0 job 4a: space core - boost, zone stores, shipments, sites and stations (lean scope, doc 41).
+Ruleset bts-rules/3.0.0-j4, content bts-content/3.0.0-j4, generator bts-worldgen/2.1.0-j4,
+protocol bts-protocol/2.5, policy bts-native/1.6.0. 8 matches, standard calendar, 60 regions,
+hard,medium,medium,easy, eval-0..7. Release build. (The version bump re-derives every world:
+figures are not comparable match for match with job 3. Population and era pace are left to job 4b.)
+   bts run --matches 8 --seed eval --ai hard,medium,medium,easy --threads 6 --curve final8.csv
+New curve columns: boost_cap, boost_made, stations, modules, sites, offworld_pop.
+
+Timing (machine shared, load average about 4.3 throughout):
+- native perf test: 525 rounds in 37.1 s; per round p50 66.5 ms, p95 142.4 ms, max 157.9 ms.
+  The same code with the j3 version strings (the j3 world) runs 25.2 s, p95 95.5 ms, as job 3
+  did: the extra cost is the heavier j4 perf world, not the space layer.
+- WebAssembly (wasm-calendar-bench eval-0): 56.7 s; p50 82.3 ms, p95 255.0 ms, max 270.8 ms.
+- Full standard matches: 35-59 s each (the slowest, eval-7, 58.7 s under load).
+- bts verify eval-0 (30 rounds) and eval-7 (520 rounds, through its station and outpost):
+  repeated inputs and checkpoint recovery reproduce the same state.
+
+Off-world layer by date (8 matches, 32 seats; counts summed over seats)
+ date | seats with T142 | seats making boost | boost cap med/max (t) | boost made to date (kt) | stations | modules | outposts | off-world pop
+ 2000 |   0 |   1 |   150 /   150 |   0.1 |  0 |  0 | 0 |     0
+ 2100 |   3 |   7 | 2,550 / 2,550 |  19.1 |  2 |  5 | 0 |     0
+ 2200 |  10 |  13 | 2,550 / 4,950 |  71.9 |  8 | 21 | 0 |     0
+ 2300 |  15 |  14 | 3,750 / 6,550 | 243.5 | 11 | 38 | 3 | 1,321
+ 2400 |  16 |  17 | 4,950 / 6,550 | 376.6 | 12 | 38 | 4 |   217
+ 2490 |  21 |  20 | 4,950 / 6,550 | 434.1 | 13 | 42 | 4 |    23
+First station / first outpost per match: eval-0 2200/2250, eval-1 -/-, eval-2 -/-, eval-3
+2150/2330, eval-4 2160/2290, eval-5 2270/2500, eval-6 2070/-, eval-7 2040/2230.
+
+Steps: the first batch had no station at all. Launch stages standing down at the cap failed
+"a working launch complex", so no seat could investigate spaceflight life support while it had
+nothing to spend boost on: a stage standing down now counts as working. Station posts competed
+with the works for technicians and went unstaffed: station crews are now reserved before the
+works are staffed. A founding shipment of a year's supplies (4,200 t) did not fit two chemical
+berths (4,000 t): six months' supplies. Lifts (crew supplies) are paid before larger shipments.
+
+Findings for job 4b:
+- No seat enters the Space era by 2500 (all era 6 at the end), so the policy's extra launch
+  levels never trigger; boost caps stay at one launch complex level. Launch complexes run little
+  (short of refined fuel and electricity): about 0.4 Mt of boost was made in all matches.
+- Stations stop at a full K1 core (four modules) where the ground orbital station that the K2
+  core needs is not built; no shipyard module was placed, so check 13 is not yet met by AI seats.
+- Outposts are founded but starve: no resupply reaches the zone store (Earth volatiles are scarce
+  without water and air plants, ice works need T159), served share 0, residents die at three
+  times the rate and births stop; off-world population peaks near 1,300. An unserved own site
+  fails G96's food and water conditions for its owner.
