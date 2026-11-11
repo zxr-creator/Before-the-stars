@@ -266,12 +266,62 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   content `bts-content/3.0.0-s10`, protocol `bts-protocol/2.2` (additions only), policy
   `bts-native/1.3.0`. Calibration: `docs/calibration/ruleset3-slice-10-eval.txt`.
 
+- **Jobs 2, 3 and 4a (done, lean scope of chapter 41).** Buildings, land, cities,
+  migration and transport (job 2: `docs/calibration/ruleset3-job2-eval.txt`); equipment
+  generations and refits, raiders, sight and scouts, the monthly market (job 3:
+  `ruleset3-job3-eval.txt`); boost, zone stores, shipments, off-world sites and stations
+  (job 4a: `ruleset3-job4a-eval.txt`). Conservation notes in `docs/conservation-audit.md`
+  sections 2.1-2.3.
+- **Job 4b, release calibration (done): ruleset `bts-rules/3.0.0`, content
+  `bts-content/3.0.0`, generator `bts-worldgen/2.1.0`, protocol `bts-protocol/2.6`,
+  policy `bts-native/1.7.0`.** Pre-release saves are refused by name; a save whose
+  references point outside the world is refused with a reason instead of being run.
+  Engine: the land factor's neutral point at 63% of carrying capacity, an era prosperity
+  term in the development factor (families shrink from the Modern era), a bounded
+  nutrition debt, raider budding to AD 1300, victory-critical tier 7-9 nodes relieved
+  (work 50/35/30%, leads at 50/40%, T162-T167 30 minimum months; design 39, 8.5), a
+  launch complex standing down at the cap counted as operating for check 13, series
+  manufacture read from the record, lattice works at 40 a month, a call-up of one always
+  supplying a worker-month, cheaper moves and conversions. Protocol 2.6 (additive):
+  `ProjectView.target` for upgrades, refits and scouts, `ArmyView.refit_quote`,
+  `UrbanView.links[].kind/mode`, `Policies.camp_subjugate`,
+  `PowerView.shaft_to_generators`. Native AI 1.7: site power and coal planning,
+  education, research posts and offices in proportion to the people, integration by
+  protection, war and subordination from 1850, and the jump programme's installations,
+  power, compute, crews, lattice and station. Final 32-seed calibration in
+  `docs/calibration/ruleset3-final-eval.txt`: wars in 31 of 32 matches, raiders gone by
+  1900 everywhere, the hard seat unifies the world in most matches and understands T167
+  (median 2060), 22 seats hold 96 months of governance, but no match is won (the 8-seed
+  development batches won one in eight): the deployment nodes, the year of flight
+  hardware and the launch-and-recovery service fail for want of fuel, electricity,
+  technicians and lattice at the test nodes. Median-seat population within ±35% of
+  table 3.1 at 1000 BC, 1500 and 2000; low in antiquity (0.6-0.66) and after 2100
+  (0.62); high 1700-1950 (up to 3.7x in 1800, with Industrial entry 70 years early);
+  world peak 1.05 B; largest seats 0.5-0.9 B after 2000.
+
 ## Known calibration gaps
 
 - All numeric parameters are first-pass values tuned only through all-AI matches.
-- Late-game supply chains (fuel, spares, compute) are fragile for the native opponents.
-- In all-AI matches the leader conquers or subordinates rivals after the objective is
-  revealed, but no seat has completed global integration within the horizon.
+- No all-AI match of the 32-seed release set has a winner (target 55-75%, doc 36 §7):
+  the hard seat integrates the world and reaches the jump standards, but its late
+  economy does not keep the three deployment nodes, the flight-hardware year (lattice,
+  magnets, computing hardware) and the launch-and-recovery service (fuel-starved launch
+  complex, an unsupplied or underpowered station shipyard) running at once. Refined fuel
+  goes first to fields and power stations; qualified technicians and electricity are
+  short at the thinly peopled test-node regions; populations of 0.5-1.2 billion sit at
+  the food ceiling of their land (food synthesis needs more electricity than they build),
+  so G96's food and water conditions fail in about a third of the late decades.
+- Eras run early from the Industrial era on (Industrial 70, Modern 90, Information 60
+  years early); only one seat of 128 entered the Space era. Golden ages are 72% of
+  crossings (dark ages 2 of 702).
+- Late joblessness stays near 78% of working age: works are limited by qualified staff.
+- Population: antiquity (AD 1-1000) at 0.6-0.66 of table 3.1, 1700-1950 1.5-3.7x, after
+  2100 about 0.6x; world peak 1.05 B against 1.9-3.75 B. Off-world outposts are founded
+  but not resupplied and die out.
+- The Expert test policy is the hard policy with a larger critical share; it was not
+  calibrated separately.
+- Match cost: a single native standard match about 41 s (perf seed, load 4.7), p95 147 ms
+  a round, close to the 150 ms budget; WebAssembly p95 266 ms.
 - The client was verified by automated runs; religion founding, battles and the
   jump programme screens were built from the protocol types and have not been exercised
   by hand.
@@ -318,9 +368,6 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   summaries, treaty performance lines, briefings and chronicle entries are English
   strings without translations. The high-energy laboratory draws 1,000 units of
   electricity instead of the design table's 3,000 (the first one must run before
-  fission is understood). No native seat completes the victory contract under the new
-  base in the eval set; the commonest failures are the jump works themselves and the
-  year of flight hardware. In the riverland world the easy seat, which has no copper,
-  ends at 89 technologies instead of 121 (`docs/calibration/slice-e-*.txt`).
+  fission is understood). (Victory under the ruleset 3.0 base: see the gap on all-AI winners above.)
 - The economy ledger's own estimates (marked as such in the interface) agreed with the
   referee's totals to within about 25% in 41 of 57 comparisons; the rest diverge more.

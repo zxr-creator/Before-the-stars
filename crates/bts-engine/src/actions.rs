@@ -848,17 +848,8 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.regions[ri].cap(Cap::Barracks) == 0 {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "a refit needs a barracks in the region");
                     }
-                    let def = &c.unit_tiers[generation as usize];
-                    let n = a.count() as i64;
-                    let variant = crate::sim::eras::variant_for(&w.civs[si], generation);
-                    let mut bill: Vec<(Good, i64)> = crate::sim::eras::variant_goods(variant, &def.equipment, false).iter().map(|(g, q)| (*g, q * n / 1000)).collect();
-                    if a.soldiers[Role::Maneuver.index()] > 0 {
-                        bill.extend(def.maneuver_extra.iter().map(|(g, q)| (*g, q * a.soldiers[Role::Maneuver.index()] as i64 / 1000)));
-                    }
-                    let work = scaled((def.fit * crate::content::FIT_WORK_PER_K * n / 1000).max(1000), pace);
-                    let train = crate::sim::eras::training_months(&w.civs[si], generation) as i64;
-                    let months = if generation > a.tier + 1 { train } else { (train + 1) / 2 };
-                    let id = new_project(w, seat, ProjKind::Refit { army, to: generation }, Some(ri as RegionId), work, bill, months.max(1), priority);
+                    let (bill, work, months) = refit_terms(w, seat, &a, generation);
+                    let id = new_project(w, seat, ProjKind::Refit { army, to: generation }, Some(ri as RegionId), work, bill, months, priority);
                     w.armies[ai].refit_to = Some(generation);
                     w.armies[ai].refit_bp = 0;
                     Ok(("Refit ordered: the formation converts as equipment, fit-out work and retraining allow.".into(), Some(id)))
@@ -881,15 +872,25 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                         return fail("RATE_LIMITED", "every scout party we can field is already out");
                     }
                     let (mut base, dist) = nearest_own(w, seat, ti).ok_or(Fail { code: UNKNOWN, reason: "no governed region can supply a party".into() })?;
-                    if w.regions[base].working() < SCOUT_PEOPLE * 4 {
-                        // a frontier settlement too small to spare a party: the capital sends one
+                    let work = scaled((2 + 2 * dist as i64) * 1000, pace);
+                    let months = (1 + dist as i64).min(12);
+                    // the party's work is done by people the region can call up: a
+                    // frontier settlement too small to spare a party, or whose call-up
+                    // cannot carry it, leaves it to the capital (job 4b: a party from a
+                    // small region stood still for want of labour)
+                    let mob = crate::sim::economy::mobilization_cap(w, seat) as i64 * w.civs[si].mobilization_bp as i64 / 10_000;
+                    let callup = |ri: usize| -> i64 {
+                        let r = &w.regions[ri];
+                        let nonfood = (r.working() as i64 * 92 / 100 - r.students as i64 - r.teachers.iter().sum::<u32>() as i64 - r.last.labor.food as i64).max(0);
+                        nonfood * mob / 10_000
+                    };
+                    let per_month = (work + months - 1) / months.max(1);
+                    if w.regions[base].working() < SCOUT_PEOPLE * 4 || callup(base) < per_month {
                         base = w.civs[si].capital as usize;
                     }
                     if w.regions[base].controller != Some(seat) || w.regions[base].working() < SCOUT_PEOPLE * 4 {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "the supplying region cannot spare a party");
                     }
-                    let work = scaled((2 + 2 * dist as i64) * 1000, pace);
-                    let months = (1 + dist as i64).min(12);
                     let id = new_project(w, seat, ProjKind::Scout { region, people: SCOUT_PEOPLE }, Some(base as RegionId), work, vec![(Good::Food, SCOUT_PEOPLE as i64 * months), (Good::Tools, 2_000)], months, priority);
                     Ok(("Scout party sent.".into(), Some(id)))
                 }
@@ -1349,4 +1350,24 @@ pub fn nearest_own(w: &World, seat: SeatId, target: usize) -> Option<(usize, u32
         }
     }
     None
+}
+
+/// What refitting a formation to `generation` is charged now (design chapter 37,
+/// 2.3): the equipment of its soldiers at that generation (with the seat's unit
+/// variant and the manoeuvre extras), the fit-out work and the months of
+/// retraining. The refit order charges exactly this; the views quote it (job 4b).
+pub fn refit_terms(w: &World, seat: SeatId, a: &Army, generation: u8) -> (Vec<(Good, i64)>, i64, i64) {
+    let c = content();
+    let si = seat as usize;
+    let def = &c.unit_tiers[generation as usize];
+    let n = a.count() as i64;
+    let variant = crate::sim::eras::variant_for(&w.civs[si], generation);
+    let mut bill: Vec<(Good, i64)> = crate::sim::eras::variant_goods(variant, &def.equipment, false).iter().map(|(g, q)| (*g, q * n / 1000)).collect();
+    if a.soldiers[Role::Maneuver.index()] > 0 {
+        bill.extend(def.maneuver_extra.iter().map(|(g, q)| (*g, q * a.soldiers[Role::Maneuver.index()] as i64 / 1000)));
+    }
+    let work = scaled((def.fit * crate::content::FIT_WORK_PER_K * n / 1000).max(1000), w.cfg.pace_bp);
+    let train = crate::sim::eras::training_months(&w.civs[si], generation) as i64;
+    let months = if generation > a.tier + 1 { train } else { (train + 1) / 2 };
+    (bill, work, months.max(1))
 }

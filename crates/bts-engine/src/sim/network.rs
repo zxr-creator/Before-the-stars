@@ -154,8 +154,17 @@ pub fn grade(r: &Region) -> u8 {
 /// freight capacity (kt a month). `sail` is whether the carrier knows ocean sailing
 /// (T028) and `boats` whether it knows hulls (T013).
 pub fn link(a: &Net, b: &Net, kind: LinkKind, boats: bool, sail: bool) -> (i64, i64) {
+    let (loss, cap, _) = link_mode(a, b, kind, boats, sail);
+    (loss, cap)
+}
+
+/// [`link`] with the way the least loss is had: "tracks" (no network both ends
+/// share), "roads", "canal", "harbour", "rail" or "river" (boats on the river
+/// itself), for the views (job 4b).
+pub fn link_mode(a: &Net, b: &Net, kind: LinkKind, boats: bool, sail: bool) -> (i64, i64, &'static str) {
     let mut loss = if kind == LinkKind::Pass { TRACK_LOSS * 3 / 2 } else { TRACK_LOSS };
     let mut cap = TRACK_FREIGHT;
+    let mut mode = "tracks";
     let mut take = |m: Mode, extra_loss: Option<i64>| {
         let i = m as usize;
         let lv = a.levels[i].min(b.levels[i]) as i64;
@@ -173,8 +182,16 @@ pub fn link(a: &Net, b: &Net, kind: LinkKind, boats: bool, sail: bool) -> (i64, 
             l = l * 3 / 2;
             per /= 2;
         }
-        if l > 0 {
-            loss = loss.min(l);
+        if l > 0 && l < loss {
+            loss = l;
+            mode = match m {
+                Mode::Roads => "roads",
+                Mode::Canal => "canal",
+                Mode::Harbour => "harbour",
+                Mode::Rail => "rail",
+                Mode::Air => "air",
+                Mode::Transit => "transit",
+            };
         }
         cap += lv * per;
     };
@@ -188,13 +205,17 @@ pub fn link(a: &Net, b: &Net, kind: LinkKind, boats: bool, sail: bool) -> (i64, 
             take(Mode::Rail, None);
             take(Mode::Canal, None);
             if boats {
-                loss = loss.min(if sail { RIVER_LOSS_SAIL } else { RIVER_LOSS });
+                let l = if sail { RIVER_LOSS_SAIL } else { RIVER_LOSS };
+                if l < loss {
+                    loss = l;
+                    mode = "river";
+                }
                 cap += 20;
             }
         }
         LinkKind::Sea => take(Mode::Harbour, None),
     }
-    (loss, cap)
+    (loss, cap, mode)
 }
 
 /// Share of non-food output that survives carriage to the common stock, by region:

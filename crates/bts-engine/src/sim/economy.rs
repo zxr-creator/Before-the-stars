@@ -282,6 +282,8 @@ pub fn mobilization_cap(w: &World, seat: SeatId) -> u16 {
 pub const AMPLE_WATER: u32 = 2_500_000;
 /// Idle adults in a region above which they start drifting to regions that hire.
 const JOBLESS_DRIFT_MIN: u32 = 40_000;
+/// Moves of jobless people toward hiring regions a seat makes at most in a month.
+const JOBLESS_DRIFT_MOVES: u32 = 24;
 /// Tonnes of building material a thousand idle adults make at home in a month.
 const HOUSEHOLD_CRAFT_PER_K: i64 = 300;
 
@@ -1102,7 +1104,9 @@ pub fn step(w: &mut World, seat: SeatId) {
         // worker-months of project work (design chapter 36, section 4.2)
         let construction = factors[pi].lp(Sector::Construction, tables.tech[Sector::Construction.index()][productivity::ERA_CAPS - 1]).min(productivity::CONSTRUCTION_MAX);
         month.construction_bp = construction as u16;
-        month.project_labor_free = called as i64 * unrest_factor / 10_000 * construction / 10_000;
+        // (never rounded away to nothing: the last worker-month of an order waited
+        // for ever on a call-up of one; job 4b)
+        month.project_labor_free = if called > 0 { (called as i64 * unrest_factor / 10_000 * construction / 10_000).max(1) } else { 0 };
         let mut open_general: u32 = 0;
         for (fi, skilled_needed, skilled_got) in skilled {
             let f = &mut r.facilities[fi];
@@ -1321,7 +1325,16 @@ pub fn step(w: &mut World, seat: SeatId) {
         }
     }
     // specialists move to where their posts are: a few each month, as real people
-    for (sink, quals, mut left) in vacant {
+    // (the vacancies of a region are taken together by the qualifications they ask
+    // for, so that a region's many works do not each send for movers)
+    let mut merged: Vec<(usize, Vec<Qual>, u32)> = Vec::new();
+    for (sink, quals, left) in vacant {
+        match merged.iter_mut().find(|m| m.0 == sink && m.1 == quals) {
+            Some(m) => m.2 += left,
+            None => merged.push((sink, quals, left)),
+        }
+    }
+    for (sink, quals, mut left) in merged {
         let mut quota = (left / 4).max(1);
         for (src, q, n) in spare.iter_mut() {
             if left == 0 || quota == 0 {
@@ -1348,9 +1361,12 @@ pub fn step(w: &mut World, seat: SeatId) {
     // month: work found by word of mouth within the polity, kept beside the
     // attractiveness-based migration of `sim::migration` (booked as internal moves)
     jobless.sort_by_key(|(ri, n)| (std::cmp::Reverse(*n), *ri));
+    // the largest openings first, a bounded number of moves a month
+    hiring.sort_by_key(|(ri, n)| (std::cmp::Reverse(*n), *ri));
+    let mut moves_left = JOBLESS_DRIFT_MOVES;
     for (sink, mut open) in hiring {
         for (src, n) in jobless.iter_mut() {
-            if open == 0 {
+            if open == 0 || moves_left == 0 {
                 break;
             }
             let go = (*n / 25).max(1).min(open).min(*n);
@@ -1362,6 +1378,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             let working = w.regions[*src].working().max(1);
             let with_family = (go as u64 * pop as u64 / working as u64) as u32;
             let moved = crate::sim::population::move_people(w, *src, sink, with_family, false);
+            moves_left -= 1;
             w.civs[si].flows.moved_internal += moved;
             let workers = (moved as u64 * working as u64 / pop.max(1) as u64) as u32;
             *n -= workers.min(*n);
@@ -1524,10 +1541,17 @@ pub fn step(w: &mut World, seat: SeatId) {
                     standing_down = true;
                 }
             }
-            // a line with four accepted assemblies on hand keeps its crews but builds no more
-            if rec.assembly > 0 && w.civs[si].ftl.assemblies.iter().filter(|a| !a.retired).count() >= 4 {
-                rate = 0;
-                blockers |= 128;
+            // a line with four accepted assemblies on hand keeps its crews but builds no
+            // more, once two of them prove series manufacture (two lines within 24
+            // months, the capability check); until then it builds on
+            if rec.assembly > 0 {
+                let all = &w.civs[si].ftl.assemblies;
+                let live = all.iter().filter(|a| !a.retired).count();
+                let series = all.iter().any(|a| all.iter().any(|b| a.yard_region != b.yard_region && a.built.abs_diff(b.built) <= 24));
+                if live >= 4 && series {
+                    rate = 0;
+                    blockers |= 128;
+                }
             }
             // deposit: every tonne raised is drawn from the ground, and wasteful
             // workings disturb more than they raise

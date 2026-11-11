@@ -142,7 +142,7 @@ pub fn carrying_capacity(w: &World, seat: SeatId, ri: usize) -> i64 {
 /// its change over one neutral span, and its bounds (ruleset 3.0 slice 6r: the
 /// pre-industrial ceiling sits where households begin to feel the land is full,
 /// well short of what the best fields could feed in a good year).
-pub const LAND_NEUTRAL_BP: i64 = 4_800;
+pub const LAND_NEUTRAL_BP: i64 = 6_300;
 pub const LAND_SLOPE_BP: i64 = 1_500;
 pub const LAND_MIN_BP: i64 = 6_000;
 pub const LAND_MAX_BP: i64 = 10_500;
@@ -158,13 +158,22 @@ pub fn land_factor(pop: i64, capacity: i64) -> i64 {
 
 /// The development factor of fertility (`F_dev`, basis points): schooling of young
 /// adults, life away from the land and children who survive make families smaller.
-/// Prosperity (design section 5.5) joins it with the consumption slice.
-/// Lowest development factor (ruleset 3.0 slice 6r: 6,800, a modern total
-/// fertility a little above replacement until prosperity joins it, slice 11).
-pub const DEV_FLOOR_BP: i64 = 6_800;
+/// Prosperity (design section 5.5) stands in through [`prosperity_bp`] until the
+/// consumption slice. Lowest development factor (6,800 in slice 6r, a modern total
+/// fertility a little above replacement; 4,500 since job 4b, with prosperity).
+pub const DEV_FLOOR_BP: i64 = 4_500;
+
+/// Prosperity of a civilization for the development factor (basis points; job 4b):
+/// until the consumption basket exists, the era stands in for it, rising from the
+/// Modern era (2,500) to the AI era (10,000), so that families shrink below
+/// replacement in the late eras and growth slows again (design chapter 36, table
+/// 3.1: 0.5%/yr after 2000, flat after 2200).
+pub fn prosperity_bp(civ: &Civ) -> i64 {
+    ((civ.era.era as i64 - 4) * 2_500).clamp(0, 10_000)
+}
 
 pub fn development_factor(lit_bp: i64, urban_bp: i64, child_gain_bp: i64, prosperity_bp: i64, lifelong: bool) -> i64 {
-    let f = (10_000 - lit_bp * 1_500 / 10_000 - urban_bp * 600 / 10_000 - child_gain_bp * 600 / 10_000 - prosperity_bp * 600 / 10_000).clamp(DEV_FLOOR_BP, 10_000);
+    let f = (10_000 - lit_bp * 1_500 / 10_000 - urban_bp * 600 / 10_000 - child_gain_bp * 600 / 10_000 - prosperity_bp * 5_000 / 10_000).clamp(DEV_FLOOR_BP, 10_000);
     (f + if lifelong { 500 } else { 0 }).min(10_000)
 }
 
@@ -387,23 +396,28 @@ pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, w
     let mut moved_total = 0u32;
     let mut moved_working = 0u32;
     let mut carried: Vec<PopBlock> = Vec::new();
-    // the eligible pool, weighted by age
+    // the eligible pool, weighted by age (block totals reckoned once)
     let floor = pop as u64 * min_share_bp / 10_000;
-    let pool: u64 = w.regions[from].blocks.iter().filter(|b| b.total() as u64 >= floor).map(|b| b.ages.iter().zip(weight.iter()).map(|(n, wt)| *n as u64 * wt).sum::<u64>()).sum();
+    let eligible: Vec<bool> = w.regions[from].blocks.iter().map(|b| b.total() as u64 >= floor).collect();
+    let pool: u64 = w.regions[from].blocks.iter().zip(eligible.iter()).filter(|(_, e)| **e).map(|(b, _)| b.ages.iter().zip(weight.iter()).map(|(n, wt)| *n as u64 * wt).sum::<u64>()).sum();
     if pool == 0 {
         return 0;
     }
     let mut rem: u64 = 0;
-    for b in w.regions[from].blocks.iter_mut() {
-        if (b.total() as u64) < floor {
+    let mut emptied = false;
+    for (b, e) in w.regions[from].blocks.iter_mut().zip(eligible.iter()) {
+        if !*e {
             continue;
         }
         let mut out = PopBlock::new(b.lineage, b.religion);
         out.birth_hist = b.birth_hist;
+        let mut took = 0u32;
+        let mut left = 0u32;
         for age in 0..AGES {
             let have = b.ages[age] as u64;
             let wt = weight[age];
             if have == 0 || wt == 0 {
+                left += have as u32;
                 continue;
             }
             let x = have * wt * count as u64 + rem;
@@ -411,12 +425,15 @@ pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, w
             rem = x % pool;
             b.ages[age] -= take;
             out.ages[age] += take;
-            moved_total += take;
+            took += take;
+            left += b.ages[age];
             if (WORK_MIN_AGE..=WORK_MAX_AGE).contains(&age) {
                 moved_working += take;
             }
         }
-        if out.total() > 0 {
+        moved_total += took;
+        emptied |= left == 0;
+        if took > 0 {
             carried.push(out);
         }
     }
@@ -439,7 +456,9 @@ pub fn move_people_weighted(w: &mut World, from: usize, to: usize, count: u32, w
             None => blocks.push(out),
         }
     }
-    w.regions[from].blocks.retain(|b| b.total() > 0);
+    if emptied {
+        w.regions[from].blocks.retain(|b| b.total() > 0);
+    }
 
     // qualifications follow the working-age people who actually moved
     let mut moved_quals = [0u32; NQ];
@@ -726,6 +745,7 @@ pub fn step(w: &mut World, seat: SeatId) {
     let custom_civ = CUSTOMARY_FERTILITY + if w.civs[si].est_id("C002") { 230 } else { 0 } - if w.civs[si].est_id("C039") { 150 } else { 0 };
     let custom_civ = custom_civ * crate::sim::eras::custom_bp(&w.civs[si]) / 10_000;
     let dev_add = crate::sim::eras::dev_add(&w.civs[si]);
+    let prosperity = prosperity_bp(&w.civs[si]);
     let doctrine: Vec<i64> = w
         .religions
         .iter()
@@ -794,6 +814,11 @@ pub fn step(w: &mut World, seat: SeatId) {
             r.nutrition_debt += debt_gain;
             if food_bp >= 10_000 {
                 r.nutrition_debt -= (r.nutrition_debt / 8).max(rpop as i64 * 40).min(r.nutrition_debt);
+            } else {
+                // households recover from a lasting small shortfall as from a famine
+                // that has passed: the debt settles where a year of the month's gap
+                // would put it, instead of growing without end (job 4b)
+                r.nutrition_debt -= (r.nutrition_debt / 12).min(r.nutrition_debt);
             }
             let wcap = water_capacity(r).max(1);
             let water_bp = ratio_bp(wcap as i64, rpop as i64);
@@ -835,7 +860,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             let secure = (access.min(10_000) * (FOOD_SECURE_BASE + (10_000 - FOOD_SECURE_BASE) * store_term / 10_000) / 10_000).clamp(300, 10_000);
             let food_factor = if food_bp >= 10_000 { secure } else { ((food_bp - 6000).max(0) * 10_000 / 4000 * 6 / 10 + 2000).min(secure) };
             let crowd_factor = if crowd <= 8500 { 10_000 } else { (10_000 - (crowd - 8500) * 2).max(2500) };
-            let dev_factor = (development_factor(literate_share(r), urban, child_gain, 0, lifelong) + dev_add).min(10_000);
+            let dev_factor = (development_factor(literate_share(r), urban, child_gain, prosperity, lifelong) + dev_add).min(10_000);
             let health_factor = (10_000 - pressure / 4).max(6000);
             {
                 let wgt = rpop as i64;

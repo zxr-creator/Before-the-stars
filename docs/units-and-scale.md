@@ -145,7 +145,10 @@ referee's diagnostics) are `u64`; a region and an age cell stay `u32`.
   1,000 for healers' lodges and 3,000 for hospitals (each by coverage, doubled with
   medicine in store; at most 3,500): the design's `10,000 - coverage / 2` would let a
   healers' lodge halve every death rate. Care also halves the crowding pressure as in
-  ruleset 2.0. `M_hazard` = 10,000 + crowding pressure x 1.5 + nutrition debt x 40.
+  ruleset 2.0. `M_hazard` = 10,000 + crowding pressure x 1.5 + nutrition debt x 40
+  (the debt per person in thousandths of a month of missed food; it falls by an
+  eighth a month when everyone eats and by a twelfth a month under a lasting small
+  shortfall, so it settles instead of growing without end; ruleset 3.0.0).
   `M_urban` = 10,000 + 5,000 x urban share x (1 - sanitation coverage), the urban
   share being `1 - min(1, 3.2 x food workers / residents)` weighed by class (camp 0,
   village 0.2, town 0.6, city and above 1) and sanitation coverage the residents
@@ -175,14 +178,16 @@ referee's diagnostics) are `u64`; a region and an age cell stay `u32`.
   stores can hold, at least a tenth of a month) and `Y` full when this month's fields and
   works raised 105% of what everyone eats (zero at 95%); hunger lowers it as in ruleset
   2.0. `F_dev = clamp(10,000 - 1,500 x literate share - 600 x urban share - 600 x
-  child survival gain - 600 x prosperity, 6,800, 10,000)`, +500 with C046; prosperity
-  enters with the consumption slice. `F_land` (a calibration addition, not in the
-  design) = `clamp(10,000 + 1,500 x (0.48 - P/K) / 0.48, 6,000, 10,500)` (0.465 in
-  slice 6r, 0.48 since 6c) where `K` is
+  child survival gain - 5,000 x prosperity, 4,500, 10,000)`, +500 with C046; until the
+  consumption slice the era stands in for prosperity: `clamp((era - 4) x 2,500, 0,
+  10,000)`, 2,500 in the Modern era to 10,000 in the AI era (ruleset 3.0.0; before it
+  600 x prosperity with prosperity 0 and a floor of 6,800). `F_land` (a calibration
+  addition, not in the design) = `clamp(10,000 + 1,500 x (N - P/K) / N, 6,000,
+  10,500)` with `N` 0.63 (0.465 in slice 6r, 0.48 from 6c to job 4a) where `K` is
   what the region's land can feed with what the government knows (wild food at a
   third, fields at every level the land and practices allow by the best known
   method, pastures and fishing grounds at half), at most its water capacity: the
-  Malthusian brake that keeps a pre-modern people near half its land's capacity, so
+  Malthusian brake that keeps a pre-modern people near two thirds of its land's capacity, so
   that long-run growth follows new land and new methods instead of drifting to an
   explosion or to extinction. It fades as children survive: its departure from 10,000
   is scaled by `1 - clamp(2 x (child survival gain - 2,500), 0, 10,000) / 10,000`, so

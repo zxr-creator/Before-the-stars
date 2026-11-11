@@ -112,19 +112,27 @@ fn convert(r: &mut Region, to: u16, count: u32) -> u32 {
     let mut moved = 0;
     let mut rem: u64 = 0;
     let mut incoming: Vec<PopBlock> = Vec::new();
+    let mut emptied = false;
     for b in r.blocks.iter_mut().filter(|b| b.religion != Some(to)) {
         let mut out = PopBlock::new(b.lineage, Some(to));
         out.birth_hist = b.birth_hist;
+        let (mut took, mut left) = (0u32, 0u32);
         for age in 0..AGES {
             let have = b.ages[age] as u64;
+            if have == 0 {
+                continue;
+            }
             let x = have * count as u64 + rem;
             let take = (x / pool as u64).min(have) as u32;
             rem = x % pool as u64;
             b.ages[age] -= take;
             out.ages[age] += take;
-            moved += take;
+            took += take;
+            left += b.ages[age];
         }
-        if out.total() > 0 {
+        moved += took;
+        emptied |= left == 0;
+        if took > 0 {
             incoming.push(out);
         }
     }
@@ -137,7 +145,9 @@ fn convert(r: &mut Region, to: u16, count: u32) -> u32 {
             r.blocks.push(out);
         }
     }
-    r.blocks.retain(|b| b.total() > 0);
+    if emptied {
+        r.blocks.retain(|b| b.total() > 0);
+    }
     moved
 }
 

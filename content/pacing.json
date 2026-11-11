@@ -28,25 +28,25 @@
     {
       "tier": 3,
       "hint": 800000,
-      "work_k": 2000,
+      "work_k": 2500,
       "min_months": 60
     },
     {
       "tier": 4,
-      "hint": 750000,
-      "work_k": 2000,
+      "hint": 860000,
+      "work_k": 3200,
       "min_months": 36
     },
     {
       "tier": 5,
-      "hint": 800000,
-      "work_k": 4000,
+      "hint": 920000,
+      "work_k": 6000,
       "min_months": 30
     },
     {
       "tier": 6,
       "hint": 1000000,
-      "work_k": 6000,
+      "work_k": 8000,
       "min_months": 30
     },
     {
@@ -84,7 +84,7 @@
       ]
     },
     "late_antiquity": {
-      "hint": 20000000,
+      "hint": 24000000,
       "target": [
         300,
         800
@@ -313,9 +313,9 @@
       "min_months": 48
     },
     "T165": {
-      "work_bp": 12500,
-      "hint_bp": 12500,
-      "min_months": 48
+      "work_bp": 3750,
+      "hint_bp": 5000,
+      "min_months": 40
     },
     "T154": {
       "tier": 7,
@@ -2023,7 +2023,93 @@
       "work_bp": 15937,
       "hint_bp": 25000,
       "min_months": 48
+    },
+    "T114": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T115": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T123": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T140": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T141": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T142": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T143": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T146": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T144": {
+      "work_bp": 5000,
+      "hint_bp": 5000
+    },
+    "T147": {
+      "work_bp": 3500,
+      "hint_bp": 4000
+    },
+    "T161": {
+      "work_bp": 3500,
+      "hint_bp": 4000
+    },
+    "T145": {
+      "work_bp": 3500,
+      "hint_bp": 4000
+    },
+    "T152": {
+      "work_bp": 3500,
+      "hint_bp": 4000
+    },
+    "T151": {
+      "work_bp": 3500,
+      "hint_bp": 4000
+    },
+    "T153": {
+      "work_bp": 3500,
+      "hint_bp": 4000
+    },
+    "T162": {
+      "work_bp": 3000,
+      "hint_bp": 4000,
+      "min_months": 30
+    },
+    "T163": {
+      "work_bp": 3000,
+      "hint_bp": 4000,
+      "min_months": 30
+    },
+    "T164": {
+      "work_bp": 3000,
+      "hint_bp": 4000,
+      "min_months": 30
+    },
+    "T166": {
+      "work_bp": 3000,
+      "hint_bp": 4000,
+      "min_months": 30
+    },
+    "T167": {
+      "work_bp": 3000,
+      "hint_bp": 4000,
+      "min_months": 30
     }
   },
-  "_doc_work_bp": "Per-node work multipliers (design chapter 39, section 1.6) are calibrated to the completion targets: with the late research capacity these seats build (slice 6c), half of the design's surcharge above 10,000."
+  "_doc_work_bp": "Per-node work multipliers (design chapter 39, section 1.6) are calibrated to the completion targets: with the late research capacity these seats build (slice 6c), half of the design's surcharge above 10,000.",
+  "_doc_critical_relief": "Job 4b (design chapter 39, section 8.5, items 1-3): the victory-critical nodes of tiers 7-9 take less work (tier 7 at 50%, tier 8 at 35%, tier 9 at 30%: section 2.7's rule, work = 36 months of the median seat's capacity in the class, applied to the advanced and frontier research the native seats actually build, one or two high-energy laboratories), their leads come at half the evidence (tier 7) or 40% of it (tiers 8-9), and the serial jump nodes T162-T167 have 30 minimum months instead of 36. Breadth costs, family locks and exclusive groups are unchanged."
 }

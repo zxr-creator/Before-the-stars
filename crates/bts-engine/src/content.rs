@@ -18,17 +18,17 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-j4";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
-/// pacing; saves written by earlier rulesets are refused. Until ruleset 3.0 is
-/// released each slice that changes saved state carries a pre-release tag
-/// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
-/// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-j4";
+/// pacing; saves written by earlier rulesets are refused. The development builds
+/// carried pre-release tags (`-s4`, `-j4`: through slice 4, job 4a of the merged
+/// plan); this is the release, and a save of any pre-release build is refused by
+/// name.
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
-pub const GENERATOR_VERSION: &str = "bts-worldgen/2.1.0-j4";
+pub const GENERATOR_VERSION: &str = "bts-worldgen/2.1.0";
 
 /// Base units in one display unit of goods, work, research or service.
 pub const DISPLAY_DIVISOR: i64 = 1000;
@@ -2329,8 +2329,8 @@ fn facilities() -> Vec<FacDef> {
             .req("T164 | T165").site(Site::TestNode)
             .cost(&[(Metal, 60.0), (Components, 40.0), (Electronics, 40.0), (Magnets, 10.0), (Instruments, 20.0)]).work(3000.0)
             .skilled(&[Q::Scientist, Q::FtlEngineer], 6_000).general(4_000)
-            .recipe(rec("lattice", "Lattice conditioning").inp(&[(Substrate, 0.5), (Magnets, 0.5), (Helium, 0.05)]).out(&[(Lattice, 20.0)]).elec(2000.0))
-            .recipe(rec("lattice_hts", "Lattice conditioning, nitrogen-cooled").inp(&[(Substrate, 0.5), (Magnets, 0.5)]).out(&[(Lattice, 20.0)]).elec(2400.0))
+            .recipe(rec("lattice", "Lattice conditioning").inp(&[(Substrate, 1.0), (Magnets, 1.0), (Helium, 0.1)]).out(&[(Lattice, 40.0)]).elec(2000.0))
+            .recipe(rec("lattice_hts", "Lattice conditioning, nitrogen-cooled").inp(&[(Substrate, 1.0), (Magnets, 1.0)]).out(&[(Lattice, 40.0)]).elec(2400.0))
             .upkeep(&[(Spares, 2.0)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Space]).max(1),
         // ---- tradition works (design chapter 37, section 4.1; ruleset 3.0 slice 13) ----
         // Buildable only while the tradition is held; knowledge itself is never locked.

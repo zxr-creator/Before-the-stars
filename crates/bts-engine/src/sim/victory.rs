@@ -167,9 +167,11 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
     };
     out.push(base_check("scientific", "Fleet-wide jump engineering standards understood", civ.knows_id("T167"), if civ.knows_id("T167") { "Understood".into() } else { "Not yet understood".into() }));
     let live: Vec<&Assembly> = civ.ftl.assemblies.iter().filter(|a| !a.retired).collect();
+    // series manufacture is a fact of the record: two lines that each delivered an
+    // assembly within 24 months of the other, whether or not both are still in service
     let mut series = false;
-    for a in &live {
-        for b in &live {
+    for a in &civ.ftl.assemblies {
+        for b in &civ.ftl.assemblies {
             if a.yard_region != b.yard_region && a.built.abs_diff(b.built) <= 24 {
                 series = true;
             }
@@ -294,7 +296,11 @@ pub fn ftl_checks(w: &World, seat: SeatId) -> Vec<Check> {
     // and a station in low Earth orbit with a shipyard module operating (own, or a
     // partner's under a joint programme)
     let streak = civ.space.streak;
-    let launch = (streak >= 12 && own_running("launch_complex"), w.programme_access(seat, ProgrammeService::Launch));
+    // a stage standing down at the boost cap is operating (its streak counts it so,
+    // and so do the investigations that need a working launch complex)
+    let lc = c.f("launch_complex");
+    let standing = w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(lc).map(|f| f.level > 0 && f.run.as_ref().map(|x| x.blockers & 1024 != 0 && f.staffed * 2 >= f.staff_needed).unwrap_or(false)).unwrap_or(false));
+    let launch = (streak >= 12 && (own_running("launch_complex") || standing), w.programme_access(seat, ProgrammeService::Launch));
     let oyard = (crate::sim::space::shipyard_operating(w, seat), w.programme_access(seat, ProgrammeService::OrbitalYard));
     let how = |x: (bool, bool)| if x.0 { "operating" } else if x.1 { "served by a partner" } else { "not operating" };
     out.push(base_check(

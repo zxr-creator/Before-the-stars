@@ -277,8 +277,9 @@ fn migration_moves_people_without_creating_or_losing_any() {
     let moved = w.civs[0].flows.moved_internal as i64;
     let left_home = (pops.0 - w.regions[home].population()) as i64;
     assert!(moved >= left_home, "{moved} booked, {left_home} left the crowded region");
-    // at most the railway's mobility cap a year
-    assert!(left_home <= pops.0 as i64 * 150 / 10_000 + 1, "{left_home}");
+    // at most the railway's mobility cap a year, and a month of the land-hunger
+    // channel (1.2%) when the crowded region's farmland is full
+    assert!(left_home <= pops.0 as i64 * (150 + 120) / 10_000 + 1, "{left_home} left; {} emigrated, {} moved within", w.civs[0].flows.emigrated, w.civs[0].flows.moved_internal);
     assert!(crate::ledger::violations(&snap, &crate::ledger::snapshot(w, false)).iter().all(|v| !v.contains("people")));
 }
 
