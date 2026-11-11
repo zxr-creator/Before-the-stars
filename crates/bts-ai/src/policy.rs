@@ -24,7 +24,7 @@ use bts_protocol::*;
 use crate::tables::tables;
 use std::collections::{HashMap, HashSet};
 
-const TIER_POWER: [i64; 6] = [1000, 2500, 6250, 15625, 39063, 97656];
+const TIER_POWER: [i64; 8] = [1000, 2500, 6250, 15625, 39063, 97656, 244141, 610352];
 
 /// One thousand people: the grain in which the policy reasons about head counts.
 const K: i64 = 1000;
@@ -147,6 +147,8 @@ struct Plan<'a> {
     /// Rounds longer than a year: plans are also written as standing orders, which
     /// the referee carries out every 1 January until the next round.
     long: bool,
+    /// Expansion found no land to settle but land next to raider camps.
+    camp_blocked: bool,
     /// Years the round lasts.
     years: i64,
     /// Standing orders chosen this round. They do not count against the round's
@@ -241,6 +243,7 @@ impl<'a> Plan<'a> {
             callup_room,
             crew_stalled: crew_stalled_count,
             long: rm > 12,
+            camp_blocked: false,
             years: (rm / 12).max(1),
             directives: Vec::new(),
         }
@@ -666,7 +669,7 @@ fn own_power(obs: &Observation) -> i64 {
 
 fn their_power(obs: &Observation, seat: SeatId) -> i64 {
     let tier = obs.others.iter().find(|o| o.seat == seat).and_then(|o| o.observed_tier).unwrap_or(obs.civ.military_tier) as usize;
-    obs.foreign_armies.iter().filter(|a| a.owner == seat).map(|a| (a.strength_low as i64 + a.strength_high as i64) / 2 * TIER_POWER[a.tier_estimate.map(|t| t as usize).unwrap_or(tier).min(5)] / 1000).sum()
+    obs.foreign_armies.iter().filter(|a| a.owner == seat).map(|a| (a.strength_low as i64 + a.strength_high as i64) / 2 * TIER_POWER[a.tier_estimate.map(|t| t as usize).unwrap_or(tier).min(7)] / 1000).sum()
 }
 
 fn their_population(obs: &Observation, seat: SeatId) -> i64 {
@@ -1215,6 +1218,7 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
         if full {
             border_policy(&mut p, &regions);
         }
+        market(&mut p);
     }
     if on("education") {
         education(&mut p, &regions, working);
@@ -2540,7 +2544,13 @@ fn networks(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
         }
     }
     // freight: a region whose works load its network to the limit gets another level
-    // of its best line, or of a better line, before more is lost in carriage
+    // of its best line, or of a better line, before more is lost in carriage (with a
+    // budget of its own: congestion costs output now)
+    let mut budget = match p.diff {
+        Difficulty::Easy => 1,
+        Difficulty::Medium => 2,
+        Difficulty::Hard | Difficulty::Expert => 3,
+    };
     for r in regions {
         if budget == 0 || p.full() {
             break;
@@ -2936,6 +2946,12 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
             p.push(Action::StartProject { spec: ProjectSpec::Survey { region: r.id }, priority: Some(6) });
         }
     }
+    // a scout party to the land remembered longest ago (design chapter 40, 4.2)
+    if !obs.projects.iter().any(|x| x.kind == "scout") && p.stock(Good::Food) > 100_000 && obs.round % 2 == 0 {
+        if let Some(r) = obs.regions.iter().filter(|r| r.visibility == Visibility::Remembered && r.owner != Some(seat)).min_by_key(|r| (r.last_seen, r.id)) {
+            p.push(Action::StartProject { spec: ProjectSpec::Scout { region: r.id }, priority: Some(7) });
+        }
+    }
     // settle within administrative reach
     let settling = obs.projects.iter().any(|x| x.kind == "settle");
     let gap = match p.diff {
@@ -2949,6 +2965,7 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
         return;
     }
     let sea_ok = p.fac_type("port").map(|f| f.available).unwrap_or(false);
+    let mut skipped_for_camps = 0;
     let mut best: Option<(i64, RegionId, RegionId)> = None;
     let mut second: Option<(i64, RegionId, RegionId)> = None;
     for from in regions {
@@ -2961,7 +2978,17 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
                 continue;
             }
             let Some(t) = obs.regions.iter().find(|r| r.id == n.region) else { continue };
+            if t.camp.is_some() {
+                skipped_for_camps += 1;
+                continue;
+            }
             if t.owner.is_some() || t.settlement != SettlementKind::Wilderness || obs.foreign_armies.iter().any(|a| a.region == t.id) {
+                continue;
+            }
+            // next to a sighted raider camp only with a field force half again its warriors
+            let camp_near = t.neighbors.iter().filter_map(|n| obs.regions.iter().find(|r| r.id == n.region)).filter_map(|r| r.camp.as_ref()).map(|c| c.warriors_high as i64).max().unwrap_or(0);
+            if camp_near > 0 && own_soldiers(obs) * 2 < camp_near * 3 {
+                skipped_for_camps += 1;
                 continue;
             }
             let mut score: i64 = match t.terrain {
@@ -2991,6 +3018,8 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
             }
         }
     }
+    // only raider land left to take: the camps must be cleared first
+    p.camp_blocked = skipped_for_camps > 0 && best.map(|b| b.0 < 250).unwrap_or(true);
     // in a long round, the runner-up is settled later, once the sending region is crowded
     if let (true, Some((score, from, to))) = (p.long && (obs.civ.admin_load as i64) + 2 <= obs.civ.admin_capacity as i64 + slack, second) {
         if score >= 250 {
@@ -3006,6 +3035,132 @@ fn expansion(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView]) {
             if p.push(Action::StartProject { spec: ProjectSpec::Settle { from, to, people }, priority: Some(3) }) {
                 ai.memory.last_settle_round = obs.round;
             }
+        }
+    }
+}
+
+fn own_soldiers(obs: &Observation) -> i64 {
+    obs.armies.iter().map(|a| a.soldiers.iter().map(|(_, n)| *n as i64).sum::<i64>()).sum()
+}
+
+/// Sighted raider camps next to our land: (camp region, upper bound of warriors).
+fn camps_near(obs: &Observation, regions: &[&RegionView]) -> Vec<(RegionId, i64)> {
+    // link distance from our land: camps next to it or next to the land we would
+    // settle next (they raid the one and block the other; design chapter 40, 5.11)
+    let mut dist: HashMap<RegionId, u32> = regions.iter().map(|r| (r.id, 0)).collect();
+    let mut queue: Vec<RegionId> = regions.iter().map(|r| r.id).collect();
+    let mut qi = 0;
+    while qi < queue.len() {
+        let x = queue[qi];
+        qi += 1;
+        let d = dist[&x];
+        if d >= 2 {
+            continue;
+        }
+        if let Some(r) = obs.regions.iter().find(|r| r.id == x) {
+            for n in &r.neighbors {
+                if !dist.contains_key(&n.region) {
+                    dist.insert(n.region, d + 1);
+                    queue.push(n.region);
+                }
+            }
+        }
+    }
+    let mut out: Vec<(u32, RegionId, i64)> = obs.regions.iter().filter_map(|r| r.camp.as_ref().and_then(|c| dist.get(&r.id).map(|d| (*d, r.id, c.warriors_high as i64)))).collect();
+    out.sort();
+    out.into_iter().map(|(_, r, w)| (r, w)).collect()
+}
+
+/// Refit formations in place (design chapter 37, 2.8): always those two or more
+/// generations behind, one behind when at war or threatened (not on Easy), while the
+/// stores cover a quarter of the bill.
+fn refits(p: &mut Plan, best: u8, pressed: bool) {
+    let obs = p.obs;
+    let mut started = 0;
+    for a in obs.armies.iter().filter(|a| a.training_months_left == 0 && a.refit_to.is_none() && !a.in_battle) {
+        let behind = best.saturating_sub(a.tier);
+        if behind == 0 || (behind == 1 && (!pressed || p.diff == Difficulty::Easy)) || started >= 2 || p.full() {
+            continue;
+        }
+        let Some(r) = obs.regions.iter().find(|r| r.id == a.region) else { continue };
+        let barracks = r.owner == Some(obs.seat) && r.own.as_ref().map(|o| o.facilities.iter().any(|f| f.kind == "barracks" && f.level > 0)).unwrap_or(false);
+        if !barracks {
+            continue;
+        }
+        // the newest generation whose bill the stores cover a quarter of (design 2.8)
+        let size: i64 = a.soldiers.iter().map(|(_, n)| *n as i64).sum();
+        let mut target: Option<(u8, Vec<(Good, i64)>)> = None;
+        for g in ((a.tier + 1)..=best).rev() {
+            let Some(def) = obs.catalog.unit_tiers.iter().find(|t| t.tier == g && t.available) else { continue };
+            let bill: Vec<(Good, i64)> = def.equipment.iter().map(|e| (e.good, e.amount * size / K)).collect();
+            if bill.iter().all(|(x, q)| *p.avail.get(x).unwrap_or(&0) * 4 >= *q) {
+                target = Some((g, bill));
+                break;
+            }
+            if g == best {
+                for (x, _) in &bill {
+                    p.wanted.insert(*x);
+                }
+            }
+        }
+        let Some((gen, bill)) = target else {
+            // an obsolete formation that cannot be refitted goes home; its kit is stored
+            if a.obsolete && !pressed && started == 0 {
+                p.push(Action::MilitaryOrder { army: a.id, order: ArmyOrder::Disband });
+                started += 1;
+            }
+            continue;
+        };
+        for (g, q) in &bill {
+            let v = p.avail.entry(*g).or_insert(0);
+            *v -= (*q).min(*v);
+        }
+        if p.push(Action::StartProject { spec: ProjectSpec::Refit { army: a.id, generation: gen }, priority: Some(4) }) {
+            started += 1;
+        }
+    }
+}
+
+/// Standing market orders (design chapter 36, 6.9): sell surpluses above one and a
+/// half years of use at no less than 0.8 of the base price; buy what is wanted and
+/// short at up to twice the base price. At most four orders a side.
+fn market(p: &mut Plan) {
+    let obs = p.obs;
+    let Some(m) = &obs.market else { return };
+    if m.members.len() < 2 {
+        return;
+    }
+    let base = |g: Good| m.lines.iter().find(|l| l.good == g).map(|l| l.base_price).unwrap_or(base_price(g) * 80);
+    let mut sells: Vec<(i64, Good, i64, i64)> = Vec::new();
+    let mut buys: Vec<(i64, Good, i64, i64)> = Vec::new();
+    for l in &obs.civ.goods {
+        let used = used_in_year(l);
+        let spare = l.stock - used - 20_000;
+        if spare > 0 && !p.wanted.contains(&l.good) {
+            sells.push((-(spare / K * base(l.good)), l.good, spare / 12, used));
+        } else if (p.wanted.contains(&l.good) && l.stock < used / 4 + 20_000) || (l.good != Good::Food && used > 12_000 && l.stock < used / 2) {
+            let want = (used / 12).max(5_000);
+            buys.push((-(want / K * base(l.good)), l.good, want, used / 2));
+        }
+    }
+    sells.sort();
+    buys.sort();
+    let mut want: Vec<(Good, MarketSide, i64, i64, i64)> = Vec::new();
+    for (_, g, q, keep) in sells.into_iter().take(4) {
+        want.push((g, MarketSide::Sell, q.max(1_000), base(g) / 2, keep));
+    }
+    for (_, g, q, keep) in buys.into_iter().take(4) {
+        want.push((g, MarketSide::Buy, q, base(g) * 2, keep.max(q)));
+    }
+    for o in &m.orders {
+        if !want.iter().any(|w| w.0 == o.good) && !p.full() {
+            p.push(Action::SetPolicy { setting: PolicySetting::MarketOrder { good: o.good, side: o.side, per_month: 0, limit_price: None, keep_stock: 0 } });
+        }
+    }
+    for (g, side, q, limit, keep) in want {
+        let same = m.orders.iter().any(|o| o.good == g && o.side == side && o.per_month * 2 >= q && o.per_month <= q * 2);
+        if !same && !p.full() {
+            p.push(Action::SetPolicy { setting: PolicySetting::MarketOrder { good: g, side, per_month: q, limit_price: Some(limit), keep_stock: keep } });
         }
     }
 }
@@ -3042,7 +3197,11 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
     }
 
     // force size: a share of the population, larger under threat
-    let room_bp: i64 = if at_war { 500 } else if ai.memory.war_target.is_some() || revealed { 350 } else if threatened { 250 } else if !neighbours.is_empty() { match p.diff { Difficulty::Easy => 60, Difficulty::Medium => 120, Difficulty::Hard | Difficulty::Expert => 180 } } else { 0 };
+    let camps = camps_near(obs, regions);
+    let room_bp: i64 = if at_war { 500 } else if ai.memory.war_target.is_some() || revealed { 350 } else if threatened { 250 } else if !neighbours.is_empty() || !camps.is_empty() { match p.diff { Difficulty::Easy => 60, Difficulty::Medium => 120, Difficulty::Hard | Difficulty::Expert => 180 } } else { 0 };
+    let best = obs.catalog.unit_tiers.iter().filter(|t| t.available).map(|t| t.tier).max().unwrap_or(0);
+    refits(p, best, at_war || threatened);
+    let hemmed = camps.iter().map(|c| c.1).max().map(|w| soldiers * 2 < w * 3).unwrap_or(false);
     let target = pop * room_bp / 10_000;
     let recruiting: Vec<&ProjectView> = obs.projects.iter().filter(|x| x.kind == "recruit").collect();
     if soldiers + (recruiting.len() as i64) * 200 * K < target && recruiting.len() < 2 && obs.civ.food_fulfillment_bp >= 9500 {
@@ -3054,13 +3213,27 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
         // the best equipment we can actually supply, falling back a tier at a time
         let size = (target - soldiers).clamp(40 * K, if at_war || revealed { 800 * K } else { 300 * K });
         let mut chosen: Option<u8> = None;
+        // the recruiting floor (design chapter 37, 2.7): below one generation behind
+        // only when that one cannot be fitted out
+        let next_covered = tier >= 1
+            && obs.catalog.unit_tiers.iter().find(|x| x.tier == tier - 1).map(|d| d.equipment.iter().all(|e| *p.avail.get(&e.good).unwrap_or(&0) * 4 >= e.amount * size / K)).unwrap_or(false)
+            && p.level(home, "barracks") > 0;
+        let size = size.min(obs.civ.recruit_room as i64);
+        let mut size = size;
         for t in (0..=tier).rev() {
             if t >= 1 && p.level(home, "barracks") == 0 {
                 continue;
             }
+            if t + 1 < tier && next_covered {
+                break;
+            }
             if let Some(def) = obs.catalog.unit_tiers.iter().find(|x| x.tier == t && x.available) {
-                // equipment is listed per thousand soldiers
-                if def.equipment.iter().all(|e| *p.avail.get(&e.good).unwrap_or(&0) >= e.amount * size / K) {
+                // equipment is listed per thousand soldiers: as many as the stores equip,
+                // at the newest generation that equips a useful formation
+                // raider camps hemming us in come first: the stores, not what is left of them
+                let afford = def.equipment.iter().map(|e| if hemmed { p.stock(e.good) } else { *p.avail.get(&e.good).unwrap_or(&0) } * K / e.amount.max(1)).min().unwrap_or(i64::MAX);
+                if afford >= size.min(20 * K) && size >= 1_000 {
+                    size = size.min(afford);
                     chosen = Some(t);
                     break;
                 }
@@ -3129,6 +3302,8 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
         if p.full() {
             break;
         }
+        // a formation refitting in its barracks stays there unless the land is entered
+        let refitting = a.refit_to.is_some();
         // defend: go where our land is entered, but only with as much as the threat calls for
         let invaded = regions.iter().copied().find(|r| obs.foreign_armies.iter().any(|f| f.region == r.id && obs.diplomacy.wars.contains(&f.owner)) || r.controller != Some(seat));
         if let Some(r) = invaded {
@@ -3141,7 +3316,28 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
                 continue;
             }
         }
+        if refitting && !at_war {
+            continue;
+        }
         let Some(goal) = objective else {
+            // no war to fight: clear a raider camp next to our land with twice its
+            // estimated strength, or stand guard on the land it raids
+            let size: i64 = a.soldiers.iter().map(|(_, n)| *n as i64).sum();
+            let power = size * TIER_POWER[a.tier.min(7) as usize] / 1000;
+            let clear = camps.iter().find(|(_, war)| power > war * TIER_POWER[best.saturating_sub(1) as usize] / 1000 * 8 / 10 * if p.diff == Difficulty::Easy { 3 } else { 2 });
+            if let (Some((camp, _)), false, true) = (clear, at_war, p.camp_blocked || best >= 2) {
+                if a.target != Some(*camp) && a.refit_to.is_none() {
+                    p.push(Action::MilitaryOrder { army: a.id, order: ArmyOrder::Attack { region: *camp } });
+                }
+                continue;
+            }
+            let guard = camps.first().and_then(|(camp, _)| regions.iter().filter(|r| r.neighbors.iter().any(|n| n.region == *camp)).max_by_key(|r| (r.own.as_ref().map(|o| o.population).unwrap_or(0), r.id)).map(|r| r.id));
+            if let (Some(g), false) = (guard, at_war) {
+                if a.region != g && a.target != Some(g) && a.refit_to.is_none() {
+                    p.push(Action::MilitaryOrder { army: a.id, order: ArmyOrder::Move { to: g } });
+                }
+                continue;
+            }
             if a.order != "hold" && !at_war {
                 p.push(Action::MilitaryOrder { army: a.id, order: ArmyOrder::Hold });
             }
