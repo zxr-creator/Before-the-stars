@@ -9,6 +9,7 @@ import { t, tc, useLocale } from './i18n';
 import { LanguageSwitch } from './setup';
 import { BrandMark } from './theme/brand';
 import { startTutorial } from './tutorial';
+import { SoundSettings } from './audio/SoundSettings';
 
 export function GameMenu() {
   const s = useApp();
@@ -103,6 +104,9 @@ export function GameMenu() {
           <Section title={t('Language')}>
             <LanguageSwitch compact />
           </Section>
+          <Section title={t('Sound')}>
+            <SoundSettings compact />
+          </Section>
           <Section title={t('Save')}>
             <form class="row" onSubmit={(e) => { e.preventDefault(); if (name.trim()) void saveGame(name.trim()); }}>
               <input class="text" type="text" value={name} maxLength={40} aria-label={t('Save name')} data-testid="save-name" onInput={(e) => setName((e.target as HTMLInputElement).value)} />
@@ -184,6 +188,7 @@ export function GameMenu() {
               <li><kbd>1</kbd>–<kbd>9</kbd> <kbd>0</kbd> {t('panels')}</li>
               <li><kbd>T</kbd> {t('technology tree')} · <kbd>C</kbd> {t('civics tree')} · <kbd>L</kbd> {t('economy ledger')}</li>
               <li><kbd>H</kbd> {t('chronicle')} · <kbd>?</kbd> {t('almanac')} · <kbd>Esc</kbd> {t('close the top-most sheet')}</li>
+              <li><kbd>M</kbd> {t('mute or unmute music and sound')}</li>
             </ul>
           </div>
           <p class="muted small">{(summary?.versions ?? []).join(' · ')}</p>

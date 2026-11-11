@@ -1,0 +1,22 @@
+{
+ "Sound": "聲音",
+ "More settings": "更多設定",
+ "Fewer settings": "收起設定",
+ "Sound on": "聲音開",
+ "Sound off": "聲音關",
+ "Mute (M)": "靜音（M）",
+ "Turn the sound on (M)": "開啟聲音（M）",
+ "Master volume": "總音量",
+ "Music": "音樂",
+ "Effects": "音效",
+ "Music on the title screen too": "標題畫面也播放音樂",
+ "Interface sounds (end of round, orders, notices)": "介面音效（回合結束、命令、通知）",
+ "This browser offers no Web Audio, so the game is silent.": "此瀏覽器不支持 Web Audio，遊戲將保持無聲。",
+ "The sound could not be started.": "無法啟動聲音。",
+ "Muted. Press M to turn the sound back on.": "已靜音。按 M 重新開啟聲音。",
+ "Sound starts after your first click or key press.": "第一次點選或按鍵後開始播放聲音。",
+ "Starting the sound…": "正在啟動聲音……",
+ "The music is composed by the game as you play, and follows your civilization through the ages.": "音樂由遊戲在你遊玩時即時譜寫，並隨你的文明穿越各個時代。",
+ "mute or unmute music and sound": "靜音或恢復音樂與音效",
+ "Mute or unmute music and sound": "靜音或恢復音樂與音效"
+}
