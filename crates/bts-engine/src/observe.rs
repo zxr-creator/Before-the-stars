@@ -316,8 +316,14 @@ fn urban_view(w: &World, seat: SeatId, ri: usize, sizes: &[u32]) -> UrbanView {
             .iter()
             .map(|(j, k)| {
                 let b = if w.regions[*j as usize].controller == Some(seat) { network::net(&w.regions[*j as usize]) } else { network::Net::default() };
-                let (loss, cap) = network::link(&n, &b, *k, boats, sail);
-                LinkView { region: *j, loss_bp: loss as u16, capacity: cap as u32 }
+                let (loss, cap, mode) = network::link_mode(&n, &b, *k, boats, sail);
+                let kind = match k {
+                    LinkKind::Land => "land",
+                    LinkKind::River => "river",
+                    LinkKind::Sea => "sea",
+                    LinkKind::Pass => "pass",
+                };
+                LinkView { region: *j, loss_bp: loss as u16, capacity: cap as u32, kind: kind.to_string(), mode: mode.to_string() }
             })
             .collect(),
     }
@@ -605,6 +611,7 @@ fn own_region(w: &World, seat: SeatId, ri: usize, link: i64, sizes: &[u32]) -> O
             // compute is pooled nationally; the same figures appear in every region
             compute_supply: w.civs[seat as usize].compute_supply,
             compute_demand: w.civs[seat as usize].compute_demand,
+            shaft_to_generators: r.last.power.shaft_to_generators,
         },
         occupied_since: if r.owner != r.controller { r.occupied_since } else { None },
         venues: [Cap::SeatsLodge, Cap::SeatsSchool, Cap::SeatsCollege, Cap::SeatsInstitute]
@@ -970,6 +977,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             labor_weights: LaborCategory::ALL.iter().map(|l| (*l, civ.labor_weights[l.index()])).collect(),
             mobilization_bp: civ.mobilization_bp,
             war_policies: civ.war_policy.iter().enumerate().filter_map(|(o, p)| p.map(|(m, c)| WarPolicyView { seat: o as SeatId, accept_white_peace_after_months: Some(m), accept_cession_max: c })).collect(),
+            camp_subjugate: civ.subjugate_camps,
         },
         factions,
         mobilization_cap_bp: economy::mobilization_cap(w, seat),
@@ -1398,6 +1406,11 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
                     ProjKind::Reform { practice } | ProjKind::Repeal { practice } => Some(prac_handle(w, seat, *practice)),
                     ProjKind::Revisit { tech, .. } => Some(tech_handle(w, seat, *tech)),
                     ProjKind::Study { tag } => Some(Tag::ALL[*tag].key().to_string()),
+                    // job 4b: the successor works of an upgrade, the formation and the
+                    // generation of a refit ("army:ID:gen:N"), the region a scout party goes to
+                    ProjKind::Upgrade { to, .. } => Some(c.facilities[*to].key.to_string()),
+                    ProjKind::Refit { army, to } => Some(format!("army:{army}:gen:{to}")),
+                    ProjKind::Scout { region, .. } => Some(region.to_string()),
                     _ => None,
                 },
                 work_needed: p.work_needed,
@@ -1471,6 +1484,11 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             refit_bp: a.refit_bp,
             degraded: a.degraded,
             obsolete: a.tier + 3 <= best_gen,
+            // the referee's charge for a refit to the best generation the seat fields
+            refit_quote: (best_gen > a.tier && a.refit_to.is_none() && (best_gen as usize) < content().unit_tiers.len()).then(|| {
+                let (bill, work, months) = crate::actions::refit_terms(w, seat, a, best_gen);
+                RefitQuote { generation: best_gen, goods: bill.into_iter().map(|(good, amount)| GoodQty { good, amount }).collect(), work, min_months: months as u16 }
+            }),
         })
         .collect();
     let foreign_armies = w

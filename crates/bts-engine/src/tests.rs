@@ -725,6 +725,23 @@ fn a_founding_cohort_is_at_most_four_thousand_and_courses_use_materials_per_thou
 }
 
 #[test]
+fn a_damaged_save_is_refused_not_run() {
+    // job 4b: a save whose raider camp lies outside the world stopped the WebAssembly
+    // build with an index out of range; it is refused with a stated reason instead
+    let m = Match::new(cfg("damaged-save"), 1);
+    let mut v: serde_json::Value = serde_json::from_str(&m.save_json()).unwrap();
+    assert!(v["camps"].as_array().map(|c| !c.is_empty()).unwrap_or(false), "the fixture world has camps");
+    v["camps"][0]["region"] = serde_json::json!(60_000);
+    let err = Match::load_json(&v.to_string()).err().expect("a damaged save must not load");
+    assert!(err.contains("damaged") && err.contains("camp"), "{err}");
+    // and a pre-release ruleset 3.0 save is refused by name
+    let mut v: serde_json::Value = serde_json::from_str(&m.save_json()).unwrap();
+    v["versions"][0] = serde_json::Value::String("bts-rules/3.0.0-j4".into());
+    let err = Match::load_json(&v.to_string()).err().expect("refused");
+    assert!(err.contains("bts-rules/3.0.0-j4") && err.contains("before its release"), "{err}");
+}
+
+#[test]
 fn a_save_from_another_ruleset_is_refused_by_name() {
     let m = Match::new(cfg("old-save"), 1);
     let json = m.save_json();

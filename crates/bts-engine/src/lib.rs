@@ -293,12 +293,14 @@ impl Match {
         let running = content::RULESET_VERSION;
         match head.versions.first() {
             Some(v) if v == running => {}
-            Some(v) if v.starts_with("bts-rules/3.") => return Err(format!("this save was written by ruleset {v}, an earlier development build of ruleset 3.0; this build runs {running} and cannot load it: the world, the goods, productivity and the eras differ")),
+            Some(v) if v.starts_with("bts-rules/3.0.0-") => return Err(format!("this save was written by ruleset {v}, a development build of ruleset 3.0 before its release; this build runs {running} and cannot load it: the world, the goods, productivity and the eras differ")),
+            Some(v) if v.starts_with("bts-rules/3.") => return Err(format!("this save was written by ruleset {v}; this build runs {running} and cannot load it")),
             Some(v) if v.starts_with("bts-rules/2.") => return Err(format!("this save was written by ruleset {v}; this build runs {running} and cannot load it: the calendar, the goods and the population rules differ")),
             Some(v) => return Err(format!("this save was written by ruleset {v}; this build runs {running} and cannot load it: people, posts and goods are counted in different units")),
             None => return Err(format!("this save does not record the ruleset that wrote it; this build runs {running} and cannot load it")),
         }
         let world: World = serde_json::from_str(s).map_err(|e| e.to_string())?;
+        integrity(&world).map_err(|e| format!("this save is damaged and cannot be played: {e}"))?;
         Ok(Match { world, ledger_trace: None, curve: None })
     }
 
@@ -352,4 +354,48 @@ pub struct SeatDiagnostics {
     pub stability: u8,
     pub overlord: Option<SeatId>,
     pub food_bp: u16,
+}
+
+/// The references a save holds between its parts, checked before a loaded world is
+/// used (job 4b: a damaged save stopped the WebAssembly build on an index out of
+/// range in the raider step instead of being refused).
+fn integrity(w: &World) -> Result<(), String> {
+    let (nr, ns, nl) = (w.regions.len(), w.civs.len(), w.lineages.len());
+    if nr == 0 || ns == 0 {
+        return Err("it has no regions or no seats".into());
+    }
+    let seat_ok = |s: Option<SeatId>| s.map(|s| (s as usize) < ns).unwrap_or(true);
+    for (i, r) in w.regions.iter().enumerate() {
+        if !seat_ok(r.owner) || !seat_ok(r.controller) {
+            return Err(format!("region {i} names a seat that does not exist"));
+        }
+        if r.neighbors.iter().any(|(n, _)| *n as usize >= nr) {
+            return Err(format!("region {i} borders a region that does not exist"));
+        }
+        if r.blocks.iter().any(|b| b.lineage as usize >= nl) {
+            return Err(format!("region {i} holds people of a lineage that does not exist"));
+        }
+    }
+    for c in &w.camps {
+        if c.region as usize >= nr || c.lineage as usize >= nl {
+            return Err(format!("raider camp {} lies outside the world", c.id));
+        }
+    }
+    for a in &w.armies {
+        if a.region as usize >= nr || a.owner as usize >= ns {
+            return Err(format!("formation {} lies outside the world", a.id));
+        }
+    }
+    if w.test_nodes.iter().any(|t| *t as usize >= nr) {
+        return Err("a test node lies outside the world".into());
+    }
+    for c in &w.civs {
+        if c.capital as usize >= nr || c.lineage as usize >= nl {
+            return Err(format!("seat {} has a capital or people outside the world", c.seat));
+        }
+        if c.projects.iter().any(|p| p.region.map(|r| r as usize >= nr).unwrap_or(false)) || c.programs.iter().any(|p| p.region as usize >= nr) {
+            return Err(format!("seat {} has an order in a region that does not exist", c.seat));
+        }
+    }
+    Ok(())
 }

@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// `ForeignCiv.traditions`, `ArmyView.variant`, `SpectatorCiv.era`,
 /// `SpectatorCiv.traditions`, `Action::EnterEra`, `Action::ChooseCharter`,
 /// `Action::ChooseTradition`).
-pub const PROTOCOL_VERSION: &str = "bts-protocol/2.5";
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.6";
 
 pub type SeatId = u8;
 pub type RegionId = u16;
@@ -976,6 +976,11 @@ pub struct Policies {
     /// Standing war policies, one per seat they name.
     #[serde(default)]
     pub war_policies: Vec<WarPolicyView>,
+    /// The standing camp policy (`set_policy` / `camp_policy`): whether formations
+    /// that defeat a raider camp subjugate its people instead of scattering them
+    /// (bts-protocol/2.6).
+    #[serde(default)]
+    pub camp_subjugate: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1273,6 +1278,13 @@ pub struct LinkView {
     pub loss_bp: u16,
     /// kt a month.
     pub capacity: u32,
+    /// The link ("land", "river", "sea" or "pass") and the network mode that gives
+    /// its least loss ("tracks", "roads", "canal", "harbour", "rail" or "river")
+    /// (bts-protocol/2.6).
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub mode: String,
 }
 
 /// People who moved over the last resolved round (design chapter 38, section 3).
@@ -1379,6 +1391,11 @@ pub struct PowerView {
     pub elec_demand: i64,
     pub compute_supply: i64,
     pub compute_demand: i64,
+    /// Spare shaft work the region's generator halls turned into electricity last
+    /// month (bts-protocol/2.6). Not in `shaft_supply`; a new construction site would
+    /// be served from it first, since sites are supplied before the halls.
+    #[serde(default)]
+    pub shaft_to_generators: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -2091,6 +2108,10 @@ pub struct ProjectView {
     pub kind: String,
     pub title: String,
     pub region: Option<RegionId>,
+    /// What the order works on: the facility key of a build, or of the successor an
+    /// upgrade converts to; the handle of a technology or practice; the domain of a
+    /// study; "army:ID:gen:N" for a refit; the region id a scout party goes to
+    /// (upgrade, refit and scout since bts-protocol/2.6).
     pub target: Option<String>,
     /// Work is in worker-months for labour projects and researcher-months for
     /// research, leads and studies; inputs are base units of goods.
@@ -2172,6 +2193,22 @@ pub struct ArmyView {
     /// Three or more generations behind the best: morale capped, upkeep +50%.
     #[serde(default)]
     pub obsolete: bool,
+    /// What a refit to the best generation the seat can field would be charged now
+    /// (`start_project` / `refit`): when the formation is behind it and not refitting
+    /// (bts-protocol/2.6). The order also needs a barracks in an owned, controlled
+    /// region and a formation out of battle and past its first training.
+    #[serde(default)]
+    pub refit_quote: Option<RefitQuote>,
+}
+
+/// The charge of a refit in place (bts-protocol/2.6): equipment, fit-out work in
+/// worker-months and the minimum months of retraining.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RefitQuote {
+    pub generation: u8,
+    pub goods: Vec<GoodQty>,
+    pub work: i64,
+    pub min_months: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

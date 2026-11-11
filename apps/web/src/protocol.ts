@@ -266,7 +266,8 @@ export interface UrbanView {
   attractiveness: number;
   mobility_cap_bp: number;
   network: { mode: string; stage: number; levels: number }[];
-  links: { region: RegionId; loss_bp: number; capacity: number }[];
+  /** bts-protocol/2.6: `kind` is the link ("land", "river", "sea", "pass"), `mode` the network giving its least loss ("tracks", "roads", "canal", "harbour", "rail", "river"). */
+  links: { region: RegionId; loss_bp: number; capacity: number; kind?: string; mode?: string }[];
 }
 
 /** bts-protocol/2.3: people who moved over the last round. */
@@ -655,6 +656,8 @@ export interface Policies {
   mobilization_bp: number;
   /** bts-protocol/1.3: standing war policies, one per seat they name. */
   war_policies?: WarPolicyView[];
+  /** bts-protocol/2.6: the standing camp policy (subjugate defeated camps instead of scattering them). */
+  camp_subjugate?: boolean;
 }
 
 export interface FactionView {
@@ -801,6 +804,8 @@ export interface PowerView {
   elec_demand: number;
   compute_supply: number;
   compute_demand: number;
+  /** bts-protocol/2.6: spare shaft work turned into electricity by generator halls last month; a new site is served from it first. */
+  shaft_to_generators?: number;
 }
 
 export interface VenueSeats {
@@ -1224,6 +1229,15 @@ export interface ProgramView {
   blockers: string[];
 }
 
+/** bts-protocol/2.6: the charge of a refit in place. */
+export interface RefitQuote {
+  generation: number;
+  goods: GoodQty[];
+  /** Worker-months of fit-out work. */
+  work: number;
+  min_months: number;
+}
+
 export interface ArmyView {
   id: number;
   name: string;
@@ -1246,6 +1260,8 @@ export interface ArmyView {
   degraded?: number;
   /** Three or more generations behind the best: morale capped, upkeep +50%. */
   obsolete?: boolean;
+  /** bts-protocol/2.6: what a refit to the best generation the seat fields would be charged now. */
+  refit_quote?: RefitQuote | null;
 }
 
 export interface ForeignArmyView {
