@@ -674,21 +674,21 @@
  {
   "id": "C039",
   "en": {
-   "intro": "Hunger rarely arrives evenly. Basic-provision responsibility pooled a community's risk so that a bad harvest, a dead breadwinner or a long illness did not sink one household alone. The Elizabethan Poor Law of 1601 made each English parish raise a rate for its own poor, an arrangement that lasted more than two centuries and was argued over for all of them. Song dynasty China kept state almshouses, clinics and paupers' cemeteries. Provision also let children stay at their lessons instead of going out to earn. But a promise of relief feeds no one until the grain, the carers and the money actually arrive.",
+   "intro": "Hunger rarely arrives evenly. Basic-provision responsibility pooled a community's risk so that a bad harvest, a dead breadwinner or a long illness did not sink one household alone. Augustan Rome handed out free grain every month to some two hundred thousand citizens, and argued for centuries over who deserved it. Song dynasty China kept state almshouses, clinics and paupers' cemeteries. Provision also let children stay at their lessons instead of going out to earn. But a promise of relief feeds no one until the grain, the carers and the money actually arrive.",
    "quote": {
     "text": "The aged are cared for to the end of their days, the able-bodied have work to do, the young are brought up, and widowers, widows, orphans, the childless and the sick are all provided for.",
     "source": "Book of Rites, “The Conveyance of Rites”"
    }
   },
   "zh-Hans": {
-   "intro": "饥饿从不平均地降临。基本供给的责任把一个共同体的风险汇在一起，让一场歉收、一位顶梁柱的离世或一场久病，不至于压垮单独一户人家。英格兰1601年的《济贫法》要求各教区为本地穷人征收济贫税，这套办法延续了两百多年，也被争论了两百多年。北宋设居养院、安济坊和漏泽园，收养孤老、医治贫病、掩埋无主之尸。有了供给，孩子才能继续读书，而不必早早出去谋生。可是，救济的许诺喂不饱任何人，要等粮食、照护者和钱真正到了才算数。",
+   "intro": "饥饿从不平均地降临。基本供给的责任把一个共同体的风险汇在一起，让一场歉收、一位顶梁柱的离世或一场久病，不至于压垮单独一户人家。奥古斯都时代的罗马每月向约二十万公民免费发放粮食，谁该领、谁不该领，争了好几百年。北宋设居养院、安济坊和漏泽园，收养孤老、医治贫病、掩埋无主之尸。有了供给，孩子才能继续读书，而不必早早出去谋生。可是，救济的许诺喂不饱任何人，要等粮食、照护者和钱真正到了才算数。",
    "quote": {
     "text": "使老有所终，壮有所用，幼有所长，矜、寡、孤、独、废疾者皆有所养。",
     "source": "《礼记·礼运》"
    }
   },
   "zh-Hant": {
-   "intro": "飢餓從不平均地降臨。基本供給的責任把一個共同體的風險匯在一起，讓一場歉收、一位頂樑柱的離世或一場久病，不至於壓垮單獨一戶人家。英格蘭1601年的《濟貧法》要求各教區為本地窮人徵收濟貧稅，這套辦法延續了兩百多年，也被爭論了兩百多年。北宋設居養院、安濟坊和漏澤園，收養孤老、醫治貧病、掩埋無主之屍。有了供給，孩子才能繼續讀書，而不必早早出去謀生。可是，救濟的許諾喂不飽任何人，要等糧食、照護者和錢真正到了才算數。",
+   "intro": "飢餓從不平均地降臨。基本供給的責任把一個共同體的風險匯在一起，讓一場歉收、一位頂樑柱的離世或一場久病，不至於壓垮單獨一戶人家。奧古斯都時代的羅馬每月向約二十萬公民免費發放糧食，誰該領、誰不該領，爭了好幾百年。北宋設居養院、安濟坊和漏澤園，收養孤老、醫治貧病、掩埋無主之屍。有了供給，孩子才能繼續讀書，而不必早早出去謀生。可是，救濟的許諾喂不飽任何人，要等糧食、照護者和錢真正到了才算數。",
    "quote": {
     "text": "使老有所終，壯有所用，幼有所長，矜、寡、孤、獨、廢疾者皆有所養。",
     "source": "《禮記·禮運》"
@@ -698,21 +698,21 @@
  {
   "id": "C040",
   "en": {
-   "intro": "Every ruler likes review in principle and dislikes it in particular. Bounded power means that an order is only as good as the document authorizing it, and that someone outside the issuer's command can say so and make it stick. Its history is a ledger of small, hard-won procedures: the English Bill of Rights of 1689 forbidding the crown to suspend laws without Parliament, the writ of habeas corpus that makes a jailer produce his prisoner before a judge, a court annulling a minister's decree. Review is slow, and it guarantees no correct decisions. It does make someone answerable for the wrong ones.",
+   "intro": "Every ruler likes review in principle and dislikes it in particular. Bounded power means that an order is only as good as the document authorizing it, and that someone outside the issuer's command can say so and make it stick. Its history is a ledger of small, hard-won procedures: the writ of habeas corpus that makes a jailer produce his prisoner before a judge, auditors who refuse to pay for what no law authorized, a court striking down a statute, as the United States Supreme Court claimed the right to do in Marbury v. Madison in 1803. Review is slow, and it guarantees no correct decisions. It does make someone answerable for the wrong ones.",
    "quote": {
     "text": "So that power cannot be abused, things must be so arranged that power checks power.",
     "source": "Montesquieu, The Spirit of the Laws, Book XI, ch. 4 (1748)"
    }
   },
   "zh-Hans": {
-   "intro": "每个掌权者原则上都欢迎审查，具体到自己头上就不那么欢迎了。有限的公共权力意味着：一道命令的效力不超过授权它的文书，而且有不受发令者节制的人可以指出这一点，并让它算数。它的历史由一桩桩来之不易的小程序写成：1689年英格兰的《权利法案》不许国王未经议会擅自中止法律；人身保护令迫使看守把囚犯带到法官面前；法院宣布一位大臣的政令无效。审查很慢，也不保证决定正确，但它能让错误的决定有人负责。",
+   "intro": "每个掌权者原则上都欢迎审查，具体到自己头上就不那么欢迎了。有限的公共权力意味着：一道命令的效力不超过授权它的文书，而且有不受发令者节制的人可以指出这一点，并让它算数。它的历史由一桩桩来之不易的小程序写成：人身保护令迫使看守把囚犯带到法官面前；审计官拒绝为任何法律都未授权的开支付账；法院宣布一项法律无效——1803年，美国最高法院在“马伯里诉麦迪逊案”中便主张了这种权力。审查很慢，也不保证决定正确，但它能让错误的决定有人负责。",
    "quote": {
     "text": "要防止滥用权力，就必须通过事物的安排，以权力制约权力。",
     "source": "孟德斯鸠《论法的精神》第十一章第四节（1748）"
    }
   },
   "zh-Hant": {
-   "intro": "每個掌權者原則上都歡迎審查，具體到自己頭上就不那麼歡迎了。有限的公共權力意味著：一道命令的效力不超過授權它的文書，而且有不受發令者節制的人可以指出這一點，並讓它算數。它的歷史由一樁樁來之不易的小程序寫成：1689年英格蘭的《權利法案》不許國王未經議會擅自中止法律；人身保護令迫使看守把囚犯帶到法官面前；法院宣佈一位大臣的政令無效。審查很慢，也不保證決定正確，但它能讓錯誤的決定有人負責。",
+   "intro": "每個掌權者原則上都歡迎審查，具體到自己頭上就不那麼歡迎了。有限的公共權力意味著：一道命令的效力不超過授權它的文書，而且有不受發令者節制的人可以指出這一點，並讓它算數。它的歷史由一樁樁來之不易的小程序寫成：人身保護令迫使看守把囚犯帶到法官面前；審計官拒絕為任何法律都未授權的開支付賬；法院宣佈一項法律無效——1803年，美國最高法院在「馬伯裡訴麥迪遜案」中便主張了這種權力。審查很慢，也不保證決定正確，但它能讓錯誤的決定有人負責。",
    "quote": {
     "text": "要防止濫用權力，就必須通過事物的安排，以權力制約權力。",
     "source": "孟德斯鳩《論法的精神》第十一章第四節（1748）"

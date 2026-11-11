@@ -542,24 +542,24 @@
  {
   "id": "T041",
   "en": {
-   "intro": "Grinding a lump of glass or metal until it bends or returns light exactly where you want is slow, dusty work, and the difference between a good lens and a useless one is invisible until you look through it. Spectacles appeared in Italy around the end of the thirteenth century and quietly gave scholars and craftsmen another twenty years of close work. Later polishers turned the same skills outward and inward, to the mountains of the Moon and the fine structure of a fly's eye. Glass routes fight bubbles and coloured fringes; mirror routes fight tarnish. Either way, the instrument is only as good as its maker's patience.",
+   "intro": "Grinding a lump of glass or metal until it bends or returns light exactly where you want is slow, dusty work, and the difference between a good lens and a useless one is invisible until you look through it. Spectacles appeared in Italy in the late thirteenth century and quietly added years to the working lives of scholars, scribes and engravers. Later polishers turned the same skills toward instruments for the very small and the very far. Glass routes fight bubbles and coloured fringes; mirror routes fight tarnish. Either way, the instrument is only as good as its maker's patience.",
    "quote": {
-    "text": "By the means of Telescopes, there is nothing so far distant but may be represented to our view; and by the help of Microscopes, there is nothing so small, as to escape our inquiry.",
-    "source": "Robert Hooke, Micrographia, Preface (1665)"
+    "text": "It is not yet twenty years since the art of making spectacles, which make for good vision, was found; it is one of the best and most necessary arts the world has.",
+    "source": "Giordano da Pisa, sermon at Santa Maria Novella, Florence (1306)"
    }
   },
   "zh-Hans": {
-   "intro": "把一块玻璃或金属磨到恰好能让光线拐向或折回想要的地方，是又慢又满是粉尘的活计；好镜片和废镜片的差别，不凑到眼前根本看不出来。13世纪末，眼镜在意大利出现，悄悄地让学者和工匠多做了二十年的细活。后来的磨镜人把同样的手艺转向远处和近处：月亮上的山脉，苍蝇复眼的细密结构。玻璃路线要对付气泡和色边，反射镜路线要对付锈暗失光。无论走哪条路，仪器的好坏都取决于制作者的耐心。",
+   "intro": "把一块玻璃或金属磨到恰好能让光线拐向或折回想要的地方，是又慢又满是粉尘的活计；好镜片和废镜片的差别，不凑到眼前根本看不出来。13世纪末，眼镜在意大利出现，悄悄地让学者、抄写员和雕刻匠多做了好些年的细活。后来的磨镜人把同样的手艺转向了极小之物和极远之物。玻璃路线要对付气泡和色边，反射镜路线要对付锈暗失光。无论走哪条路，仪器的好坏都取决于制作者的耐心。",
    "quote": {
-    "text": "借助望远镜，再遥远的东西也能呈现在我们眼前；借助显微镜，再微小的东西也逃不过我们的探究。",
-    "source": "罗伯特·胡克《显微图谱》序言（1665）"
+    "text": "眼镜这门让人看得清楚的手艺被人发现，至今还不到二十年；它是世上最好、也最不可少的手艺之一。",
+    "source": "乔尔达诺·达·皮萨1306年在佛罗伦萨新圣母大殿的布道"
    }
   },
   "zh-Hant": {
-   "intro": "把一塊玻璃或金屬磨到恰好能讓光線拐向或折回想要的地方，是又慢又滿是粉塵的活計；好鏡片和廢鏡片的差別，不湊到眼前根本看不出來。13世紀末，眼鏡在義大利出現，悄悄地讓學者和工匠多做了二十年的細活。後來的磨鏡人把同樣的手藝轉向遠處和近處：月亮上的山脈，蒼蠅複眼的細密結構。玻璃路線要對付氣泡和色邊，反射鏡路線要對付鏽暗失光。無論走哪條路，儀器的好壞都取決於製作者的耐心。",
+   "intro": "把一塊玻璃或金屬磨到恰好能讓光線拐向或折回想要的地方，是又慢又滿是粉塵的活計；好鏡片和廢鏡片的差別，不湊到眼前根本看不出來。13世紀末，眼鏡在義大利出現，悄悄地讓學者、抄寫員和雕刻匠多做了好些年的細活。後來的磨鏡人把同樣的手藝轉向了極小之物和極遠之物。玻璃路線要對付氣泡和色邊，反射鏡路線要對付鏽暗失光。無論走哪條路，儀器的好壞都取決於製作者的耐心。",
    "quote": {
-    "text": "藉助望遠鏡，再遙遠的東西也能呈現在我們眼前；藉助顯微鏡，再微小的東西也逃不過我們的探究。",
-    "source": "羅伯特·胡克《顯微圖譜》序言（1665）"
+    "text": "眼鏡這門讓人看得清楚的手藝被人發現，至今還不到二十年；它是世上最好、也最不可少的手藝之一。",
+    "source": "喬爾達諾·達·皮薩1306年在佛羅倫薩新聖母大殿的佈道"
    }
   }
  },
@@ -662,21 +662,21 @@
  {
   "id": "T048",
   "en": {
-   "intro": "Copying a book by hand took months, and every copy introduced new mistakes. Printing changed the sums: carve or set a page once, and the hundredth copy costs little more than ink, paper and labour. The Diamond Sutra found at Dunhuang, dated 868, is the oldest surviving printed book that carries a date. In Mainz in the 1450s, Gutenberg's workshop combined metal type with a screw press and oil-based ink. Cheap pages spread knowledge, rumour and dispute with equal speed. They still needed people who could read them, and someone to carry them there.",
+   "intro": "Copying a book by hand took months, and every copy introduced new mistakes. Printing from reusable type changed the sums: set a page once from loose characters, and the hundredth copy costs little more than ink, paper and labour; then break the page up and set the next. Bi Sheng's type was baked clay, and in 1377 a Korean Buddhist anthology, the Jikji, was printed from metal type. In Mainz in the 1450s, Gutenberg's workshop combined metal type with a screw press and oil-based ink. Cheap pages spread knowledge, rumour and dispute with equal speed. They still needed people who could read them, and someone to carry them there.",
    "quote": {
     "text": "In the Qingli reign there was a commoner, Bi Sheng, who went further and made movable type.",
     "source": "Shen Kuo, Dream Pool Essays, ch. 18 (1088)"
    }
   },
   "zh-Hans": {
-   "intro": "手抄一本书要几个月，而且每抄一遍都会添上新的错误。印刷改变了这笔账：一页雕好或排好之后，第一百份的成本也不过是墨、纸和人工。敦煌发现的《金刚经》刻本，题有868年的日期，是现存最早的有明确纪年的印本。15世纪50年代，美因茨的谷登堡作坊把金属活字、螺旋压印机和油性墨结合到了一起。便宜的纸页让知识、谣言和争论以同样的速度传开。不过，它们仍然需要识字的人来读，也需要有人把它们送到读者手中。",
+   "intro": "手抄一本书要几个月，而且每抄一遍都会添上新的错误。用能反复使用的活字印刷，改变了这笔账：一页用单个的字排好，第一百份的成本也不过是墨、纸和人工；印完拆版，再排下一页。毕昇的活字是用胶泥烧成的；1377年，高丽的佛教文集《直指》用金属活字印成。15世纪50年代，美因茨的谷登堡作坊把金属活字、螺旋压印机和油性墨结合到了一起。便宜的纸页让知识、谣言和争论以同样的速度传开。不过，它们仍然需要识字的人来读，也需要有人把它们送到读者手中。",
    "quote": {
     "text": "庆历中，有布衣毕昇，又为活板。",
     "source": "沈括《梦溪笔谈·技艺》"
    }
   },
   "zh-Hant": {
-   "intro": "手抄一本書要幾個月，而且每抄一遍都會添上新的錯誤。印刷改變了這筆賬：一頁雕好或排好之後，第一百份的成本也不過是墨、紙和人工。敦煌發現的《金剛經》刻本，題有868年的日期，是現存最早的有明確紀年的印本。15世紀50年代，美因茨的谷登堡作坊把金屬活字、螺旋壓印機和油性墨結合到了一起。便宜的紙頁讓知識、謠言和爭論以同樣的速度傳開。不過，它們仍然需要識字的人來讀，也需要有人把它們送到讀者手中。",
+   "intro": "手抄一本書要幾個月，而且每抄一遍都會添上新的錯誤。用能反覆使用的活字印刷，改變了這筆賬：一頁用單個的字排好，第一百份的成本也不過是墨、紙和人工；印完拆版，再排下一頁。畢昇的活字是用膠泥燒成的；1377年，高麗的佛教文集《直指》用金屬活字印成。15世紀50年代，美因茨的谷登堡作坊把金屬活字、螺旋壓印機和油性墨結合到了一起。便宜的紙頁讓知識、謠言和爭論以同樣的速度傳開。不過，它們仍然需要識字的人來讀，也需要有人把它們送到讀者手中。",
    "quote": {
     "text": "慶曆中，有布衣畢昇，又為活板。",
     "source": "沈括《夢溪筆談·技藝》"
@@ -794,21 +794,21 @@
  {
   "id": "T054",
   "en": {
-   "intro": "Amber that attracts straw and lodestones that point north were curiosities for thousands of years. They became a subject when people could produce the effects on demand and measure them. In 1800 Alessandro Volta stacked discs of two metals with brine-soaked cloth between them and got a steady current. In 1820 Hans Christian Ørsted, lecturing in Copenhagen, saw a compass needle twitch beside a current-carrying wire: electricity and magnetism were one subject, not two. Michael Faraday, a bookbinder's apprentice with little schooling, went on to map their fields. None of it yet lit a room.",
+   "intro": "Amber that attracts straw and lodestones that tug at iron were curiosities for thousands of years. They became a subject when people could produce the effects on demand and measure them. In 1800 Alessandro Volta stacked discs of two metals with brine-soaked cloth between them and got a steady current. In 1820 Hans Christian Ørsted, lecturing in Copenhagen, saw a magnetized needle swing beside a current-carrying wire: electricity and magnetism were one subject, not two. Michael Faraday, a bookbinder's apprentice with little schooling, went on to map their fields. None of it yet lit a room.",
    "quote": {
     "text": "Nothing is too wonderful to be true, if it be consistent with the laws of nature.",
     "source": "Michael Faraday, laboratory diary (19 March 1849)"
    }
   },
   "zh-Hans": {
-   "intro": "能吸起草屑的琥珀、会指向北方的磁石，几千年来都只是奇物。只有当人们能随时造出这些效应并加以测量，它们才成为一门学问。1800年，伏打把两种金属圆片层层相叠，中间夹上浸过盐水的布，得到了持续的电流。1820年，奥斯特在哥本哈根讲课时看到，通电导线旁的磁针抖了一下：电与磁原来是一回事。出身装订学徒、几乎没上过学的法拉第，随后描绘出了它们的场。不过，这些都还没能点亮一间屋子。",
+   "intro": "能吸起草屑的琥珀、能吸住铁片的磁石，几千年来都只是奇物。只有当人们能随时造出这些效应并加以测量，它们才成为一门学问。1800年，伏打把两种金属圆片层层相叠，中间夹上浸过盐水的布，得到了持续的电流。1820年，奥斯特在哥本哈根讲课时看到，通电导线旁的一枚磁针摆动了一下：电与磁原来是一回事。出身装订学徒、几乎没上过学的法拉第，随后描绘出了它们的场。不过，这些都还没能点亮一间屋子。",
    "quote": {
     "text": "只要符合自然规律，就没有什么奇妙到不可能是真的。",
     "source": "迈克尔·法拉第实验日记（1849年3月19日）"
    }
   },
   "zh-Hant": {
-   "intro": "能吸起草屑的琥珀、會指向北方的磁石，幾千年來都只是奇物。只有當人們能隨時造出這些效應並加以測量，它們才成為一門學問。1800年，伏打把兩種金屬圓片層層相疊，中間夾上浸過鹽水的布，得到了持續的電流。1820年，奧斯特在哥本哈根講課時看到，通電導線旁的磁針抖了一下：電與磁原來是一回事。出身裝訂學徒、幾乎沒上過學的法拉第，隨後描繪出了它們的場。不過，這些都還沒能點亮一間屋子。",
+   "intro": "能吸起草屑的琥珀、能吸住鐵片的磁石，幾千年來都只是奇物。只有當人們能隨時造出這些效應並加以測量，它們才成為一門學問。1800年，伏打把兩種金屬圓片層層相疊，中間夾上浸過鹽水的布，得到了持續的電流。1820年，奧斯特在哥本哈根講課時看到，通電導線旁的一枚磁針擺動了一下：電與磁原來是一回事。出身裝訂學徒、幾乎沒上過學的法拉第，隨後描繪出了它們的場。不過，這些都還沒能點亮一間屋子。",
    "quote": {
     "text": "只要符合自然規律，就沒有什麼奇妙到不可能是真的。",
     "source": "邁克爾·法拉第實驗日記（1849年3月19日）"
@@ -845,10 +845,10 @@
    "intro": "Every farmer has opinions about manure, rotation and soil, and most of them are partly right. Agricultural experiments find out which part. Divide a field into plots, treat them differently, repeat for many seasons, weigh the harvest and analyse what the plants took from the ground. At Rothamsted in England, John Bennet Lawes and Henry Gilbert began their Broadbalk wheat trial in 1843; it is still running, among the oldest field experiments anywhere. Its slow verdicts showed which nutrients mattered where. The land did not become larger, but its limits became visible, and visible limits can be managed."
   },
   "zh-Hans": {
-   "intro": "每个农人对粪肥、轮作和土壤都有自己的见解，而且大多只对了一部分。农业试验要找出的，正是对的那一部分。把一块地分成小区，分别施以不同的处理，连续做许多季，称量收成，再分析作物从土里带走了什么。1843年，劳斯和吉尔伯特在英国洛桑开始了布罗德巴克小麦试验，至今仍在进行，是世界上最古老的田间试验之一。它缓慢的结论揭示出哪些养分在哪里起作用。土地并没有变大，但它的极限变得看得见了，而看得见的极限才能管理。"
+   "intro": "每个农人对粪肥、茬口和土壤都有自己的见解，而且大多只对了一部分。农业试验要找出的，正是对的那一部分。把一块地分成小区，分别施以不同的处理，连续做许多季，称量收成，再分析作物从土里带走了什么。1843年，劳斯和吉尔伯特在英国洛桑开始了布罗德巴克小麦试验，至今仍在进行，是世界上最古老的田间试验之一。它缓慢的结论揭示出哪些养分在哪里起作用。土地并没有变大，但它的极限变得看得见了，而看得见的极限才能管理。"
   },
   "zh-Hant": {
-   "intro": "每個農人對糞肥、輪作和土壤都有自己的見解，而且大多隻對了一部分。農業試驗要找出的，正是對的那一部分。把一塊地分成小區，分別施以不同的處理，連續做許多季，稱量收成，再分析作物從土裡帶走了什麼。1843年，勞斯和吉爾伯特在英國洛桑開始了布羅德巴克小麥試驗，至今仍在進行，是世界上最古老的田間試驗之一。它緩慢的結論揭示出哪些養分在哪裡起作用。土地並沒有變大，但它的極限變得看得見了，而看得見的極限才能管理。"
+   "intro": "每個農人對糞肥、茬口和土壤都有自己的見解，而且大多隻對了一部分。農業試驗要找出的，正是對的那一部分。把一塊地分成小區，分別施以不同的處理，連續做許多季，稱量收成，再分析作物從土裡帶走了什麼。1843年，勞斯和吉爾伯特在英國洛桑開始了布羅德巴克小麥試驗，至今仍在進行，是世界上最古老的田間試驗之一。它緩慢的結論揭示出哪些養分在哪裡起作用。土地並沒有變大，但它的極限變得看得見了，而看得見的極限才能管理。"
   }
  },
  {
@@ -878,13 +878,13 @@
  {
   "id": "T060",
   "en": {
-   "intro": "Iron was old; iron in quantity was new. Charcoal furnaces ate forests, so in 1709 Abraham Darby at Coalbrookdale tried coke made from coal instead, and cheap cast iron followed. Steel, harder and tougher, stayed a costly specialty until Henry Bessemer, in 1856, blew air through molten iron to burn out the excess carbon in minutes. Control mattered as much as heat: the wrong ore or a careless blow made brittle metal that failed without warning. Towns grew black around the works, and the bridges, frames and tools they produced carried the bill for every ton of fuel."
+   "intro": "Iron was old; iron in quantity was new. Charcoal furnaces ate forests, so in 1709 Abraham Darby at Coalbrookdale tried coke made from coal instead, and cheap iron followed. In the 1780s Henry Cort's puddling furnace let workers stir molten iron until the excess carbon burned away, turning out wrought iron by the ton; puddling was the hottest, hardest job in the works. Steel, harder and tougher, stayed a costly specialty, made in small batches by men who judged the metal by its colour. Control mattered as much as heat: the wrong ore gave brittle metal that failed without warning. Towns grew black around the works, and every ton carried the bill for its fuel."
   },
   "zh-Hans": {
-   "intro": "铁是古老的，大量的铁却是新鲜事。木炭炉吃掉了一片片森林，于是1709年，亚伯拉罕·达比在科尔布鲁克代尔改用煤炼成的焦炭炼铁，廉价的铸铁随之而来。钢更硬也更韧，却一直是昂贵的稀罕物，直到1856年贝塞麦把空气吹过铁水，几分钟内就烧掉多余的碳。控制和火力同样要紧：矿石不对或吹炼失手，就会得到毫无征兆便断裂的脆铁。工厂周围的城镇被熏得漆黑，而从这里运出的桥梁、框架和工具，每一吨都背着燃料的账。"
+   "intro": "铁是古老的，大量的铁却是新鲜事。木炭炉吃掉了一片片森林，于是1709年，亚伯拉罕·达比在科尔布鲁克代尔改用煤炼成的焦炭炼铁，廉价的铁随之而来。18世纪80年代，亨利·科特的搅炼炉让工人在炉里不停搅动铁水，直到多余的碳烧尽，熟铁从此成吨地产出；搅炼是整座铁厂里最热、最累的活。钢更硬也更韧，却仍是昂贵的稀罕物，靠老师傅看着火色一小炉一小炉地炼。控制和火力同样要紧：矿石不对，就会得到毫无征兆便断裂的脆铁。工厂周围的城镇被熏得漆黑，而从这里运出的每一吨，都背着燃料的账。"
   },
   "zh-Hant": {
-   "intro": "鐵是古老的，大量的鐵卻是新鮮事。木炭爐吃掉了一片片森林，於是1709年，亞伯拉罕·達比在科爾布魯克代爾改用煤煉成的焦炭鍊鐵，廉價的鑄鐵隨之而來。鋼更硬也更韌，卻一直是昂貴的稀罕物，直到1856年貝塞麥把空氣吹過鐵水，幾分鐘內就燒掉多餘的碳。控制和火力同樣要緊：礦石不對或吹煉失手，就會得到毫無徵兆便斷裂的脆鐵。工廠周圍的城鎮被燻得漆黑，而從這裡運出的橋樑、框架和工具，每一噸都揹著燃料的賬。"
+   "intro": "鐵是古老的，大量的鐵卻是新鮮事。木炭爐吃掉了一片片森林，於是1709年，亞伯拉罕·達比在科爾布魯克代爾改用煤煉成的焦炭鍊鐵，廉價的鐵隨之而來。18世紀80年代，亨利·科特的攪煉爐讓工人在爐裡不停攪動鐵水，直到多餘的碳燒盡，熟鐵從此成噸地產出；攪煉是整座鐵廠裡最熱、最累的活。鋼更硬也更韌，卻仍是昂貴的稀罕物，靠老師傅看著火色一小爐一小爐地煉。控制和火力同樣要緊：礦石不對，就會得到毫無徵兆便斷裂的脆鐵。工廠周圍的城鎮被燻得漆黑，而從這裡運出的每一噸，都揹著燃料的賬。"
   }
  },
  {
@@ -998,13 +998,13 @@
  {
   "id": "T070",
   "en": {
-   "intro": "Long before anyone could explain it, people noticed that survivors of smallpox did not catch it twice. Variolation, deliberately giving a mild case, was practised in China and the Ottoman world, and Lady Mary Wortley Montagu promoted it in England in the 1720s. In 1796 Edward Jenner inoculated a boy, James Phipps, with cowpox and showed that he resisted smallpox. Each protection works against its own disease, must be made to a consistent standard and has to reach real arms. Pharmaceutical manufacture brought the same discipline to medicines: in 1899 Bayer began selling aspirin, the same dose every time."
+   "intro": "Long before anyone could explain it, people noticed that survivors of smallpox did not catch it twice, and that milkmaids who had caught cowpox from their cows seemed to be spared as well. In 1796 Edward Jenner inoculated a boy, James Phipps, with matter from a cowpox sore and later showed that he resisted smallpox. Each protection works against its own disease, must be made to a consistent standard and has to reach real arms: in 1803 a Spanish expedition carried the vaccine to the Americas in a chain of orphan boys, vaccinated one after another during the voyage. Pharmaceutical manufacture brought the same discipline to medicines: in 1899 Bayer began selling aspirin, the same dose every time."
   },
   "zh-Hans": {
-   "intro": "早在有人能解释之前，人们就注意到，出过天花的人不会再得第二次。人痘法——故意让人染上轻症——在中国和奥斯曼世界早有施行，18世纪20年代，玛丽·沃特利·蒙塔古夫人又在英国大力提倡。1796年，詹纳给一个叫詹姆斯·菲普斯的男孩接种牛痘，证明他能抵御天花。每一种防护只对付它自己的那种病，必须按统一的标准生产，并真正送到人们的手臂上。制药工业把同样的纪律带给了药品：1899年，拜耳开始出售阿司匹林，每一剂都一模一样。"
+   "intro": "早在有人能解释之前，人们就注意到，出过天花的人不会再得第二次；而从奶牛身上染过牛痘的挤奶女工，似乎也能躲过天花。1796年，詹纳从牛痘疮里取出脓液，给一个叫詹姆斯·菲普斯的男孩接种，后来证明他能抵御天花。每一种防护只对付它自己的那种病，必须按统一的标准生产，并真正送到人们的手臂上：1803年，一支西班牙远征队带着一批孤儿出海，在航程中一个接一个地给他们接种，就这样把疫苗活着带到了美洲。制药工业把同样的纪律带给了药品：1899年，拜耳开始出售阿司匹林，每一剂都一模一样。"
   },
   "zh-Hant": {
-   "intro": "早在有人能解釋之前，人們就注意到，出過天花的人不會再得第二次。人痘法——故意讓人染上輕症——在中國和奧斯曼世界早有施行，18世紀20年代，瑪麗·沃特利·蒙塔古夫人又在英國大力提倡。1796年，詹納給一個叫詹姆斯·菲普斯的男孩接種牛痘，證明他能抵禦天花。每一種防護只對付它自己的那種病，必須按統一的標準生產，並真正送到人們的手臂上。製藥工業把同樣的紀律帶給了藥品：1899年，拜耳開始出售阿司匹林，每一劑都一模一樣。"
+   "intro": "早在有人能解釋之前，人們就注意到，出過天花的人不會再得第二次；而從奶牛身上染過牛痘的擠奶女工，似乎也能躲過天花。1796年，詹納從牛痘瘡裡取出膿液，給一個叫詹姆斯·菲普斯的男孩接種，後來證明他能抵禦天花。每一種防護只對付它自己的那種病，必須按統一的標準生產，並真正送到人們的手臂上：1803年，一支西班牙遠征隊帶著一批孤兒出海，在航程中一個接一個地給他們接種，就這樣把疫苗活著帶到了美洲。製藥工業把同樣的紀律帶給了藥品：1899年，拜耳開始出售阿司匹林，每一劑都一模一樣。"
   }
  },
  {
@@ -1022,21 +1022,21 @@
  {
   "id": "T080",
   "en": {
-   "intro": "For most of history heat and work lived apart: fire cooked food and hardened clay, while muscle, water and wind did the lifting. The steam engine joined them. Thomas Newcomen's engine of 1712 near Dudley Castle pumped water from flooded coal workings, burning fuel so greedily that it paid only at the pithead. James Watt's separate condenser cut that appetite sharply, and engines left the coalfields for breweries, ironworks and workshops that no river could reach. Power became something you could install wherever fuel arrived. So did its tyrants: boilers that burst, firemen on long shifts, and the coal bill.",
+   "intro": "For most of history heat and work lived apart: fire cooked food and hardened clay, while muscle, water and wind did the lifting. The steam engine joined them, though its first forms devoured fuel for every stroke. James Watt's separate condenser, patented in 1769, cut that appetite sharply, and from 1781 sun-and-planet gearing turned a rocking beam into a turning shaft. Engines went to breweries, flour mills and ironworks that no river could reach. Power became something you could install wherever fuel arrived. So did its tyrants: boilers that burst, firemen on long shifts, and the coal bill.",
    "quote": {
     "text": "I sell here, Sir, what all the world desires to have — POWER.",
     "source": "Matthew Boulton to James Boswell at the Soho works, in Boswell's Life of Samuel Johnson (1791)"
    }
   },
   "zh-Hans": {
-   "intro": "在漫长的岁月里，火与功各干各的：火用来烹煮和烧陶，提举搬运则靠人力、水力和风力。蒸汽机把二者接在了一起。1712年，纽科门在达德利城堡附近装起一台机器，为积水的煤矿抽水；它烧煤极凶，只有在矿口才划算。瓦特的分离式冷凝器大大压低了煤耗，机器于是走出煤田，进了酿酒坊、铁工场和远离河流的作坊。动力从此可以安装在燃料运得到的任何地方。随之而来的还有爆裂的锅炉、轮班守炉的司炉工，以及一张张煤炭账单。",
+   "intro": "在漫长的岁月里，火与功各干各的：火用来烹煮和烧陶，提举搬运则靠人力、水力和风力。蒸汽机把二者接在了一起，只是最初的样式每动一下都要吞下大把燃料。瓦特1769年取得专利的分离式冷凝器大大压低了煤耗；1781年起，“太阳与行星”齿轮又把摇杆的往复摆动变成了轴的旋转。机器于是进了酿酒坊、面粉厂和远离河流的铁工场。动力从此可以安装在燃料运得到的任何地方。随之而来的还有爆裂的锅炉、轮班守炉的司炉工，以及一张张煤炭账单。",
    "quote": {
     "text": "先生，我这里出售的，是全世界都想要的东西——动力。",
     "source": "马修·博尔顿在索霍工厂对詹姆斯·鲍斯韦尔所言，见鲍斯韦尔《约翰逊传》（1791）"
    }
   },
   "zh-Hant": {
-   "intro": "在漫長的歲月裡，火與功各幹各的：火用來烹煮和燒陶，提舉搬運則靠人力、水力和風力。蒸汽機把二者接在了一起。1712年，紐科門在達德利城堡附近裝起一臺機器，為積水的煤礦抽水；它燒煤極兇，只有在礦口才划算。瓦特的分離式冷凝器大大壓低了煤耗，機器於是走出煤田，進了釀酒坊、鐵工場和遠離河流的作坊。動力從此可以安裝在燃料運得到的任何地方。隨之而來的還有爆裂的鍋爐、輪班守爐的司爐工，以及一張張煤炭賬單。",
+   "intro": "在漫長的歲月裡，火與功各幹各的：火用來烹煮和燒陶，提舉搬運則靠人力、水力和風力。蒸汽機把二者接在了一起，只是最初的樣式每動一下都要吞下大把燃料。瓦特1769年取得專利的分離式冷凝器大大壓低了煤耗；1781年起，「太陽與行星」齒輪又把搖桿的往復擺動變成了軸的旋轉。機器於是進了釀酒坊、麵粉廠和遠離河流的鐵工場。動力從此可以安裝在燃料運得到的任何地方。隨之而來的還有爆裂的鍋爐、輪班守爐的司爐工，以及一張張煤炭賬單。",
    "quote": {
     "text": "先生，我這裡出售的，是全世界都想要的東西——動力。",
     "source": "馬修·博爾頓在索霍工廠對詹姆斯·鮑斯韋爾所言，見鮑斯韋爾《約翰遜傳》（1791）"
@@ -1202,25 +1202,25 @@
  {
   "id": "T095",
   "en": {
-   "intro": "For most of history a field's nitrogen came from manure, fallow years and beans, and in the nineteenth century from cargoes of seabird guano dug on islands off Peru. Then chemists learned to take it from the air. In 1913 the BASF works at Oppau began making ammonia from atmospheric nitrogen and hydrogen under high pressure, a process worked out by Fritz Haber and scaled up by Carl Bosch. Manufactured fertilizer let the same land feed far more people. It also tied harvests to factories, fuel and supply chains, and sent surplus nutrients into rivers that had never asked for them."
+   "intro": "For most of history a field's nitrogen came from manure, fallow years and beans, and there was never quite enough of it. Then chemists learned to take it from the air. In 1913 the BASF works at Oppau began making ammonia from atmospheric nitrogen and hydrogen under high pressure, a process worked out by Fritz Haber and scaled up by Carl Bosch. Manufactured fertilizer let the same land feed far more people. It also tied harvests to factories, fuel and supply chains, and sent surplus nutrients into rivers that had never asked for them."
   },
   "zh-Hans": {
-   "intro": "在大部分历史里，田地的氮来自粪肥、休耕和豆类，到了19世纪，还有从秘鲁外海岛屿上挖来的海鸟粪。后来，化学家学会了从空气里取氮。1913年，巴斯夫公司在奥保的工厂开始用空气中的氮和氢在高压下合成氨，这套工艺由哈伯摸索出来，再由博施放大到工业规模。化肥让同样的土地养活了多得多的人，也把收成拴在了工厂、燃料和供应链上，多余的养分则流进了本不需要它们的河流。"
+   "intro": "在大部分历史里，田地的氮来自粪肥、休耕和豆类，而且总是不够用。后来，化学家学会了从空气里取氮。1913年，巴斯夫公司在奥保的工厂开始用空气中的氮和氢在高压下合成氨，这套工艺由哈伯摸索出来，再由博施放大到工业规模。化肥让同样的土地养活了多得多的人，也把收成拴在了工厂、燃料和供应链上，多余的养分则流进了本不需要它们的河流。"
   },
   "zh-Hant": {
-   "intro": "在大部分歷史裡，田地的氮來自糞肥、休耕和豆類，到了19世紀，還有從秘魯外海島嶼上挖來的海鳥糞。後來，化學家學會了從空氣裡取氮。1913年，巴斯夫公司在奧保的工廠開始用空氣中的氮和氫在高壓下合成氨，這套工藝由哈伯摸索出來，再由博施放大到工業規模。化肥讓同樣的土地養活了多得多的人，也把收成拴在了工廠、燃料和供應鏈上，多餘的養分則流進了本不需要它們的河流。"
+   "intro": "在大部分歷史裡，田地的氮來自糞肥、休耕和豆類，而且總是不夠用。後來，化學家學會了從空氣裡取氮。1913年，巴斯夫公司在奧保的工廠開始用空氣中的氮和氫在高壓下合成氨，這套工藝由哈伯摸索出來，再由博施放大到工業規模。化肥讓同樣的土地養活了多得多的人，也把收成拴在了工廠、燃料和供應鏈上，多餘的養分則流進了本不需要它們的河流。"
   }
  },
  {
   "id": "T096",
   "en": {
-   "intro": "Coal and gas can be taken apart and reassembled as liquid fuel; so, in principle, can carbon dioxide and hydrogen. Franz Fischer and Hans Tropsch worked out a route in the 1920s, and South Africa, short of oil and long on coal, built a synthetic fuel industry at Sasolburg from the 1950s. The chemistry is honest about one thing: you get out less energy than you put in. Synthetic fuels make sense where liquid fuel is precious, other energy is plentiful, and someone will pay for catalysts, hydrogen and the electricity behind them. Their emissions depend entirely on where the carbon and the power come from."
+   "intro": "Coal and gas can be taken apart and reassembled as liquid fuel; so, in principle, can carbon dioxide and hydrogen. Germany, with coal but little oil, leaned heavily on such plants during the Second World War, and South Africa, likewise short of oil and long on coal, built a synthetic fuel industry at Sasolburg from the 1950s. The chemistry is honest about one thing: you get out less energy than you put in. Synthetic fuels make sense where liquid fuel is precious, other energy is plentiful, and someone will pay for catalysts, hydrogen and the electricity behind them. Their emissions depend entirely on where the carbon and the power come from."
   },
   "zh-Hans": {
-   "intro": "煤和天然气可以拆开，再重新组装成液体燃料；原则上，二氧化碳和氢也行。20世纪20年代，费歇尔和托罗普施找到了一条路线；石油短缺而煤炭充足的南非，从50年代起在萨索尔堡建起了合成燃料工业。这门化学在一件事上很诚实：得到的能量总比投进去的少。合成燃料只在液体燃料金贵、其他能源充裕，并且有人肯为催化剂、氢气和背后的电力买单时才划算。排放多少，全看碳和电从哪里来。"
+   "intro": "煤和天然气可以拆开，再重新组装成液体燃料；原则上，二氧化碳和氢也行。有煤少油的德国在第二次世界大战中大量依靠这类工厂；同样石油短缺而煤炭充足的南非，从50年代起在萨索尔堡建起了合成燃料工业。这门化学在一件事上很诚实：得到的能量总比投进去的少。合成燃料只在液体燃料金贵、其他能源充裕，并且有人肯为催化剂、氢气和背后的电力买单时才划算。排放多少，全看碳和电从哪里来。"
   },
   "zh-Hant": {
-   "intro": "煤和天然氣可以拆開，再重新組裝成液體燃料；原則上，二氧化碳和氫也行。20世紀20年代，費歇爾和託羅普施找到了一條路線；石油短缺而煤炭充足的南非，從50年代起在薩索爾堡建起了合成燃料工業。這門化學在一件事上很誠實：得到的能量總比投進去的少。合成燃料只在液體燃料金貴、其他能源充裕，並且有人肯為催化劑、氫氣和背後的電力買單時才划算。排放多少，全看碳和電從哪裡來。"
+   "intro": "煤和天然氣可以拆開，再重新組裝成液體燃料；原則上，二氧化碳和氫也行。有煤少油的德國在第二次世界大戰中大量依靠這類工廠；同樣石油短缺而煤炭充足的南非，從50年代起在薩索爾堡建起了合成燃料工業。這門化學在一件事上很誠實：得到的能量總比投進去的少。合成燃料只在液體燃料金貴、其他能源充裕，並且有人肯為催化劑、氫氣和背後的電力買單時才划算。排放多少，全看碳和電從哪裡來。"
   }
  },
  {
@@ -1250,13 +1250,13 @@
  {
   "id": "T101",
   "en": {
-   "intro": "Early factories hung every machine from one long rotating shaft, driven by one big engine through a forest of belts. Electric motors cut the belts. A small motor could sit on each machine, so workshops were laid out by the flow of work rather than the line of a shaft, and one broken belt no longer stopped the whole floor. Frank Sprague's electric streetcars, climbing the hills of Richmond, Virginia, in 1888, showed that the same power could move people. The full benefit came slowly, because buildings, habits and skills all had to be redesigned around the new drive."
+   "intro": "Early factories hung every machine from one long rotating shaft, driven by one big engine through a forest of belts. Electric motors cut the belts. A small motor could sit on each machine, so workshops were laid out by the flow of work rather than the line of a shaft, and one broken belt no longer stopped the whole floor. Thomas Davenport, a Vermont blacksmith, patented an electric motor in 1837, but the chemical cells that fed it made his power far dearer than steam, and the idea had to wait for cheap current. The full benefit came slowly, because buildings, habits and skills all had to be redesigned around the new drive."
   },
   "zh-Hans": {
-   "intro": "早期的工厂把所有机器挂在一根长长的转轴上，由一台大机器通过密密麻麻的皮带带动。电动机剪断了这些皮带。小电机可以装在每台机器上，车间于是按工序流程来布置，而不必顺着一根轴排开；一条皮带断了，也不再让整个车间停工。1888年，斯普拉格的有轨电车在弗吉尼亚州里士满的山坡上往来，证明同样的动力也能载人。全部好处来得很慢，因为厂房、习惯和技能都得围着新的传动方式重新设计。"
+   "intro": "早期的工厂把所有机器挂在一根长长的转轴上，由一台大机器通过密密麻麻的皮带带动。电动机剪断了这些皮带。小电机可以装在每台机器上，车间于是按工序流程来布置，而不必顺着一根轴排开；一条皮带断了，也不再让整个车间停工。1837年，佛蒙特州的铁匠托马斯·达文波特为一台电动机取得了专利，可是给它供电的化学电堆比蒸汽贵得多，这个主意只好等着廉价的电流到来。全部好处来得很慢，因为厂房、习惯和技能都得围着新的传动方式重新设计。"
   },
   "zh-Hant": {
-   "intro": "早期的工廠把所有機器掛在一根長長的轉軸上，由一臺大機器通過密密麻麻的皮帶帶動。電動機剪斷了這些皮帶。小電機可以裝在每臺機器上，車間於是按工序流程來佈置，而不必順著一根軸排開；一條皮帶斷了，也不再讓整個車間停工。1888年，斯普拉格的有軌電車在弗吉尼亞州里士滿的山坡上往來，證明同樣的動力也能載人。全部好處來得很慢，因為廠房、習慣和技能都得圍著新的傳動方式重新設計。"
+   "intro": "早期的工廠把所有機器掛在一根長長的轉軸上，由一臺大機器通過密密麻麻的皮帶帶動。電動機剪斷了這些皮帶。小電機可以裝在每臺機器上，車間於是按工序流程來佈置，而不必順著一根軸排開；一條皮帶斷了，也不再讓整個車間停工。1837年，佛蒙特州的鐵匠托馬斯·達文波特為一臺電動機取得了專利，可是給它供電的化學電堆比蒸汽貴得多，這個主意只好等著廉價的電流到來。全部好處來得很慢，因為廠房、習慣和技能都得圍著新的傳動方式重新設計。"
   }
  },
  {
@@ -1286,25 +1286,13 @@
  {
   "id": "T104",
   "en": {
-   "intro": "Signals that need no wire changed the meaning of distance. Heinrich Hertz produced and detected electromagnetic waves in his laboratory in the late 1880s; on 12 December 1901 Guglielmo Marconi, listening on Signal Hill in Newfoundland, believed he heard the three faint clicks of the letter S sent from Cornwall. Vacuum tubes soon made weak signals strong enough to hear, and then to broadcast. News, orders and music could reach anyone with a receiver. What arrived was still only what someone chose to send, late, garbled or wrong; speed is not the same as truth.",
-   "quote": {
-    "text": "What hath God wrought",
-    "source": "First message on Samuel Morse's Washington–Baltimore telegraph line (24 May 1844), from Numbers 23:23"
-   }
+   "intro": "Signals that need no wire changed the meaning of distance. Heinrich Hertz produced and detected electromagnetic waves in his laboratory in the late 1880s; on 12 December 1901 Guglielmo Marconi, listening on Signal Hill in Newfoundland, believed he heard the three faint clicks of the letter S sent from Cornwall. Vacuum tubes soon made weak signals strong enough to hear, and then strong enough to carry a human voice across an ocean. Orders and news could reach anyone with a receiver, at sea or on land. What arrived was still only what someone chose to send, late, garbled or wrong; speed is not the same as truth."
   },
   "zh-Hans": {
-   "intro": "无需导线的信号，改变了距离的含义。19世纪80年代末，赫兹在实验室里产生并探测到了电磁波；1901年12月12日，马可尼在纽芬兰的信号山上侧耳倾听，相信自己听到了从康沃尔发来的字母S——三下微弱的嘀声。不久，真空管把微弱的信号放大到能听清，继而能向四方广播。新闻、命令和音乐可以抵达任何一台接收机。但抵达的仍只是有人选择发送的内容，可能迟了、乱了，也可能错了；快，并不等于真。",
-   "quote": {
-    "text": "神为他行了何等的大事！",
-    "source": "1844年5月24日莫尔斯华盛顿—巴尔的摩电报线路的第一条电文，语出《民数记》23:23（和合本）"
-   }
+   "intro": "无需导线的信号，改变了距离的含义。19世纪80年代末，赫兹在实验室里产生并探测到了电磁波；1901年12月12日，马可尼在纽芬兰的信号山上侧耳倾听，相信自己听到了从康沃尔发来的字母S——三下微弱的嘀声。不久，真空管把微弱的信号放大到能听清，继而能把人的声音送过大洋。命令和消息可以抵达任何一台接收机，无论在海上还是陆上。但抵达的仍只是有人选择发送的内容，可能迟了、乱了，也可能错了；快，并不等于真。"
   },
   "zh-Hant": {
-   "intro": "無需導線的訊號，改變了距離的含義。19世紀80年代末，赫茲在實驗室裡產生並探測到了電磁波；1901年12月12日，馬可尼在紐芬蘭的訊號山上側耳傾聽，相信自己聽到了從康沃爾發來的字母S——三下微弱的嘀聲。不久，真空管把微弱的訊號放大到能聽清，繼而能向四方廣播。新聞、命令和音樂可以抵達任何一臺接收機。但抵達的仍只是有人選擇傳送的內容，可能遲了、亂了，也可能錯了；快，並不等於真。",
-   "quote": {
-    "text": "神為他行了何等的大事！",
-    "source": "1844年5月24日莫爾斯華盛頓—巴爾的摩電報線路的第一條電文，語出《民數記》23:23（和合本）"
-   }
+   "intro": "無需導線的訊號，改變了距離的含義。19世紀80年代末，赫茲在實驗室裡產生並探測到了電磁波；1901年12月12日，馬可尼在紐芬蘭的訊號山上側耳傾聽，相信自己聽到了從康沃爾發來的字母S——三下微弱的嘀聲。不久，真空管把微弱的訊號放大到能聽清，繼而能把人的聲音送過大洋。命令和訊息可以抵達任何一臺接收機，無論在海上還是陸上。但抵達的仍只是有人選擇傳送的內容，可能遲了、亂了，也可能錯了；快，並不等於真。"
   }
  },
  {
@@ -1649,10 +1637,10 @@
    "intro": "On China's Loess Plateau, where centuries of grazing and cultivation had cut hillsides into gullies, a programme begun in the 1990s terraced slopes, fenced out goats and replanted vegetation, and the silt washing into the Yellow River fell sharply. Environmental restoration treats damage as a process to be reversed: model where pollutants and soil are going, rebuild the cycles of water and nutrients, and pair it with farming that does not undo the work. It is slow; a rebuilt wetland takes decades to behave like one, and whatever is removed must go somewhere. Above all, the people living there must gain from it, or it will not last."
   },
   "zh-Hans": {
-   "intro": "中国黄土高原上，几百年的开垦和牲畜啃食把山坡切割得沟壑纵横。从20世纪90年代开始的一项治理工程修筑梯田、圈养山羊、重新种植植被，流入黄河的泥沙随之大幅减少。环境修复把破坏看作一个可以逆转的过程：用模型弄清污染物和土壤往哪里去，重建水与养分的循环，再配上不会把成果毁掉的耕作方式。它很慢：重建的湿地要几十年才真正像个湿地，清走的东西也总得有个去处。最要紧的是，住在这片土地上的人必须从中得益，否则成果留不住。"
+   "intro": "中国黄土高原上，几百年的开垦和牲畜啃食把山坡切割得沟壑纵横。从20世纪90年代开始的一项治理工程把坡地修成层层平台、圈养山羊、重新种植植被，流入黄河的泥沙随之大幅减少。环境修复把破坏看作一个可以逆转的过程：用模型弄清污染物和土壤往哪里去，重建水与养分的循环，再配上不会把成果毁掉的耕作方式。它很慢：重建的湿地要几十年才真正像个湿地，清走的东西也总得有个去处。最要紧的是，住在这片土地上的人必须从中得益，否则成果留不住。"
   },
   "zh-Hant": {
-   "intro": "中國黃土高原上，幾百年的開墾和牲畜啃食把山坡切割得溝壑縱橫。從20世紀90年代開始的一項治理工程修築梯田、圈養山羊、重新種植植被，流入黃河的泥沙隨之大幅減少。環境修復把破壞看作一個可以逆轉的過程：用模型弄清汙染物和土壤往哪裡去，重建水與養分的循環，再配上不會把成果毀掉的耕作方式。它很慢：重建的溼地要幾十年才真正像個溼地，清走的東西也總得有個去處。最要緊的是，住在這片土地上的人必須從中得益，否則成果留不住。"
+   "intro": "中國黃土高原上，幾百年的開墾和牲畜啃食把山坡切割得溝壑縱橫。從20世紀90年代開始的一項治理工程把坡地修成層層平臺、圈養山羊、重新種植植被，流入黃河的泥沙隨之大幅減少。環境修復把破壞看作一個可以逆轉的過程：用模型弄清汙染物和土壤往哪裡去，重建水與養分的循環，再配上不會把成果毀掉的耕作方式。它很慢：重建的溼地要幾十年才真正像個溼地，清走的東西也總得有個去處。最要緊的是，住在這片土地上的人必須從中得益，否則成果留不住。"
   }
  },
  {
@@ -1706,19 +1694,19 @@
  {
   "id": "T140",
   "en": {
-   "intro": "A rocket is a controlled explosion that has been persuaded to point one way. The difficulty was never the fire but the control: pumps that feed propellant faster than a fire hose, chambers that must survive heat that would melt their own walls, valves that open on time every time. On 16 March 1926, in a snowy field in Auburn, Massachusetts, Robert Goddard's liquid-fuelled rocket flew for about two and a half seconds and came down in a cabbage patch. Progress afterwards came less from inspiration than from test stands, logbooks and the long, unglamorous study of why things blew up."
+   "intro": "A rocket is a controlled explosion that has been persuaded to point one way. The difficulty was never the fire but the control: pumps that feed propellant faster than a fire hose, chambers that must survive heat that would melt their own walls, valves that open on time every time. On 20 June 1944 a German V-2 test missile climbed past a hundred kilometres, the first human-made object to reach space. More people died building the V-2, prisoners worked to death in tunnels under the Harz, than were killed by it in the war. Progress afterwards came less from inspiration than from test stands, logbooks and the long study of why things blew up."
   },
   "zh-Hans": {
-   "intro": "火箭说穿了，是一场被驯服、只朝一个方向喷发的燃烧。难处从来不在点火，而在控制：泵要以惊人的流量输送推进剂，燃烧室要扛住足以熔化自身器壁的高温，阀门每一次都得准时开合。1926年3月16日，在马萨诸塞州奥本一片积雪的田野上，戈达德的液体燃料火箭飞了约两秒半，落进一块卷心菜地。此后的进步，与其说来自灵感，不如说来自试车台、记录本，以及对“它为什么会炸”这个问题年复一年的枯燥追问。"
+   "intro": "火箭说穿了，是一场被驯服、只朝一个方向喷发的燃烧。难处从来不在点火，而在控制：泵要以惊人的流量输送推进剂，燃烧室要扛住足以熔化自身器壁的高温，阀门每一次都得准时开合。1944年6月20日，一枚德国V-2试验弹爬升到一百公里以上，成为第一个抵达太空的人造物体。为制造V-2而死的人——在哈茨山地下隧道里被活活累死、折磨死的囚徒——比它在战争中炸死的人还多。此后的进步，与其说来自灵感，不如说来自试车台、记录本，以及对“它为什么会炸”这个问题年复一年的枯燥追问。"
   },
   "zh-Hant": {
-   "intro": "火箭說穿了，是一場被馴服、只朝一個方向噴發的燃燒。難處從來不在點火，而在控制：泵要以驚人的流量輸送推進劑，燃燒室要扛住足以熔化自身器壁的高溫，閥門每一次都得準時開合。1926年3月16日，在馬薩諸塞州奧本一片積雪的田野上，戈達德的液體燃料火箭飛了約兩秒半，落進一塊捲心菜地。此後的進步，與其說來自靈感，不如說來自試車臺、記錄本，以及對「它為什麼會炸」這個問題年復一年的枯燥追問。"
+   "intro": "火箭說穿了，是一場被馴服、只朝一個方向噴發的燃燒。難處從來不在點火，而在控制：泵要以驚人的流量輸送推進劑，燃燒室要扛住足以熔化自身器壁的高溫，閥門每一次都得準時開合。1944年6月20日，一枚德國V-2試驗彈爬升到一百公里以上，成為第一個抵達太空的人造物體。為製造V-2而死的人——在哈茨山地下隧道里被活活累死、折磨死的囚徒——比它在戰爭中炸死的人還多。此後的進步，與其說來自靈感，不如說來自試車臺、記錄本，以及對「它為什麼會炸」這個問題年復一年的枯燥追問。"
   }
  },
  {
   "id": "T141",
   "en": {
-   "intro": "An orbit is a fall that never finishes, and predicting one is an old art made newly urgent. In 1846 Urbain Le Verrier, reasoning from small irregularities in the motion of Uranus, told Johann Galle at Berlin where to point his telescope; Galle found Neptune that same night, close to the predicted spot. Modern navigation adds tracking stations, radio ranging and computers that integrate the equations faster than any clerk. The lesson stays the same, and so does the humility it demands: a trajectory worked out at a desk puts nothing in the sky. It only tells you, very exactly, where you would be if everything else went right."
+   "intro": "An orbit is a fall that never finishes, and predicting one is an old art made newly urgent. In 1846 Urbain Le Verrier, reasoning from small irregularities in the motion of Uranus, told Johann Galle at the Berlin Observatory where to look; Galle found Neptune that same night, close to the predicted spot. Modern navigation adds tracking stations, radio ranging and computers that integrate the equations faster than any clerk. The lesson stays the same, and so does the humility it demands: a trajectory worked out at a desk puts nothing in the sky. It only tells you, very exactly, where you would be if everything else went right."
   },
   "zh-Hans": {
    "intro": "所谓轨道，是一场永远落不到底的坠落；预测它，是一门古老而又重新变得紧迫的学问。1846年，勒威耶根据天王星运行中细微的偏差，推算出一颗未知行星的位置，写信告诉柏林的伽勒该往哪里看；伽勒当晚就在预言位置附近找到了海王星。如今的导航又添了跟踪站、无线电测距，以及比任何算手都快的计算机。道理却没变，也照样要人谦卑：算出来的轨迹不会把任何东西送上天，它只是极其精确地告诉你，倘若其余一切都顺利，你会在哪里。"
@@ -1814,13 +1802,13 @@
  {
   "id": "T149",
   "en": {
-   "intro": "On 5 December 2022 the National Ignition Facility in California fired its lasers at a peppercorn-sized capsule and got more fusion energy out than the laser light put in, though far less than the electricity the lasers had drawn from the grid. The gap between that shot and a power plant is the whole subject. A maintainable reactor must run for years, breed or buy its fuel, shed enormous heat and let crews replace walls battered by neutrons, all while an honest audit counts every watt it swallows. Each confinement route has to prove this separately. A record shot proves only itself."
+   "intro": "Records in fusion are real and keep falling: hotter plasmas, longer pulses, more energy out of the fuel than was delivered to it. None of them is a power station, and the distance between a record and a plant is the whole subject. A maintainable reactor must run for years, shed enormous heat and let crews replace walls battered by neutrons. It must also make its own fuel: tritium barely exists in nature, so the reactor has to breed it from lithium in a blanket around the plasma, which no machine has yet done at scale. Each confinement route has to prove all this separately. A record proves only itself."
   },
   "zh-Hans": {
-   "intro": "2022年12月5日，美国加州的国家点火装置用激光轰击一粒胡椒籽大小的靶丸，得到的聚变能量第一次超过了射入的激光能量——尽管远远少于那些激光从电网里吸走的电。从那一发打靶到一座发电厂之间的距离，就是这门学问的全部。可维护的反应堆要连续运行多年，要自己增殖或外购燃料，要排走巨量的热，还要让维修人员更换被中子轰得千疮百孔的内壁，同时接受一本诚实的账：它吞下的每一瓦都要记上。每条约束路线都得各自证明这一切。一次破纪录的打靶，只证明它自己。"
+   "intro": "聚变的纪录是真的，而且不断被刷新：更热的等离子体，更长的脉冲，从燃料里得到的能量超过送进去的能量。但没有一项纪录是一座发电厂，从纪录到电厂之间的距离，就是这门学问的全部。可维护的反应堆要连续运行多年，要排走巨量的热，还要让维修人员更换被中子轰得千疮百孔的内壁。它还得自己造燃料：氚在自然界几乎不存在，反应堆必须用包裹等离子体的包层里的锂来增殖氚，而至今还没有哪台装置成规模地做到过。每条约束路线都得各自证明这一切。纪录，只证明它自己。"
   },
   "zh-Hant": {
-   "intro": "2022年12月5日，美國加州的國家點火裝置用雷射轟擊一粒胡椒籽大小的靶丸，得到的核融合能量第一次超過了射入的雷射能量——儘管遠遠少於那些雷射從電網裡吸走的電。從那一發打靶到一座發電廠之間的距離，就是這門學問的全部。可維護的反應堆要連續運行多年，要自己增殖或外購燃料，要排走巨量的熱，還要讓維修人員更換被中子轟得千瘡百孔的內壁，同時接受一本誠實的賬：它吞下的每一瓦都要記上。每條約束路線都得各自證明這一切。一次破紀錄的打靶，只證明它自己。"
+   "intro": "核融合的紀錄是真的，而且不斷被重新整理：更熱的電漿，更長的脈衝，從燃料裡得到的能量超過送進去的能量。但沒有一項紀錄是一座發電廠，從紀錄到電廠之間的距離，就是這門學問的全部。可維護的反應堆要連續運行多年，要排走巨量的熱，還要讓維修人員更換被中子轟得千瘡百孔的內壁。它還得自己造燃料：氚在自然界幾乎不存在，反應堆必須用包裹電漿的包層裡的鋰來增殖氚，而至今還沒有哪臺裝置成規模地做到過。每條約束路線都得各自證明這一切。紀錄，只證明它自己。"
   }
  },
  {
@@ -1838,13 +1826,13 @@
  {
   "id": "T151",
   "en": {
-   "intro": "Two telescopes far apart, their signals combined with exquisite timing, can resolve detail as fine as a single telescope as wide as the gap between them. In April 2019 the Event Horizon Telescope, a network of radio dishes spanning the Earth, released an image of the shadow around the black hole at the heart of the galaxy M87. Its data were too large to send over any network, so hard drives were shipped to the correlators instead. Moving such instruments into orbit stretches the baseline further, but the hard part stays the same: knowing every distance to a fraction of a wavelength, every moment, with lasers and clocks."
+   "intro": "Two instruments far apart, their signals combined with exquisite timing, can resolve detail as fine as a single mirror as wide as the gap between them. In April 2019 the Event Horizon Telescope, a network of radio dishes spanning the Earth, released an image of the shadow around the black hole at the heart of the galaxy M87. Its data were too large to send over any network, so hard drives were shipped to the correlators instead. Moving such instruments into orbit stretches the baseline further, but the hard part stays the same: knowing every distance to a fraction of a wavelength, every moment, with lasers and clocks."
   },
   "zh-Hans": {
-   "intro": "两台相隔遥远的望远镜，若能把信号以极其精准的时间配合起来合成，看到的细节就相当于一台口径等于两者间距的望远镜。2019年4月，遍布全球的射电天线组成的“事件视界望远镜”，发布了M87星系中心黑洞阴影的影像。数据量大到无法经由任何网络传送，只好把硬盘一箱箱运到处理中心。把这类干涉仪器搬上轨道，基线可以拉得更长，难处却依旧：每时每刻都要借助激光和时钟，把每一段距离量准到波长的几分之一。"
+   "intro": "两台相隔遥远的观测仪器，若能把信号以极其精准的时间配合起来合成，看到的细节就相当于一面口径等于两者间距的巨镜。2019年4月，遍布全球的射电天线组成的“事件视界望远镜”，发布了M87星系中心黑洞阴影的影像。数据量大到无法经由任何网络传送，只好把硬盘一箱箱运到处理中心。把这类干涉仪器搬上轨道，基线可以拉得更长，难处却依旧：每时每刻都要借助激光和时钟，把每一段距离量准到波长的几分之一。"
   },
   "zh-Hant": {
-   "intro": "兩臺相隔遙遠的望遠鏡，若能把訊號以極其精準的時間配合起來合成，看到的細節就相當於一臺口徑等於兩者間距的望遠鏡。2019年4月，遍佈全球的射電天線組成的「事件視界望遠鏡」，釋出了M87星系中心黑洞陰影的影像。資料量大到無法經由任何網路傳送，只好把硬碟一箱箱運到處理中心。把這類干涉儀器搬上軌道，基線可以拉得更長，難處卻依舊：每時每刻都要藉助雷射和時鐘，把每一段距離量準到波長的幾分之一。"
+   "intro": "兩臺相隔遙遠的觀測儀器，若能把訊號以極其精準的時間配合起來合成，看到的細節就相當於一面口徑等於兩者間距的巨鏡。2019年4月，遍佈全球的射電天線組成的「事件視界望遠鏡」，釋出了M87星系中心黑洞陰影的影像。資料量大到無法經由任何網路傳送，只好把硬碟一箱箱運到處理中心。把這類干涉儀器搬上軌道，基線可以拉得更長，難處卻依舊：每時每刻都要藉助雷射和時鐘，把每一段距離量準到波長的幾分之一。"
   }
  },
  {
