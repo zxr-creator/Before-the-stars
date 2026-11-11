@@ -302,8 +302,8 @@ textarea.text { width: 100%; resize: vertical; line-height: 1.4; }
 .overlay-card h2 { font-size: 24px; margin: 4px 0 10px; }
 .result-reason { font: italic 15px/1.5 var(--serif); color: var(--ink-2); margin-bottom: 12px; }
 .menu-scrim { place-items: start; }
-.menu { margin: 0; height: 100%; width: 380px; background: var(--paper-3); border-right: 1px solid var(--ink-2); display: flex; flex-direction: column; box-shadow: 10px 0 40px rgba(30, 20, 5, 0.35); }
-.menu-body { padding: 12px 14px; overflow-y: auto; }
+.menu { margin: 0; height: 100%; max-height: 100vh; width: 380px; background: var(--paper-3); border-right: 1px solid var(--ink-2); display: flex; flex-direction: column; box-shadow: 10px 0 40px rgba(30, 20, 5, 0.35); }
+.menu-body { padding: 12px 14px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 .save-list li { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line-2); gap: 8px; }
 .save-name { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 

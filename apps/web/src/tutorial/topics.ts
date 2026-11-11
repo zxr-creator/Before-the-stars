@@ -432,6 +432,7 @@ export const TOPICS: Topic[] = [
         [['Esc'], 'Close the top-most sheet, cancel a map pick, clear the selection'],
         [['F'], 'Fit the known world on the map'],
         [['+', '−'], 'Zoom the map'],
+        [['M'], 'Mute or unmute music and sound'],
       ] },
       note('Keys do nothing while you are typing in a field.'),
     ],
