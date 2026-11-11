@@ -71,7 +71,8 @@ fn a_congested_capital_is_given_transport() {
     let (mut obs, ai) = mid_game();
     rich_and_idle(&mut obs);
     let id = obs.civ.capital;
-    let transport = ["roads", "port", "rail", "depot"];
+    let transport = ["roads", "engineered_roads", "highways", "port", "steam_port", "container_port", "rail", "electric_rail", "high_speed_rail", "canal", "ship_canal"];
+    let original = capital(&mut obs).facilities.clone();
     {
         let own = capital(&mut obs);
         own.facilities.retain(|f| !transport.contains(&f.kind.as_str()));
@@ -83,13 +84,15 @@ fn a_congested_capital_is_given_transport() {
             .decide(obs)
             .into_iter()
             .filter_map(|a| match a {
-                Action::StartProject { spec: ProjectSpec::Build { region, facility, .. }, .. } if region == id && transport.contains(&facility.as_str()) => Some(facility),
+                // freight relief (the backbone, at priority 5, is ordered whatever the load)
+                Action::StartProject { spec: ProjectSpec::Build { region, facility, .. }, priority } if region == id && transport.contains(&facility.as_str()) && priority.unwrap_or(5) < 5 => Some(facility),
                 _ => None,
             })
             .collect()
     };
     assert!(!orders(&obs).is_empty(), "a capital that loses output to congested freight orders transport");
-    // with room to spare it orders none there
+    // with room to spare, and the backbone and a harbour standing, it orders none there
+    capital(&mut obs).facilities = original;
     capital(&mut obs).infrastructure = InfraView { freight_capacity: 10, freight_load: 3, infra_bp: 10_000, support_saving_cap_bp: 2_000, ..Default::default() };
     assert!(orders(&obs).is_empty(), "{:?}", orders(&obs));
     // nor does an observation without the freight figures (an older referee) move it

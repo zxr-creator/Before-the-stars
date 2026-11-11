@@ -511,6 +511,44 @@ impl<'a> Plan<'a> {
         }
         pushed
     }
+    /// Convert levels of a works in place into its successor (design chapter 37,
+    /// section 8.3): 60% of the successor's bill, its crew and site power.
+    fn try_upgrade(&mut self, region: &RegionView, from: &str, to: &str, levels: u16, priority: u8) -> bool {
+        if self.full() || levels == 0 || self.pending(region.id, to) || self.planned.contains(&(region.id, format!("up:{from}"))) {
+            return false;
+        }
+        let Some(ft) = self.fac_type(to) else { return false };
+        if !ft.available || self.obs.projects.iter().any(|p| p.kind == "upgrade" && p.region == Some(region.id) && p.target.as_deref() == Some(to)) {
+            return false;
+        }
+        let have = self.level(region, from);
+        let room = self.site_cap(ft, region).saturating_sub(self.level(region, to));
+        let levels = levels.min(have).min(room);
+        if levels == 0 {
+            return false;
+        }
+        let cost: Vec<GoodQty> = ft.cost.iter().map(|c| GoodQty { good: c.good, amount: (c.amount * 6 + 9) / 10 }).collect();
+        // converting levels stand idle until the order completes: only with every
+        // good of the bill in hand
+        if !self.affordable(&cost, levels as i64) || cost.iter().any(|c| *self.avail.get(&c.good).unwrap_or(&0) < c.amount * levels as i64) {
+            return false;
+        }
+        if let Some(q) = self.quote(region, to) {
+            let crew: Vec<(Vec<Qual>, i64)> = q.crew_per_level.iter().map(|c| (c.quals.clone(), c.count as i64 * levels as i64)).collect();
+            if !self.reserve_crew(region.id, &crew, true) {
+                return false;
+            }
+            if !self.reserve_site_power(region, q.site_power_per_level * levels as i64, q.min_months as i64) {
+                return false;
+            }
+        }
+        for c in &cost {
+            *self.avail.entry(c.good).or_insert(0) -= c.amount * levels as i64;
+        }
+        self.planned.insert((region.id, format!("up:{from}")));
+        self.planned.insert((region.id, to.to_string()));
+        self.push(Action::StartProject { spec: ProjectSpec::Upgrade { region: region.id, from: from.to_string(), to: to.to_string(), levels }, priority: Some(priority) })
+    }
     /// A standing build target for the years of this round.
     fn target(&mut self, region: RegionId, kind: &str, levels: u16, priority: u8) {
         if levels == 0 {
@@ -1151,7 +1189,7 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
 
     // stale projects that never got their inputs free up what they reserved
     for pr in &obs.projects {
-        if full && pr.kind == "build" && obs.month > pr.started_month + 180 && pr.work_done * 10 < pr.work_needed {
+        if full && (pr.kind == "build" || pr.kind == "upgrade") && obs.month > pr.started_month + 180 && pr.work_done * 10 < pr.work_needed {
             p.push(Action::ManageProject { project: pr.id, op: ManageOp::Cancel, priority: None, position: None });
         }
     }
@@ -1169,9 +1207,14 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
         culture(ai, &mut p, capital);
     }
     if on("economy") {
+        cities(&mut p, &regions, capital);
         production(&mut p, &regions, capital);
         power(&mut p, &regions);
         new_capabilities(&mut p, &regions, capital);
+        modernize(&mut p, &regions);
+        if full {
+            border_policy(&mut p, &regions);
+        }
     }
     if on("education") {
         education(&mut p, &regions, working);
@@ -1708,7 +1751,7 @@ fn tradition_choice(obs: &Observation, slot: &str, seed: u64) -> Option<&'static
         let copper = known_deposit(obs, Deposit::CopperOre) / 1_000_000;
         let hydro_sites = own.iter().filter(|r| r.survey.as_ref().map(|s| s.hydro > 0).unwrap_or(false)).count() as i64;
         let steam_posts = posts_in(obs, &["steam", "steelworks", "rail"]) / 1_000;
-        let engine_posts = posts_in(obs, &["refinery", "diesel", "depot"]) / 1_000;
+        let engine_posts = posts_in(obs, &["refinery", "diesel", "highways"]) / 1_000;
         let wire_posts = posts_in(obs, &["generator", "hydro", "grid"]) / 1_000;
         if coal > 0 {
             consider((coal * 100 / 60_000).min(200) + steam_posts.min(100) + lean("steam"), "steam");
@@ -2429,33 +2472,197 @@ fn production(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
             }
         }
     }
-    // roads tie outlying regions to the common stock
-    for r in regions {
-        let o = r.own.as_ref().unwrap();
-        if r.id != capital.id && o.population as i64 >= 250 * K && o.transport_level == 0 {
-            let _ = p.try_build(r, "roads", 1, 5) || (r.coastal && p.try_build(r, "port", 1, 5));
+    networks(p, regions, capital);
+    let _ = obs;
+}
+
+/// The best stage of a building line the seat can build now.
+fn best_of_line<'a>(p: &Plan<'a>, line: &str) -> Option<&'a FacilityType> {
+    p.obs.catalog.facilities.iter().filter(|f| f.line == line && f.available).max_by_key(|f| (f.stage, std::cmp::Reverse(f.kind.clone())))
+}
+
+/// Levels of a line in a region, all stages, and its best stage there.
+fn line_levels(p: &Plan, r: &RegionView, line: &str) -> (u16, u8) {
+    let o = r.own.as_ref().unwrap();
+    let mut n = 0;
+    let mut best = 0;
+    for f in &o.facilities {
+        if let Some(ft) = p.fac_type(&f.kind) {
+            if ft.line == line {
+                n += f.level;
+                best = best.max(ft.stage);
+            }
         }
     }
-    // freight: a region whose works load its transport to the limit, the capital
-    // included, gets the next grade of transport before more is lost in carriage.
-    // Roads and a harbour first, then the railway, then the motor depot; a region
-    // at the top grade can only be relieved by building elsewhere.
+    (n, best)
+}
+
+/// Transport networks (design chapter 38, section 5.9, simplified): a backbone of
+/// the best land mode from the capital to every region of any size, harbours at
+/// coastal towns, and more levels (or a better stage) wherever works outgrow
+/// the freight their region's network can serve.
+fn networks(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
+    let obs = p.obs;
+    let mut budget = match p.diff {
+        Difficulty::Easy => 1,
+        Difficulty::Medium => 2,
+        Difficulty::Hard | Difficulty::Expert => 3,
+    };
+    let land = best_of_line(p, "railway").or_else(|| best_of_line(p, "roads")).map(|f| f.kind.clone());
+    // backbone: the capital first, then the regions by size
+    if let Some(kind) = &land {
+        let line = p.fac_type(kind).map(|f| f.line.clone()).unwrap_or_default();
+        let mut order: Vec<&RegionView> = vec![capital];
+        order.extend(regions.iter().copied().filter(|r| r.id != capital.id));
+        for r in order {
+            if budget == 0 || p.full() {
+                break;
+            }
+            let o = r.own.as_ref().unwrap();
+            if r.id != capital.id && (o.population as i64) < 250 * K && o.infrastructure.freight_load < 6 {
+                continue;
+            }
+            if line_levels(p, r, &line).0 == 0 && p.try_build(r, kind, 1, 5) {
+                budget -= 1;
+            }
+        }
+    }
+    // harbours at coastal towns
+    if let Some(port) = best_of_line(p, "harbour").map(|f| f.kind.clone()) {
+        for r in regions.iter().copied().filter(|r| r.coastal) {
+            if budget == 0 || p.full() {
+                break;
+            }
+            let town = r.city.as_ref().map(|c| c.residents >= 50_000).unwrap_or(false);
+            if (town || r.id == capital.id) && line_levels(p, r, "harbour").0 == 0 && p.try_build(r, &port, 1, 5) {
+                budget -= 1;
+            }
+        }
+    }
+    // freight: a region whose works load its network to the limit gets another level
+    // of its best line, or of a better line, before more is lost in carriage
     for r in regions {
-        if p.full() {
+        if budget == 0 || p.full() {
             break;
         }
         let o = r.own.as_ref().unwrap();
         let f = &o.infrastructure;
-        // an observation without the freight figures (an older referee) says nothing
-        if f.freight_capacity == 0 || o.transport_level >= 3 {
+        if f.freight_capacity == 0 {
             continue;
         }
-        // levels already ordered here will load it too
         let coming: u32 = obs.projects.iter().filter(|x| x.kind == "build" && !x.paused && x.region == Some(r.id)).filter(|x| x.target.as_deref().and_then(|k| p.fac_type(k)).map(loads_freight).unwrap_or(false)).map(|x| x.levels.unwrap_or(1) as u32).sum();
         if f.infra_bp < 10_000 || f.freight_load + coming + 2 > f.freight_capacity {
             let prio = if f.infra_bp < 10_000 { 3 } else { 4 };
-            let _ = p.try_build(r, "roads", 1, prio) || (r.coastal && p.try_build(r, "port", 1, prio)) || p.try_build(r, "rail", 1, prio) || p.try_build(r, "depot", 1, prio);
+            for line in ["railway", "roads", "harbour", "canals"] {
+                let Some(best) = best_of_line(p, line).map(|f| f.kind.clone()) else { continue };
+                if p.try_build(r, &best, 1, prio) {
+                    budget -= 1;
+                    break;
+                }
+            }
         }
+    }
+}
+
+/// Keep civil works modern (design chapter 37, section 8.3): convert networks,
+/// stores, sanitation, housing and walls into the next stage the seat can build,
+/// a few levels at a time, obsolete ones first.
+fn modernize(p: &mut Plan, regions: &[&RegionView]) {
+    let mut budget = match p.diff {
+        Difficulty::Easy => 1,
+        Difficulty::Medium => 2,
+        Difficulty::Hard | Difficulty::Expert => 4,
+    };
+    const KEEP_UP: [&str; 9] = ["roads", "railway", "harbour", "canals", "air", "storage", "sanitation", "housing", "fortifications"];
+    // research, teaching and care works change their staff and venue with the stage:
+    // the planners for those build the next stage new instead of converting
+    const BUILD_NEW: [&str; 4] = ["research", "schools", "colleges", "health"];
+    for r in regions {
+        let o = r.own.as_ref().unwrap();
+        for f in &o.facilities {
+            if budget == 0 || p.full() {
+                return;
+            }
+            let Some(ft) = p.fac_type(&f.kind) else { continue };
+            // production works are modernized by building their newer stage beside
+            // them (their inputs, power and crews differ); only civil works convert
+            if ft.upgrades_to.is_empty() || BUILD_NEW.contains(&ft.line.as_str()) || !KEEP_UP.contains(&ft.line.as_str()) {
+                continue;
+            }
+            let Some(to) = ft.upgrades_to.iter().find(|k| p.fac_type(k).map(|t| t.available).unwrap_or(false)).cloned() else { continue };
+            // half the levels at most, so the region keeps its service while the rest convert
+            if f.level < 2 {
+                continue;
+            }
+            if p.try_upgrade(r, &f.kind, &to, (f.level / 2).min(4), if f.obsolete { 3 } else { 5 }) {
+                budget -= 1;
+            }
+        }
+    }
+}
+
+/// Land, food reach and walls of the cities (design chapter 37, sections 8.6-8.8;
+/// chapter 38, section 4.2): housing where the town eats the farmland, stores where
+/// the region cannot be fed from the common stock, walls at a threatened capital.
+fn cities(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
+    let obs = p.obs;
+    for r in regions {
+        if p.full() {
+            return;
+        }
+        let o = r.own.as_ref().unwrap();
+        let u = &o.urban;
+        // stores: residents beyond what the region grows and can bring in
+        if u.feedable > 0 && u.feedable < o.population {
+            let short = (o.population - u.feedable) as i64;
+            if let Some(ft) = best_of_line(p, "storage") {
+                let per: i64 = match ft.kind.as_str() {
+                    "logistics_hub" => 20_000_000,
+                    "cold_store" => 5_000_000,
+                    "warehouse" => 1_200_000,
+                    _ => 300_000,
+                } * u.access_bp.max(10_000) as i64
+                    / 10_000;
+                let n = ((short + per - 1) / per).clamp(1, 6) as u16;
+                let kind = ft.kind.clone();
+                let _ = p.try_build(r, &kind, n, 2);
+            }
+        }
+        // housing: when the town leaves no room for more fields
+        let fields = p.level(r, "fields");
+        if u.informal >= 400_000 && fields + 2 >= u.arable_left {
+            if let Some(ft) = best_of_line(p, "housing") {
+                let per: i64 = if ft.kind == "towers" { 1_000_000 } else { 400_000 };
+                let n = (u.informal as i64 / per).clamp(1, 6) as u16;
+                let kind = ft.kind.clone();
+                let _ = p.try_build(r, &kind, n, 4);
+            }
+        }
+    }
+    // walls at the capital when a known neighbour is distrusted and walls still
+    // hold against the armies of the day
+    let threatened = obs.others.iter().any(|o| o.contacted && o.trust < 40);
+    if threatened && obs.civ.military_tier <= 2 {
+        if let Some(ft) = best_of_line(p, "fortifications") {
+            if line_levels(p, capital, "fortifications").0 == 0 {
+                let kind = ft.kind.clone();
+                let _ = p.try_build(capital, &kind, 1, 5);
+            }
+        }
+    }
+}
+
+/// Border policy (design chapter 38, section 5.9): selective by default, open when
+/// the works have many vacant posts and the country is stable. (The design's
+/// closing rule at 8% joblessness waits for the late-game employment work: in this
+/// ruleset half the adults or more hold no post in every era.)
+fn border_policy(p: &mut Plan, regions: &[&RegionView]) {
+    let obs = p.obs;
+    let working = obs.civ.working_age.max(1) as i64;
+    let vacant: i64 = regions.iter().flat_map(|r| r.own.as_ref().unwrap().facilities.iter()).map(|f| f.staff_needed.saturating_sub(f.staffed) as i64).sum();
+    let want = if vacant * 20 > working && obs.civ.stability >= 50 { Immigration::Open } else { Immigration::Selective };
+    if want != obs.civ.immigration {
+        p.push(Action::SetPolicy { setting: PolicySetting::Borders { immigration: want, emigration: Emigration::Free } });
     }
 }
 
