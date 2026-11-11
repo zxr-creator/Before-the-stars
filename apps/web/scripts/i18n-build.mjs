@@ -74,7 +74,7 @@ for (const m of content.matchAll(new RegExp(`^\\s*\\w+ => ${S}, ${S}, ${S};`, 'g
   put(un(m[2]), z[0], true); put(un(m[3]), z[1]);
 }
 let nTier = 0;
-for (const m of content.matchAll(new RegExp(`\\bmk\\(\\d,\\s*${S},\\s*\\[${S},\\s*${S},\\s*${S}\\]`, 'g'))) {
+for (const m of content.matchAll(new RegExp(`\\bmk\\(\\d,\\s*(?:\\d+,\\s*)?${S},\\s*\\[${S},\\s*${S},\\s*${S}\\]`, 'g'))) {
   nTier += 1;
   for (const s of [m[1], m[2], m[3], m[4]]) put(un(s), C.UNIT[un(s)], true);
 }

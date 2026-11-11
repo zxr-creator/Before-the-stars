@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6r";
+pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6c";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,7 +26,7 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0-s6r";
 /// released each slice that changes saved state carries a pre-release tag
 /// (`-s4` = through slice 4 of the merged plan, design chapter 37 section 11), so
 /// that a save of an earlier slice is refused by name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6r";
+pub const RULESET_VERSION: &str = "bts-rules/3.0.0-s6c";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
 pub const GENERATOR_VERSION: &str = "bts-worldgen/2.0.0-s5";
 
@@ -400,8 +400,10 @@ struct TechJson {
     /// atlas and of doc 37; "side", "alt", "dead", "sealed", "entry" or "branch".
     #[serde(default)]
     kind: Option<String>,
-    /// Rival family (`content/families.json`), if any.
+    /// Rival family as the drafts named it (membership is read from
+    /// `content/families.json`; kept for the client and the lore check).
     #[serde(default)]
+    #[allow(dead_code)]
     family: Option<String>,
     /// Know-how lost when unused for a century without archives (section 1.5).
     #[serde(default)]
@@ -890,17 +892,18 @@ pub fn tradition_name(key: &str) -> &'static str {
 
 /// Costs of a practice by era (design chapter 39, section 2.3): evidence to
 /// recognize, reform work (thousand worker-months), media (lots), minimum months,
-/// institutional load.
+/// institutional load. Calibrated (slice 6c): evidence and work of eras 4-8 at
+/// 1.5x (era 4) and 2x (eras 5-8) the design's, which every seat met by AD 2300.
 pub const PRACTICE_ERA_COSTS: [(i64, i64, f64, i64, i64); 9] = [
     (1_200, 10, 0.0, 24, 0),
     (4_000, 40, 3.0, 60, 0),
     (10_000, 90, 8.0, 60, 0),
     (24_000, 160, 15.0, 72, 1),
-    (50_000, 300, 30.0, 84, 1),
-    (100_000, 550, 55.0, 96, 2),
-    (180_000, 900, 90.0, 108, 2),
-    (300_000, 1_400, 140.0, 120, 3),
-    (450_000, 2_000, 200.0, 120, 3),
+    (75_000, 450, 30.0, 84, 1),
+    (200_000, 1_100, 55.0, 96, 2),
+    (360_000, 1_800, 90.0, 108, 2),
+    (600_000, 2_800, 140.0, 120, 3),
+    (900_000, 4_000, 200.0, 120, 3),
 ];
 
 #[derive(Clone, Debug)]
@@ -2659,7 +2662,7 @@ fn load() -> Content {
                 era,
                 min_months,
                 load: if p.era.is_some() { eload } else { 0 },
-                exclusive: p.exclusive.as_ref().and_then(|x| fam.exclusive_groups.iter().position(|g| &g.id == x)),
+                exclusive: fam.exclusive_groups.iter().position(|g| g.members.iter().any(|m| m == &p.id)).or_else(|| p.exclusive.as_ref().and_then(|x| fam.exclusive_groups.iter().position(|g| &g.id == x))),
                 tension: Vec::new(),
                 tradition: p.tradition.clone(),
                 critical,
@@ -2806,8 +2809,8 @@ mod tests {
     #[test]
     fn catalog_counts_and_graph_are_valid() {
         let c = content();
-        assert_eq!(c.techs.len(), 138);
-        assert_eq!(c.practices.len(), 64);
+        assert_eq!(c.techs.len(), 300);
+        assert_eq!(c.practices.len(), 174);
         assert_eq!(c.courses.len(), 24);
         // Knowledge prerequisites are acyclic: every node is reachable by repeatedly
         // understanding nodes whose prerequisites are satisfied.

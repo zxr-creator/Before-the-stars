@@ -608,7 +608,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     }
                     let lines = crate::sim::knowledge::investigation_lines(w, seat);
                     let running = w.civs[si].projects.iter().filter(|p| matches!(p.kind, ProjKind::Research { .. }) && !p.paused).count() as u32;
-                    if running >= lines && !c.families.is_empty() /* SLICE6B-GATE */ {
+                    if running >= lines {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", format!("every investigation line is in use ({lines} for the research staff this civilization has)"));
                     }
                     let t = &c.techs[ti];

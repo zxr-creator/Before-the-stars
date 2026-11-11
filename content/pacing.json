@@ -33,13 +33,13 @@
     },
     {
       "tier": 4,
-      "hint": 900000,
+      "hint": 750000,
       "work_k": 2000,
       "min_months": 36
     },
     {
       "tier": 5,
-      "hint": 960000,
+      "hint": 800000,
       "work_k": 4000,
       "min_months": 30
     },
@@ -84,28 +84,28 @@
       ]
     },
     "late_antiquity": {
-      "hint": 24000000,
+      "hint": 20000000,
       "target": [
         300,
         800
       ]
     },
     "medieval": {
-      "hint": 15400000,
+      "hint": 14000000,
       "target": [
         800,
         1200
       ]
     },
     "high_medieval": {
-      "hint": 11500000,
+      "hint": 10000000,
       "target": [
         1100,
         1400
       ]
     },
     "renaissance": {
-      "hint": 16000000,
+      "hint": 13000000,
       "target": [
         1350,
         1550
@@ -119,7 +119,7 @@
       ]
     },
     "scientific_method": {
-      "hint": 6000000,
+      "hint": 5000000,
       "target": [
         1550,
         1700
@@ -195,6 +195,1835 @@
     },
     "T049": {
       "era": "scientific_method"
+    },
+    "T038": {
+      "band": 5
+    },
+    "T086": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T087": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T096": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T097": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T108": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T113": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T116": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T117": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T118": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T119": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T120": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T121": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T122": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T124": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T125": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T130": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T131": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T132": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T133": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T134": {
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T135": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T136": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T137": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T148": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T149": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T150": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T165": {
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T154": {
+      "tier": 7,
+      "tags": [
+        "space",
+        "machine"
+      ],
+      "needs_facility": "launch_complex",
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T155": {
+      "tier": 7,
+      "tags": [
+        "space",
+        "electric"
+      ],
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T156": {
+      "tier": 7,
+      "tags": [
+        "electric",
+        "space"
+      ],
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T157": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "highenergy"
+      ],
+      "needs_facility": "high_energy",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T158": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "highenergy",
+        "electric"
+      ],
+      "needs_facility": "high_energy",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T159": {
+      "tier": 7,
+      "tags": [
+        "space",
+        "chem",
+        "mine"
+      ],
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T170": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "build"
+      ],
+      "needs_facility": "launch_complex",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T171": {
+      "tier": 8,
+      "tags": [
+        "health",
+        "space"
+      ],
+      "needs_facility": "offworld_inhabited",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T172": {
+      "tier": 8,
+      "tags": [
+        "mine",
+        "space",
+        "machine"
+      ],
+      "needs_facility": "offworld_station",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T173": {
+      "tier": 9,
+      "tags": [
+        "highenergy",
+        "space"
+      ],
+      "needs_facility": "high_energy",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T174": {
+      "tier": 8,
+      "tags": [
+        "electric",
+        "space"
+      ],
+      "needs_facility": "orbital_station",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T175": {
+      "tier": 7,
+      "tags": [
+        "compute",
+        "space"
+      ],
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T176": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "chem"
+      ],
+      "needs_facility": "orbital_station",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T177": {
+      "tier": 9,
+      "tags": [
+        "space",
+        "build",
+        "bio"
+      ],
+      "needs_facility": "orbital_station",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T178": {
+      "tier": 7,
+      "tags": [
+        "fuel",
+        "space",
+        "machine"
+      ],
+      "needs_facility": "launch_complex",
+      "work_bp": 11250,
+      "hint_bp": 11500
+    },
+    "T179": {
+      "tier": 8,
+      "tags": [
+        "bio",
+        "space"
+      ],
+      "needs_facility": "offworld_station",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T180": {
+      "tier": 8,
+      "tags": [
+        "compute",
+        "health"
+      ],
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T181": {
+      "tier": 9,
+      "tags": [
+        "compute",
+        "machine",
+        "space"
+      ],
+      "needs_facility": "offworld_station",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T182": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "space"
+      ],
+      "needs_facility": "high_energy",
+      "work_bp": 12500,
+      "hint_bp": 12500,
+      "min_months": 48
+    },
+    "T183": {
+      "tier": 0,
+      "tags": [
+        "farm",
+        "craft"
+      ],
+      "band": 0,
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T184": {
+      "tier": 0,
+      "tags": [
+        "health",
+        "forage"
+      ],
+      "band": 0,
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T185": {
+      "tier": 0,
+      "tags": [
+        "build",
+        "craft"
+      ],
+      "band": 0,
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T186": {
+      "tier": 0,
+      "tags": [
+        "craft",
+        "trade"
+      ],
+      "band": 0,
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T187": {
+      "tier": 0,
+      "tags": [
+        "trade"
+      ],
+      "band": 0,
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T188": {
+      "tier": 1,
+      "tags": [
+        "record",
+        "teach"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T189": {
+      "tier": 1,
+      "tags": [
+        "record",
+        "trade"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T190": {
+      "tier": 1,
+      "tags": [
+        "trade",
+        "metal"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T191": {
+      "tier": 1,
+      "tags": [
+        "metal",
+        "war"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T192": {
+      "tier": 1,
+      "tags": [
+        "build",
+        "water"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T193": {
+      "tier": 1,
+      "tags": [
+        "measure",
+        "science"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T194": {
+      "tier": 1,
+      "tags": [
+        "war",
+        "build"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T195": {
+      "tier": 1,
+      "tags": [
+        "farm",
+        "water"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T196": {
+      "tier": 1,
+      "tags": [
+        "farm"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T197": {
+      "tier": 1,
+      "tags": [
+        "health",
+        "teach"
+      ],
+      "band": 1,
+      "era": "classical",
+      "work_bp": 10000,
+      "hint_bp": 10000
+    },
+    "T198": {
+      "tier": 2,
+      "tags": [
+        "record",
+        "measure"
+      ],
+      "band": 2,
+      "era": "medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T199": {
+      "tier": 1,
+      "tags": [
+        "farm"
+      ],
+      "band": 2,
+      "era": "medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T200": {
+      "tier": 1,
+      "tags": [
+        "record",
+        "craft"
+      ],
+      "band": 2,
+      "era": "medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T201": {
+      "tier": 1,
+      "tags": [
+        "trade",
+        "record"
+      ],
+      "band": 2,
+      "era": "medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T202": {
+      "tier": 1,
+      "tags": [
+        "sea",
+        "measure"
+      ],
+      "band": 2,
+      "era": "high_medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T203": {
+      "tier": 1,
+      "tags": [
+        "metal"
+      ],
+      "band": 2,
+      "era": "medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T204": {
+      "tier": 1,
+      "tags": [
+        "chem",
+        "craft"
+      ],
+      "band": 2,
+      "era": "medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T205": {
+      "tier": 1,
+      "tags": [
+        "machine",
+        "craft"
+      ],
+      "band": 2,
+      "era": "high_medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T206": {
+      "tier": 1,
+      "tags": [
+        "war",
+        "chem"
+      ],
+      "band": 2,
+      "era": "medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T207": {
+      "tier": 2,
+      "tags": [
+        "war",
+        "chem"
+      ],
+      "band": 2,
+      "era": "high_medieval",
+      "work_bp": 10500,
+      "hint_bp": 10000
+    },
+    "T208": {
+      "tier": 2,
+      "tags": [
+        "record",
+        "trade"
+      ],
+      "band": 3,
+      "era": "renaissance",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T209": {
+      "tier": 2,
+      "tags": [
+        "war",
+        "build"
+      ],
+      "band": 3,
+      "era": "early_modern",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T210": {
+      "tier": 2,
+      "tags": [
+        "science",
+        "measure"
+      ],
+      "band": 3,
+      "era": "early_modern",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T211": {
+      "tier": 2,
+      "tags": [
+        "measure",
+        "sea"
+      ],
+      "band": 3,
+      "era": "early_modern",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T212": {
+      "tier": 2,
+      "tags": [
+        "science",
+        "health"
+      ],
+      "band": 3,
+      "era": "early_modern",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T213": {
+      "tier": 2,
+      "tags": [
+        "steam",
+        "mine"
+      ],
+      "band": 3,
+      "era": "early_modern",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T214": {
+      "tier": 2,
+      "tags": [
+        "health"
+      ],
+      "band": 3,
+      "era": "early_modern",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T215": {
+      "tier": 2,
+      "tags": [
+        "electric",
+        "science"
+      ],
+      "band": 3,
+      "era": "early_modern",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T216": {
+      "tier": 2,
+      "tags": [
+        "science",
+        "craft"
+      ],
+      "band": 3,
+      "era": "early_modern",
+      "work_bp": 11000,
+      "hint_bp": 11000
+    },
+    "T217": {
+      "tier": 4,
+      "tags": [
+        "chem",
+        "steam"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T218": {
+      "tier": 4,
+      "tags": [
+        "record",
+        "measure"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T219": {
+      "tier": 4,
+      "tags": [
+        "electric",
+        "record"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T220": {
+      "tier": 5,
+      "tags": [
+        "sea",
+        "steam"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T221": {
+      "tier": 4,
+      "tags": [
+        "health",
+        "chem"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T222": {
+      "tier": 5,
+      "tags": [
+        "metal"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T223": {
+      "tier": 5,
+      "tags": [
+        "metal",
+        "steam"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T224": {
+      "tier": 4,
+      "tags": [
+        "build",
+        "chem"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T225": {
+      "tier": 5,
+      "tags": [
+        "machine",
+        "steam"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T226": {
+      "tier": 4,
+      "tags": [
+        "farm",
+        "chem",
+        "mine"
+      ],
+      "band": 4,
+      "work_bp": 11250,
+      "hint_bp": 12000
+    },
+    "T227": {
+      "tier": 5,
+      "tags": [
+        "electric"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T228": {
+      "tier": 5,
+      "tags": [
+        "electric"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T229": {
+      "tier": 6,
+      "tags": [
+        "electric",
+        "record"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T230": {
+      "tier": 5,
+      "tags": [
+        "fuel",
+        "build"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T231": {
+      "tier": 6,
+      "tags": [
+        "health",
+        "bio"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T232": {
+      "tier": 6,
+      "tags": [
+        "electric",
+        "war"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T233": {
+      "tier": 6,
+      "tags": [
+        "fuel",
+        "machine"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T234": {
+      "tier": 5,
+      "tags": [
+        "compute",
+        "war"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T235": {
+      "tier": 5,
+      "tags": [
+        "electric",
+        "water",
+        "build"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T236": {
+      "tier": 6,
+      "tags": [
+        "space",
+        "fuel"
+      ],
+      "band": 5,
+      "work_bp": 11250,
+      "hint_bp": 13000
+    },
+    "T237": {
+      "tier": 6,
+      "tags": [
+        "trade",
+        "sea"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T238": {
+      "tier": 6,
+      "tags": [
+        "farm",
+        "bio"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T239": {
+      "tier": 7,
+      "tags": [
+        "compute",
+        "electric"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T240": {
+      "tier": 7,
+      "tags": [
+        "compute"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T241": {
+      "tier": 7,
+      "tags": [
+        "bio",
+        "compute"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T242": {
+      "tier": 6,
+      "tags": [
+        "machine",
+        "chem"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T243": {
+      "tier": 7,
+      "tags": [
+        "compute",
+        "record"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T244": {
+      "tier": 6,
+      "tags": [
+        "fuel",
+        "mine"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T245": {
+      "tier": 7,
+      "tags": [
+        "electric",
+        "compute"
+      ],
+      "band": 6,
+      "work_bp": 11500,
+      "hint_bp": 15000
+    },
+    "T246": {
+      "tier": 7,
+      "tags": [
+        "space",
+        "electric"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000
+    },
+    "T247": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "measure"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000,
+      "min_months": 48
+    },
+    "T248": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "machine"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000,
+      "min_months": 48
+    },
+    "T249": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "chem"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000,
+      "min_months": 48
+    },
+    "T250": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "chem"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000,
+      "min_months": 48
+    },
+    "T251": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "chem"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000,
+      "min_months": 48
+    },
+    "T252": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "health"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000,
+      "min_months": 48,
+      "needs_facility": "launch_complex"
+    },
+    "T253": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "machine"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000,
+      "min_months": 48
+    },
+    "T254": {
+      "tier": 7,
+      "tags": [
+        "space",
+        "fuel"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000
+    },
+    "T255": {
+      "tier": 7,
+      "tags": [
+        "space",
+        "chem"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000
+    },
+    "T256": {
+      "tier": 7,
+      "tags": [
+        "space",
+        "fuel"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000
+    },
+    "T257": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "machine"
+      ],
+      "band": 7,
+      "work_bp": 12500,
+      "hint_bp": 17000,
+      "min_months": 48,
+      "needs_facility": "orbital_station"
+    },
+    "T258": {
+      "tier": 8,
+      "tags": [
+        "machine",
+        "chem"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48
+    },
+    "T259": {
+      "tier": 9,
+      "tags": [
+        "space",
+        "build"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48,
+      "needs_facility": "orbital_station"
+    },
+    "T260": {
+      "tier": 8,
+      "tags": [
+        "compute",
+        "science"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48
+    },
+    "T261": {
+      "tier": 8,
+      "tags": [
+        "compute"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48
+    },
+    "T262": {
+      "tier": 9,
+      "tags": [
+        "machine",
+        "bio"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48
+    },
+    "T263": {
+      "tier": 8,
+      "tags": [
+        "bio"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48
+    },
+    "T264": {
+      "tier": 8,
+      "tags": [
+        "highenergy"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48,
+      "needs_facility": "high_energy"
+    },
+    "T265": {
+      "tier": 8,
+      "tags": [
+        "highenergy"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48,
+      "needs_facility": "high_energy"
+    },
+    "T266": {
+      "tier": 9,
+      "tags": [
+        "space",
+        "mine"
+      ],
+      "band": 8,
+      "work_bp": 13750,
+      "hint_bp": 20000,
+      "min_months": 48
+    },
+    "T267": {
+      "tier": 9,
+      "tags": [
+        "highenergy",
+        "space"
+      ],
+      "band": 9,
+      "work_bp": 12500,
+      "hint_bp": 15000
+    },
+    "T268": {
+      "tier": 9,
+      "tags": [
+        "highenergy"
+      ],
+      "band": 9,
+      "work_bp": 12500,
+      "hint_bp": 15000
+    },
+    "T269": {
+      "tier": 9,
+      "tags": [
+        "space",
+        "compute"
+      ],
+      "band": 9,
+      "work_bp": 12500,
+      "hint_bp": 15000
+    },
+    "T270": {
+      "tier": 4,
+      "tags": [
+        "steam",
+        "metal",
+        "machine"
+      ],
+      "band": 4,
+      "work_bp": 11875,
+      "hint_bp": 12000
+    },
+    "T271": {
+      "tier": 5,
+      "tags": [
+        "compute",
+        "machine"
+      ],
+      "band": 4,
+      "work_bp": 12812,
+      "hint_bp": 15000
+    },
+    "T272": {
+      "tier": 5,
+      "tags": [
+        "steam",
+        "machine"
+      ],
+      "band": 4,
+      "work_bp": 12812,
+      "hint_bp": 15000
+    },
+    "T273": {
+      "tier": 5,
+      "tags": [
+        "war",
+        "steam"
+      ],
+      "band": 4,
+      "work_bp": 12812,
+      "hint_bp": 15000
+    },
+    "T274": {
+      "tier": 5,
+      "tags": [
+        "chem",
+        "steam"
+      ],
+      "band": 4,
+      "work_bp": 12812,
+      "hint_bp": 15000
+    },
+    "T275": {
+      "tier": 5,
+      "tags": [
+        "steam",
+        "build"
+      ],
+      "band": 4,
+      "work_bp": 12812,
+      "hint_bp": 15000
+    },
+    "T276": {
+      "tier": 6,
+      "tags": [
+        "steam"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T277": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "steam"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T278": {
+      "tier": 5,
+      "tags": [
+        "fuel",
+        "chem"
+      ],
+      "band": 5,
+      "work_bp": 11875,
+      "hint_bp": 13000
+    },
+    "T279": {
+      "tier": 5,
+      "tags": [
+        "fuel",
+        "electric"
+      ],
+      "band": 5,
+      "work_bp": 12812,
+      "hint_bp": 16250
+    },
+    "T280": {
+      "tier": 6,
+      "tags": [
+        "war",
+        "fuel",
+        "machine"
+      ],
+      "band": 5,
+      "work_bp": 12812,
+      "hint_bp": 16250
+    },
+    "T281": {
+      "tier": 6,
+      "tags": [
+        "fuel",
+        "war"
+      ],
+      "band": 5,
+      "work_bp": 12812,
+      "hint_bp": 16250
+    },
+    "T282": {
+      "tier": 6,
+      "tags": [
+        "chem",
+        "fuel"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T283": {
+      "tier": 6,
+      "tags": [
+        "sea",
+        "war"
+      ],
+      "band": 5,
+      "work_bp": 12812,
+      "hint_bp": 16250
+    },
+    "T284": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "fuel",
+        "machine"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T285": {
+      "tier": 6,
+      "tags": [
+        "fuel",
+        "chem"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T286": {
+      "tier": 5,
+      "tags": [
+        "electric",
+        "build"
+      ],
+      "band": 5,
+      "work_bp": 11875,
+      "hint_bp": 13000
+    },
+    "T287": {
+      "tier": 5,
+      "tags": [
+        "electric",
+        "metal"
+      ],
+      "band": 5,
+      "work_bp": 12812,
+      "hint_bp": 16250
+    },
+    "T288": {
+      "tier": 5,
+      "tags": [
+        "electric",
+        "chem",
+        "farm"
+      ],
+      "band": 5,
+      "work_bp": 12812,
+      "hint_bp": 16250
+    },
+    "T289": {
+      "tier": 6,
+      "tags": [
+        "electric"
+      ],
+      "band": 5,
+      "work_bp": 12812,
+      "hint_bp": 16250
+    },
+    "T290": {
+      "tier": 6,
+      "tags": [
+        "electric",
+        "machine"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T291": {
+      "tier": 7,
+      "tags": [
+        "electric"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T292": {
+      "tier": 8,
+      "tags": [
+        "space",
+        "electric"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T293": {
+      "tier": 6,
+      "tags": [
+        "electric",
+        "chem",
+        "metal"
+      ],
+      "band": 5,
+      "work_bp": 12812,
+      "hint_bp": 16250
+    },
+    "T294": {
+      "tier": 7,
+      "tags": [
+        "highenergy",
+        "health"
+      ],
+      "band": 6,
+      "work_bp": 12150,
+      "hint_bp": 15000
+    },
+    "T295": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "machine"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T296": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "chem"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T297": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "war"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T298": {
+      "tier": 7,
+      "tags": [
+        "highenergy",
+        "farm"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T299": {
+      "tier": 8,
+      "tags": [
+        "highenergy",
+        "mine"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T300": {
+      "tier": 9,
+      "tags": [
+        "highenergy",
+        "space"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
+    },
+    "T301": {
+      "tier": 9,
+      "tags": [
+        "highenergy"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48,
+      "needs_facility": "high_energy"
+    },
+    "T302": {
+      "tier": 7,
+      "tags": [
+        "compute"
+      ],
+      "band": 6,
+      "work_bp": 12150,
+      "hint_bp": 15000
+    },
+    "T303": {
+      "tier": 8,
+      "tags": [
+        "health",
+        "compute"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T304": {
+      "tier": 7,
+      "tags": [
+        "compute",
+        "teach"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T305": {
+      "tier": 7,
+      "tags": [
+        "compute",
+        "trade"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T306": {
+      "tier": 8,
+      "tags": [
+        "war",
+        "compute"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T307": {
+      "tier": 8,
+      "tags": [
+        "compute",
+        "build"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T308": {
+      "tier": 8,
+      "tags": [
+        "compute",
+        "mine",
+        "space"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
+    },
+    "T309": {
+      "tier": 9,
+      "tags": [
+        "compute",
+        "health",
+        "teach"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
+    },
+    "T310": {
+      "tier": 7,
+      "tags": [
+        "bio",
+        "chem"
+      ],
+      "band": 6,
+      "work_bp": 12150,
+      "hint_bp": 15000
+    },
+    "T311": {
+      "tier": 7,
+      "tags": [
+        "bio",
+        "mine"
+      ],
+      "band": 6,
+      "work_bp": 13125,
+      "hint_bp": 18750
+    },
+    "T312": {
+      "tier": 8,
+      "tags": [
+        "bio",
+        "farm"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T313": {
+      "tier": 8,
+      "tags": [
+        "bio",
+        "build"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T314": {
+      "tier": 8,
+      "tags": [
+        "bio",
+        "health",
+        "war"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T315": {
+      "tier": 8,
+      "tags": [
+        "bio",
+        "health",
+        "space"
+      ],
+      "band": 7,
+      "work_bp": 14375,
+      "hint_bp": 21250,
+      "min_months": 48
+    },
+    "T316": {
+      "tier": 9,
+      "tags": [
+        "bio",
+        "space"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48,
+      "needs_facility": "offworld_station"
+    },
+    "T317": {
+      "tier": 9,
+      "tags": [
+        "bio",
+        "space"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48,
+      "needs_facility": "offworld_station"
+    },
+    "T318": {
+      "tier": 7,
+      "tags": [
+        "compute",
+        "machine"
+      ],
+      "band": 6,
+      "work_bp": 12150,
+      "hint_bp": 15000
+    },
+    "T319": {
+      "tier": 8,
+      "tags": [
+        "compute",
+        "machine"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
+    },
+    "T320": {
+      "tier": 9,
+      "tags": [
+        "compute",
+        "record"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
+    },
+    "T321": {
+      "tier": 8,
+      "tags": [
+        "compute",
+        "war"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
+    },
+    "T322": {
+      "tier": 9,
+      "tags": [
+        "compute",
+        "machine"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
+    },
+    "T323": {
+      "tier": 9,
+      "tags": [
+        "compute",
+        "space"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48,
+      "needs_facility": "offworld_station"
+    },
+    "T324": {
+      "tier": 8,
+      "tags": [
+        "compute",
+        "science"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
+    },
+    "T325": {
+      "tier": 9,
+      "tags": [
+        "compute"
+      ],
+      "band": 8,
+      "work_bp": 15937,
+      "hint_bp": 25000,
+      "min_months": 48
     }
-  }
+  },
+  "_doc_work_bp": "Per-node work multipliers (design chapter 39, section 1.6) are calibrated to the completion targets: with the late research capacity these seats build (slice 6c), half of the design's surcharge above 10,000."
 }

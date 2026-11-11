@@ -13,8 +13,8 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Industrial traditions (22) | Implemented as content | Water/wind, steam, diesel and electric power are separate facilities with real fuel and site limits; generators, grids and motors bridge them; fission, fusion and orbital power follow. No route skips electricity, electronics, computing or orbit |
 | Population (32) | Implemented, simplified | Sparse blocks keyed by region × lineage × religion with 81 annual age cells, nine-month lagged birth intensity, one combined mortality calculation, annual ageing, migration that moves real counts. One access class per region; qualifications are counted per region rather than per block |
 | Education (19, 32 §8) | Implemented | All 24 courses with entrants, teachers, class sizes, venues, materials and months. Students and teachers leave the labour pool; graduates are usable next month; founding cohorts teach themselves slowly. Authorization states (review due, dormant) are not modelled |
-| Knowledge (31) | Implemented | Fixed 138-node graph loaded from the atlas; states hinted → discovered → investigating → understood → prototyped → adopted; evidence from actual sector activity, contact and paid exploratory studies; research classes need qualified staff and facilities; licences shorten work but never create operators. T048/T117/T121 corrections applied |
-| Culture (07, 18, 31 §6) | Implemented, simplified | Fixed 64-practice graph; recognition by people living with the prerequisites, reform with real requirements, gradual adoption shaped by eight private tendencies with 150/500 basis-point yearly drift limits; observed traits need sustained behaviour. Adoption is tracked per civilization, not per local lineage. C045/C047 corrections applied |
+| Knowledge (31) | Implemented | Fixed 300-node graph (atlas, doc 37, doc 39) with rival families, locks, revisit studies, fragile know-how and investigation lines; states hinted → discovered → investigating → understood → prototyped → adopted; evidence from actual sector activity, contact and paid exploratory studies; research classes need qualified staff and facilities; licences shorten work but never create operators. T048/T117/T121 corrections applied |
+| Culture (07, 18, 31 §6) | Implemented, simplified | Fixed 174-practice graph with exclusive groups, repeal, tensions, era costs, institutional load and reform slots; recognition by people living with the prerequisites, reform with real requirements, gradual adoption shaped by eight private tendencies with 150/500 basis-point yearly drift limits; observed traits need sustained behaviour. Adoption is tracked per civilization, not per local lineage. C045/C047 corrections applied |
 | Religion (10) | Implemented, light | No religion at start; movement → tradition → precinct → recognized founder → founding with four fixed beliefs; three founding slots per world; fictional names; spread by local and neighbouring contact |
 | Politics (04) | Abstracted | Stability, administrative load and capacity, unrest and callable labour carry faction effects. Factions are reported with weights, support and demands but do not hold separate assets or veto powers |
 | Diplomacy (29) | Implemented | Three counterparts, mutual channels, five simultaneous windows, ten envelopes per pair, protected withdraw/decline/break, structured treaties with performance records and trust. Since ruleset 2.0 slice E treaties can second experts (real people who move and come home) and share a launch complex, orbital yard or high-energy laboratory under a joint programme (`docs/units-and-scale.md` section 8). Evidence attachments and multilateral treaties are not built |
@@ -160,6 +160,68 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
   1000 BC to 1900 and every era milestone from storage to programmable computers is in
   or within a century of its window; 3000 BC is about 1.9x and 2000-2200 0.3-0.5x the
   target: `docs/calibration/ruleset3-slice-6r-eval.txt`.
+
+- **Slice 6b, the deeper technology graph (done).** `content/technologies.json` holds 300
+  nodes: doc 37's 19 (T154-T159, T170-T182, with requirement and capability text written
+  for the merge; T140 and T142 renamed) and doc 39's 143 (T183-T325; T048 renamed, T063
+  relinked to `T042 & (T061 | T213) & T050`); new groups L-S. Per-node tier, tags, era
+  band, pacing era, `work_bp`, `hint_bp`, minimum months and investigation installation
+  live in `content/pacing.json` (existing non-critical nodes of tiers 6-7 and 8-9 at
+  12,500/11,500 and 15,000/12,500 bp); kind, family, fragile and tradition evidence on the
+  node. `content/families.json`: the 15 rival families and the committed victory-critical
+  sets (84 technologies, 35 practices), which `scripts/critical_set.py --check` recomputes
+  (first-listed alternative at a technology OR, the smallest closure over practice ORs)
+  and a content test checks for closure. Mechanisms (`sim::knowledge`): installed base
+  per family member, incumbent share, evidence lock `10,000 - 6,000 s`, work lock
+  `10,000 + 5,000 s` on investigation, discovery cap at `s >= 7,500` without a peaceful
+  prototyping contact, critical members bounded at 8,000/11,000 with no cap, refutation
+  halving the lock, revisit studies (`start_project { kind: revisit { card } }`, 25% of
+  the node's work, at least 24 months, lifting the evidence lock and cap for 240 months);
+  fragile know-how (lost after 1,200 months unused without C013 or C088, relearned at
+  half the work); investigation lines `4 + isqrt(research staff / 5,000)` (at most 24, as calibrated in slice 6c;
+  the design's `2 + isqrt(staff / 50,000)` stalled printing seven centuries with the
+  research staff these seats build); tradition branch nodes take no practice evidence
+  until slice 13 (contact and studies only); sealed nodes absent until the objective is
+  revealed; off-world investigation installations stand in as the Earth-orbit station
+  until slice 15. Information boundary: family views only between discovered members,
+  revisit of an unknown card gets the uniform unknown error (tests). The native AI
+  scores research by expected value per unit of research (critical weight by difficulty,
+  known requirements, family fit, the self-block rule against locking a critical, channel
+  or waited-for rival, read from the public tables in `bts_ai::tables`), with lines split
+  critical/economy/breadth 60/25/15 (Hard), 75/15/10 (Expert), 40/40/20 (Medium) and
+  cheapest-first for Easy; revisit studies for a locked rival it needs. The `Expert`
+  test policy (`ControllerKind::NativeExpert`, `--ai expert,...`; not in the setup) is
+  this policy with the larger critical share and goal weight (a skeleton: education,
+  base building and integration are still the Hard policy's). `bts critical-path --seed
+  S --seat K` runs a match with node timings and prints the binding path to T167, each
+  critical node's ready/lead/discovered/understood dates, lead waits, investigation time,
+  slack, and a lower bound with minimum investigations. Node payoffs (the facilities and
+  methods doc 39 lists for the new nodes) are not built: the new nodes are knowledge
+  only. Ruleset `bts-rules/3.0.0-s6b`. Calibration: `docs/calibration/ruleset3-slice-6b-eval.txt`.
+
+- **Slice 6c, the deeper practice graph (done).** `content/practices.json` holds 174
+  practices (doc 37's C065-C067, whose off-world condition stands in as `T170` until
+  slice 15, and doc 39's 107), each with an era, category and material preconditions
+  (`hard`, with the new `TRAD:<path>` atom, never true before slice 13); 17 exclusive
+  groups in `content/families.json` and 5 tension pairs. Costs by era (evidence, reform
+  work, media, minimum months, institutional load; critical practices keep their
+  ruleset-2.0 costs), adoption slowing with era, institutional load against capacity
+  (`20 + 2 x admin office levels + 10` for each of C026, C036, C041/C042, C050, C119;
+  stability -1 per 4 points over, reform work x1.5), reform slots `1 + C026 + C036 +
+  C050`, exclusive groups refused until a repeal (`Action::Repeal`, 24 months, stability
+  -2 while it runs), tensions (stability -2, half-speed adoption), tradition institutions
+  held until slice 13, practice drags on evidence (guilds, state church, political police,
+  mercantilism, surveillance; never below x0.80 with the locks on a critical node). The
+  native AI scores reforms by `(effect + route - tension) / (work + 400 x load)`, picks a
+  world order by 1900 (unified command, constitutional or negotiated, from its situation)
+  and never reforms the member of an exclusive group that would close it, leans by seat
+  on the other groups (conscription for a seat weaker than a met rival), keeps its load
+  within capacity less four and repeals the least valuable practice when over.
+  Standing research orders no longer starve what a seat chose: agenda items start at
+  priority 4, automatic research at 6 and never into the last two investigation lines
+  (in 50-year rounds automatic research had filled the lines with cheap side nodes and
+  left critical investigations centuries without capacity). The land factor's neutral
+  point is 48% of capacity. Calibration: `docs/calibration/ruleset3-slice-6c-eval.txt`.
 
 ## Known calibration gaps
 

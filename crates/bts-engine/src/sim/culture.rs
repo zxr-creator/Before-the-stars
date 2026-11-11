@@ -71,8 +71,8 @@ pub fn institutional_load(w: &World, seat: SeatId) -> i64 {
     (0..c.practices.len()).filter(|i| civ.established(*i)).map(|i| c.practices[i].load).sum()
 }
 
-/// Institutional capacity: 20, three for every level of administrative offices (at
-/// most 30 counted), ten for each of specialized administration (C026), public
+/// Institutional capacity: 20, two for every level of administrative offices (at
+/// most 30 counted; the design's three, calibrated in slice 6c), ten for each of specialized administration (C026), public
 /// budgets (C036), hierarchical or federal administration (C041 or C042),
 /// algorithmic administration (C050) and statistical bureaus (C119).
 pub fn institutional_capacity(w: &World, seat: SeatId) -> i64 {
@@ -80,7 +80,7 @@ pub fn institutional_capacity(w: &World, seat: SeatId) -> i64 {
     let admin = content().f("admin");
     let levels: i64 = w.regions.iter().filter(|r| r.controller == Some(seat)).map(|r| r.fac(admin).map(|f| f.level as i64).unwrap_or(0)).sum();
     let e = |id: &str| crate::sim::knowledge::est_opt(civ, id);
-    20 + 3 * levels.min(30) + 10 * (e("C026") as i64 + e("C036") as i64 + (e("C041") || e("C042")) as i64 + e("C050") as i64 + e("C119") as i64)
+    20 + 2 * levels.min(30) + 10 * (e("C026") as i64 + e("C036") as i64 + (e("C041") || e("C042")) as i64 + e("C050") as i64 + e("C119") as i64)
 }
 
 /// Reforms a seat may run at once: one, and one more for each of specialized

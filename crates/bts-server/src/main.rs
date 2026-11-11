@@ -554,10 +554,11 @@ fn critical_path(args: &Args) {
         let before = s.m.round();
         s.run_rounds(1);
         let _ = s.m.take_curve();
-        if s.m.round() == before {
+        if s.m.round() == before && !s.m.finished() {
             break;
         }
     }
+    println!("match ran to {}", s.m.date().label);
     let c = bts_engine::content::content();
     let nodes = s.m.node_months().expect("node timings").clone();
     let Some(times) = nodes.get(seat) else {
@@ -598,7 +599,8 @@ fn critical_path(args: &Args) {
     }
     // the binding path: back from T167 through the prerequisite understood last
     let mut path = Vec::new();
-    let mut at = c.tech_ix.get("T167").copied();
+    // from T167, or from the deepest critical node understood if T167 was not reached
+    let mut at = c.tech_ix.get("T167").copied().filter(|t| times[*t][3] > 0).or_else(|| crit.iter().copied().filter(|i| times[*i][3] > 0).max_by_key(|i| (c.techs[*i].tier, times[*i][3])));
     while let Some(i) = at {
         path.push(i);
         let mut pre = Vec::new();

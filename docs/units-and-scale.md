@@ -177,7 +177,8 @@ referee's diagnostics) are `u64`; a region and an age cell stay `u32`.
   2.0. `F_dev = clamp(10,000 - 1,500 x literate share - 600 x urban share - 600 x
   child survival gain - 600 x prosperity, 6,800, 10,000)`, +500 with C046; prosperity
   enters with the consumption slice. `F_land` (a calibration addition, not in the
-  design) = `clamp(10,000 + 1,500 x (0.465 - P/K) / 0.465, 6,000, 10,500)` where `K` is
+  design) = `clamp(10,000 + 1,500 x (0.48 - P/K) / 0.48, 6,000, 10,500)` (0.465 in
+  slice 6r, 0.48 since 6c) where `K` is
   what the region's land can feed with what the government knows (wild food at a
   third, fields at every level the land and practices allow by the best known
   method, pastures and fishing grounds at half), at most its water capacity: the
@@ -1023,3 +1024,53 @@ research and reform work by `1 + work_bp x (regions - 48) / 48`. Calibrated on t
 60-region Standard map (now the default; presets 30, 60, 90, 120, 200): the larger
 generated world develops more slowly than the 48-region one (seats are farther apart),
 so the evidence factor is 0.95 there (`evidence_bp` -2,000) and work is unscaled.
+
+## 16. The deeper technology and practice graphs (ruleset 3.0, slices 6b and 6c)
+
+Design chapter 39, sections 1-3, as implemented in `sim::knowledge`, `sim::culture` and
+`content/{technologies,practices,pacing,families}.json`.
+
+- **Sizes**: 300 technologies (138 of the atlas, 19 of doc 37, 143 of doc 39) and 174
+  practices (64, 3 of doc 37, 107 of doc 39). The victory-critical sets stay at 84 and 35
+  (`content/families.json`; `scripts/critical_set.py --check`).
+- **Per-node costs**: `work = tier work x work_bp / 10,000`, `H = H[tier or pacing era] x
+  hint_bp / 10,000`, minimum months at least the tier's (48 for new tier 8-9 nodes).
+  Critical nodes keep 10,000/10,000. Existing non-critical nodes of tiers 6-7 carry
+  `work_bp` 11,250 and `hint_bp` 11,500, tiers 8-9 12,500 and 12,500; doc 39's new nodes
+  carry half of the draft's surcharge above 10,000 (calibrated, slice 6c).
+- **Families** (15): installed base = operating levels of works and methods (and
+  formations, per thousand soldiers) whose requirement names the member; an understood
+  member without works counts one. Incumbent share `s` in basis points (at most 5,000 for
+  an understood-only incumbent). On every other member: evidence `x (10,000 - 6,000 s)`,
+  investigation work `x (10,000 + 5,000 s)`, and at `s >= 7,500` its evidence held below
+  discovery (2.5 H) unless a peaceful contact has prototyped it. Each understood refuting
+  node halves what is left of both locks and removes the cap. Critical members: evidence at
+  least 8,000, work at most 11,000, no cap. A revisit study costs 25% of the node's work
+  (at least 24 months) and lifts the evidence lock and cap for 240 months.
+- **Practice drags**: craft guilds without industrial employment, interchangeable parts
+  x0.85; a state church, Science-tag evidence x0.90 (the toleration-history exemption is
+  not built); political police x0.95 on Science; mercantilism, contact evidence x0.80;
+  mass surveillance, public-key cryptography and fibre optics x0.80. Locks and drags
+  together never take a critical node below x0.80.
+- **Fragile know-how**: four nodes; understood but unused by any operating works for
+  1,200 months without established archives (C013) or monastic orders (C088), it falls
+  back to discovered with its evidence kept and half the work to relearn.
+- **Investigation lines**: `4 + isqrt(research staff / 5,000)`, at most 24, research staff
+  being research capacity over research effectiveness (posts). Standing orders: a
+  research agenda starts its items at priority 4, automatic research at priority 6 and
+  never into the last two lines, so what a seat orders gets research capacity first.
+- **Practice costs by era** (0-8): evidence 1,200 / 4,000 / 10,000 / 24,000 / 75,000 /
+  200,000 / 360,000 / 600,000 / 900,000; reform work 10 / 40 / 90 / 160 / 450 / 1,100 /
+  1,800 / 2,800 / 4,000 thousand worker-months (eras 4-8 at 1.5-2x the design's,
+  calibrated in slice 6c); media 0 / 3 / 8 / 15 / 30 / 55 / 90 / 140 / 200
+  thousand lots; minimum months 24 / 60 / 60 / 72 / 84 / 96 / 108 / 120 / 120; load 0 / 0 /
+  0 / 1 / 1 / 2 / 2 / 3 / 3. Critical practices keep the catalogue-group costs of ruleset
+  2.0 (at most 12,000 evidence and 260 k worker-months, three months). Adoption after a
+  reform `x 10,000 / (10,000 + 1,500 x era)`.
+- **Institutions**: capacity `20 + 2 x admin office levels (at most 30) + 10` for each of
+  C026, C036, C041 or C042, C050, C119 (the design's 3 per level, calibrated); load above
+  capacity: stability -1 per 4 points and reform work x1.5. Reform slots `1 + C026 + C036 +
+  C050`. A repeal runs at least 24 months (a quarter of the reform's work) with stability
+  -2 while it runs; the practice returns to recognized with adoption 0. Tension pairs
+  both established: stability -2 each and both adopt at half speed. Tradition
+  institutions (C168-C174) are not recognizable before traditions exist (slice 13).

@@ -1,0 +1,123 @@
+Ruleset 3.0 slice 6c: the deeper practice graph, and the final calibration of slices 6r-6c.
+Ruleset bts-rules/3.0.0-s6c, content bts-content/3.0.0-s6c, protocol bts-protocol/2.1,
+policy bts-native/1.2.0. 300 technologies, 174 practices. 32 matches, standard calendar,
+60-region Earth-like world, hard,medium,medium,easy, eval-0..31. Release build, Apple M5 Pro.
+   bts run --matches 32 --seed eval --ai hard,medium,medium,easy --curve eval.csv
+   python3 scripts/calib_report.py eval.csv --techs 300 --practices 174
+
+Timing (single match, no contention, after this slice):
+- native, cargo test --release -p bts-ai --test perf -- --ignored (riverland, 60 regions,
+  three native seats and a fourth): 525 rounds in 38.7 s; per round p50 61.9 ms, p95
+  137.4 ms, max 191.2 ms (budget p95 <= 150 ms, match <= 60 s; slice 6: 34.6 s, 132 ms).
+- WebAssembly (Node, apps/web/scripts/wasm-calendar-bench.mjs eval-0): 51.1 s; per round
+  p50 74.3 ms, p95 213.3 ms, max 297.6 ms (budget p95 <= 400 ms).
+
+Calibration steps of this slice (32 seeds each): c1 merged practices with industrial
+thresholds of tiers 4-5 at 0.75 M / 0.8 M and the scientific method at 5 M; c2 half of
+doc 39's work surcharges above 10,000 and institutional capacity at 2 per office level;
+c3 the native AI keeps its reform agenda within capacity less four, investigation lines
+4 + isqrt(staff / 5,000); c4 practice evidence and work of eras 4-8 at 1.5-2x the design's;
+c5 the land factor neutral at 48% of capacity (was 46.5%); c6 (below) research agenda
+items at priority 4 and automatic research at 6, never into the last two lines.
+
+Against the targets
+- Population (design table 36 §3.1, +-35%): the median seat is within it at 1000 BC, AD 1,
+  1000, 1500 and 1700 (1.11, 0.71, 0.81, 0.75, 0.65); 3000 BC 1.99x; 1800 0.56; 1900-2200
+  0.27-0.37; world peak about 0.96 B against 1.9-3.75 B. The slice-6r batch had 1500-1900
+  in band and 2000-2200 at 0.3-0.5; the larger graphs cost the 1800-1950 rows (the leaders
+  still boom: upper quartile 55 M in 1800, 112 M in 1900).
+- Era windows (table 36 §2.7, median seat): every milestone from storage (T007) to
+  electricity (T100) in window or within 20 years except T024 masonry (1,285 years early,
+  as in every slice), T030 recording media (270 early) and T036 propellants (115 early);
+  the scientific method and programmable computers 20 years late; orbital transport T142
+  120 years late; fission and the jump tier reached by a minority (47, 4 and 3 of 128 seats).
+- Technology completion at AD 2300 (doc 39 table 1.3): leading seat median 66% (target
+  70-85%), median seat 59% (45-65%), highest ever 268/300 (nobody completes the graph).
+- Practice completion at AD 2300 (table 2.4): leading seat median 56% (50-65%), median seat
+  55% (35-50%, missed), highest ever 101/174 = 58% (never above 75%). Nearly every seat
+  reaches the same ceiling of about 96-101 practices by 2300 (one side of each of the 17
+  exclusive groups, no tradition institutions, the off-world three behind T170, late hard
+  requirements): raising the late costs 1.5-2x (c4) and tightening capacity moved nothing,
+  so the median target needs either dearer or more load-bound late practices than the
+  design's table, or a native AI that holds fewer; not done.
+
+curve c6.csv: 32 matches, 96000 seat-decade rows; targets scaled by 60/48 for the world
+
+Population of the median seat (IQR over seats with land) and the world (median over matches)
+    date    median                 IQR   target  ratio |     world    target  ratio
+ 5000 BC     242 k     240 k-245 k        240 k   1.01 |     969 k     1.2 M   0.80
+ 3000 BC     1.6 M     864 k-1.9 M        800 k   1.99 |     5.8 M     3.8 M   1.55
+ 1000 BC     2.8 M     1.8 M-3.4 M        2.5 M   1.11 |    10.8 M    12.5 M   0.86
+    AD 1     3.5 M     2.2 M-4.5 M        5.0 M   0.71 |    13.9 M    25.0 M   0.55
+ AD 1000     6.5 M     2.7 M-8.6 M        8.0 M   0.81 |    23.8 M    40.0 M   0.59
+ AD 1500     8.2 M     3.4 M-11.6 M      11.0 M   0.75 |    32.8 M    56.2 M   0.58
+ AD 1700     9.8 M     4.1 M-18.9 M      15.0 M   0.65 |    76.1 M    75.0 M   1.01
+ AD 1800    11.2 M     4.9 M-54.6 M      20.0 M   0.56 |   126.1 M   106.2 M   1.19
+ AD 1900    21.1 M     5.6 M-112.3 M     60.0 M   0.35 |   223.2 M   312.5 M   0.71
+ AD 1950    41.1 M     6.5 M-145.2 M    110.0 M   0.37 |   260.8 M   562.5 M   0.46
+ AD 2000    72.1 M     7.1 M-185.0 M    230.0 M   0.31 |   366.7 M    1.25 B   0.29
+ AD 2100   108.2 M     9.3 M-255.6 M    400.0 M   0.27 |   566.8 M    2.12 B   0.27
+ AD 2200   176.4 M    21.4 M-302.4 M    480.0 M   0.37 |   701.0 M    2.50 B   0.28
+ AD 2300   183.4 M    57.5 M-325.1 M          -      - |   798.8 M    2.50 B   0.32
+world peak (median over matches): 955.6 M; target 1.88 B-3.75 B
+
+Era milestones: first sampled decade at which a seat had it (median seat; IQR over seats that reached it)
+ node    median                   IQR  reached              window verdict
+ T007   4530 BC    4640 BC-4372 BC     128/128   4800 BC-4000 BC   in window
+ T008   4590 BC    4705 BC-4530 BC     128/128   4800 BC-4000 BC   in window
+ T010   4390 BC    4530 BC-4150 BC     128/128   4800 BC-4000 BC   in window
+ T011   4105 BC    4290 BC-3817 BC     128/128   4500 BC-3500 BC   in window
+ T015   4090 BC    4180 BC-3950 BC     128/128   4500 BC-3500 BC   in window
+ T025   3015 BC    3190 BC-2797 BC     128/128   3500 BC-2500 BC   in window
+ T022   3015 BC    3192 BC-2825 BC     128/128   3300 BC-2300 BC   in window
+ T023   1310 BC    1460 BC-1110 BC     128/128   1500 BC-600 BC    in window
+ T024   2785 BC    2940 BC-2500 BC     128/128   1500 BC-AD 300    early by 1285
+ T027   1510 BC    1612 BC-1270 BC     128/128   1500 BC-AD 300    early by 10
+ T028    485 BC     890 BC-AD 125      127/128   1500 BC-AD 300    in window
+ T029   1410 BC    1592 BC-1077 BC     128/128   1500 BC-AD 300    in window
+ T030    AD 230      AD 10-AD 447      126/128    AD 500-AD 1300   early by 270
+ T036    AD 385     AD 220-AD 610      121/128    AD 500-AD 1300   early by 115
+ T048   AD 1500    AD 1280-AD 1720     118/128   AD 1350-AD 1550   in window
+  SCI   AD 1720    AD 1505-AD 1880     114/128   AD 1550-AD 1700   late by 20
+ T080   AD 1845    AD 1625-AD 1977     110/128   AD 1750-AD 1850   in window
+ T060   AD 1825    AD 1635-AD 1975     111/128   AD 1750-AD 1850   in window
+ T061   AD 1755    AD 1550-AD 1920     113/128   AD 1750-AD 1850   in window
+ T100   AD 1895    AD 1672-AD 2010     110/128   AD 1850-AD 1920   in window
+ T111   AD 2020    AD 1860-AD 2100     101/128   AD 1940-AD 2000   late by 20
+ T142   AD 2200    AD 1992-AD 2220      90/128   AD 2000-AD 2080   late by 120
+ T147     never    AD 2040-AD 2280      47/128   AD 2060-AD 2140   median seat never
+ T162     never    AD 2142-AD 2257       4/128   AD 2150-AD 2220   median seat never
+ T167     never    AD 2235-AD 2305       3/128   AD 2180-AD 2260   median seat never
+
+technologies understood at AD 2300: leading seat median 66% (range 22%-82%); median seat 59% (range 21%-66%); highest ever 268/300
+practices established at AD 2300: leading seat median 56% (range 47%-57%); median seat 55% (range 42%-56%); highest ever 101/174
+
+Fertility diagnostics of the median seat (population-weighted, last month before the sample)
+    date   food  intens  pop/cap   land
+ 5000 BC      0       0        0      0
+ 3000 BC  10000    4013     3972  10207
+ 1000 BC  10000    3849     3215  10317
+    AD 1  10000    3894     3808  10204
+ AD 1000  10000    3783     5202   9843
+ AD 1500  10000    3881     4174  10145
+ AD 1700  10000    3885     3997  10187
+ AD 1800  10000    3771     4289  10123
+ AD 1900  10000    3713     5321   9982
+ AD 1950  10000    3748     4877  10000
+ AD 2000   7376    2780     5501  10000
+ AD 2100   8564    3114    34809  10000
+ AD 2200   7612    2789     8085  10000
+ AD 2300  10000    3696     5322  10000
+
+-------- the Expert test policy skeleton: --ai expert,hard,medium,medium, eval-0..31 --------
+No match has a winner (as in every all-AI batch since slice E: completing the victory
+contract is slice 17's work). The Expert seat is not yet better than a Hard seat: at AD
+2300 the Expert seat (seat 0) understands a median of 194 technologies against 195 for
+the Hard seat; it reaches orbital transport (T142) in 27 of 32 matches (median AD 2000)
+against 25 for the Hard seat (median 1920); T167 was reached by 4 seats of 128 (one of them
+the Expert seat, in 2430). doc 39 section 8.4 asks the Expert policy to win >= 80% with a
+median win 2100-2200: far from met. The skeleton plays the critical path only in research
+(75% of lines, a larger goal weight); education 30 years ahead, the launch complex,
+station and yard as soon as their requirements are discovered, and integration from 1950
+are still the Hard policy's. The paired smart-vs-naive test (ai_paired_choice) and the
+64-seed ai_no_self_block / ai_route_kept tests of doc 39 section 3.5 were not run.

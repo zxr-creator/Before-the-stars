@@ -60,6 +60,7 @@ function controllerLabel(controller: string, agent?: string): string {
     case 'native_easy': return t('AI, easy');
     case 'native_medium': return t('AI, medium');
     case 'native_hard': return t('AI, hard');
+    case 'native_expert': return t('AI, expert (test)');
     default: return controller;
   }
 }

@@ -1,7 +1,329 @@
 {
   "_doc": "Rival technology families (design chapter 39, section 1.4), exclusive practice groups (section 2.2) and the victory-critical sets (section 0.2). Read by crates/bts-engine/src/content.rs and by the native AI's public tables.",
-  "families": [],
-  "exclusive_groups": [],
+  "families": [
+    {
+      "id": "F01",
+      "name": "Script",
+      "kind": "approach",
+      "members": [
+        "T188",
+        "T189"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F02",
+      "name": "Field system",
+      "kind": "approach",
+      "members": [
+        "T195",
+        "T196"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F03",
+      "name": "Theory of disease",
+      "kind": "doctrine",
+      "members": [
+        "T197",
+        "T053"
+      ],
+      "refuted_by": [
+        "T045",
+        "T212",
+        "T214"
+      ],
+      "critical_members": [
+        "T053"
+      ]
+    },
+    {
+      "id": "F04",
+      "name": "Printing",
+      "kind": "standard",
+      "members": [
+        "T200",
+        "T048"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F05",
+      "name": "Signalling",
+      "kind": "standard",
+      "members": [
+        "T218",
+        "T219"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F06",
+      "name": "Bulk steel",
+      "kind": "approach",
+      "members": [
+        "T222",
+        "T223"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F07",
+      "name": "Nitrogen source",
+      "kind": "approach",
+      "members": [
+        "T226",
+        "T095",
+        "T288",
+        "T312"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F08",
+      "name": "Electric distribution",
+      "kind": "standard",
+      "members": [
+        "T227",
+        "T228"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F09",
+      "name": "Aviation",
+      "kind": "approach",
+      "members": [
+        "T230",
+        "T038"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F10",
+      "name": "Computing substrate",
+      "kind": "standard",
+      "members": [
+        "T234",
+        "T111"
+      ],
+      "refuted_by": [
+        "T110"
+      ],
+      "critical_members": [
+        "T111"
+      ]
+    },
+    {
+      "id": "F11",
+      "name": "Machine intelligence",
+      "kind": "approach",
+      "members": [
+        "T243",
+        "T116"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F12",
+      "name": "Reactor line",
+      "kind": "standard",
+      "members": [
+        "T248",
+        "T249",
+        "T250",
+        "T251"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F13",
+      "name": "Launch propellant",
+      "kind": "standard",
+      "members": [
+        "T254",
+        "T255",
+        "T256"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F14",
+      "name": "AI hardware",
+      "kind": "standard",
+      "members": [
+        "T261",
+        "T117"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    },
+    {
+      "id": "F15",
+      "name": "Fusion confinement",
+      "kind": "approach",
+      "members": [
+        "T264",
+        "T265"
+      ],
+      "refuted_by": [],
+      "critical_members": []
+    }
+  ],
+  "exclusive_groups": [
+    {
+      "id": "X01",
+      "name": "Early authority",
+      "members": [
+        "C068",
+        "C069"
+      ]
+    },
+    {
+      "id": "X02",
+      "name": "Classical polity",
+      "members": [
+        "C075",
+        "C076"
+      ]
+    },
+    {
+      "id": "X03",
+      "name": "Revenue collection",
+      "members": [
+        "C078",
+        "C079"
+      ]
+    },
+    {
+      "id": "X04",
+      "name": "Land and service",
+      "members": [
+        "C086",
+        "C087"
+      ]
+    },
+    {
+      "id": "X05",
+      "name": "Sovereignty",
+      "members": [
+        "C101",
+        "C102"
+      ]
+    },
+    {
+      "id": "X06",
+      "name": "Faith and state",
+      "members": [
+        "C103",
+        "C104"
+      ]
+    },
+    {
+      "id": "X07",
+      "name": "Trade doctrine",
+      "members": [
+        "C107",
+        "C112"
+      ]
+    },
+    {
+      "id": "X08",
+      "name": "Army recruitment",
+      "members": [
+        "C114",
+        "C115"
+      ]
+    },
+    {
+      "id": "X09",
+      "name": "Economic coordination",
+      "members": [
+        "C127",
+        "C128"
+      ]
+    },
+    {
+      "id": "X10",
+      "name": "Broadcast media",
+      "members": [
+        "C131",
+        "C132"
+      ]
+    },
+    {
+      "id": "X11",
+      "name": "Data and the state",
+      "members": [
+        "C139",
+        "C140"
+      ]
+    },
+    {
+      "id": "X12",
+      "name": "Off-world claims",
+      "members": [
+        "C149",
+        "C150"
+      ]
+    },
+    {
+      "id": "X13",
+      "name": "Settler recruitment",
+      "members": [
+        "C156",
+        "C157"
+      ]
+    },
+    {
+      "id": "X14",
+      "name": "Automation dividend",
+      "members": [
+        "C160",
+        "C161"
+      ]
+    },
+    {
+      "id": "X15",
+      "name": "Central authority",
+      "members": [
+        "C041",
+        "C042"
+      ],
+      "existing": true
+    },
+    {
+      "id": "X16",
+      "name": "Highest administration",
+      "members": [
+        "C051",
+        "C053"
+      ],
+      "existing": true
+    },
+    {
+      "id": "X17",
+      "name": "World order",
+      "members": [
+        "C061",
+        "C062",
+        "C063"
+      ],
+      "existing": true
+    }
+  ],
   "critical_technologies": [
     "T001",
     "T002",

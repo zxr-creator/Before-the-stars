@@ -5,3 +5,17 @@ declare module 'virtual:lore/*' {
   const pack: { tech: Record<string, Passage>; practice: Record<string, Passage> };
   export default pack;
 }
+// Public catalogue facts for arranging disclosed tree cards (vite.config.ts `bts-tree-tables`).
+declare module 'virtual:tree-tables' {
+  const tables: {
+    /** Technology English name -> era band 0-9. */
+    band: Record<string, number>;
+    /** Technology field title -> catalogue letter (A-S) and tradition key for branches. */
+    fields: Record<string, { letter: string; tradition: string | null }>;
+    /** Rival family name -> kind ('standard' | 'approach' | 'doctrine') and refuting technology names. */
+    families: Record<string, { kind: string; refuted_by: string[] }>;
+    /** Practice English name -> exclusive group name. */
+    exclusive: Record<string, string>;
+  };
+  export default tables;
+}

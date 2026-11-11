@@ -39,6 +39,7 @@ import { Emblem } from './theme/emblem';
 import { OverlayFrame, StatePlate } from './theme/overlay';
 import { Title } from './theme/title';
 import { TechTree, CivicsTree } from './trees';
+import { EraScreen } from './era';
 import { Almanac } from './tutorial/almanac';
 import { RegionalWorks, openWorks } from './economy/Construction';
 import { TutorialLayer } from './tutorial';
@@ -325,6 +326,7 @@ const stateRef: { current: AppState } = { current: null as unknown as AppState }
 function Overlay({ state }: { state: AppState }) {
   if (state.overlay === 'tech') return <TechTree />;
   if (state.overlay === 'civics') return <CivicsTree />;
+  if (state.overlay === 'era') return <EraScreen />;
   if (state.overlay === 'almanac') return <Almanac />;
   if (state.overlay === 'orders' && state.obs) return <StandingOrders obs={state.obs} arg={state.overlayArg} />;
   if (state.overlay === 'works' && state.obs) {

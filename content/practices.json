@@ -1,514 +1,1841 @@
 [
- {
-  "id": "C001",
-  "name": "Oral transmission and shared memory",
-  "group": "Community, land, and early organization",
-  "prereq": "",
-  "requirements": "Accessible narrators/listeners and teaching time",
-  "behavior": "Preserves skills, place names, experience; consumes time and has limited reach/copying"
- },
- {
-  "id": "C002",
-  "name": "Kin mutual aid and care obligations",
-  "group": "Community, land, and early organization",
-  "prereq": "C001",
-  "requirements": "Actual carers, dependents, distributable provision",
-  "behavior": "Redeemable care/assistance; may displace labor or favor kin"
- },
- {
-  "id": "C003",
-  "name": "Temporary task leadership",
-  "group": "Community, land, and early organization",
-  "prereq": "C001",
-  "requirements": "Shared tasks, recognized participants or actual command",
-  "behavior": "Limited migration/hunting/construction authority; return powers as agreed after the task, no unlimited renewal"
- },
- {
-  "id": "C004",
-  "name": "Shared food storage and distribution",
-  "group": "Community, land, and early organization",
-  "prereq": "C002 & C003",
-  "requirements": "Storable food, custodians, explicit withdrawal rights",
-  "behavior": "Shares shortages among participants; spoilage, guarding, allocation disputes remain"
- },
- {
-  "id": "C005",
-  "name": "Demonstration apprenticeships",
-  "group": "Community, land, and early organization",
-  "prereq": "C001",
-  "requirements": "Practitioners, tools, learner time",
-  "behavior": "Expands specific skills; instructors cannot teach unknown knowledge"
- },
- {
-  "id": "C006",
-  "name": "Seasonal cooperation calendars",
-  "group": "Community, land, and early organization",
-  "prereq": "C001 & C003",
-  "requirements": "Repeatable seasonal signals, record/oral custodians",
-  "behavior": "Coordinates farming, migration, maintenance; wrong records cause timing errors, not culture points"
- },
- {
-  "id": "C007",
-  "name": "Common land use",
-  "group": "Community, land, and early organization",
-  "prereq": "C002 & C006",
-  "requirements": "Identifiable territory, participants, coordination/protection",
-  "behavior": "Rotation, gathering, grazing, recovery; boundaries and monitoring consume resources"
- },
- {
-  "id": "C008",
-  "name": "Water-management deliberation",
-  "group": "Community, land, and early organization",
-  "prereq": "C003 & C007",
-  "requirements": "Workable farmland, water, actual irrigation structures",
-  "behavior": "Allocates maintenance and water sequence; real upstream/downstream conflict"
- },
- {
-  "id": "C009",
-  "name": "Household inheritance and property responsibility",
-  "group": "Community, land, and early organization",
-  "prereq": "C002 & C011",
-  "requirements": "Identifiable assets, succession process, debt-bearing entities",
-  "behavior": "Intergenerational investment/maintenance; may concentrate assets or exclude nonheirs"
- },
- {
-  "id": "C010",
-  "name": "Mutual-aid granaries and disaster obligations",
-  "group": "Community, land, and early organization",
-  "prereq": "C004 & C011",
-  "requirements": "Real storage, shares, accounts, executors",
-  "behavior": "Rule-based assistance; withdrawal requires actual food, no unlimited promise"
- },
- {
-  "id": "C011",
-  "name": "Witnessed commitments and dispute mediation",
-  "group": "Community, land, and early organization",
-  "prereq": "C001 & C003",
-  "requirements": "Accessible witnesses, parties, limited enforcement",
-  "behavior": "Oral/material commitments support early contracts; no universal risk-free arbitration"
- },
- {
-  "id": "C012",
-  "name": "Visitor reception and passage customs",
-  "group": "Community, land, and early organization",
-  "prereq": "C011",
-  "requirements": "Reachable outside groups, reception supplies, security",
-  "behavior": "Limited trade/learning contact; no automatic membership, property, or trust"
- },
- {
-  "id": "C013",
-  "name": "Recordkeeping offices and public archives",
-  "group": "Community, land, and early organization",
-  "prereq": "C005 & C011",
-  "requirements": "Checkable recording, recorders, durable media",
-  "behavior": "Accounts, duties, cases survive individuals; offices can be monopolized"
- },
- {
-  "id": "C014",
-  "name": "Religious relief and teaching organizations",
-  "group": "Community, land, and early organization",
-  "prereq": "C004 & C013",
-  "requirements": "An actually founded fictional religion, participants, lawful provision, doctrinal permission",
-  "behavior": "Actual adherent relief/teaching; may limit recipients or curricula"
- },
- {
-  "id": "C015",
-  "name": "Local public mutual aid",
-  "group": "Community, land, and early organization",
-  "prereq": "C004 & C011",
-  "requirements": "Members beyond one household, common rules, real provision",
-  "behavior": "Mutual aid without formal religion; recruitment, supervision, finance cost resources"
- },
- {
-  "id": "C016",
-  "name": "Rotating defense and service obligations",
-  "group": "Community, land, and early organization",
-  "prereq": "C003 & C011",
-  "requirements": "Weapons, eligible members, supplies, rolls",
-  "behavior": "Allocates defense and labor withdrawal; arrears, exemptions, coercion affect participation"
- },
- {
-  "id": "C017",
-  "name": "Transferable land-use contracts",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C007 & C009 & C013",
-  "requirements": "Enforceable boundaries, terms, rental/dispute records",
-  "behavior": "Leasing/improvement; transfers existing rights, creates no land"
- },
- {
-  "id": "C018",
-  "name": "Craft guilds and qualification transmission",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C005 & C013",
-  "requirements": "Concentrated craft/product demand, experts, training spaces",
-  "behavior": "Quality/apprenticeships; entry/transmission restrictions may become exclusion"
- },
- {
-  "id": "C019",
-  "name": "Urban public affairs",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "(C008 | C015) & C013",
-  "requirements": "Stable settlements, surplus, housing/water/sanitation staff",
-  "behavior": "Extends maintenance duties to towns; waterworks or mutual aid can supply experience; titles create no output"
- },
- {
-  "id": "C020",
-  "name": "Written adjudication and procedure",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C011 & C013",
-  "requirements": "Stable records, intelligible rules, adjudicators/executors",
-  "behavior": "Predictable procedures; powerful actors may still control interpretation/access/enforcement"
- },
- {
-  "id": "C021",
-  "name": "Merchant arbitration and escrow",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C012 & C020",
-  "requirements": "Real trades, accessible custody, assets, acceptance capacity",
-  "behavior": "Cross-organization delivery; custody consumes space/staff and can fail in war or isolation"
- },
- {
-  "id": "C022",
-  "name": "Joint ventures and revenue accounts",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C013 & C021",
-  "requirements": "Accumulable assets, measurement, accounts, enforceable distribution",
-  "behavior": "Pools existing cash/goods, no automatic bank-credit creation; losses follow rights"
- },
- {
-  "id": "C023",
-  "name": "Curricula and sustained schools",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C005 & C013",
-  "requirements": "Qualified teachers, reliable texts/teaching records, student support, lasting site",
-  "behavior": "Repeatable teaching; a small school is not mass education; advanced courses need knowledge/practice"
- },
- {
-  "id": "C024",
-  "name": "Translation and interregional archives",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C012 & C013",
-  "requirements": "Actual knowledge, translators, transport/communication, copying",
-  "behavior": "Broader sources; translation error, rights, custody costs persist"
- },
- {
-  "id": "C025",
-  "name": "Task examinations and professional qualifications",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C020 & C023",
-  "requirements": "Testable jobs, examiners, equipment, available roles",
-  "behavior": "Capability-based selection; exams can be monopolized, certificates do not replace current ability"
- },
- {
-  "id": "C026",
-  "name": "Specialized administration and budget records",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C019 & C020 & C025",
-  "requirements": "Continuing taxes/in-kind supply, qualified staff, communication, responsibilities",
-  "behavior": "Local/central functions; collection, statistics, audit, coordination consume hours"
- },
- {
-  "id": "C027",
-  "name": "Scholarly patronage and specialist colleges",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "(C022 | C026) & C023",
-  "requirements": "Surplus, teachers/scholars, records, research instruments",
-  "behavior": "Public/joint sponsorship supports study; sponsors may constrain topics, colleges do not automatically know science"
- },
- {
-  "id": "C028",
-  "name": "Public argument and peer criticism",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C024 & (C027 | C023 | C030)",
-  "requirements": "Records, communication, supported discussants, actual space for dissent",
-  "behavior": "Colleges, schools, or craft exchange formulate questions; argument cannot replace measurement"
- },
- {
-  "id": "C029",
-  "name": "Reproducible-evidence communities",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C025 & C028",
-  "requirements": "Comparisons, quantitative measurement, reproducible science, independent samples/teams",
-  "behavior": "Shares failures and replication, consumes experiment budgets, cannot vote physical laws into being"
- },
- {
-  "id": "C030",
-  "name": "Cross-craft technical exchange",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C018 & C024",
-  "requirements": "Contacting craftspeople, demonstration equipment, document/teaching rights",
-  "behavior": "Combines specialties; may weaken monopoly and needs compensation/confidentiality"
- },
- {
-  "id": "C031",
-  "name": "Bounded technology licenses and result rights",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C020 & C021 & C030",
-  "requirements": "Defined delivery, existing lawful rights, acceptance/enforcement",
-  "behavior": "Separately trades rights, drawings, teaching, guarantees; licenses cannot erase memory"
- },
- {
-  "id": "C032",
-  "name": "Public basic education",
-  "group": "Cities, exchange, and knowledge organizations",
-  "prereq": "C019 & C023 & C026",
-  "requirements": "Teacher reproduction, inexpensive materials, child/adult time, support, sustainable finance",
-  "behavior": "Broadens foundational skills; a law cannot graduate everyone or require uniform belief"
- },
- {
-  "id": "C033",
-  "name": "Industrial employment and labor contracts",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C020 & (C022 | C026) & C025",
-  "requirements": "Sustainable plants, wage labor, cash/in-kind pay, jobs, exit conditions",
-  "behavior": "Public/joint institutions can employ at scale; pay, injury, care, unemployment affect households/factions"
- },
- {
-  "id": "C034",
-  "name": "Labor representation and collective bargaining",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C033 & C011",
-  "requirements": "Shared occupations, organizing channels, member support, bargaining rights",
-  "behavior": "Negotiates pay/safety/hours; participants bear stoppage losses, no automatic output gain"
- },
- {
-  "id": "C035",
-  "name": "Professional enterprise governance",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C022 & C026 & C033",
-  "requirements": "Productive capital, manager/owner rights, accounts, enforcement",
-  "behavior": "Separates operation from investment; agency/conflicting authority costs remain"
- },
- {
-  "id": "C036",
-  "name": "Public-service budgets and responsibility",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C019 & C026",
-  "requirements": "Sustainable revenue, facilities, acceptance, public or authorized checks",
-  "behavior": "Continuing housing/sanitation/road obligations; promises need real spending capacity"
- },
- {
-  "id": "C037",
-  "name": "Professional command and war responsibility",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C016 & C025 & C026",
-  "requirements": "Qualified command, communication, training, supply, casualty/restraint records",
-  "behavior": "Persistent orders/logistics/postwar responsibility; professionals still consume people/funding"
- },
- {
-  "id": "C038",
-  "name": "Property registers and responsibility succession",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C009 & C020 & C026",
-  "requirements": "Real assets/control provenance, reliable records, enforcement",
-  "behavior": "Collateral, inheritance, mergers, bankruptcy; registering unknown assets creates no control"
- },
- {
-  "id": "C039",
-  "name": "Basic-provision responsibility and risk sharing",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C010 & C036",
-  "requirements": "Actual food/water/care/funding, eligible recipients, sharing rules",
-  "behavior": "Reduces some household volatility and supports study; promised welfare is not delivered service"
- },
- {
-  "id": "C040",
-  "name": "Bounded public power and independent review",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C020 & C026 & C028",
-  "requirements": "Authority documents, relatively independent reviewers, enforceable correction/appeal",
-  "behavior": "Limits commands and assigns responsibility; takes time and guarantees no correct vote"
- },
- {
-  "id": "C041",
-  "name": "Hierarchical appointment and inspection",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C020 & C026 & C025",
-  "requirements": "Appointment chain, inspection records, rotation, removal/correction powers",
-  "behavior": "Coordinates large projects; filtering and superior mistakes need actual review"
- },
- {
-  "id": "C042",
-  "name": "Multilevel autonomy and federal contracts",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C021 & C026 & C040",
-  "requirements": "Members, reserved powers, shared budget/security, enactment process",
-  "behavior": "Delegated government; negotiation takes time and does not share all private assets"
- },
- {
-  "id": "C043",
-  "name": "Standing inter-polity dispute arrangements",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C020 & C021 & C037",
-  "requirements": "Recognized parties, communication, adjudication, credible security",
-  "behavior": "Reduces some conflict/performance risk; without enforcement it is only a claim"
- },
- {
-  "id": "C044",
-  "name": "Research commons and specialization networks",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C024 & C029 & C031",
-  "requirements": "Labs, talent, funding, shareable results, license limits",
-  "behavior": "Shared data and divided replication; free riding, attribution, dependence enter contracts"
- },
- {
-  "id": "C045",
-  "name": "Hazardous-engineering review and responsibility",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C029 & C036 & (C037 | C040 | C041)",
-  "requirements": "Measurable risk, independent inspectors, stop-work rights, incident supply, compensation",
-  "behavior": "Civil or command-based review supports high-energy/nuclear/life-support work; costs/delay, no zero-risk promise"
- },
- {
-  "id": "C046",
-  "name": "Lifelong training and transition support",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C025 & C032 & C033",
-  "requirements": "Updated courses, teachers, practice jobs, learner provision",
-  "behavior": "Supports conversion; preserves old skills/opportunity costs, no monthly recreation of labor"
- },
- {
-  "id": "C047",
-  "name": "Accountable data use and exchange",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C020 & C031 & (C035 | C026)",
-  "requirements": "Networks, identity/access records, data authority, measurement, appeal",
-  "behavior": "Corporate or public arrangements define collection/use/transfer/liability; algorithms cannot fill missing truth"
- },
- {
-  "id": "C048",
-  "name": "Corporate network jurisdictions",
-  "group": "Industry, public governance, and computational society",
-  "prereq": "C035 & C038 & C047",
-  "requirements": "Corporate infrastructure, chartered governance/service rights, residents, employment",
-  "behavior": "Corporate service/access control may coordinate or entrench rent seeking; no automatic national cyberpunk"
- },
- {
-  "id": "C049",
-  "name": "Verifiable algorithmic advisers",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C029 & C045 & C047",
-  "requirements": "Validated models, authorized data, inference compute, human review, error records",
-  "behavior": "Bounded advice; government retains authority, advice is not truth"
- },
- {
-  "id": "C050",
-  "name": "Bounded algorithmic administration",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C026 & C047 & C049",
-  "requirements": "Auditable computing, scope, shutdown/degradation, authority",
-  "behavior": "Delegated scheduling/review; data errors, outages, maintenance, appeal remain costly"
- },
- {
-  "id": "C051",
-  "name": "Reserved human powers and technical restraint",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C040 & C049",
-  "requirements": "Executable human review/alternative jobs, boundaries, recovery",
-  "behavior": "Retains human paths; not free immunity, and prohibited services cannot still be secretly enjoyed"
- },
- {
-  "id": "C052",
-  "name": "Shared operation of network infrastructure",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C034 & C036 & C047",
-  "requirements": "Ownership/operating rights, contributors, technicians, common procedures",
-  "behavior": "Community/public/cooperative operation still needs coordination, maintenance, capital"
- },
- {
-  "id": "C053",
-  "name": "AI-led highest administration",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "(C041 | C040) & C045 & C050",
-  "requirements": "High-autonomy infrastructure, lawful highest authority, independent audit, actual handover, energy/maintenance",
-  "behavior": "Hierarchical or bounded institutions may authorize AI; continuing performance, no consciousness assumption or automatic victory"
- },
- {
-  "id": "C054",
-  "name": "Augmented-person qualifications and membership",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C025 & C040 & C047",
-  "requirements": "Actual augmentation/medicine, safety, identity, responsibility",
-  "behavior": "Governs access and qualifications; laws create no devices and unaugmented people do not automatically lose rights"
- },
- {
-  "id": "C055",
-  "name": "Ecological cycles and resource responsibility",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C007 & C036 & C045",
-  "requirements": "Measurable cycles, farm/industry cooperation, maintenance, damage responsibility",
-  "behavior": "Land, recycling, life provision as continuing duties; cycles still use energy and incur losses"
- },
- {
-  "id": "C056",
-  "name": "Intergenerational engineering commitments",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C038 & C039 & C045",
-  "requirements": "Asset/duty records, sustainable finance, maintenance succession, revision",
-  "behavior": "Supports long projects; cannot bind all future choices or erase debt through regime change"
- },
- {
-  "id": "C057",
-  "name": "Authority under delayed communication",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C026 & C037 & (C040 | C041 | C043)",
-  "requirements": "Measured delay, local executors, scope, lost-contact/acknowledgment procedures",
-  "behavior": "Bounded remote autonomy; central commands must arrive; internal delegation can develop this independently"
- },
- {
-  "id": "C058",
-  "name": "Habitat life-support contracts",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C036 & C045 & C055",
-  "requirements": "Actual vulnerable/closed habitats, training, reserves, maintenance, emergency powers",
-  "behavior": "Air/water/energy/evacuation duties; nationality cannot exclude residents from already assumed provision"
- },
- {
-  "id": "C059",
-  "name": "Nonbiological-subject recognition plans",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C020 & C040 & C047",
-  "requirements": "Verifiable identity continuity, capability/liability review; actual subjects and lawful process for rights",
-  "behavior": "Prepares for possible machine/unknown subjects; no claim of established AI consciousness or foreknowledge of aliens"
- },
- {
-  "id": "C060",
-  "name": "Recoverable civilization archives",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C024 & C038 & C045",
-  "requirements": "Distributed redundancy, lasting media, intelligible codes, drills, maintainers",
-  "behavior": "Preserves knowledge/rights/incidents; copied files do not copy people, skills, or independent evidence"
- },
- {
-  "id": "C061",
-  "name": "Constitutional global community",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C036 & C040 & C042 & C056 & C060",
-  "requirements": "Actual administrative/budget/security/adjudication authority and service over required polities/residents",
-  "behavior": "Multilevel global duties; disputes/exit follow a real charter, signatures alone do not integrate"
- },
- {
-  "id": "C062",
-  "name": "Negotiated standing global institutions",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C036 & C043 & C045 & C056 & C060",
-  "requirements": "Actually delegated final adjudication/common security, finance, executors",
-  "behavior": "Broad local autonomy with highest duties; unresolved vetoes or independent foreign-war powers cannot count as integration"
- },
- {
-  "id": "C063",
-  "name": "Globally unified command governance",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "C036 & C037 & C041 & C056 & C060",
-  "requirements": "Services for all residents, succession, correction/appeal, real command coverage",
-  "behavior": "Conquest or amalgamation can establish it; occupation does not replace civil service or sustained compliance costs"
- },
- {
-  "id": "C064",
-  "name": "Common mission charter across sites",
-  "group": "AI authority and interstellar preparation",
-  "prereq": "(C061 | C062 | C063) & C057 & C058 & C060",
-  "requirements": "Remote facilities/tasks, valid delegation, burden sharing, lasting maintenance",
-  "behavior": "Exploration/resources/hazards/lost-contact responsibilities; declarations cannot erase knowledge or existing liabilities"
- }
+  {
+    "id": "C001",
+    "name": "Oral transmission and shared memory",
+    "group": "Community, land, and early organization",
+    "prereq": "",
+    "requirements": "Accessible narrators/listeners and teaching time",
+    "behavior": "Preserves skills, place names, experience; consumes time and has limited reach/copying",
+    "era": 0
+  },
+  {
+    "id": "C002",
+    "name": "Kin mutual aid and care obligations",
+    "group": "Community, land, and early organization",
+    "prereq": "C001",
+    "requirements": "Actual carers, dependents, distributable provision",
+    "behavior": "Redeemable care/assistance; may displace labor or favor kin",
+    "era": 0
+  },
+  {
+    "id": "C003",
+    "name": "Temporary task leadership",
+    "group": "Community, land, and early organization",
+    "prereq": "C001",
+    "requirements": "Shared tasks, recognized participants or actual command",
+    "behavior": "Limited migration/hunting/construction authority; return powers as agreed after the task, no unlimited renewal",
+    "era": 0
+  },
+  {
+    "id": "C004",
+    "name": "Shared food storage and distribution",
+    "group": "Community, land, and early organization",
+    "prereq": "C002 & C003",
+    "requirements": "Storable food, custodians, explicit withdrawal rights",
+    "behavior": "Shares shortages among participants; spoilage, guarding, allocation disputes remain",
+    "era": 0
+  },
+  {
+    "id": "C005",
+    "name": "Demonstration apprenticeships",
+    "group": "Community, land, and early organization",
+    "prereq": "C001",
+    "requirements": "Practitioners, tools, learner time",
+    "behavior": "Expands specific skills; instructors cannot teach unknown knowledge",
+    "era": 0
+  },
+  {
+    "id": "C006",
+    "name": "Seasonal cooperation calendars",
+    "group": "Community, land, and early organization",
+    "prereq": "C001 & C003",
+    "requirements": "Repeatable seasonal signals, record/oral custodians",
+    "behavior": "Coordinates farming, migration, maintenance; wrong records cause timing errors, not culture points",
+    "era": 0
+  },
+  {
+    "id": "C007",
+    "name": "Common land use",
+    "group": "Community, land, and early organization",
+    "prereq": "C002 & C006",
+    "requirements": "Identifiable territory, participants, coordination/protection",
+    "behavior": "Rotation, gathering, grazing, recovery; boundaries and monitoring consume resources",
+    "era": 0
+  },
+  {
+    "id": "C008",
+    "name": "Water-management deliberation",
+    "group": "Community, land, and early organization",
+    "prereq": "C003 & C007",
+    "requirements": "Workable farmland, water, actual irrigation structures",
+    "behavior": "Allocates maintenance and water sequence; real upstream/downstream conflict",
+    "era": 0
+  },
+  {
+    "id": "C009",
+    "name": "Household inheritance and property responsibility",
+    "group": "Community, land, and early organization",
+    "prereq": "C002 & C011",
+    "requirements": "Identifiable assets, succession process, debt-bearing entities",
+    "behavior": "Intergenerational investment/maintenance; may concentrate assets or exclude nonheirs",
+    "era": 0
+  },
+  {
+    "id": "C010",
+    "name": "Mutual-aid granaries and disaster obligations",
+    "group": "Community, land, and early organization",
+    "prereq": "C004 & C011",
+    "requirements": "Real storage, shares, accounts, executors",
+    "behavior": "Rule-based assistance; withdrawal requires actual food, no unlimited promise",
+    "era": 0
+  },
+  {
+    "id": "C011",
+    "name": "Witnessed commitments and dispute mediation",
+    "group": "Community, land, and early organization",
+    "prereq": "C001 & C003",
+    "requirements": "Accessible witnesses, parties, limited enforcement",
+    "behavior": "Oral/material commitments support early contracts; no universal risk-free arbitration",
+    "era": 0
+  },
+  {
+    "id": "C012",
+    "name": "Visitor reception and passage customs",
+    "group": "Community, land, and early organization",
+    "prereq": "C011",
+    "requirements": "Reachable outside groups, reception supplies, security",
+    "behavior": "Limited trade/learning contact; no automatic membership, property, or trust",
+    "era": 0
+  },
+  {
+    "id": "C013",
+    "name": "Recordkeeping offices and public archives",
+    "group": "Community, land, and early organization",
+    "prereq": "C005 & C011",
+    "requirements": "Checkable recording, recorders, durable media",
+    "behavior": "Accounts, duties, cases survive individuals; offices can be monopolized",
+    "era": 1
+  },
+  {
+    "id": "C014",
+    "name": "Religious relief and teaching organizations",
+    "group": "Community, land, and early organization",
+    "prereq": "C004 & C013",
+    "requirements": "An actually founded fictional religion, participants, lawful provision, doctrinal permission",
+    "behavior": "Actual adherent relief/teaching; may limit recipients or curricula",
+    "era": 0
+  },
+  {
+    "id": "C015",
+    "name": "Local public mutual aid",
+    "group": "Community, land, and early organization",
+    "prereq": "C004 & C011",
+    "requirements": "Members beyond one household, common rules, real provision",
+    "behavior": "Mutual aid without formal religion; recruitment, supervision, finance cost resources",
+    "era": 0
+  },
+  {
+    "id": "C016",
+    "name": "Rotating defense and service obligations",
+    "group": "Community, land, and early organization",
+    "prereq": "C003 & C011",
+    "requirements": "Weapons, eligible members, supplies, rolls",
+    "behavior": "Allocates defense and labor withdrawal; arrears, exemptions, coercion affect participation",
+    "era": 0
+  },
+  {
+    "id": "C017",
+    "name": "Transferable land-use contracts",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C007 & C009 & C013",
+    "requirements": "Enforceable boundaries, terms, rental/dispute records",
+    "behavior": "Leasing/improvement; transfers existing rights, creates no land",
+    "era": 1
+  },
+  {
+    "id": "C018",
+    "name": "Craft guilds and qualification transmission",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C005 & C013",
+    "requirements": "Concentrated craft/product demand, experts, training spaces",
+    "behavior": "Quality/apprenticeships; entry/transmission restrictions may become exclusion",
+    "era": 2
+  },
+  {
+    "id": "C019",
+    "name": "Urban public affairs",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "(C008 | C015) & C013",
+    "requirements": "Stable settlements, surplus, housing/water/sanitation staff",
+    "behavior": "Extends maintenance duties to towns; waterworks or mutual aid can supply experience; titles create no output",
+    "era": 1
+  },
+  {
+    "id": "C020",
+    "name": "Written adjudication and procedure",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C011 & C013",
+    "requirements": "Stable records, intelligible rules, adjudicators/executors",
+    "behavior": "Predictable procedures; powerful actors may still control interpretation/access/enforcement",
+    "era": 1
+  },
+  {
+    "id": "C021",
+    "name": "Merchant arbitration and escrow",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C012 & C020",
+    "requirements": "Real trades, accessible custody, assets, acceptance capacity",
+    "behavior": "Cross-organization delivery; custody consumes space/staff and can fail in war or isolation",
+    "era": 1
+  },
+  {
+    "id": "C022",
+    "name": "Joint ventures and revenue accounts",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C013 & C021",
+    "requirements": "Accumulable assets, measurement, accounts, enforceable distribution",
+    "behavior": "Pools existing cash/goods, no automatic bank-credit creation; losses follow rights",
+    "era": 1
+  },
+  {
+    "id": "C023",
+    "name": "Curricula and sustained schools",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C005 & C013",
+    "requirements": "Qualified teachers, reliable texts/teaching records, student support, lasting site",
+    "behavior": "Repeatable teaching; a small school is not mass education; advanced courses need knowledge/practice",
+    "era": 1
+  },
+  {
+    "id": "C024",
+    "name": "Translation and interregional archives",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C012 & C013",
+    "requirements": "Actual knowledge, translators, transport/communication, copying",
+    "behavior": "Broader sources; translation error, rights, custody costs persist",
+    "era": 1
+  },
+  {
+    "id": "C025",
+    "name": "Task examinations and professional qualifications",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C020 & C023",
+    "requirements": "Testable jobs, examiners, equipment, available roles",
+    "behavior": "Capability-based selection; exams can be monopolized, certificates do not replace current ability",
+    "era": 2
+  },
+  {
+    "id": "C026",
+    "name": "Specialized administration and budget records",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C019 & C020 & C025",
+    "requirements": "Continuing taxes/in-kind supply, qualified staff, communication, responsibilities",
+    "behavior": "Local/central functions; collection, statistics, audit, coordination consume hours",
+    "era": 2
+  },
+  {
+    "id": "C027",
+    "name": "Scholarly patronage and specialist colleges",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "(C022 | C026) & C023",
+    "requirements": "Surplus, teachers/scholars, records, research instruments",
+    "behavior": "Public/joint sponsorship supports study; sponsors may constrain topics, colleges do not automatically know science",
+    "era": 2
+  },
+  {
+    "id": "C028",
+    "name": "Public argument and peer criticism",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C024 & (C027 | C023 | C030)",
+    "requirements": "Records, communication, supported discussants, actual space for dissent",
+    "behavior": "Colleges, schools, or craft exchange formulate questions; argument cannot replace measurement",
+    "era": 3
+  },
+  {
+    "id": "C029",
+    "name": "Reproducible-evidence communities",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C025 & C028",
+    "requirements": "Comparisons, quantitative measurement, reproducible science, independent samples/teams",
+    "behavior": "Shares failures and replication, consumes experiment budgets, cannot vote physical laws into being",
+    "era": 3
+  },
+  {
+    "id": "C030",
+    "name": "Cross-craft technical exchange",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C018 & C024",
+    "requirements": "Contacting craftspeople, demonstration equipment, document/teaching rights",
+    "behavior": "Combines specialties; may weaken monopoly and needs compensation/confidentiality",
+    "era": 2
+  },
+  {
+    "id": "C031",
+    "name": "Bounded technology licenses and result rights",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C020 & C021 & C030",
+    "requirements": "Defined delivery, existing lawful rights, acceptance/enforcement",
+    "behavior": "Separately trades rights, drawings, teaching, guarantees; licenses cannot erase memory",
+    "era": 3
+  },
+  {
+    "id": "C032",
+    "name": "Public basic education",
+    "group": "Cities, exchange, and knowledge organizations",
+    "prereq": "C019 & C023 & C026",
+    "requirements": "Teacher reproduction, inexpensive materials, child/adult time, support, sustainable finance",
+    "behavior": "Broadens foundational skills; a law cannot graduate everyone or require uniform belief",
+    "era": 3
+  },
+  {
+    "id": "C033",
+    "name": "Industrial employment and labor contracts",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C020 & (C022 | C026) & C025",
+    "requirements": "Sustainable plants, wage labor, cash/in-kind pay, jobs, exit conditions",
+    "behavior": "Public/joint institutions can employ at scale; pay, injury, care, unemployment affect households/factions",
+    "era": 4
+  },
+  {
+    "id": "C034",
+    "name": "Labor representation and collective bargaining",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C033 & C011",
+    "requirements": "Shared occupations, organizing channels, member support, bargaining rights",
+    "behavior": "Negotiates pay/safety/hours; participants bear stoppage losses, no automatic output gain",
+    "era": 4
+  },
+  {
+    "id": "C035",
+    "name": "Professional enterprise governance",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C022 & C026 & C033",
+    "requirements": "Productive capital, manager/owner rights, accounts, enforcement",
+    "behavior": "Separates operation from investment; agency/conflicting authority costs remain",
+    "era": 4
+  },
+  {
+    "id": "C036",
+    "name": "Public-service budgets and responsibility",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C019 & C026",
+    "requirements": "Sustainable revenue, facilities, acceptance, public or authorized checks",
+    "behavior": "Continuing housing/sanitation/road obligations; promises need real spending capacity",
+    "era": 5
+  },
+  {
+    "id": "C037",
+    "name": "Professional command and war responsibility",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C016 & C025 & C026",
+    "requirements": "Qualified command, communication, training, supply, casualty/restraint records",
+    "behavior": "Persistent orders/logistics/postwar responsibility; professionals still consume people/funding",
+    "era": 4
+  },
+  {
+    "id": "C038",
+    "name": "Property registers and responsibility succession",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C009 & C020 & C026",
+    "requirements": "Real assets/control provenance, reliable records, enforcement",
+    "behavior": "Collateral, inheritance, mergers, bankruptcy; registering unknown assets creates no control",
+    "era": 4
+  },
+  {
+    "id": "C039",
+    "name": "Basic-provision responsibility and risk sharing",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C010 & C036",
+    "requirements": "Actual food/water/care/funding, eligible recipients, sharing rules",
+    "behavior": "Reduces some household volatility and supports study; promised welfare is not delivered service",
+    "era": 5
+  },
+  {
+    "id": "C040",
+    "name": "Bounded public power and independent review",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C020 & C026 & C028",
+    "requirements": "Authority documents, relatively independent reviewers, enforceable correction/appeal",
+    "behavior": "Limits commands and assigns responsibility; takes time and guarantees no correct vote",
+    "era": 5
+  },
+  {
+    "id": "C041",
+    "name": "Hierarchical appointment and inspection",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C020 & C026 & C025",
+    "requirements": "Appointment chain, inspection records, rotation, removal/correction powers",
+    "behavior": "Coordinates large projects; filtering and superior mistakes need actual review",
+    "era": 4
+  },
+  {
+    "id": "C042",
+    "name": "Multilevel autonomy and federal contracts",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C021 & C026 & C040",
+    "requirements": "Members, reserved powers, shared budget/security, enactment process",
+    "behavior": "Delegated government; negotiation takes time and does not share all private assets",
+    "era": 5
+  },
+  {
+    "id": "C043",
+    "name": "Standing inter-polity dispute arrangements",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C020 & C021 & C037",
+    "requirements": "Recognized parties, communication, adjudication, credible security",
+    "behavior": "Reduces some conflict/performance risk; without enforcement it is only a claim",
+    "era": 5
+  },
+  {
+    "id": "C044",
+    "name": "Research commons and specialization networks",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C024 & C029 & C031",
+    "requirements": "Labs, talent, funding, shareable results, license limits",
+    "behavior": "Shared data and divided replication; free riding, attribution, dependence enter contracts",
+    "era": 5
+  },
+  {
+    "id": "C045",
+    "name": "Hazardous-engineering review and responsibility",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C029 & C036 & (C037 | C040 | C041)",
+    "requirements": "Measurable risk, independent inspectors, stop-work rights, incident supply, compensation",
+    "behavior": "Civil or command-based review supports high-energy/nuclear/life-support work; costs/delay, no zero-risk promise",
+    "era": 5
+  },
+  {
+    "id": "C046",
+    "name": "Lifelong training and transition support",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C025 & C032 & C033",
+    "requirements": "Updated courses, teachers, practice jobs, learner provision",
+    "behavior": "Supports conversion; preserves old skills/opportunity costs, no monthly recreation of labor",
+    "era": 5
+  },
+  {
+    "id": "C047",
+    "name": "Accountable data use and exchange",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C020 & C031 & (C035 | C026)",
+    "requirements": "Networks, identity/access records, data authority, measurement, appeal",
+    "behavior": "Corporate or public arrangements define collection/use/transfer/liability; algorithms cannot fill missing truth",
+    "era": 6
+  },
+  {
+    "id": "C048",
+    "name": "Corporate network jurisdictions",
+    "group": "Industry, public governance, and computational society",
+    "prereq": "C035 & C038 & C047",
+    "requirements": "Corporate infrastructure, chartered governance/service rights, residents, employment",
+    "behavior": "Corporate service/access control may coordinate or entrench rent seeking; no automatic national cyberpunk",
+    "era": 6
+  },
+  {
+    "id": "C049",
+    "name": "Verifiable algorithmic advisers",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C029 & C045 & C047",
+    "requirements": "Validated models, authorized data, inference compute, human review, error records",
+    "behavior": "Bounded advice; government retains authority, advice is not truth",
+    "era": 6
+  },
+  {
+    "id": "C050",
+    "name": "Bounded algorithmic administration",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C026 & C047 & C049",
+    "requirements": "Auditable computing, scope, shutdown/degradation, authority",
+    "behavior": "Delegated scheduling/review; data errors, outages, maintenance, appeal remain costly",
+    "era": 8
+  },
+  {
+    "id": "C051",
+    "name": "Reserved human powers and technical restraint",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C040 & C049",
+    "requirements": "Executable human review/alternative jobs, boundaries, recovery",
+    "behavior": "Retains human paths; not free immunity, and prohibited services cannot still be secretly enjoyed",
+    "era": 6
+  },
+  {
+    "id": "C052",
+    "name": "Shared operation of network infrastructure",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C034 & C036 & C047",
+    "requirements": "Ownership/operating rights, contributors, technicians, common procedures",
+    "behavior": "Community/public/cooperative operation still needs coordination, maintenance, capital",
+    "era": 6
+  },
+  {
+    "id": "C053",
+    "name": "AI-led highest administration",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "(C041 | C040) & C045 & C050",
+    "requirements": "High-autonomy infrastructure, lawful highest authority, independent audit, actual handover, energy/maintenance",
+    "behavior": "Hierarchical or bounded institutions may authorize AI; continuing performance, no consciousness assumption or automatic victory",
+    "era": 8
+  },
+  {
+    "id": "C054",
+    "name": "Augmented-person qualifications and membership",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C025 & C040 & C047",
+    "requirements": "Actual augmentation/medicine, safety, identity, responsibility",
+    "behavior": "Governs access and qualifications; laws create no devices and unaugmented people do not automatically lose rights",
+    "era": 6
+  },
+  {
+    "id": "C055",
+    "name": "Ecological cycles and resource responsibility",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C007 & C036 & C045",
+    "requirements": "Measurable cycles, farm/industry cooperation, maintenance, damage responsibility",
+    "behavior": "Land, recycling, life provision as continuing duties; cycles still use energy and incur losses",
+    "era": 6
+  },
+  {
+    "id": "C056",
+    "name": "Intergenerational engineering commitments",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C038 & C039 & C045",
+    "requirements": "Asset/duty records, sustainable finance, maintenance succession, revision",
+    "behavior": "Supports long projects; cannot bind all future choices or erase debt through regime change",
+    "era": 7
+  },
+  {
+    "id": "C057",
+    "name": "Authority under delayed communication",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C026 & C037 & (C040 | C041 | C043)",
+    "requirements": "Measured delay, local executors, scope, lost-contact/acknowledgment procedures",
+    "behavior": "Bounded remote autonomy; central commands must arrive; internal delegation can develop this independently",
+    "era": 7
+  },
+  {
+    "id": "C058",
+    "name": "Habitat life-support contracts",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C036 & C045 & C055",
+    "requirements": "Actual vulnerable/closed habitats, training, reserves, maintenance, emergency powers",
+    "behavior": "Air/water/energy/evacuation duties; nationality cannot exclude residents from already assumed provision",
+    "era": 7
+  },
+  {
+    "id": "C059",
+    "name": "Nonbiological-subject recognition plans",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C020 & C040 & C047",
+    "requirements": "Verifiable identity continuity, capability/liability review; actual subjects and lawful process for rights",
+    "behavior": "Prepares for possible machine/unknown subjects; no claim of established AI consciousness or foreknowledge of aliens",
+    "era": 8
+  },
+  {
+    "id": "C060",
+    "name": "Recoverable civilization archives",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C024 & C038 & C045",
+    "requirements": "Distributed redundancy, lasting media, intelligible codes, drills, maintainers",
+    "behavior": "Preserves knowledge/rights/incidents; copied files do not copy people, skills, or independent evidence",
+    "era": 6
+  },
+  {
+    "id": "C061",
+    "name": "Constitutional global community",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C036 & C040 & C042 & C056 & C060",
+    "requirements": "Actual administrative/budget/security/adjudication authority and service over required polities/residents",
+    "behavior": "Multilevel global duties; disputes/exit follow a real charter, signatures alone do not integrate",
+    "era": 8
+  },
+  {
+    "id": "C062",
+    "name": "Negotiated standing global institutions",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C036 & C043 & C045 & C056 & C060",
+    "requirements": "Actually delegated final adjudication/common security, finance, executors",
+    "behavior": "Broad local autonomy with highest duties; unresolved vetoes or independent foreign-war powers cannot count as integration",
+    "era": 8
+  },
+  {
+    "id": "C063",
+    "name": "Globally unified command governance",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C036 & C037 & C041 & C056 & C060",
+    "requirements": "Services for all residents, succession, correction/appeal, real command coverage",
+    "behavior": "Conquest or amalgamation can establish it; occupation does not replace civil service or sustained compliance costs",
+    "era": 8
+  },
+  {
+    "id": "C064",
+    "name": "Common mission charter across sites",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "(C061 | C062 | C063) & C057 & C058 & C060",
+    "requirements": "Remote facilities/tasks, valid delegation, burden sharing, lasting maintenance",
+    "behavior": "Exploration/resources/hazards/lost-contact responsibilities; declarations cannot erase knowledge or existing liabilities",
+    "era": 8
+  },
+  {
+    "id": "C065",
+    "name": "Closed-loop thrift",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C058 & C055",
+    "requirements": "Off-world residents, closed life support, shared accounts of air and water",
+    "behavior": "Recycling as civic duty: life-support volatiles at off-world sites −15%",
+    "era": 7,
+    "category": "off-world",
+    "hard": "T170"
+  },
+  {
+    "id": "C066",
+    "name": "Low-gravity crafts",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C058 & C018",
+    "requirements": "Off-world workshops, trained crafts, low-gravity tools",
+    "behavior": "Crafts adapted to low gravity: off-world construction productivity +10%",
+    "era": 7,
+    "category": "off-world",
+    "hard": "T170"
+  },
+  {
+    "id": "C067",
+    "name": "Frontier assemblies",
+    "group": "AI authority and interstellar preparation",
+    "prereq": "C058 & C057",
+    "requirements": "Inhabited off-world sites, delegated authority, local councils",
+    "behavior": "Local self-government at off-world sites: site stability +5, autonomy pressure +20%",
+    "era": 7,
+    "category": "off-world",
+    "hard": "T170"
+  },
+  {
+    "id": "C068",
+    "name": "Councils of elders",
+    "group": "Community, land, and early organization",
+    "prereq": "C003 & C011",
+    "requirements": "Respected elders, a meeting place, accepted precedence",
+    "behavior": "Decisions by consensus: slow, broadly accepted; stability +1, callable labour −5%",
+    "era": 0,
+    "category": "governance",
+    "hard": "POP>=200000",
+    "exclusive": "X01"
+  },
+  {
+    "id": "C069",
+    "name": "Hereditary chieftaincy",
+    "group": "Community, land, and early organization",
+    "prereq": "C003 & C009",
+    "requirements": "A ruling lineage, retainers, succession custom",
+    "behavior": "Quick decisions; callable labour +10%; succession disputes (stability −5 for 24 months at each succession event)",
+    "era": 0,
+    "category": "governance",
+    "hard": "POP>=200000",
+    "exclusive": "X01"
+  },
+  {
+    "id": "C070",
+    "name": "Marriage alliances and bride-wealth",
+    "group": "Community, land, and early organization",
+    "prereq": "C002 & C009",
+    "requirements": "Lineages, transferable goods, witnesses",
+    "behavior": "Peace between lineages; contact evidence +10% with met seats at peace",
+    "era": 0,
+    "category": "family"
+  },
+  {
+    "id": "C071",
+    "name": "Feasting and gift obligations",
+    "group": "Community, land, and early organization",
+    "prereq": "C004 & C011",
+    "requirements": "Stored surplus, hosts, guests",
+    "behavior": "Surplus becomes standing; stability +1, food reserve −2%",
+    "era": 0,
+    "category": "economy",
+    "hard": "T007"
+  },
+  {
+    "id": "C072",
+    "name": "Rites of passage and age sets",
+    "group": "Community, land, and early organization",
+    "prereq": "C001 & C016",
+    "requirements": "Initiation custom, elders, cohorts",
+    "behavior": "Cohort loyalty: militia +10%, apprenticeship places +5%",
+    "era": 0,
+    "category": "family"
+  },
+  {
+    "id": "C073",
+    "name": "Sacred groves and seasonal taboos",
+    "group": "Community, land, and early organization",
+    "prereq": "C007 & C001",
+    "requirements": "Protected land, custodians, observance",
+    "behavior": "Forest and wild land recover 20% faster; 2% of farmland stays fallow",
+    "era": 0,
+    "category": "environment"
+  },
+  {
+    "id": "C074",
+    "name": "Codified law on public tablets",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C020 & C013",
+    "requirements": "Scribes, public display, judges bound by text",
+    "behavior": "Predictable judgement: unrest −500 bp in owned regions",
+    "era": 1,
+    "category": "law",
+    "hard": "T025"
+  },
+  {
+    "id": "C075",
+    "name": "Citizen assemblies",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C019 & C011",
+    "requirements": "A defined citizen body, meeting place, rules of debate",
+    "behavior": "Openness drifts up; levy room +10%; policy changes need 12 months",
+    "era": 1,
+    "category": "governance",
+    "hard": "POP>=1000000",
+    "exclusive": "X02"
+  },
+  {
+    "id": "C076",
+    "name": "Divine kingship and temple economy",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C014 & (C069 | C013)",
+    "requirements": "A sacred ruler, temples, redistributive stores",
+    "behavior": "Stability +3; temples store food (+10% reserve cap); Revisability drifts down",
+    "era": 1,
+    "category": "governance",
+    "hard": "REL | F:holy_site",
+    "exclusive": "X02"
+  },
+  {
+    "id": "C077",
+    "name": "Tribute and client rulers",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C016 & C012",
+    "requirements": "A stronger power, envoys, ritual exchange",
+    "behavior": "Subordination offers are accepted 20% more readily by weaker neighbours",
+    "era": 1,
+    "category": "diplomacy",
+    "hard": "CONTACT"
+  },
+  {
+    "id": "C078",
+    "name": "Tax farming",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C022 & C013",
+    "requirements": "Wealthy contractors, auctions of collection rights",
+    "behavior": "Revenue early and cheap to administer; unrest +500 bp in regions above 2 M",
+    "era": 1,
+    "category": "revenue",
+    "hard": "T026",
+    "exclusive": "X03"
+  },
+  {
+    "id": "C079",
+    "name": "Salaried revenue officials",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C026",
+    "requirements": "Trained officials, pay, audits",
+    "behavior": "Administrative capacity +1 region; upkeep of offices +10%",
+    "era": 1,
+    "category": "revenue",
+    "hard": "Q:scribe>=10000",
+    "exclusive": "X03"
+  },
+  {
+    "id": "C080",
+    "name": "Debt limits and jubilee remission",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C011 & C017",
+    "requirements": "Recorded debts, periodic remission",
+    "behavior": "Prevents debt bondage: stability +1; lending (credit lines) −10%",
+    "era": 1,
+    "category": "law"
+  },
+  {
+    "id": "C081",
+    "name": "Schools of philosophy",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C023 & C024",
+    "requirements": "Teachers, disputation, copied texts",
+    "behavior": "Science-tag evidence +5%; scholar training +10% places",
+    "era": 1,
+    "category": "science",
+    "hard": "T025"
+  },
+  {
+    "id": "C082",
+    "name": "Public games and festivals",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C019 & C071",
+    "requirements": "Venues, sponsors, calendar",
+    "behavior": "Stability +2 in towns; media upkeep +5%",
+    "era": 1,
+    "category": "culture",
+    "hard": "POP>=1000000"
+  },
+  {
+    "id": "C083",
+    "name": "Military colonies and veteran grants",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C016 & C017",
+    "requirements": "Land to grant, discharged soldiers",
+    "behavior": "Occupied regions settle faster (unrest −1,000 bp after 10 years); farmland +2%",
+    "era": 1,
+    "category": "military",
+    "hard": "F:barracks"
+  },
+  {
+    "id": "C084",
+    "name": "Courier and relay services",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C026 & C012",
+    "requirements": "Relay stations, horses, couriers",
+    "behavior": "Directives reach distant regions sooner: administrative load of regions beyond 3 links −1",
+    "era": 1,
+    "category": "administration",
+    "hard": "T027"
+  },
+  {
+    "id": "C085",
+    "name": "Market inspectors and standard measures",
+    "group": "Classical polity, law and revenue",
+    "prereq": "C021 & C019",
+    "requirements": "Officials, standard weights, courts",
+    "behavior": "Market trade losses −10%",
+    "era": 1,
+    "category": "economy",
+    "hard": "T016"
+  },
+  {
+    "id": "C086",
+    "name": "Feudal vassalage",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C083 & C009",
+    "requirements": "Lords, oaths, land for service",
+    "behavior": "Militia ×1.3, administration needs −1 region per 4; central taxation −10%",
+    "era": 2,
+    "category": "governance",
+    "hard": "REG>=3",
+    "exclusive": "X04",
+    "tension": [
+      "C090"
+    ]
+  },
+  {
+    "id": "C087",
+    "name": "Prefectures and appointed magistrates",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C026 & C025",
+    "requirements": "Examined officials, rotation, inspection",
+    "behavior": "Administrative capacity +2 regions; scribe upkeep +20%",
+    "era": 2,
+    "category": "governance",
+    "hard": "REG>=3 & Q:scribe>=20000",
+    "exclusive": "X04"
+  },
+  {
+    "id": "C088",
+    "name": "Monastic orders and scriptoria",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C014 & C023",
+    "requirements": "Endowed houses, copyists, rule of life",
+    "behavior": "Records survive collapse (archives keep knowledge in a dark age); F_custom −100",
+    "era": 2,
+    "category": "religion-adjacent",
+    "hard": "REL & F:archive"
+  },
+  {
+    "id": "C089",
+    "name": "Chartered towns and communes",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C019 & C018",
+    "requirements": "Town charters, councils, militias",
+    "behavior": "Towns +10% services productivity; town unrest when overruled",
+    "era": 2,
+    "category": "governance",
+    "hard": "POP>=2000000"
+  },
+  {
+    "id": "C090",
+    "name": "Civil examinations",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C025 & C087",
+    "requirements": "Graded examinations, candidates, examiners",
+    "behavior": "Official posts filled by merit: administrative capacity +1; scholar places +15%",
+    "era": 2,
+    "category": "education",
+    "hard": "F:school",
+    "tension": [
+      "C086"
+    ]
+  },
+  {
+    "id": "C091",
+    "name": "Universities and degrees",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C027 & C081",
+    "requirements": "Chartered faculties, degrees, endowments",
+    "behavior": "Scholar and physician training +20% places",
+    "era": 2,
+    "category": "education",
+    "hard": "F:school & Q:scholar>=10000"
+  },
+  {
+    "id": "C092",
+    "name": "Religious and customary courts",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C020 & C014",
+    "requirements": "Judges, recorded custom, sanction",
+    "behavior": "Dispute settlement in remote regions: unrest −300 bp; competes with state courts",
+    "era": 2,
+    "category": "law",
+    "hard": "REL"
+  },
+  {
+    "id": "C093",
+    "name": "Merchant leagues",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C018 & C021",
+    "requirements": "Allied trading towns, shared privileges",
+    "behavior": "Sea gateway capacity +15%; foreign merchants pay more",
+    "era": 2,
+    "category": "economy",
+    "hard": "CONTACT & T028"
+  },
+  {
+    "id": "C094",
+    "name": "Pilgrimage routes and hospices",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C012 & C014",
+    "requirements": "Shrines, hostels, safe roads",
+    "behavior": "Contact evidence +10%; faith spreads 10% faster",
+    "era": 2,
+    "category": "religion-adjacent",
+    "hard": "REL & F:holy_site"
+  },
+  {
+    "id": "C095",
+    "name": "Manorial tenancy and labour dues",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C017 & C086",
+    "requirements": "Lords, tenants, labour days",
+    "behavior": "Callable labour +10%; F_cul Food +200; mobility of labour −20%",
+    "era": 2,
+    "category": "labour",
+    "tension": [
+      "C123"
+    ]
+  },
+  {
+    "id": "C096",
+    "name": "Hospitals and almshouses",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C015 & C014",
+    "requirements": "Endowments, carers, beds",
+    "behavior": "Care deaths −5%; stability +1",
+    "era": 2,
+    "category": "welfare",
+    "hard": "F:clinic | F:holy_site"
+  },
+  {
+    "id": "C097",
+    "name": "Warrior codes of honour",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C016 & C086",
+    "requirements": "A warrior estate, codes, patrons",
+    "behavior": "Formation morale +10%; Martial obligation drifts up",
+    "era": 2,
+    "category": "military"
+  },
+  {
+    "id": "C098",
+    "name": "Cadastral surveys and land registers",
+    "group": "Medieval estates, faith and learning",
+    "prereq": "C017 & C026",
+    "requirements": "Surveyors, maps, registers",
+    "behavior": "Land tax and field disputes settled: farmland use +3%, unrest −200 bp",
+    "era": 2,
+    "category": "administration",
+    "hard": "T016 & T026"
+  },
+  {
+    "id": "C099",
+    "name": "Joint-stock companies",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C022 & C021 & C031",
+    "requirements": "Shares, ledgers, courts enforcing contracts",
+    "behavior": "Enterprises pool capital: construction finance +10%; enables chartered companies",
+    "era": 3,
+    "category": "economy",
+    "hard": "T208"
+  },
+  {
+    "id": "C100",
+    "name": "Central banking and public debt",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C026 & C099",
+    "requirements": "A public bank, bond markets, credible repayment",
+    "behavior": "Treaty credit lines +25%; a default costs stability −10",
+    "era": 3,
+    "category": "economy",
+    "hard": "T208"
+  },
+  {
+    "id": "C101",
+    "name": "Absolute monarchy and court bureaucracy",
+    "group": "Early modern state, money and toleration",
+    "prereq": "(C087 | C086) & C026",
+    "requirements": "A sovereign above estates, a court, standing officials",
+    "behavior": "Administrative capacity +2; reforms −20% work; Revisability drifts down",
+    "era": 3,
+    "category": "governance",
+    "hard": "REG>=6",
+    "exclusive": "X05"
+  },
+  {
+    "id": "C102",
+    "name": "Parliamentary sovereignty",
+    "group": "Early modern state, money and toleration",
+    "prereq": "(C075 | C089) & C020",
+    "requirements": "Elected chamber, budget control, rule of law",
+    "behavior": "Budget legitimacy: stability +2; war declarations need 6 months",
+    "era": 3,
+    "category": "governance",
+    "hard": "REG>=3",
+    "exclusive": "X05"
+  },
+  {
+    "id": "C103",
+    "name": "Edicts of toleration",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C092 & C024",
+    "requirements": "Legal coexistence of faiths",
+    "behavior": "Migrants of other faiths settle freely; Openness drifts up",
+    "era": 3,
+    "category": "religion-adjacent",
+    "hard": "REL",
+    "exclusive": "X06"
+  },
+  {
+    "id": "C104",
+    "name": "State church and confessional unity",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C092 & C014",
+    "requirements": "An established church, tithes, censorship",
+    "behavior": "Stability +3 where the faith is the majority; Science-tag evidence −10%",
+    "era": 3,
+    "category": "religion-adjacent",
+    "hard": "REL",
+    "exclusive": "X06"
+  },
+  {
+    "id": "C105",
+    "name": "Learned societies and academies",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C091 & C028",
+    "requirements": "Members, journals, meetings",
+    "behavior": "Discovery channel +5%; contact evidence in science +10%",
+    "era": 3,
+    "category": "science",
+    "hard": "T210 | T045"
+  },
+  {
+    "id": "C106",
+    "name": "Patents and inventors' privileges",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C031 & C020",
+    "requirements": "Registered inventions, courts, terms",
+    "behavior": "Prototyped nodes adopted 20% faster; licensing out earns credit",
+    "era": 3,
+    "category": "economy"
+  },
+  {
+    "id": "C107",
+    "name": "Mercantilist trade policy",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C093 & C026",
+    "requirements": "Navigation acts, bullion targets, colonies",
+    "behavior": "Own exports favoured; contact evidence −20%; imports −10%",
+    "era": 3,
+    "category": "economy",
+    "hard": "CONTACT",
+    "exclusive": "X07"
+  },
+  {
+    "id": "C108",
+    "name": "Public postal service",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C084 & C026",
+    "requirements": "Post offices, routes, stamps",
+    "behavior": "Record-tag activity +10%; practice evidence +5%",
+    "era": 3,
+    "category": "administration",
+    "hard": "T198 | T048"
+  },
+  {
+    "id": "C109",
+    "name": "Maritime law and marine insurance",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C021 & C099",
+    "requirements": "Admiralty courts, underwriters",
+    "behavior": "Sea route losses −25%",
+    "era": 3,
+    "category": "law",
+    "hard": "T028"
+  },
+  {
+    "id": "C110",
+    "name": "Poor laws and workhouses",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C096 & C026",
+    "requirements": "Parish relief, overseers",
+    "behavior": "Famine deaths −20%; general labour +2%; stability −1 among the poor",
+    "era": 3,
+    "category": "welfare",
+    "hard": "F:admin"
+  },
+  {
+    "id": "C111",
+    "name": "Settler companies and colonial charters",
+    "group": "Early modern state, money and toleration",
+    "prereq": "C099 & C083",
+    "requirements": "Charters, ships, recruited settlers",
+    "behavior": "Migration to newly claimed regions +30%",
+    "era": 3,
+    "category": "economy",
+    "hard": "T028 & CONTACT"
+  },
+  {
+    "id": "C112",
+    "name": "Free-trade doctrine",
+    "group": "Industrial society and the nation",
+    "prereq": "C099 & C031",
+    "requirements": "Open ports, treaties, low duties",
+    "behavior": "Market fills more of your orders; dependency on imports rises",
+    "era": 4,
+    "category": "economy",
+    "hard": "CONTACT",
+    "exclusive": "X07"
+  },
+  {
+    "id": "C113",
+    "name": "Written constitution and bill of rights",
+    "group": "Industrial society and the nation",
+    "prereq": "(C102 | C040) & C020",
+    "requirements": "A constitutional text, courts that apply it",
+    "behavior": "Stability floor +5; emergency powers take 12 months",
+    "era": 4,
+    "category": "law",
+    "hard": "F:admin",
+    "tension": [
+      "C135"
+    ]
+  },
+  {
+    "id": "C114",
+    "name": "Mass conscription",
+    "group": "Industrial society and the nation",
+    "prereq": "C037 & C016",
+    "requirements": "Registers, depots, universal service",
+    "behavior": "Recruit room +40%; trained labour −3% while mobilized",
+    "era": 4,
+    "category": "military",
+    "hard": "F:barracks",
+    "exclusive": "X08"
+  },
+  {
+    "id": "C115",
+    "name": "Volunteer professional army",
+    "group": "Industrial society and the nation",
+    "prereq": "C037 & C033",
+    "requirements": "Pay, long service, career officers",
+    "behavior": "Proficiency cap +1,000; recruit room −25%",
+    "era": 4,
+    "category": "military",
+    "hard": "F:barracks",
+    "exclusive": "X08"
+  },
+  {
+    "id": "C116",
+    "name": "Factory inspection and child-labour limits",
+    "group": "Industrial society and the nation",
+    "prereq": "C033 & C026",
+    "requirements": "Inspectors, age limits, accident records",
+    "behavior": "Industrial deaths −10%, school attendance +10%; Industry LP −100",
+    "era": 4,
+    "category": "labour",
+    "hard": "T061 | T062"
+  },
+  {
+    "id": "C117",
+    "name": "Friendly societies and mutual insurance",
+    "group": "Industrial society and the nation",
+    "prereq": "C015 & C033",
+    "requirements": "Member dues, sick funds, trustees",
+    "behavior": "Care deaths −5%; stability +1 in industrial towns",
+    "era": 4,
+    "category": "welfare"
+  },
+  {
+    "id": "C118",
+    "name": "Boards of public health",
+    "group": "Industrial society and the nation",
+    "prereq": "C019 & C026",
+    "requirements": "Medical officers, inspection powers, sewer budgets",
+    "behavior": "Town mortality −10%; outbreak spread −20%",
+    "era": 4,
+    "category": "welfare",
+    "hard": "T069 | T053"
+  },
+  {
+    "id": "C119",
+    "name": "Statistical bureaus and census",
+    "group": "Industrial society and the nation",
+    "prereq": "C026 & C098",
+    "requirements": "Enumerators, tabulation, publication",
+    "behavior": "Own-state estimates exact; administrative capacity +1",
+    "era": 4,
+    "category": "administration",
+    "hard": "T055"
+  },
+  {
+    "id": "C120",
+    "name": "Chartered engineering institutions",
+    "group": "Industrial society and the nation",
+    "prereq": "C025 & C030",
+    "requirements": "Examinations, codes, journals",
+    "behavior": "Construction productivity +300 bp; incident hazards −10%",
+    "era": 4,
+    "category": "science",
+    "hard": "T061"
+  },
+  {
+    "id": "C121",
+    "name": "Stock exchanges",
+    "group": "Industrial society and the nation",
+    "prereq": "C099 & C100",
+    "requirements": "Listed companies, brokers, rules",
+    "behavior": "Construction finance +10%; crash hazard (one per 80 years: stability −5)",
+    "era": 4,
+    "category": "economy",
+    "hard": "T219 | T048"
+  },
+  {
+    "id": "C122",
+    "name": "National language schooling",
+    "group": "Industrial society and the nation",
+    "prereq": "C032 & (C101 | C102)",
+    "requirements": "A standard language, textbooks, teachers",
+    "behavior": "Literacy +5 points over 20 years; minority unrest +300 bp",
+    "era": 4,
+    "category": "education",
+    "hard": "F:school"
+  },
+  {
+    "id": "C123",
+    "name": "Abolition of servile labour",
+    "group": "Industrial society and the nation",
+    "prereq": "C033 & C080",
+    "requirements": "Courts, compensation, enforcement",
+    "behavior": "Labour mobility +20%; stability −3 for 60 months, then +2",
+    "era": 4,
+    "category": "labour",
+    "tension": [
+      "C095"
+    ]
+  },
+  {
+    "id": "C124",
+    "name": "Research universities",
+    "group": "Industrial society and the nation",
+    "prereq": "C091 & C029",
+    "requirements": "Laboratories, doctoral training, research chairs",
+    "behavior": "Research posts +10% effectiveness; scientist training +20%",
+    "era": 4,
+    "category": "science",
+    "hard": "F:laboratory"
+  },
+  {
+    "id": "C125",
+    "name": "Universal suffrage",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C113 & C032",
+    "requirements": "Voter registers, secret ballot, parties",
+    "behavior": "Stability +3; policy reversals cost half; Openness up",
+    "era": 5,
+    "category": "governance",
+    "hard": "T048",
+    "tension": [
+      "C172"
+    ]
+  },
+  {
+    "id": "C126",
+    "name": "Social insurance and pensions",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C039 & C117",
+    "requirements": "Contributions, records, pensions",
+    "behavior": "Elder care deaths −15%; F_dev +200; upkeep 0.5 lots media per M residents",
+    "era": 5,
+    "category": "welfare",
+    "hard": "F:admin"
+  },
+  {
+    "id": "C127",
+    "name": "Central planning commissions",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C036 & C041 & C119",
+    "requirements": "Planners, output targets, material balances",
+    "behavior": "Construction priority obeyed exactly; market orders −50%; Industry LP +300, Services LP −300",
+    "era": 5,
+    "category": "economy",
+    "hard": "T055",
+    "exclusive": "X09"
+  },
+  {
+    "id": "C128",
+    "name": "Market regulation and competition law",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C035 & C040",
+    "requirements": "Regulators, courts, disclosure",
+    "behavior": "Market clearing losses −10%; Industry LP +200",
+    "era": 5,
+    "category": "economy",
+    "exclusive": "X09",
+    "tension": [
+      "C129"
+    ]
+  },
+  {
+    "id": "C129",
+    "name": "Tripartite wage bargaining",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C034 & C035",
+    "requirements": "Unions, employer associations, state mediators",
+    "behavior": "Strike hazard −50%; Industry LP −100",
+    "era": 5,
+    "category": "labour",
+    "tension": [
+      "C128"
+    ]
+  },
+  {
+    "id": "C130",
+    "name": "Industrial research laboratories",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C035 & C124",
+    "requirements": "Company scientists, patents, budgets",
+    "behavior": "Industrial research capacity +15%",
+    "era": 5,
+    "category": "science",
+    "hard": "F:laboratory"
+  },
+  {
+    "id": "C131",
+    "name": "Public broadcasting charter",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C028 & C036",
+    "requirements": "A licensed public broadcaster, independent board",
+    "behavior": "Stability +2; misinformation events −50%",
+    "era": 5,
+    "category": "media",
+    "hard": "T229",
+    "exclusive": "X10"
+  },
+  {
+    "id": "C132",
+    "name": "Commercial broadcasting",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C028 & C035",
+    "requirements": "Advertising, private stations",
+    "behavior": "Consumer goods demand +10% (prosperity from supply +10%); stability −1",
+    "era": 5,
+    "category": "media",
+    "hard": "T229",
+    "exclusive": "X10"
+  },
+  {
+    "id": "C133",
+    "name": "Family planning services",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C039 & C118",
+    "requirements": "Clinics, contraception, counselling",
+    "behavior": "Fertility follows prosperity faster (F_dev ×1.5); maternal deaths −30%",
+    "era": 5,
+    "category": "family",
+    "hard": "T070"
+  },
+  {
+    "id": "C134",
+    "name": "National parks and conservation",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C007 & C036",
+    "requirements": "Protected land, rangers",
+    "behavior": "Wild land protected from encroachment; amenity +300 bp",
+    "era": 5,
+    "category": "environment"
+  },
+  {
+    "id": "C135",
+    "name": "Political police",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C041 & C037",
+    "requirements": "Informers, files, detention",
+    "behavior": "Unrest −1,000 bp; Revisability drifts down; Science-tag evidence −5%",
+    "era": 5,
+    "category": "security",
+    "hard": "F:barracks",
+    "tension": [
+      "C113"
+    ]
+  },
+  {
+    "id": "C136",
+    "name": "National science councils",
+    "group": "Mass politics, welfare and planning",
+    "prereq": "C036 & C124",
+    "requirements": "Peer-reviewed grants, national laboratories",
+    "behavior": "Advanced and Frontier research +10%",
+    "era": 5,
+    "category": "science",
+    "hard": "F:institute"
+  },
+  {
+    "id": "C137",
+    "name": "Environmental impact assessment",
+    "group": "Information-age institutions",
+    "prereq": "C134 & C045",
+    "requirements": "Assessors, public hearings, baselines",
+    "behavior": "Pollution mortality −20%; construction months +5%",
+    "era": 6,
+    "category": "environment",
+    "hard": "T130"
+  },
+  {
+    "id": "C138",
+    "name": "Freedom of information",
+    "group": "Information-age institutions",
+    "prereq": "C040 & C047",
+    "requirements": "Disclosure rules, appeals, archives",
+    "behavior": "Corruption losses −10%; incident reports reach you a month earlier",
+    "era": 6,
+    "category": "law",
+    "hard": "T113"
+  },
+  {
+    "id": "C139",
+    "name": "Data privacy rights",
+    "group": "Information-age institutions",
+    "prereq": "C047 & C113",
+    "requirements": "Consent, data protection authority",
+    "behavior": "Openness up; network incident hazard −20%; compute for administration +10%",
+    "era": 6,
+    "category": "law",
+    "hard": "T113",
+    "exclusive": "X11"
+  },
+  {
+    "id": "C140",
+    "name": "Mass surveillance programmes",
+    "group": "Information-age institutions",
+    "prereq": "C047 & C135",
+    "requirements": "Data centres, intercepts, analysts",
+    "behavior": "Unrest −1,500 bp; espionage against you −30%; Openness down",
+    "era": 6,
+    "category": "security",
+    "hard": "T112 & T116",
+    "exclusive": "X11"
+  },
+  {
+    "id": "C141",
+    "name": "International standards bodies",
+    "group": "Information-age institutions",
+    "prereq": "C043 & C120",
+    "requirements": "Committees, shared specifications",
+    "behavior": "Rival-technology locks halved for families shared with met seats",
+    "era": 6,
+    "category": "diplomacy",
+    "hard": "CONTACT"
+  },
+  {
+    "id": "C142",
+    "name": "Venture capital and start-up finance",
+    "group": "Information-age institutions",
+    "prereq": "C121 & C031",
+    "requirements": "Funds, equity, failure tolerance",
+    "behavior": "Prototype stage of side technologies −20% work",
+    "era": 6,
+    "category": "economy",
+    "hard": "T111"
+  },
+  {
+    "id": "C143",
+    "name": "Open-source commons",
+    "group": "Information-age institutions",
+    "prereq": "C044 & C047",
+    "requirements": "Shared code, licences, maintainers",
+    "behavior": "Compute-tag evidence +10%; contact evidence in computing +25%",
+    "era": 6,
+    "category": "science",
+    "hard": "T112"
+  },
+  {
+    "id": "C144",
+    "name": "Civil space agency",
+    "group": "Information-age institutions",
+    "prereq": "C136 & C045",
+    "requirements": "Budget, mission planning, contractors",
+    "behavior": "Launch failure rate −20%; Space-tag evidence +10%",
+    "era": 6,
+    "category": "science",
+    "hard": "T140"
+  },
+  {
+    "id": "C145",
+    "name": "Nuclear safety regulation",
+    "group": "Information-age institutions",
+    "prereq": "C045 & C136",
+    "requirements": "Licensing, inspectors, incident review",
+    "behavior": "Reactor incident hazard −50%; fission build months +10%",
+    "era": 6,
+    "category": "safety",
+    "hard": "T146"
+  },
+  {
+    "id": "C146",
+    "name": "Universal health coverage",
+    "group": "Information-age institutions",
+    "prereq": "C126 & C118",
+    "requirements": "Pooled finance, clinics everywhere",
+    "behavior": "Mortality −5% all ages; medicine upkeep +10%",
+    "era": 6,
+    "category": "welfare",
+    "hard": "F:hospital"
+  },
+  {
+    "id": "C147",
+    "name": "Climate treaties and carbon accounting",
+    "group": "Information-age institutions",
+    "prereq": "C055 & C043",
+    "requirements": "Inventories, verified pledges",
+    "behavior": "Harvest variance −20% from AD 2100 on; coal-burning works −5% output",
+    "era": 6,
+    "category": "environment",
+    "hard": "T130 & CONTACT"
+  },
+  {
+    "id": "C148",
+    "name": "Arms-control verification",
+    "group": "Information-age institutions",
+    "prereq": "C043 & C045",
+    "requirements": "Inspectors, data exchange, limits",
+    "behavior": "Trust +1 a decade with treaty partners; pulse ships forbidden while held",
+    "era": 6,
+    "category": "diplomacy",
+    "hard": "T146 & CONTACT"
+  },
+  {
+    "id": "C149",
+    "name": "Space commons treaty",
+    "group": "Space-age institutions",
+    "prereq": "C144 & C043",
+    "requirements": "Shared registry of objects, no sovereignty claims",
+    "behavior": "Contest of stations −50% (capture needs 6 months); sites claimed by outposts only",
+    "era": 7,
+    "category": "off-world",
+    "hard": "T142 & CONTACT",
+    "exclusive": "X12"
+  },
+  {
+    "id": "C150",
+    "name": "Off-world homestead claims",
+    "group": "Space-age institutions",
+    "prereq": "C144 & C038",
+    "requirements": "Registered claims, enforcement",
+    "behavior": "Outposts claim +1 adjacent orbit; settler volunteers +25%; trust −2 with commons holders",
+    "era": 7,
+    "category": "off-world",
+    "hard": "T142",
+    "exclusive": "X12"
+  },
+  {
+    "id": "C151",
+    "name": "Launch range and safety authority",
+    "group": "Space-age institutions",
+    "prereq": "C144 & C045",
+    "requirements": "Range control, flight termination, inspections",
+    "behavior": "Launch failure rate −25%; crewed failure deaths −50%",
+    "era": 7,
+    "category": "safety",
+    "hard": "T142 & F:launch_complex"
+  },
+  {
+    "id": "C152",
+    "name": "Station crew articles",
+    "group": "Space-age institutions",
+    "prereq": "C058 & C151",
+    "requirements": "Contracts for orbit, rotation rules, medical boards",
+    "behavior": "Station crews rotate at −25% boost",
+    "era": 7,
+    "category": "labour",
+    "hard": "T144"
+  },
+  {
+    "id": "C153",
+    "name": "Orbital traffic management",
+    "group": "Space-age institutions",
+    "prereq": "C151 & C141",
+    "requirements": "Tracking, conjunction warnings, deorbit rules",
+    "behavior": "Debris hazard −50% in every orbit you use",
+    "era": 7,
+    "category": "safety",
+    "hard": "T141"
+  },
+  {
+    "id": "C154",
+    "name": "Planetary protection protocols",
+    "group": "Space-age institutions",
+    "prereq": "C137 & C144",
+    "requirements": "Sterilisation, quarantine, sample rules",
+    "behavior": "Life-search evidence ×1.5; off-world construction months +10%",
+    "era": 7,
+    "category": "environment",
+    "hard": "T143"
+  },
+  {
+    "id": "C155",
+    "name": "Asteroid mining charters",
+    "group": "Space-age institutions",
+    "prereq": "C142 & C038",
+    "requirements": "Licensed prospectors, ore rights",
+    "behavior": "Off-world mines +10% output; their bill −10%",
+    "era": 7,
+    "category": "economy",
+    "hard": "T159"
+  },
+  {
+    "id": "C156",
+    "name": "Indentured passage",
+    "group": "Space-age institutions",
+    "prereq": "C111 & C033",
+    "requirements": "Passage paid by labour contracts",
+    "behavior": "Settlers move at no credit cost; site autonomy pressure +30%",
+    "era": 7,
+    "category": "off-world",
+    "hard": "T144",
+    "exclusive": "X13"
+  },
+  {
+    "id": "C157",
+    "name": "Subsidized free passage",
+    "group": "Space-age institutions",
+    "prereq": "C126 & C151",
+    "requirements": "Public passage, family settlement",
+    "behavior": "Settler volunteers +50%; boost per settler −0.5 t (families pack light)",
+    "era": 7,
+    "category": "off-world",
+    "hard": "T144",
+    "exclusive": "X13"
+  },
+  {
+    "id": "C158",
+    "name": "Space guard and orbital militia",
+    "group": "Space-age institutions",
+    "prereq": "C037 & C151",
+    "requirements": "Orbital crews under arms, rules of engagement",
+    "behavior": "Station defence ×1.5; boarding defence +25%",
+    "era": 7,
+    "category": "military",
+    "hard": "T145"
+  },
+  {
+    "id": "C159",
+    "name": "Algorithmic audit courts",
+    "group": "AI-age institutions",
+    "prereq": "C051 & C138",
+    "requirements": "Auditors, access to models, appeal",
+    "behavior": "Automation incident hazards −30%; administrative compute +10%",
+    "era": 8,
+    "category": "law",
+    "hard": "T115"
+  },
+  {
+    "id": "C160",
+    "name": "Universal basic income",
+    "group": "AI-age institutions",
+    "prereq": "C126 & C046",
+    "requirements": "Universal payments financed from automation",
+    "behavior": "Automation unrest −75%; general labour supply −5%",
+    "era": 8,
+    "category": "welfare",
+    "hard": "T122",
+    "exclusive": "X14"
+  },
+  {
+    "id": "C161",
+    "name": "Public job guarantee",
+    "group": "AI-age institutions",
+    "prereq": "C036 & C046",
+    "requirements": "Public employers, wages, training",
+    "behavior": "Automation unrest −50%; idle workers fill public works",
+    "era": 8,
+    "category": "labour",
+    "hard": "T122",
+    "exclusive": "X14"
+  },
+  {
+    "id": "C162",
+    "name": "Compute allocation boards",
+    "group": "AI-age institutions",
+    "prereq": "C052 & (C127 | C128)",
+    "requirements": "Priority lists, metering, appeals",
+    "behavior": "Compute shortfalls fall on the lowest priority first (the order is yours)",
+    "era": 8,
+    "category": "economy",
+    "hard": "T117"
+  },
+  {
+    "id": "C163",
+    "name": "Registry of synthetic persons",
+    "group": "AI-age institutions",
+    "prereq": "C059 & C159",
+    "requirements": "Identity, liability and rights of synthetic agents",
+    "behavior": "Machine governance centres +25% capacity; Human Primacy doctrines −2 stability",
+    "era": 8,
+    "category": "law",
+    "hard": "T122"
+  },
+  {
+    "id": "C164",
+    "name": "Human-in-the-loop command law",
+    "group": "AI-age institutions",
+    "prereq": "C051 & C037",
+    "requirements": "Human authorization for lethal action",
+    "behavior": "Autonomous-swarm power −10%; trust +1 a decade with every met seat",
+    "era": 8,
+    "category": "military",
+    "hard": "T114"
+  },
+  {
+    "id": "C165",
+    "name": "Generational equity compact",
+    "group": "AI-age institutions",
+    "prereq": "C056 & C146",
+    "requirements": "Long-horizon budgets, rights of the unborn",
+    "behavior": "Long projects (≥ 120 months) −10% work",
+    "era": 8,
+    "category": "welfare",
+    "hard": "T136 | T134"
+  },
+  {
+    "id": "C166",
+    "name": "Global compute treaty",
+    "group": "AI-age institutions",
+    "prereq": "C148 & C162",
+    "requirements": "Verified compute ceilings, inspections",
+    "behavior": "Network incident hazard −50% world-wide among parties; F_auto cap −1,000",
+    "era": 8,
+    "category": "diplomacy",
+    "hard": "T122 & CONTACT"
+  },
+  {
+    "id": "C167",
+    "name": "Machine trusteeship of commons",
+    "group": "AI-age institutions",
+    "prereq": "C053 & C143",
+    "requirements": "Authorized systems managing shared resources",
+    "behavior": "Common pools (fisheries, water, orbits) +20% sustainable yield",
+    "era": 8,
+    "category": "governance",
+    "hard": "T125"
+  },
+  {
+    "id": "C168",
+    "name": "Engine-house brotherhoods",
+    "group": "Tradition institutions",
+    "prereq": "C018 & C033",
+    "requirements": "Engine crews, lodges, apprenticeships",
+    "behavior": "Steampunk: steam works crews train 25% faster; mastery +25 bp a year",
+    "era": 4,
+    "category": "tradition",
+    "hard": "TRAD:steam",
+    "tradition": "steam"
+  },
+  {
+    "id": "C169",
+    "name": "Oil concession diplomacy",
+    "group": "Tradition institutions",
+    "prereq": "C099 & C043",
+    "requirements": "Concessions, royalties, protection",
+    "behavior": "Dieselpunk: crude imports by treaty −15% credit",
+    "era": 5,
+    "category": "tradition",
+    "hard": "TRAD:engine & CONTACT",
+    "tradition": "engine"
+  },
+  {
+    "id": "C170",
+    "name": "Public power cooperatives",
+    "group": "Tradition institutions",
+    "prereq": "C036 & C015",
+    "requirements": "Member-owned utilities",
+    "behavior": "Electropunk: grid faults −50%; stability +1 in electrified regions",
+    "era": 5,
+    "category": "tradition",
+    "hard": "TRAD:wire",
+    "tradition": "wire"
+  },
+  {
+    "id": "C171",
+    "name": "Atomic stewardship orders",
+    "group": "Tradition institutions",
+    "prereq": "C056 & C145",
+    "requirements": "Custodians of waste for ten thousand years",
+    "behavior": "Atompunk: reactor incident hazard −50%; Stewardship of the Land conflict removed",
+    "era": 7,
+    "category": "tradition",
+    "hard": "TRAD:atom",
+    "tradition": "atom"
+  },
+  {
+    "id": "C172",
+    "name": "Corporate citizenship",
+    "group": "Tradition institutions",
+    "prereq": "C048 & C142",
+    "requirements": "Membership through employers, company towns",
+    "behavior": "Cyberpunk: qualified posts +5% productivity; stability −2 in regions with universal suffrage",
+    "era": 6,
+    "category": "tradition",
+    "hard": "TRAD:network",
+    "tension": [
+      "C125"
+    ],
+    "tradition": "network"
+  },
+  {
+    "id": "C173",
+    "name": "Bioethics tribunals",
+    "group": "Tradition institutions",
+    "prereq": "C045 & C137",
+    "requirements": "Review boards with stop powers",
+    "behavior": "Biopunk: biofoundry contamination hazard −50%; bio build months −20%",
+    "era": 6,
+    "category": "tradition",
+    "hard": "TRAD:living",
+    "tradition": "living"
+  },
+  {
+    "id": "C174",
+    "name": "Machine-labour dividends",
+    "group": "Tradition institutions",
+    "prereq": "C050 & (C160 | C161)",
+    "requirements": "Shares in automated output for every resident",
+    "behavior": "AI-punk: unemployment unrest removed; consumer demand +10%",
+    "era": 8,
+    "category": "tradition",
+    "hard": "TRAD:synthetic",
+    "tradition": "synthetic"
+  }
 ]

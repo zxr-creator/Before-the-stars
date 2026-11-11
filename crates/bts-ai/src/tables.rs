@@ -29,8 +29,6 @@ struct PracJson {
     #[serde(default)]
     era: Option<u8>,
     #[serde(default)]
-    exclusive: Option<String>,
-    #[serde(default)]
     tension: Vec<String>,
 }
 
@@ -100,6 +98,34 @@ pub struct Tables {
     pub groups: Vec<Group>,
     /// Practice names by id (for world-order routes).
     pub prac_name: HashMap<String, String>,
+    /// Practice prerequisites by id, and those needed outright (not as alternatives).
+    pub prac_prereq: HashMap<String, Vec<String>>,
+    pub prac_and: HashMap<String, Vec<String>>,
+}
+
+/// The ids a requirement needs outright: its top-level conjuncts that are single
+/// ids (alternatives inside parentheses are left out).
+fn and_ids(s: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut depth = 0;
+    let mut cur = String::new();
+    for ch in s.chars().chain(std::iter::once('&')) {
+        match ch {
+            '(' => depth += 1,
+            ')' => depth -= 1,
+            '&' if depth == 0 => {
+                let t = cur.trim();
+                if t.len() == 4 && !t.contains('|') {
+                    out.push(t.to_string());
+                }
+                cur.clear();
+                continue;
+            }
+            _ => {}
+        }
+        cur.push(ch);
+    }
+    out
 }
 
 fn ids(s: &str) -> Vec<String> {
@@ -173,6 +199,7 @@ pub fn tables() -> &'static Tables {
             .collect();
         let families = fj.families.iter().map(|f| Family { members: f.members.iter().filter_map(|m| tname.get(m).cloned()).collect(), refuted_by: f.refuted_by.iter().filter_map(|m| tname.get(m).cloned()).collect() }).collect();
         let groups = fj.exclusive_groups.iter().map(|g| Group { id: g.id.clone(), members: g.members.iter().filter_map(|m| pname.get(m).cloned()).collect() }).collect();
-        Tables { techs, practices, families, groups, prac_name: pname }
+        let pand: HashMap<String, Vec<String>> = pj.iter().map(|p| (p.id.clone(), and_ids(&p.prereq))).collect();
+        Tables { techs, practices, families, groups, prac_name: pname, prac_prereq: pprereq, prac_and: pand }
     })
 }
