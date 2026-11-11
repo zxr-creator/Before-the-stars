@@ -265,8 +265,11 @@ function analyse(L: Float32Array, R: Float32Array, sr: number, tonicPc: number, 
       const p = re[k] * re[k] + im[k] * im[k];
       for (let b = 0; b < be.length; b++) if (f >= bands[b] && f < bands[b + 1]) be[b] += p;
       cNum += f * p; cDen += p;
-      if (f > 60 && f < 2000) {
-        const pc = (((Math.round(12 * Math.log2(f / 440)) + 9) % 12) + 12) % 12;
+      // pitch classes from bins that sit on a tempered pitch (within 25 cents), above 300 Hz,
+      // where a 4096-point frame resolves semitones (below, a bass note leaks into its neighbours)
+      const semis = 12 * Math.log2(f / 440);
+      if (f > 300 && f < 2500 && Math.abs(semis - Math.round(semis)) < 0.25) {
+        const pc = (((Math.round(semis) + 9) % 12) + 12) % 12;
         chroma[pc] += p;
         if (s >= finalFrom && s + N <= finalTo + N) finalChroma[pc] += p;
       }
