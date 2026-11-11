@@ -209,6 +209,7 @@ function ArmyCard({ obs, a }: { obs: Observation; a: ArmyView }) {
         </div>
         {a.in_battle ? <Badge tone="bad" icon="warn">{t('In battle')}</Badge> : a.training_months_left > 0 ? <Badge tone="gold" icon="clock">{t('Training · {months} left', { months: fmtMonths(a.training_months_left) })}</Badge> : null}
       </div>
+      {a.variant ? <p class="muted small army-variant" data-testid="army-variant"><Icon name="flag" size={11} /> {t('Equipped as: {name}', { name: tc(a.variant) })}</p> : null}
       <ul class="army-roles">
         {a.soldiers.map(([role, n]) => (
           <li class={n === 0 ? 'is-zero' : undefined}><RoleMark role={role} /> <b>{peopleNum(n)}</b> <span>{roleName(role)}</span></li>

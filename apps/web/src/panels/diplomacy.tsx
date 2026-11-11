@@ -11,6 +11,7 @@ import {
   CONTROLLER_LABEL, GOODS, GOOD_LABEL, GOOD_SHORT, INTENTS, INTENT_LABEL, QUAL_LABEL, STATUS_LABEL, fmtDate, fmtDateShort, fmtMonths, int,
   displayUnit, joinList, lc, pct, people, qty, range, roundLength, titleCase, tn,
 } from '../format';
+import { eraName, traditionLabel } from '../era';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import {
@@ -325,6 +326,8 @@ function Counterpart({ obs, other, rules, onBack }: { obs: Observation; other: F
         <div class="mini-meter"><span class="mini-label">{t('Trust')}</span><Meter value={other.trust} max={100} tone={other.trust >= 60 ? 'ok' : other.trust >= 35 ? 'warn' : 'bad'} height={7} label={t('Trust {n} of 100', { n: other.trust })} /><span class="mini-val">{other.trust}</span></div>
         <dl class="kvs">
           <div class="kv"><dt>{t('Population')}</dt><dd>{other.population_high > 0 ? <Est>{t('{n} people', { n: range(other.population_low, other.population_high) })}</Est> : <span class="muted">{t('no estimate — none of their land has been seen')}</span>}</dd></div>
+          {other.era !== null && other.era !== undefined ? <div class="kv" data-testid="counterpart-era"><dt>{t('Era')}</dt><dd>{eraName(other.era)}</dd></div> : null}
+          {other.traditions?.length ? <div class="kv" data-testid="counterpart-traditions"><dt>{t('Traditions')}</dt><dd>{other.traditions.map((k) => traditionLabel(k)).join(', ')}</dd></div> : null}
           <div class="kv"><dt>{t('Regions known')}</dt><dd>{other.regions_known}</dd></div>
           <div class="kv"><dt>{t('Armed strength')}</dt><dd><Est kind="reported">{other.military_estimate ? tc(other.military_estimate) : t('no report')}</Est></dd></div>
           <div class="kv"><dt>{t('Equipment seen')}</dt><dd>{other.observed_tier !== null ? <Est>{t('about tier {n}', { n: other.observed_tier })}</Est> : <span class="muted">{t('never observed')}</span>}</dd></div>

@@ -154,7 +154,7 @@ try {
   for (const [locale, size, tag] of [['en', { width: 1440, height: 900 }, 'en-1440'], ['zh-Hans', { width: 1440, height: 900 }, 'zh-1440'], ['en', { width: 1280, height: 720 }, 'en-1280'], ['zh-Hans', { width: 1280, height: 720 }, 'zh-1280']]) {
     const { context, page } = await open(locale, size);
     const big = tag.endsWith('1440');
-    assert(await page.locator(tid('era-banner')).count() === 0, 'no era banner while the referee sends no era');
+    assert(await page.locator(tid('era-banner')).count() === 1, 'the era banner shows the era the referee sends');
     await openTree(page, 'tech');
     obs = await getObs();
     const counts = await assertExactCards(page, techIds(obs), `tech tree (${tag})`);
@@ -290,37 +290,6 @@ try {
         await shot(page, 'en-1440-repeal-begun');
       }
     }
-    await context.close();
-  }
-
-  // --- the era screen from a sample observation (the referee sends no era yet) ---------------
-  for (const [locale, tag] of [['en', 'en'], ['zh-Hans', 'zh']]) {
-    const { context, page } = await open(locale, { width: 1440, height: 900 });
-    const real = await getObs();
-    const sample = {
-      ...real,
-      era: {
-        era: 5, since: real.month - 420, transition: { until: real.month + 60, strain: 3, score: 61, parts: [{ label: 'Food', points: 22, max: 25 }, { label: 'Order', points: 14, max: 25 }, { label: 'Modernization', points: 18, max: 25 }, { label: 'Integrity', points: 7, max: 25 }] },
-        age: null, can_choose_charter: true,
-        charters: [
-          { key: 'mass_mobilization', name: 'Mass Mobilization', effect: 'Recruit room +50%; fit-out points +20%', cost: 'Consumption level forced to at most 9,000', held: true },
-          { key: 'welfare_state', name: 'Welfare State', effect: 'Stability +4; smaller families slow growth less', cost: 'Expected basket +15%', held: false },
-          { key: 'planned_electrification', name: 'Planned Electrification', effect: 'Generator halls, grid and hydro −30% work', cost: 'Services productivity −300', held: false },
-        ],
-        next: { era: 6, conditions: [{ text: 'Programmable computers', satisfied: true, handle: null }, { text: 'An undiscovered technology of the Information era in computing', satisfied: false, handle: null }, { text: 'A computing centre operating', satisfied: false, handle: null }] },
-      },
-      traditions: [
-        { slot: 'machine', offered: true, path: 'engine', mastery_bp: 4200, switching: null, options: ['steam', 'engine', 'wire'].map((p) => ({ path: p, available: p !== 'wire', reason: p === 'wire' ? 'A further switch in this slot is refused for 600 months' : null })) },
-        { slot: 'frontier', offered: false, path: null, mastery_bp: 0, switching: null, options: [] },
-      ],
-    };
-    await page.route('**/api/observation**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sample) }));
-    await page.reload();
-    await page.waitForSelector(tid('era-banner'), { timeout: 10000 });
-    await shot(page, `era-preview-${tag}-banner`);
-    await page.click(tid('era-banner'));
-    await page.waitForSelector(tid('overlay-era'));
-    await shot(page, `era-preview-${tag}-screen`);
     await context.close();
   }
 } finally {

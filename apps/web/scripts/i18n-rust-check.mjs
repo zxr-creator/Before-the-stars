@@ -17,6 +17,8 @@ const FILES = [
   'crates/bts-engine/src/sim/population.rs', 'crates/bts-protocol/src/lib.rs',
   // ruleset 3.0: standing orders, epidemics, productivity
   'crates/bts-engine/src/sim/directives.rs', 'crates/bts-engine/src/sim/outbreaks.rs', 'crates/bts-engine/src/sim/productivity.rs',
+  // ruleset 3.0 slices 10 and 13: eras, charters, traditions
+  'crates/bts-engine/src/sim/eras.rs',
 ];
 // The referee binary: only its HTTP error replies and new-match validation are player-facing.
 const SERVER = 'crates/bts-server/src/main.rs';

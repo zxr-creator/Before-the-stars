@@ -13,6 +13,7 @@ import {
   goodTonnes, peopleNum, qty, researchMonths, tonnes,
 } from '../format';
 import { Icon } from '../icons';
+import { eraName, traditionLabel } from '../era';
 import { Btn, Tick, cx } from '../ui';
 import { dismissResult, loadAgentLog, openOverlay, refresh, setMenu, setScreen, toast, useApp, viewAsSeat } from '../store';
 import { api } from '../api';
@@ -270,6 +271,11 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
     {
       key: 'techs', icon: 'knowledge', label: t('Technologies'), hint: t('Understood, and how many more are discovered but not yet understood'),
       rank: (c) => c.understood, cell: (c) => <><Tick value={c.understood} format={(n) => String(Math.round(n))} /><small> / {c.discovered}</small></>,
+    },
+    {
+      key: 'era', icon: 'hourglass', label: t('Era'), hint: t('The era each civilization has entered, and the traditions it holds'),
+      rank: (c) => c.era ?? 0,
+      cell: (c) => <span data-testid={`score-era-${c.seat}`}>{c.era === undefined ? '—' : eraName(c.era)}{c.traditions?.length ? <small> · {c.traditions.map((k) => traditionLabel(k)).join(', ')}</small> : null}</span>,
     },
     { key: 'practices', icon: 'culture', label: t('Practices'), rank: (c) => c.practices, cell: (c) => <Tick value={c.practices} format={(n) => String(Math.round(n))} /> },
     {
