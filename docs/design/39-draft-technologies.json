@@ -1,0 +1,3991 @@
+{
+ "_doc": "Draft content for design chapter 39 (docs/design/39-deeper-trees-boost-stations.md). Assumes doc 37 section 7.1 (T154-T159, T170-T182, renames of T140 and T142) is merged first. \"add\" entries use the content/technologies.json fields at top level; the \"draft\" object holds what goes to content/pacing.json nodes (tier, tags, era via pacing_era for antiquity) and the new per-node fields of chapter 39 section 1 (era, kind, evidence source, family, work_bp, hint_bp, fragile, needs_facility); name_zh goes to apps/web/scripts/i18n-data-tech.mjs. lore \"needed\": every new node needs an encyclopedia passage in content/lore/technologies.json before the content is merged. Existing ids are unchanged; new ids continue from T183; no new node is a prerequisite of the victory-critical set.",
+ "content_version_note": "bts-content 3.0.0 (ruleset 3 unreleased); graph hash changes",
+ "groups_added": {
+  "M": "Steampunk branch (Coal and Steam)",
+  "N": "Dieselpunk branch (Oil and Engine)",
+  "O": "Electropunk branch (Current and Wire)",
+  "P": "Atompunk branch (Atom)",
+  "Q": "Cyberpunk branch (Network)",
+  "R": "Biopunk branch (Living Systems)",
+  "S": "AI-punk branch (Synthetic Minds)"
+ },
+ "rename": [
+  {
+   "id": "T048",
+   "name": "Movable type and scaled printing",
+   "reason": "family F04 with woodblock printing; prerequisites unchanged"
+  },
+  {
+   "id": "T038",
+   "era": 5,
+   "reason": "era band fix: powered flight is Modern, not Early Modern (doc 37 8.3 id range)"
+  }
+ ],
+ "relink": [
+  {
+   "id": "T063",
+   "prereq_before": "T042 & T061 & T050",
+   "prereq_after": "T042 & (T061 | T213) & T050",
+   "reason": "atmospheric engines are an alternative route to deep drainage (OR only; T063 is not victory-critical)"
+  }
+ ],
+ "exclusive_requirement_changes_doc37": [
+  {
+   "works": "Steam hammer works",
+   "before": "T080 & T061",
+   "after": "T270"
+  },
+  {
+   "works": "Coal-tar chemicals method",
+   "before": "(tradition only)",
+   "after": "T274"
+  },
+  {
+   "works": "Water-steam thermal tug",
+   "before": "T157 | T159",
+   "after": "T277"
+  },
+  {
+   "works": "Cracking refinery",
+   "before": "T092",
+   "after": "T278"
+  },
+  {
+   "works": "Motor works",
+   "before": "T091 & T066",
+   "after": "T278"
+  },
+  {
+   "works": "Trams and metros",
+   "before": "T101 & T068",
+   "after": "T286"
+  },
+  {
+   "works": "Electric arc steel one technology early",
+   "before": "T101",
+   "after": "T287"
+  },
+  {
+   "works": "Compact reactor",
+   "before": "T147",
+   "after": "T295"
+  },
+  {
+   "works": "Isotope works",
+   "before": "T146",
+   "after": "T294"
+  },
+  {
+   "works": "Reactor process-heat method",
+   "before": "T147",
+   "after": "T296"
+  },
+  {
+   "works": "Network operations centre",
+   "before": "T112 & T123",
+   "after": "T302"
+  },
+  {
+   "works": "Implant clinic",
+   "before": "T119",
+   "after": "T303"
+  },
+  {
+   "works": "Biofoundry",
+   "before": "T132",
+   "after": "T310"
+  },
+  {
+   "works": "Bio-leaching method",
+   "before": "T131",
+   "after": "T311"
+  },
+  {
+   "works": "Lights-out factory method",
+   "before": "T122",
+   "after": "T319"
+  },
+  {
+   "works": "Machine governance centre",
+   "before": "T125",
+   "after": "T320"
+  }
+ ],
+ "families": [
+  {
+   "id": "F01",
+   "name": "Script",
+   "kind": "approach",
+   "members": [
+    "T188",
+    "T189"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F02",
+   "name": "Field system",
+   "kind": "approach",
+   "members": [
+    "T195",
+    "T196"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F03",
+   "name": "Theory of disease",
+   "kind": "doctrine",
+   "members": [
+    "T197",
+    "T053"
+   ],
+   "refuted_by": [
+    "T045",
+    "T212",
+    "T214"
+   ],
+   "critical_members": [
+    "T053"
+   ]
+  },
+  {
+   "id": "F04",
+   "name": "Printing",
+   "kind": "standard",
+   "members": [
+    "T200",
+    "T048"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F05",
+   "name": "Signalling",
+   "kind": "standard",
+   "members": [
+    "T218",
+    "T219"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F06",
+   "name": "Bulk steel",
+   "kind": "approach",
+   "members": [
+    "T222",
+    "T223"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F07",
+   "name": "Nitrogen source",
+   "kind": "approach",
+   "members": [
+    "T226",
+    "T095",
+    "T288",
+    "T312"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F08",
+   "name": "Electric distribution",
+   "kind": "standard",
+   "members": [
+    "T227",
+    "T228"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F09",
+   "name": "Aviation",
+   "kind": "approach",
+   "members": [
+    "T230",
+    "T038"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F10",
+   "name": "Computing substrate",
+   "kind": "standard",
+   "members": [
+    "T234",
+    "T111"
+   ],
+   "refuted_by": [
+    "T110"
+   ],
+   "critical_members": [
+    "T111"
+   ]
+  },
+  {
+   "id": "F11",
+   "name": "Machine intelligence",
+   "kind": "approach",
+   "members": [
+    "T243",
+    "T116"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F12",
+   "name": "Reactor line",
+   "kind": "standard",
+   "members": [
+    "T248",
+    "T249",
+    "T250",
+    "T251"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F13",
+   "name": "Launch propellant",
+   "kind": "standard",
+   "members": [
+    "T254",
+    "T255",
+    "T256"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F14",
+   "name": "AI hardware",
+   "kind": "standard",
+   "members": [
+    "T261",
+    "T117"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  },
+  {
+   "id": "F15",
+   "name": "Fusion confinement",
+   "kind": "approach",
+   "members": [
+    "T264",
+    "T265"
+   ],
+   "refuted_by": [],
+   "critical_members": []
+  }
+ ],
+ "add": [
+  {
+   "id": "T183",
+   "name": "Fermentation and brewing",
+   "label": "established",
+   "group": "A",
+   "group_title": "Subsistence, communities, and early craft",
+   "prereq": "T007 & T008",
+   "requirements": "Grain or fruit surplus, sealed vessels, steady warmth",
+   "capability": "Keeping drinks and foods; souring and spoilage become observable evidence",
+   "draft": {
+    "name_zh": "发酵与酿造",
+    "era": 0,
+    "era_name": "Ancient",
+    "tier": 0,
+    "tags": [
+     "farm",
+     "craft"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T184",
+   "name": "Herbal pharmacopoeia",
+   "label": "established",
+   "group": "A",
+   "group_title": "Subsistence, communities, and early craft",
+   "prereq": "T003 & T007",
+   "requirements": "Plant knowledge, drying, remembered trials",
+   "capability": "Remedies for common ailments; failed remedies feed later comparison",
+   "draft": {
+    "name_zh": "草药方剂",
+    "era": 0,
+    "era_name": "Ancient",
+    "tier": 0,
+    "tags": [
+     "health",
+     "forage"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T185",
+   "name": "Lime burning and plaster",
+   "label": "established",
+   "group": "A",
+   "group_title": "Subsistence, communities, and early craft",
+   "prereq": "T002 & T014",
+   "requirements": "Limestone or shell, hot kilns, fuel",
+   "capability": "Plaster, whitewash and binding mortar; better floors, cisterns and walls",
+   "draft": {
+    "name_zh": "烧石灰与灰泥",
+    "era": 0,
+    "era_name": "Ancient",
+    "tier": 0,
+    "tags": [
+     "build",
+     "craft"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T186",
+   "name": "Salt making",
+   "label": "established",
+   "group": "A",
+   "group_title": "Subsistence, communities, and early craft",
+   "prereq": "T007 & T002",
+   "requirements": "Brine springs, sea pans or rock salt, fuel",
+   "capability": "Salted stores and a valued exchange good",
+   "draft": {
+    "name_zh": "制盐",
+    "era": 0,
+    "era_name": "Ancient",
+    "tier": 0,
+    "tags": [
+     "craft",
+     "trade"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T187",
+   "name": "Long-distance exchange and tokens",
+   "label": "established",
+   "group": "A",
+   "group_title": "Subsistence, communities, and early craft",
+   "prereq": "T009 & T001",
+   "requirements": "Partners beyond the home range, durable tokens, safe passage",
+   "capability": "Regular exchange routes; foreign methods are noticed sooner",
+   "draft": {
+    "name_zh": "远程交换与信物",
+    "era": 0,
+    "era_name": "Ancient",
+    "tier": 0,
+    "tags": [
+     "trade"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T188",
+   "name": "Logographic script and scribal canon",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T025",
+   "requirements": "Large sign inventory, long scribal training, archives",
+   "capability": "Records readable across dialects and centuries; literacy grows slowly",
+   "draft": {
+    "name_zh": "表意文字与书吏经典",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "record",
+     "teach"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "family": "F01",
+    "pacing_era": "classical"
+   }
+  },
+  {
+   "id": "T189",
+   "name": "Phonetic alphabet",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T025 & T187",
+   "requirements": "A small sign set, teachers, contact with other scripts",
+   "capability": "Cheaper literacy; records drift with spoken language",
+   "draft": {
+    "name_zh": "表音字母",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "record",
+     "trade"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "family": "F01",
+    "pacing_era": "classical"
+   }
+  },
+  {
+   "id": "T190",
+   "name": "Coinage and assay",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T022 & T026",
+   "requirements": "Precious or base metal, a mint, assayers",
+   "capability": "Standard money for markets and wages; debasement becomes possible",
+   "draft": {
+    "name_zh": "铸币与验成色",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "trade",
+     "metal"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "classical"
+   }
+  },
+  {
+   "id": "T191",
+   "name": "Crucible steel and pattern welding",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T023 & T031",
+   "requirements": "Selected ore, sealed crucibles, high heat, master smiths",
+   "capability": "Excellent blades and tools in small quantity; the recipe can be lost",
+   "draft": {
+    "name_zh": "坩埚钢与花纹焊",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "metal",
+     "war"
+    ],
+    "kind": "dead",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "classical",
+    "fragile": true
+   }
+  },
+  {
+   "id": "T192",
+   "name": "Hydraulic concrete",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T024 & T185",
+   "requirements": "Volcanic ash or burnt clay, lime, formwork",
+   "capability": "Harbours, domes and aqueducts that set under water; forgotten if not practised",
+   "draft": {
+    "name_zh": "水硬性混凝土",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "build",
+     "water"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "classical",
+    "fragile": true
+   }
+  },
+  {
+   "id": "T193",
+   "name": "Geared astronomical calculators",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T022 & T010 & T026",
+   "requirements": "Fine bronze gearing, long astronomical records",
+   "capability": "Accurate calendars and eclipse prediction; a wonder with no successor",
+   "draft": {
+    "name_zh": "齿轮天文计算器",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "measure",
+     "science"
+    ],
+    "kind": "dead",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "classical",
+    "fragile": true
+   }
+  },
+  {
+   "id": "T194",
+   "name": "Siege engineering and fortification",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T024 & T035",
+   "requirements": "Masons, carpenters, engines, supply",
+   "capability": "Walls that hold and engines that breach them",
+   "draft": {
+    "name_zh": "攻城与筑城工程",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "war",
+     "build"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "classical"
+   }
+  },
+  {
+   "id": "T195",
+   "name": "Terraced and paddy cultivation",
+   "label": "established",
+   "group": "A",
+   "group_title": "Subsistence, communities, and early craft",
+   "prereq": "T011 & T005",
+   "requirements": "Abundant water, levelled fields, heavy seasonal labour",
+   "capability": "High yields per hectare; labour- and water-bound",
+   "draft": {
+    "name_zh": "梯田与水田",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "farm",
+     "water"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "family": "F02",
+    "pacing_era": "classical"
+   }
+  },
+  {
+   "id": "T196",
+   "name": "Crop rotation and manuring",
+   "label": "established",
+   "group": "A",
+   "group_title": "Subsistence, communities, and early craft",
+   "prereq": "T020 & T006",
+   "requirements": "Draught animals, fodder crops, enough pasture",
+   "capability": "Steady dryland yields that depend on herds",
+   "draft": {
+    "name_zh": "轮作与施肥",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "farm"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "family": "F02",
+    "pacing_era": "classical"
+   }
+  },
+  {
+   "id": "T197",
+   "name": "Humoral medicine and medical schools",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T032 & T025",
+   "requirements": "Physicians, texts, teaching patients",
+   "capability": "Organized care and recorded cases; a doctrine that can resist contrary evidence",
+   "draft": {
+    "name_zh": "体液医学与医学院",
+    "era": 1,
+    "era_name": "Classical",
+    "tier": 1,
+    "tags": [
+     "health",
+     "teach"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 10000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "family": "F03",
+    "pacing_era": "classical"
+   }
+  },
+  {
+   "id": "T198",
+   "name": "Positional numerals and algorism",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T026 & T025",
+   "requirements": "A sign for nothing, written calculation, teachers",
+   "capability": "Fast written arithmetic for accounts, surveys and astronomy",
+   "draft": {
+    "name_zh": "位值记数与算法术",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 2,
+    "tags": [
+     "record",
+     "measure"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "medieval"
+   }
+  },
+  {
+   "id": "T199",
+   "name": "Heavy plough and horse collar",
+   "label": "established",
+   "group": "A",
+   "group_title": "Subsistence, communities, and early craft",
+   "prereq": "T020 & T023",
+   "requirements": "Iron shares, strong teams, heavy soils",
+   "capability": "Clay lowlands brought under the plough",
+   "draft": {
+    "name_zh": "重犁与挽具",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 1,
+    "tags": [
+     "farm"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "medieval"
+   }
+  },
+  {
+   "id": "T200",
+   "name": "Woodblock printing",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T030 & T012",
+   "requirements": "Carvers, fine wood, paper, ink",
+   "capability": "Many copies of a page for a large sign inventory",
+   "draft": {
+    "name_zh": "雕版印刷",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 1,
+    "tags": [
+     "record",
+     "craft"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "family": "F04",
+    "pacing_era": "medieval"
+   }
+  },
+  {
+   "id": "T201",
+   "name": "Paper money and bills of exchange",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T030 & T190",
+   "requirements": "Trusted issuers, paper, record-keeping",
+   "capability": "Credit moves without metal; over-issue is possible",
+   "draft": {
+    "name_zh": "纸币与汇票",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 1,
+    "tags": [
+     "trade",
+     "record"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "medieval"
+   }
+  },
+  {
+   "id": "T202",
+   "name": "Magnetic needle navigation",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T014 & T028",
+   "requirements": "Lodestone, needles, pilots",
+   "capability": "Bearing kept under cloud; longer open-sea passages",
+   "draft": {
+    "name_zh": "磁针导航",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 1,
+    "tags": [
+     "sea",
+     "measure"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "high_medieval"
+   }
+  },
+  {
+   "id": "T203",
+   "name": "Blast furnace and cast iron",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T023 & T029",
+   "requirements": "Water-driven bellows, ore, charcoal",
+   "capability": "Cast iron in quantity: pots, ploughshares, cannon later",
+   "draft": {
+    "name_zh": "高炉与铸铁",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 1,
+    "tags": [
+     "metal"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "medieval"
+   }
+  },
+  {
+   "id": "T204",
+   "name": "Distillation",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T031 & T183",
+   "requirements": "Stills, cooling water, fermented mash",
+   "capability": "Spirits, essences and solvents; separation becomes a practice",
+   "draft": {
+    "name_zh": "蒸馏",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 1,
+    "tags": [
+     "chem",
+     "craft"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "medieval"
+   }
+  },
+  {
+   "id": "T205",
+   "name": "Cam-driven automata",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T034 & T035",
+   "requirements": "Clockmakers, cams, patrons",
+   "capability": "Programmed motion as wonder; prestige and practice in fine mechanism",
+   "draft": {
+    "name_zh": "凸轮自动机",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 1,
+    "tags": [
+     "machine",
+     "craft"
+    ],
+    "kind": "dead",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "high_medieval"
+   }
+  },
+  {
+   "id": "T206",
+   "name": "Naphtha incendiaries",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T014 & T013 & T204",
+   "requirements": "Seep oil, stills, siphons, a guarded recipe",
+   "capability": "A fire that water cannot quench; secret, and easily lost",
+   "draft": {
+    "name_zh": "石油火攻剂",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 1,
+    "tags": [
+     "war",
+     "chem"
+    ],
+    "kind": "dead",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "medieval",
+    "fragile": true
+   }
+  },
+  {
+   "id": "T207",
+   "name": "Black-powder rockets",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T036 & T035",
+   "requirements": "Propellant, bamboo or paper tubes, fins",
+   "capability": "Bombardment and signals; a long-remembered curiosity of flight",
+   "draft": {
+    "name_zh": "火药火箭",
+    "era": 2,
+    "era_name": "Medieval",
+    "tier": 2,
+    "tags": [
+     "war",
+     "chem"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 11000,
+    "hint_bp": 10000,
+    "lore": "needed",
+    "pacing_era": "high_medieval"
+   }
+  },
+  {
+   "id": "T208",
+   "name": "Double-entry bookkeeping",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T026 & T198",
+   "requirements": "Numerate clerks, ledgers, partnerships",
+   "capability": "Accounts that balance; errors and fraud become visible",
+   "draft": {
+    "name_zh": "复式记账",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "record",
+     "trade"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "renaissance"
+   }
+  },
+  {
+   "id": "T209",
+   "name": "Bastion fortification",
+   "label": "established",
+   "group": "B",
+   "group_title": "Specialized society, records, transport, and machinery",
+   "prereq": "T037 & T024",
+   "requirements": "Engineers, earth and masonry, artillery",
+   "capability": "Low angled walls that defeat bombardment; long sieges",
+   "draft": {
+    "name_zh": "棱堡筑城",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "war",
+     "build"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "early_modern"
+   }
+  },
+  {
+   "id": "T210",
+   "name": "Telescopic astronomy",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T041 & T047",
+   "requirements": "Ground lenses, observers, tables",
+   "capability": "Moons, phases and spots; models must answer to observation",
+   "draft": {
+    "name_zh": "望远镜天文学",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "science",
+     "measure"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "early_modern"
+   }
+  },
+  {
+   "id": "T211",
+   "name": "Pendulum clocks and marine chronometers",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T034 & T044",
+   "requirements": "Precision gearing, temperature compensation",
+   "capability": "Seconds kept on land and longitude kept at sea",
+   "draft": {
+    "name_zh": "摆钟与航海天文钟",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "measure",
+     "sea"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "early_modern"
+   }
+  },
+  {
+   "id": "T212",
+   "name": "Microscopic observation",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T041 & T046",
+   "requirements": "Fine lenses, patient observers, specimens",
+   "capability": "Small living things seen; disease theories meet contrary sight",
+   "draft": {
+    "name_zh": "显微观察",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "science",
+     "health"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "early_modern"
+   }
+  },
+  {
+   "id": "T213",
+   "name": "Atmospheric pumping engines",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T042 & T023",
+   "requirements": "Cylinders, boilers, coal at the pithead",
+   "capability": "Drainage of deep workings by fire; fuel-hungry and slow",
+   "draft": {
+    "name_zh": "大气压抽水机",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "steam",
+     "mine"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "early_modern"
+   }
+  },
+  {
+   "id": "T214",
+   "name": "Variolation",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T046 & T032",
+   "requirements": "Practitioners, mild cases, willing patients",
+   "capability": "Deliberate mild infection protects against the severe form; real risk remains",
+   "draft": {
+    "name_zh": "人痘接种",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "health"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "early_modern"
+   }
+  },
+  {
+   "id": "T215",
+   "name": "Electrostatic machines and charge storage",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T031 & T040",
+   "requirements": "Glass globes, conductors, careful observers",
+   "capability": "Sparks stored and measured; a puzzle for natural philosophy",
+   "draft": {
+    "name_zh": "静电机与储电瓶",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "electric",
+     "science"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "early_modern"
+   }
+  },
+  {
+   "id": "T216",
+   "name": "Lighter-than-air balloons",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T042 & T004 & T043",
+   "requirements": "Light fabric, hot air or hydrogen",
+   "capability": "Ascents for observation and science; no steering yet",
+   "draft": {
+    "name_zh": "热气球与氢气球",
+    "era": 3,
+    "era_name": "Early Modern",
+    "tier": 2,
+    "tags": [
+     "science",
+     "craft"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12000,
+    "hint_bp": 11000,
+    "lore": "needed",
+    "pacing_era": "early_modern"
+   }
+  },
+  {
+   "id": "T217",
+   "name": "Coal gas and gas lighting",
+   "label": "established",
+   "group": "E",
+   "group_title": "Steam and thermal traditions",
+   "prereq": "T064 & T052",
+   "requirements": "Gasworks, coal, mains",
+   "capability": "Lit streets and longer working hours; coke and tar as by-products",
+   "draft": {
+    "name_zh": "煤气与煤气照明",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 4,
+    "tags": [
+     "chem",
+     "steam"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T218",
+   "name": "Optical semaphore networks",
+   "label": "established",
+   "group": "C",
+   "group_title": "Measurement, experiment, and teachable science",
+   "prereq": "T041 & T027 & T016",
+   "requirements": "Towers in sight of each other, trained operators",
+   "capability": "Messages across a country in hours, in daylight",
+   "draft": {
+    "name_zh": "光学信号塔网络",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 4,
+    "tags": [
+     "record",
+     "measure"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed",
+    "family": "F05"
+   }
+  },
+  {
+   "id": "T219",
+   "name": "Electric telegraphy",
+   "label": "established",
+   "group": "G",
+   "group_title": "Electric power, electronics, and distributed control",
+   "prereq": "T054 & T048",
+   "requirements": "Wire, insulators, batteries, operators",
+   "capability": "Messages at the speed of current; news and prices travel together",
+   "draft": {
+    "name_zh": "有线电报",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 4,
+    "tags": [
+     "electric",
+     "record"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed",
+    "family": "F05"
+   }
+  },
+  {
+   "id": "T220",
+   "name": "Iron-hulled steamships",
+   "label": "established",
+   "group": "E",
+   "group_title": "Steam and thermal traditions",
+   "prereq": "T080 & T060 & T028",
+   "requirements": "Plate iron, marine engines, coaling stations",
+   "capability": "Ships that keep schedules against the wind",
+   "draft": {
+    "name_zh": "铁壳蒸汽船",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "sea",
+     "steam"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T221",
+   "name": "Anaesthesia and antisepsis",
+   "label": "established",
+   "group": "D",
+   "group_title": "Industrial foundations and the material conditions of scale",
+   "prereq": "T053 & T043",
+   "requirements": "Chemicals, trained surgeons, clean wards",
+   "capability": "Surgery survivable; hospital deaths fall",
+   "draft": {
+    "name_zh": "麻醉与消毒",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 4,
+    "tags": [
+     "health",
+     "chem"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T222",
+   "name": "Pneumatic converter steel",
+   "label": "established",
+   "group": "D",
+   "group_title": "Industrial foundations and the material conditions of scale",
+   "prereq": "T060 & T042",
+   "requirements": "Low-phosphorus pig iron, blowing engines",
+   "capability": "Cheap steel in minutes; picky about ore",
+   "draft": {
+    "name_zh": "转炉炼钢",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "metal"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed",
+    "family": "F06"
+   }
+  },
+  {
+   "id": "T223",
+   "name": "Regenerative open-hearth steel",
+   "label": "established",
+   "group": "D",
+   "group_title": "Industrial foundations and the material conditions of scale",
+   "prereq": "T060 & T085",
+   "requirements": "Regenerative furnaces, scrap, gas",
+   "capability": "Slower, controllable steel that eats scrap",
+   "draft": {
+    "name_zh": "平炉炼钢",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "metal",
+     "steam"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed",
+    "family": "F06"
+   }
+  },
+  {
+   "id": "T224",
+   "name": "Portland cement and reinforced concrete",
+   "label": "established",
+   "group": "D",
+   "group_title": "Industrial foundations and the material conditions of scale",
+   "prereq": "T064 & T050 & T024",
+   "requirements": "Kilns, limestone and clay, steel bar",
+   "capability": "Cheap strong structures: dams, piers, tall frames",
+   "draft": {
+    "name_zh": "波特兰水泥与钢筋混凝土",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 4,
+    "tags": [
+     "build",
+     "chem"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T225",
+   "name": "Vapour-compression refrigeration",
+   "label": "established",
+   "group": "D",
+   "group_title": "Industrial foundations and the material conditions of scale",
+   "prereq": "T052 & T067",
+   "requirements": "Compressors, refrigerants, insulated stores",
+   "capability": "Cold stores and chilled shipping; food keeps across seasons",
+   "draft": {
+    "name_zh": "蒸气压缩制冷",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "machine",
+     "steam"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T226",
+   "name": "Mined nitrates and guano",
+   "label": "established",
+   "group": "F",
+   "group_title": "Diesel, chemicals, and mobile industry",
+   "prereq": "T056 & T064 & T028",
+   "requirements": "Desert nitrate beds or guano islands, shipping",
+   "capability": "Imported fertilizer and saltpetre; a finite, distant source",
+   "draft": {
+    "name_zh": "矿物硝石与鸟粪",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 4,
+    "tags": [
+     "farm",
+     "chem",
+     "mine"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 12000,
+    "lore": "needed",
+    "family": "F07"
+   }
+  },
+  {
+   "id": "T227",
+   "name": "Direct-current local networks",
+   "label": "established",
+   "group": "G",
+   "group_title": "Electric power, electronics, and distributed control",
+   "prereq": "T100 & T103",
+   "requirements": "Generators near loads, batteries, copper",
+   "capability": "Reliable local supply; poor over distance",
+   "draft": {
+    "name_zh": "直流区域电网",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "electric"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed",
+    "family": "F08"
+   }
+  },
+  {
+   "id": "T228",
+   "name": "Polyphase alternating-current transmission",
+   "label": "established",
+   "group": "G",
+   "group_title": "Electric power, electronics, and distributed control",
+   "prereq": "T100 & T055",
+   "requirements": "Transformers, high-voltage lines, synchronised stations",
+   "capability": "Power sent far from where it is made",
+   "draft": {
+    "name_zh": "多相交流输电",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "electric"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed",
+    "family": "F08"
+   }
+  },
+  {
+   "id": "T229",
+   "name": "Radio broadcasting",
+   "label": "established",
+   "group": "G",
+   "group_title": "Electric power, electronics, and distributed control",
+   "prereq": "T104 & T048",
+   "requirements": "Transmitters, receivers in homes, programming",
+   "capability": "One voice to a nation; news, music and propaganda",
+   "draft": {
+    "name_zh": "无线电广播",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "electric",
+     "record"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T230",
+   "name": "Rigid airships",
+   "label": "established",
+   "group": "F",
+   "group_title": "Diesel, chemicals, and mobile industry",
+   "prereq": "T216 & T091 & T050",
+   "requirements": "Light frames, gasbags, engines, mooring masts",
+   "capability": "Long-range air cargo and prestige; fragile in storms",
+   "draft": {
+    "name_zh": "硬式飞艇",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "fuel",
+     "build"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed",
+    "family": "F09"
+   }
+  },
+  {
+   "id": "T231",
+   "name": "Antibiotics",
+   "label": "established",
+   "group": "I",
+   "group_title": "Biology, ecology, and life support",
+   "prereq": "T070 & T053",
+   "requirements": "Culture works, purification, physicians",
+   "capability": "Bacterial infections cured; resistance follows misuse",
+   "draft": {
+    "name_zh": "抗生素",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "health",
+     "bio"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T232",
+   "name": "Radar and radio location",
+   "label": "established",
+   "group": "G",
+   "group_title": "Electric power, electronics, and distributed control",
+   "prereq": "T104 & T055",
+   "requirements": "Transmitters, receivers, trained plotters",
+   "capability": "Aircraft and ships seen at night and through cloud",
+   "draft": {
+    "name_zh": "雷达与无线电定位",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "electric",
+     "war"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T233",
+   "name": "Jet propulsion",
+   "label": "established",
+   "group": "F",
+   "group_title": "Diesel, chemicals, and mobile industry",
+   "prereq": "T038 & T083",
+   "requirements": "Turbines, heat-resistant alloys, fuel",
+   "capability": "Fast high flight; a school for rocket engineers",
+   "draft": {
+    "name_zh": "喷气推进",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "fuel",
+     "machine"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T234",
+   "name": "Analog computers and fire control",
+   "label": "established",
+   "group": "H",
+   "group_title": "Computing, network infrastructure, and high autonomy",
+   "prereq": "T044 & T104 & T051",
+   "requirements": "Precision mechanisms, amplifiers, operators",
+   "capability": "Fast solutions to fixed equations: gunnery, tides, networks",
+   "draft": {
+    "name_zh": "模拟计算机与火控",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "compute",
+     "war"
+    ],
+    "kind": "dead",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed",
+    "family": "F10"
+   }
+  },
+  {
+   "id": "T235",
+   "name": "Large hydroelectric dams",
+   "label": "established",
+   "group": "G",
+   "group_title": "Electric power, electronics, and distributed control",
+   "prereq": "T100 & T024 & T050",
+   "requirements": "A river gorge, concrete, turbines, resettlement",
+   "capability": "Cheap steady power for a region; a flooded valley",
+   "draft": {
+    "name_zh": "大型水电站",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "electric",
+     "water",
+     "build"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T236",
+   "name": "Liquid-fuel rocket experiments",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T090 & T042 & T052",
+   "requirements": "Test stands, pumps, cryogenic oxidiser, enthusiasts",
+   "capability": "Short controlled flights; the first data for orbital rocketry",
+   "draft": {
+    "name_zh": "液体火箭试验",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "space",
+     "fuel"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 12500,
+    "hint_bp": 13000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T237",
+   "name": "Containerized shipping",
+   "label": "established",
+   "group": "F",
+   "group_title": "Diesel, chemicals, and mobile industry",
+   "prereq": "T094 & T071",
+   "requirements": "Standard boxes, cranes, port works",
+   "capability": "Cargo handling cost collapses; trade routes deepen",
+   "draft": {
+    "name_zh": "集装箱航运",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 6,
+    "tags": [
+     "trade",
+     "sea"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T238",
+   "name": "High-yield crop varieties",
+   "label": "established",
+   "group": "I",
+   "group_title": "Biology, ecology, and life support",
+   "prereq": "T095 & T056 & T055",
+   "requirements": "Breeding stations, fertilizer, irrigation",
+   "capability": "Field yields jump where inputs follow",
+   "draft": {
+    "name_zh": "高产作物品种",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 6,
+    "tags": [
+     "farm",
+     "bio"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T239",
+   "name": "Cellular mobile networks",
+   "label": "established",
+   "group": "H",
+   "group_title": "Computing, network infrastructure, and high autonomy",
+   "prereq": "T112 & T104 & T106",
+   "requirements": "Masts, handsets, spectrum, backbone",
+   "capability": "Everyone reachable everywhere",
+   "draft": {
+    "name_zh": "蜂窝移动通信",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "compute",
+     "electric"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T240",
+   "name": "Public-key cryptography",
+   "label": "established",
+   "group": "H",
+   "group_title": "Computing, network infrastructure, and high autonomy",
+   "prereq": "T110 & T055 & T112",
+   "requirements": "Number theory, verified software",
+   "capability": "Secure exchange between strangers; trust in networks",
+   "draft": {
+    "name_zh": "公钥密码",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "compute"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T241",
+   "name": "Genome sequencing",
+   "label": "established",
+   "group": "I",
+   "group_title": "Biology, ecology, and life support",
+   "prereq": "T131 & T113",
+   "requirements": "Sequencers, reagents, databases",
+   "capability": "Organisms read letter by letter; breeding and medicine aim",
+   "draft": {
+    "name_zh": "基因组测序",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "bio",
+     "compute"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T242",
+   "name": "Carbon-fibre composites",
+   "label": "established",
+   "group": "F",
+   "group_title": "Diesel, chemicals, and mobile industry",
+   "prereq": "T093 & T050 & T060",
+   "requirements": "Precursor fibre, resins, autoclaves",
+   "capability": "Light stiff structures for aircraft, rockets and turbines",
+   "draft": {
+    "name_zh": "碳纤维复合材料",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 6,
+    "tags": [
+     "machine",
+     "chem"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T243",
+   "name": "Symbolic expert systems",
+   "label": "established",
+   "group": "H",
+   "group_title": "Computing, network infrastructure, and high autonomy",
+   "prereq": "T110 & T113",
+   "requirements": "Knowledge engineers, rule bases, domain experts",
+   "capability": "Auditable advice in narrow domains; brittle outside them",
+   "draft": {
+    "name_zh": "符号专家系统",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "compute",
+     "record"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "family": "F11"
+   }
+  },
+  {
+   "id": "T244",
+   "name": "Hydraulic fracturing",
+   "label": "established",
+   "group": "F",
+   "group_title": "Diesel, chemicals, and mobile industry",
+   "prereq": "T090 & T063 & T050",
+   "requirements": "Pumps, sand, chemicals, tight deposits",
+   "capability": "Oil and gas from rock thought barren; water and quake risk",
+   "draft": {
+    "name_zh": "水力压裂",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 6,
+    "tags": [
+     "fuel",
+     "mine"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T245",
+   "name": "Fibre-optic communication",
+   "label": "established",
+   "group": "H",
+   "group_title": "Computing, network infrastructure, and high autonomy",
+   "prereq": "T109 & T112",
+   "requirements": "Pure glass fibre, lasers, repeaters",
+   "capability": "Bandwidth across oceans",
+   "draft": {
+    "name_zh": "光纤通信",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "electric",
+     "compute"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 13000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T246",
+   "name": "Communications satellites",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T142 & T104",
+   "requirements": "Launch, transponders, ground stations",
+   "capability": "Global relay; boosts the value of every station and site",
+   "draft": {
+    "name_zh": "通信卫星",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 7,
+    "tags": [
+     "space",
+     "electric"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T247",
+   "name": "Earth-observation and navigation satellites",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T142 & T141 & T109",
+   "requirements": "Constellations, clocks, imaging",
+   "capability": "Position anywhere; harvests, weather and armies watched",
+   "draft": {
+    "name_zh": "对地观测与导航卫星",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "space",
+     "measure"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T248",
+   "name": "Pressurized light-water reactor fleets",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T147 & T067 & T071",
+   "requirements": "Enriched fuel, pressure vessels, standard designs",
+   "capability": "Fission power built in series; enrichment dependence",
+   "draft": {
+    "name_zh": "压水堆机组",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "highenergy",
+     "machine"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "family": "F12"
+   }
+  },
+  {
+   "id": "T249",
+   "name": "Heavy-water natural-uranium reactors",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T147 & T043",
+   "requirements": "Heavy water, natural uranium, on-load refuelling",
+   "capability": "Fission without enrichment; costly moderator",
+   "draft": {
+    "name_zh": "重水天然铀堆",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "highenergy",
+     "chem"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "family": "F12"
+   }
+  },
+  {
+   "id": "T250",
+   "name": "Fast breeder reactors and reprocessing",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T147 & T064 & T108",
+   "requirements": "Sodium cooling, reprocessing works, safeguards",
+   "capability": "Fuel stretched sixty-fold; proliferation suspicion",
+   "draft": {
+    "name_zh": "快中子增殖堆与后处理",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "highenergy",
+     "chem"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "family": "F12"
+   }
+  },
+  {
+   "id": "T251",
+   "name": "Thorium molten-salt reactors",
+   "label": "extrapolated",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T147 & T064 & T050",
+   "requirements": "Fluoride salts, corrosion-proof alloys, thorium",
+   "capability": "High-temperature fission from abundant thorium; immature materials",
+   "draft": {
+    "name_zh": "钍基熔盐堆",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "highenergy",
+     "chem"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "family": "F12"
+   }
+  },
+  {
+   "id": "T252",
+   "name": "Crew-rated capsules and launch escape",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T142 & T144 & T115",
+   "requirements": "Escape towers, reentry shields, abort software",
+   "capability": "People launched at 2 t of boost each instead of 3",
+   "draft": {
+    "name_zh": "载人飞船与逃逸系统",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "space",
+     "health"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "needs_facility": "launch_complex"
+   }
+  },
+  {
+   "id": "T253",
+   "name": "In-orbit servicing and refuelling",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T142 & T114 & T152",
+   "requirements": "Robotic arms, standard ports, transfer tugs",
+   "capability": "Station modules repaired instead of replaced; upkeep falls",
+   "draft": {
+    "name_zh": "在轨服务与加注",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "space",
+     "machine"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T254",
+   "name": "Kerosene-oxygen launch engines",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T140 & T090",
+   "requirements": "Refined kerosene, liquid oxygen, turbopumps",
+   "capability": "Dense, storable fuel; dirty engines, poor for reuse",
+   "draft": {
+    "name_zh": "煤油液氧发动机",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 7,
+    "tags": [
+     "space",
+     "fuel"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "family": "F13"
+   }
+  },
+  {
+   "id": "T255",
+   "name": "Hydrogen-oxygen launch engines",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T140 & T108",
+   "requirements": "Liquid hydrogen, insulation, cryogenic handling",
+   "capability": "Highest exhaust velocity; boil-off and bulky tanks",
+   "draft": {
+    "name_zh": "氢氧发动机",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 7,
+    "tags": [
+     "space",
+     "chem"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "family": "F13"
+   }
+  },
+  {
+   "id": "T256",
+   "name": "Methane-oxygen launch engines",
+   "label": "established",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T140 & T096",
+   "requirements": "Methane, liquid oxygen, full-flow engines",
+   "capability": "Clean reusable engines; propellant can be made on Mars and Titan",
+   "draft": {
+    "name_zh": "甲烷液氧发动机",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 7,
+    "tags": [
+     "space",
+     "fuel"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "family": "F13"
+   }
+  },
+  {
+   "id": "T257",
+   "name": "Rotating orbital tethers",
+   "label": "extrapolated",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T145 & T107 & T242",
+   "requirements": "High-strength tethers, momentum reboost, catch control",
+   "capability": "Sub-orbital payloads caught and flung to orbit; more boost per launch",
+   "draft": {
+    "name_zh": "旋转轨道系绳",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "space",
+     "machine"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 15000,
+    "hint_bp": 17000,
+    "lore": "needed",
+    "needs_facility": "orbital_station"
+   }
+  },
+  {
+   "id": "T258",
+   "name": "Carbon-nanotube and graphene materials",
+   "label": "extrapolated",
+   "group": "D",
+   "group_title": "Industrial foundations and the material conditions of scale",
+   "prereq": "T058 & T093 & T242",
+   "requirements": "Controlled growth, defect inspection, scale-up",
+   "capability": "Materials an order stronger than steel by weight",
+   "draft": {
+    "name_zh": "碳纳米管与石墨烯材料",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "machine",
+     "chem"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T259",
+   "name": "Space elevator",
+   "label": "extrapolated",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T258 & T145 & T153",
+   "requirements": "An equatorial anchor, a ribbon to beyond geostationary orbit, climbers",
+   "capability": "Boost by electricity instead of rockets, at enormous construction cost",
+   "draft": {
+    "name_zh": "太空电梯",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "space",
+     "build"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed",
+    "needs_facility": "orbital_station"
+   }
+  },
+  {
+   "id": "T260",
+   "name": "Fault-tolerant quantum computing",
+   "label": "extrapolated",
+   "group": "H",
+   "group_title": "Computing, network infrastructure, and high autonomy",
+   "prereq": "T057 & T108 & T115",
+   "requirements": "Cryogenic qubits, error correction, verified algorithms",
+   "capability": "Chemistry and cryptography problems solved; old encryption falls",
+   "draft": {
+    "name_zh": "容错量子计算",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "compute",
+     "science"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T261",
+   "name": "Neuromorphic processors",
+   "label": "extrapolated",
+   "group": "H",
+   "group_title": "Computing, network infrastructure, and high autonomy",
+   "prereq": "T106 & T116",
+   "requirements": "Spiking architectures, new toolchains",
+   "capability": "Learning at a fraction of the power; incompatible with mainstream software",
+   "draft": {
+    "name_zh": "类脑处理器",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "compute"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed",
+    "family": "F14"
+   }
+  },
+  {
+   "id": "T262",
+   "name": "Molecular nanofabrication",
+   "label": "extrapolated",
+   "group": "D",
+   "group_title": "Industrial foundations and the material conditions of scale",
+   "prereq": "T106 & T131 & T109",
+   "requirements": "Positional assembly, clean environments, verification",
+   "capability": "Atomically precise parts in small volumes",
+   "draft": {
+    "name_zh": "分子纳米制造",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "machine",
+     "bio"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T263",
+   "name": "Synthetic biology",
+   "label": "established",
+   "group": "I",
+   "group_title": "Biology, ecology, and life support",
+   "prereq": "T134 & T132",
+   "requirements": "Standard genetic parts, foundries, containment",
+   "capability": "Organisms designed for a purpose",
+   "draft": {
+    "name_zh": "合成生物学",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "bio"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T264",
+   "name": "Magnetic-confinement fusion engineering",
+   "label": "extrapolated",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T148 & T108",
+   "requirements": "Superconducting coils, plasma control, tritium breeding",
+   "capability": "The steady-state road to fusion power",
+   "draft": {
+    "name_zh": "磁约束聚变工程",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "highenergy"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed",
+    "family": "F15",
+    "needs_facility": "high_energy"
+   }
+  },
+  {
+   "id": "T265",
+   "name": "Laser inertial-confinement fusion",
+   "label": "extrapolated",
+   "group": "J",
+   "group_title": "Orbital and high-energy engineering",
+   "prereq": "T148 & T109",
+   "requirements": "Giant lasers, targets by the million, chambers",
+   "capability": "The pulsed road to fusion power",
+   "draft": {
+    "name_zh": "激光惯性约束聚变",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "highenergy"
+    ],
+    "kind": "alt",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed",
+    "family": "F15",
+    "needs_facility": "high_energy"
+   }
+  },
+  {
+   "id": "T266",
+   "name": "Asteroid capture and redirection",
+   "label": "extrapolated",
+   "group": "L",
+   "group_title": "Solar System operations",
+   "prereq": "T172 & T145 & T155",
+   "requirements": "Tugs, months of thrust, a parking orbit",
+   "capability": "A metal asteroid parked near a station: mining without the trip",
+   "draft": {
+    "name_zh": "小行星捕获与变轨",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "space",
+     "mine"
+    ],
+    "kind": "side",
+    "evidence": "ordinary",
+    "work_bp": 17500,
+    "hint_bp": 20000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T267",
+   "name": "Anomaly cartography",
+   "label": "fictional",
+   "group": "K",
+   "group_title": "Relativity and FTL engineering",
+   "prereq": "T162 & T151",
+   "requirements": "Repeated anomaly runs, interferometer time",
+   "capability": "Where the anomaly is calm: trials fail less often",
+   "draft": {
+    "name_zh": "异常空间测绘",
+    "era": 9,
+    "era_name": "Interstellar",
+    "tier": 9,
+    "tags": [
+     "highenergy",
+     "space"
+    ],
+    "kind": "sealed",
+    "evidence": "sealed",
+    "work_bp": 15000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T268",
+   "name": "Exotic-field shielding",
+   "label": "fictional",
+   "group": "K",
+   "group_title": "Relativity and FTL engineering",
+   "prereq": "T163 & T108",
+   "requirements": "Superconducting shells, field-state models",
+   "capability": "Crews and electronics protected during jumps",
+   "draft": {
+    "name_zh": "奇异场屏蔽",
+    "era": 9,
+    "era_name": "Interstellar",
+    "tier": 9,
+    "tags": [
+     "highenergy"
+    ],
+    "kind": "sealed",
+    "evidence": "sealed",
+    "work_bp": 15000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T269",
+   "name": "Jump navigation beacons",
+   "label": "fictional",
+   "group": "K",
+   "group_title": "Relativity and FTL engineering",
+   "prereq": "T166 & T175",
+   "requirements": "Beacon craft at the nodes, timing networks",
+   "capability": "Loaded jumps land closer: replacement and relief faster",
+   "draft": {
+    "name_zh": "跃迁导航信标",
+    "era": 9,
+    "era_name": "Interstellar",
+    "tier": 9,
+    "tags": [
+     "space",
+     "compute"
+    ],
+    "kind": "sealed",
+    "evidence": "sealed",
+    "work_bp": 15000,
+    "hint_bp": 15000,
+    "lore": "needed"
+   }
+  },
+  {
+   "id": "T270",
+   "name": "Steam hammers and heavy forging",
+   "label": "established",
+   "group": "M",
+   "group_title": "Steampunk branch (Coal and Steam)",
+   "prereq": "T080 & T061",
+   "requirements": "Steam supply, anvils, heavy cranes",
+   "capability": "Large forgings anyone can use; holders build steam hammer works",
+   "draft": {
+    "name_zh": "蒸汽锤与重型锻造",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 4,
+    "tags": [
+     "steam",
+     "metal",
+     "machine"
+    ],
+    "kind": "entry",
+    "evidence": "ordinary",
+    "work_bp": 13750,
+    "hint_bp": 12000,
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "T271",
+   "name": "Difference engines and calculating bureaux",
+   "label": "established",
+   "group": "M",
+   "group_title": "Steampunk branch (Coal and Steam)",
+   "prereq": "T270 & T044 & T082 & T066",
+   "requirements": "Precision gear trains, clerks, steam drive",
+   "capability": "Error-free printed tables; holders: administrative offices serve +1 region per level",
+   "draft": {
+    "name_zh": "差分机与计算局",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "compute",
+     "machine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:steam",
+    "work_bp": 15625,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "T272",
+   "name": "Road locomotives and steam carriages",
+   "label": "established",
+   "group": "M",
+   "group_title": "Steampunk branch (Coal and Steam)",
+   "prereq": "T270 & T081 & T027",
+   "requirements": "Light boilers, iron wheels, coal depots",
+   "capability": "Haulage off the rails; holders: −15% road freight cost",
+   "draft": {
+    "name_zh": "公路机车与蒸汽汽车",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "steam",
+     "machine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:steam",
+    "work_bp": 15625,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "T273",
+   "name": "Ironclads and armoured trains",
+   "label": "established",
+   "group": "M",
+   "group_title": "Steampunk branch (Coal and Steam)",
+   "prereq": "T270 & T081 & T060 & T068",
+   "requirements": "Armour plate, rail and naval yards",
+   "capability": "Holders: the Ironclad-and-rail variant at G3-G4",
+   "draft": {
+    "name_zh": "铁甲舰与装甲列车",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "war",
+     "steam"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:steam",
+    "work_bp": 15625,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "T274",
+   "name": "Coal-tar chemistry and synthetic dyes",
+   "label": "established",
+   "group": "M",
+   "group_title": "Steampunk branch (Coal and Steam)",
+   "prereq": "T270 & T064 & T060 & T217",
+   "requirements": "Coke ovens, tar, chemists",
+   "capability": "Dyes and drugs from coal; holders: the coal-tar method at chemical works",
+   "draft": {
+    "name_zh": "煤焦油化学与合成染料",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "chem",
+     "steam"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:steam",
+    "work_bp": 15625,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "T275",
+   "name": "Pneumatic tube networks",
+   "label": "established",
+   "group": "M",
+   "group_title": "Steampunk branch (Coal and Steam)",
+   "prereq": "T270 & T042 & T082 & T068",
+   "requirements": "Pumping stations, iron tubes under streets",
+   "capability": "A dead end that pays: holders: +5% service productivity in towns of 5 M+",
+   "draft": {
+    "name_zh": "气动管道网络",
+    "era": 4,
+    "era_name": "Industrial",
+    "tier": 5,
+    "tags": [
+     "steam",
+     "build"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:steam",
+    "work_bp": 15625,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "T276",
+   "name": "Supercritical steam cycles",
+   "label": "established",
+   "group": "M",
+   "group_title": "Steampunk branch (Coal and Steam)",
+   "prereq": "T270 & T086",
+   "requirements": "Advanced alloys, once-through boilers",
+   "capability": "Steam stations at fission-like efficiency; holders: −10% coal per unit of electricity",
+   "draft": {
+    "name_zh": "超临界蒸汽循环",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 6,
+    "tags": [
+     "steam"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:steam",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "T277",
+   "name": "Steam-thermal ice rockets",
+   "label": "extrapolated",
+   "group": "M",
+   "group_title": "Steampunk branch (Coal and Steam)",
+   "prereq": "T276 & (T157 | T159)",
+   "requirements": "Reactor or solar heaters, raw ice, simple tanks",
+   "capability": "Holders: water-steam tugs at d 0.10 instead of 0.15",
+   "draft": {
+    "name_zh": "冰蒸汽热火箭",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "space",
+     "steam"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:steam",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "steam"
+   }
+  },
+  {
+   "id": "T278",
+   "name": "Cracking and high-octane refining",
+   "label": "established",
+   "group": "N",
+   "group_title": "Dieselpunk branch (Oil and Engine)",
+   "prereq": "T090 & T092",
+   "requirements": "Catalysts, pressure stills, crude",
+   "capability": "Light fuels from heavy crude; holders build cracking refineries",
+   "draft": {
+    "name_zh": "裂化与高辛烷值炼制",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "fuel",
+     "chem"
+    ],
+    "kind": "entry",
+    "evidence": "ordinary",
+    "work_bp": 13750,
+    "hint_bp": 13000,
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "T279",
+   "name": "Diesel-electric transmission",
+   "label": "established",
+   "group": "N",
+   "group_title": "Dieselpunk branch (Oil and Engine)",
+   "prereq": "T278 & T092 & T101",
+   "requirements": "Generators on wheels, traction motors",
+   "capability": "Holders: rail and shipping −20% fuel",
+   "draft": {
+    "name_zh": "柴油电力传动",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "fuel",
+     "electric"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:engine",
+    "work_bp": 15625,
+    "hint_bp": 16250,
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "T280",
+   "name": "Tank and armoured-vehicle engineering",
+   "label": "established",
+   "group": "N",
+   "group_title": "Dieselpunk branch (Oil and Engine)",
+   "prereq": "T278 & T094 & T060",
+   "requirements": "Armour plate, tracks, heavy engines",
+   "capability": "Holders: the Heavy-armour variant at G4-G5",
+   "draft": {
+    "name_zh": "坦克与装甲车辆工程",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "war",
+     "fuel",
+     "machine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:engine",
+    "work_bp": 15625,
+    "hint_bp": 16250,
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "T281",
+   "name": "Long-range heavy aircraft",
+   "label": "established",
+   "group": "N",
+   "group_title": "Dieselpunk branch (Oil and Engine)",
+   "prereq": "T278 & T038",
+   "requirements": "High-octane fuel, long runways, crews",
+   "capability": "Holders: air supply and bombardment reach two more links",
+   "draft": {
+    "name_zh": "远程重型飞机",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "fuel",
+     "war"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:engine",
+    "work_bp": 15625,
+    "hint_bp": 16250,
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "T282",
+   "name": "Petrochemical complexes",
+   "label": "established",
+   "group": "N",
+   "group_title": "Dieselpunk branch (Oil and Engine)",
+   "prereq": "T278 & T093",
+   "requirements": "Crackers, pipelines, polymer plants",
+   "capability": "Holders: polymers and chemicals method −15% crude",
+   "draft": {
+    "name_zh": "石化联合体",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 6,
+    "tags": [
+     "chem",
+     "fuel"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:engine",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "T283",
+   "name": "Snorkel submarines",
+   "label": "established",
+   "group": "N",
+   "group_title": "Dieselpunk branch (Oil and Engine)",
+   "prereq": "T279 & T067",
+   "requirements": "Pressure hulls, batteries, diesel",
+   "capability": "Holders: sea interdiction +20%",
+   "draft": {
+    "name_zh": "通气管潜艇",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "sea",
+     "war"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:engine",
+    "work_bp": 15625,
+    "hint_bp": 16250,
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "T284",
+   "name": "Mass-produced steel rocket stages",
+   "label": "established",
+   "group": "N",
+   "group_title": "Dieselpunk branch (Oil and Engine)",
+   "prereq": "T282 & T178",
+   "requirements": "Stainless rings, welding lines, fuel farms",
+   "capability": "Holders: heavy-booster yards +25% boost cap and −20% components",
+   "draft": {
+    "name_zh": "量产钢制火箭级",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "space",
+     "fuel",
+     "machine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:engine",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "T285",
+   "name": "Fischer-Tropsch fuel synthesis",
+   "label": "established",
+   "group": "N",
+   "group_title": "Dieselpunk branch (Oil and Engine)",
+   "prereq": "T278 & T096",
+   "requirements": "Synthesis gas, cobalt or iron catalysts",
+   "capability": "Holders: synthetic fuel from coal or gas at −20% input",
+   "draft": {
+    "name_zh": "费托合成燃料",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 6,
+    "tags": [
+     "fuel",
+     "chem"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:engine",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "engine"
+   }
+  },
+  {
+   "id": "T286",
+   "name": "Electric traction: trams and metros",
+   "label": "established",
+   "group": "O",
+   "group_title": "Electropunk branch (Current and Wire)",
+   "prereq": "T101 & T068",
+   "requirements": "Overhead wire or third rail, substations",
+   "capability": "Electric urban transit; holders build tram and metro networks",
+   "draft": {
+    "name_zh": "电力牵引：有轨电车与地铁",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "electric",
+     "build"
+    ],
+    "kind": "entry",
+    "evidence": "ordinary",
+    "work_bp": 13750,
+    "hint_bp": 13000,
+    "lore": "needed",
+    "tradition": "wire"
+   }
+  },
+  {
+   "id": "T287",
+   "name": "Early electric-arc furnaces",
+   "label": "established",
+   "group": "O",
+   "group_title": "Electropunk branch (Current and Wire)",
+   "prereq": "T286 & T060",
+   "requirements": "Graphite electrodes, heavy current, scrap",
+   "capability": "Holders: electric arc steel one technology early",
+   "draft": {
+    "name_zh": "早期电弧炉",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "electric",
+     "metal"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:wire",
+    "work_bp": 15625,
+    "hint_bp": 16250,
+    "lore": "needed",
+    "tradition": "wire"
+   }
+  },
+  {
+   "id": "T288",
+   "name": "Electric-arc nitrogen fixation",
+   "label": "established",
+   "group": "O",
+   "group_title": "Electropunk branch (Current and Wire)",
+   "prereq": "T286 & T100 & T064",
+   "requirements": "Cheap hydroelectricity, arc furnaces",
+   "capability": "Fertilizer from air and power; holders: nitrogen without gas or mines",
+   "draft": {
+    "name_zh": "电弧固氮",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 5,
+    "tags": [
+     "electric",
+     "chem",
+     "farm"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:wire",
+    "work_bp": 15625,
+    "hint_bp": 16250,
+    "lore": "needed",
+    "tradition": "wire",
+    "family": "F07"
+   }
+  },
+  {
+   "id": "T289",
+   "name": "Wireless power transmission experiments",
+   "label": "established",
+   "group": "O",
+   "group_title": "Electropunk branch (Current and Wire)",
+   "prereq": "T286 & T104 & T102",
+   "requirements": "Resonant towers, tuned receivers",
+   "capability": "A dead end that pays: holders: remote works receive 5% of their electricity without lines",
+   "draft": {
+    "name_zh": "无线输电试验",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "electric"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:wire",
+    "work_bp": 15625,
+    "hint_bp": 16250,
+    "lore": "needed",
+    "tradition": "wire"
+   }
+  },
+  {
+   "id": "T290",
+   "name": "Battery-electric vehicles",
+   "label": "established",
+   "group": "O",
+   "group_title": "Electropunk branch (Current and Wire)",
+   "prereq": "T286 & T105",
+   "requirements": "Battery packs, charging depots",
+   "capability": "Holders: the Electric-drive variant draws batteries instead of fuel",
+   "draft": {
+    "name_zh": "蓄电池电动车辆",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 6,
+    "tags": [
+     "electric",
+     "machine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:wire",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "wire"
+   }
+  },
+  {
+   "id": "T291",
+   "name": "Superconducting power grids",
+   "label": "established",
+   "group": "O",
+   "group_title": "Electropunk branch (Current and Wire)",
+   "prereq": "T286 & T108 & T102",
+   "requirements": "Cryogenic cables, converter stations",
+   "capability": "Holders: grid loss halved between regions",
+   "draft": {
+    "name_zh": "超导电网",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "electric"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:wire",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "wire"
+   }
+  },
+  {
+   "id": "T292",
+   "name": "Maglev launch sleds",
+   "label": "extrapolated",
+   "group": "O",
+   "group_title": "Electropunk branch (Current and Wire)",
+   "prereq": "T291 & T156",
+   "requirements": "Kilometres of track, pulsed power",
+   "capability": "Holders: launch-assist tracks +30% boost",
+   "draft": {
+    "name_zh": "磁悬浮发射滑车",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "space",
+     "electric"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:wire",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "wire"
+   }
+  },
+  {
+   "id": "T293",
+   "name": "Electrochemical light metals",
+   "label": "established",
+   "group": "O",
+   "group_title": "Electropunk branch (Current and Wire)",
+   "prereq": "T287 & T103",
+   "requirements": "Electrolytic cells, bauxite, cheap power",
+   "capability": "Holders: aluminium and magnesium at −20% electricity",
+   "draft": {
+    "name_zh": "电化学轻金属冶炼",
+    "era": 5,
+    "era_name": "Modern",
+    "tier": 6,
+    "tags": [
+     "electric",
+     "chem",
+     "metal"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:wire",
+    "work_bp": 15625,
+    "hint_bp": 16250,
+    "lore": "needed",
+    "tradition": "wire"
+   }
+  },
+  {
+   "id": "T294",
+   "name": "Radioisotope power and medicine",
+   "label": "established",
+   "group": "P",
+   "group_title": "Atompunk branch (Atom)",
+   "prereq": "T146 & T070",
+   "requirements": "Reactor or accelerator isotopes, shielding",
+   "capability": "Long-lived power cells and tracers; holders build isotope works",
+   "draft": {
+    "name_zh": "放射性同位素电源与医学",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "highenergy",
+     "health"
+    ],
+    "kind": "entry",
+    "evidence": "ordinary",
+    "work_bp": 14300,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "atom"
+   }
+  },
+  {
+   "id": "T295",
+   "name": "Compact modular reactors",
+   "label": "established",
+   "group": "P",
+   "group_title": "Atompunk branch (Atom)",
+   "prereq": "T294 & T147 & T067",
+   "requirements": "Factory-built cores, standard licences",
+   "capability": "Holders: compact reactors −40% bill, at any site or station",
+   "draft": {
+    "name_zh": "紧凑型模块化反应堆",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "highenergy",
+     "machine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:atom",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "atom"
+   }
+  },
+  {
+   "id": "T296",
+   "name": "Nuclear process heat",
+   "label": "established",
+   "group": "P",
+   "group_title": "Atompunk branch (Atom)",
+   "prereq": "T295 & T064 & T085",
+   "requirements": "High-temperature reactors beside chemical works",
+   "capability": "Holders: reactor heat replaces coal in steel and chemicals",
+   "draft": {
+    "name_zh": "核工艺热",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "highenergy",
+     "chem"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:atom",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "atom"
+   }
+  },
+  {
+   "id": "T297",
+   "name": "Atomic-powered ships and land trains",
+   "label": "established",
+   "group": "P",
+   "group_title": "Atompunk branch (Atom)",
+   "prereq": "T295 & T092",
+   "requirements": "Naval reactors, crews, safeguards",
+   "capability": "Holders: the Atomic-powered variant, no fuel degradation",
+   "draft": {
+    "name_zh": "核动力舰船与陆地列车",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "highenergy",
+     "war"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:atom",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "atom"
+   }
+  },
+  {
+   "id": "T298",
+   "name": "Irradiation and mutation breeding",
+   "label": "established",
+   "group": "P",
+   "group_title": "Atompunk branch (Atom)",
+   "prereq": "T294 & T095",
+   "requirements": "Gamma sources, breeding fields",
+   "capability": "Holders: stored food spoils 30% slower; +3% field yield",
+   "draft": {
+    "name_zh": "辐照保鲜与诱变育种",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "highenergy",
+     "farm"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:atom",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "atom"
+   }
+  },
+  {
+   "id": "T299",
+   "name": "Nuclear excavation",
+   "label": "established",
+   "group": "P",
+   "group_title": "Atompunk branch (Atom)",
+   "prereq": "T294 & T147 & T063",
+   "requirements": "Engineering charges, evacuation, monitoring",
+   "capability": "A dead end that pays: holders: canals and harbours −50% work; −5 trust with met seats per use",
+   "draft": {
+    "name_zh": "核爆工程",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "highenergy",
+     "mine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:atom",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "atom"
+   }
+  },
+  {
+   "id": "T300",
+   "name": "Pulse-unit mass production",
+   "label": "extrapolated",
+   "group": "P",
+   "group_title": "Atompunk branch (Atom)",
+   "prereq": "T299 & T182",
+   "requirements": "Shaped charges by the thousand, pusher plates",
+   "capability": "Holders: pulse ships −30% nuclear fuel per kt",
+   "draft": {
+    "name_zh": "脉冲单元批量生产",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "highenergy",
+     "space"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:atom",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "atom"
+   }
+  },
+  {
+   "id": "T301",
+   "name": "Fusion-fission hybrid reactors",
+   "label": "extrapolated",
+   "group": "P",
+   "group_title": "Atompunk branch (Atom)",
+   "prereq": "T295 & T148",
+   "requirements": "Neutron-rich plasma, fission blankets",
+   "capability": "Holders: fission plants +25% output per fuel",
+   "draft": {
+    "name_zh": "聚变裂变混合堆",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "highenergy"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:atom",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "atom",
+    "needs_facility": "high_energy"
+   }
+  },
+  {
+   "id": "T302",
+   "name": "Network operations and security centres",
+   "label": "established",
+   "group": "Q",
+   "group_title": "Cyberpunk branch (Network)",
+   "prereq": "T112 & T123",
+   "requirements": "Analysts, monitoring software, backbone",
+   "capability": "Networks watched around the clock; holders build operations centres",
+   "draft": {
+    "name_zh": "网络运营与安全中心",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "compute"
+    ],
+    "kind": "entry",
+    "evidence": "ordinary",
+    "work_bp": 14300,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "T303",
+   "name": "Implant clinics and cybernetic prosthetics",
+   "label": "established",
+   "group": "Q",
+   "group_title": "Cyberpunk branch (Network)",
+   "prereq": "T302 & T119",
+   "requirements": "Surgeons, implant supply, firmware support",
+   "capability": "Holders: implant clinics +10% qualified-post productivity",
+   "draft": {
+    "name_zh": "植入诊所与赛博义体",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "health",
+     "compute"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:network",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "T304",
+   "name": "Augmented-reality workplaces",
+   "label": "established",
+   "group": "Q",
+   "group_title": "Cyberpunk branch (Network)",
+   "prereq": "T302 & T116 & T109",
+   "requirements": "Headsets, digital models, trainers",
+   "capability": "Holders: vocational courses −15% months",
+   "draft": {
+    "name_zh": "增强现实工作场所",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "compute",
+     "teach"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:network",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "T305",
+   "name": "Corporate data havens",
+   "label": "established",
+   "group": "Q",
+   "group_title": "Cyberpunk branch (Network)",
+   "prereq": "T302 & T113",
+   "requirements": "Hardened data centres, legal shelter",
+   "capability": "Holders: compute exports earn trade credit; espionage against you −20%",
+   "draft": {
+    "name_zh": "企业数据避风港",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "compute",
+     "trade"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:network",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "T306",
+   "name": "Cyber-augmented soldiers",
+   "label": "established",
+   "group": "Q",
+   "group_title": "Cyberpunk branch (Network)",
+   "prereq": "T303 & T114",
+   "requirements": "Implants, combat networks, medics",
+   "capability": "Holders: the Cyber-augmented variant at G5-G7",
+   "draft": {
+    "name_zh": "赛博增强士兵",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "war",
+     "compute"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:network",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "T307",
+   "name": "Ubiquitous sensing and smart cities",
+   "label": "established",
+   "group": "Q",
+   "group_title": "Cyberpunk branch (Network)",
+   "prereq": "T302 & T121 & T239",
+   "requirements": "Sensors everywhere, digital twins of towns",
+   "capability": "Holders: provisioning and transit capacity +15% in towns",
+   "draft": {
+    "name_zh": "泛在感知与智慧城市",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "compute",
+     "build"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:network",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "T308",
+   "name": "Telepresence mining crews",
+   "label": "extrapolated",
+   "group": "Q",
+   "group_title": "Cyberpunk branch (Network)",
+   "prereq": "T307 & T180",
+   "requirements": "Low-latency links, haptic suits, rigs",
+   "capability": "Holders: off-world mines run from the Earth with no residents",
+   "draft": {
+    "name_zh": "遥在采矿作业组",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "compute",
+     "mine",
+     "space"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:network",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "T309",
+   "name": "Memory and skill uploads",
+   "label": "extrapolated",
+   "group": "Q",
+   "group_title": "Cyberpunk branch (Network)",
+   "prereq": "T303 & T120",
+   "requirements": "Neural interfaces, verified models of skill",
+   "capability": "Holders: retraining for qualified posts −40% months",
+   "draft": {
+    "name_zh": "记忆与技能上载",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "compute",
+     "health",
+     "teach"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:network",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "network"
+   }
+  },
+  {
+   "id": "T310",
+   "name": "Biofoundries",
+   "label": "established",
+   "group": "R",
+   "group_title": "Biopunk branch (Living Systems)",
+   "prereq": "T132 & T095",
+   "requirements": "Fermenters, feedstock, containment",
+   "capability": "Chemicals from living cells; holders build biofoundries",
+   "draft": {
+    "name_zh": "生物铸造厂",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "bio",
+     "chem"
+    ],
+    "kind": "entry",
+    "evidence": "ordinary",
+    "work_bp": 14300,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "living"
+   }
+  },
+  {
+   "id": "T311",
+   "name": "Bio-leaching and biomining",
+   "label": "established",
+   "group": "R",
+   "group_title": "Biopunk branch (Living Systems)",
+   "prereq": "T310 & T131 & T063",
+   "requirements": "Engineered microbes, heaps, ponds",
+   "capability": "Holders: +10 points ore delivery (never above what is drawn)",
+   "draft": {
+    "name_zh": "生物浸矿",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "bio",
+     "mine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:living",
+    "work_bp": 16250,
+    "hint_bp": 18750,
+    "lore": "needed",
+    "tradition": "living"
+   }
+  },
+  {
+   "id": "T312",
+   "name": "Nitrogen-fixing cereals",
+   "label": "established",
+   "group": "R",
+   "group_title": "Biopunk branch (Living Systems)",
+   "prereq": "T310 & T131 & T095",
+   "requirements": "Engineered symbioses, field trials",
+   "capability": "Holders: fields need 50% less manufactured fertilizer",
+   "draft": {
+    "name_zh": "固氮谷物",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "bio",
+     "farm"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:living",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "living",
+    "family": "F07"
+   }
+  },
+  {
+   "id": "T313",
+   "name": "Living architecture",
+   "label": "extrapolated",
+   "group": "R",
+   "group_title": "Biopunk branch (Living Systems)",
+   "prereq": "T310 & T050",
+   "requirements": "Grown frames, mycelium panels",
+   "capability": "Holders: housing −25% materials",
+   "draft": {
+    "name_zh": "活体建筑",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "bio",
+     "build"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:living",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "living"
+   }
+  },
+  {
+   "id": "T314",
+   "name": "Metabolic enhancement",
+   "label": "extrapolated",
+   "group": "R",
+   "group_title": "Biopunk branch (Living Systems)",
+   "prereq": "T310 & T134 & T070",
+   "requirements": "Gene therapies, monitoring",
+   "capability": "Holders: the Augmented-soldier variant; −10% food per soldier",
+   "draft": {
+    "name_zh": "代谢增强",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "bio",
+     "health",
+     "war"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:living",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "living"
+   }
+  },
+  {
+   "id": "T315",
+   "name": "Radiation-tolerance therapies",
+   "label": "extrapolated",
+   "group": "R",
+   "group_title": "Biopunk branch (Living Systems)",
+   "prereq": "T314 & T144",
+   "requirements": "Repair-enzyme therapies, dosimetry",
+   "capability": "Holders: off-world mortality excess −30%",
+   "draft": {
+    "name_zh": "抗辐射疗法",
+    "era": 7,
+    "era_name": "Space",
+    "tier": 8,
+    "tags": [
+     "bio",
+     "health",
+     "space"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:living",
+    "work_bp": 18750,
+    "hint_bp": 21250,
+    "lore": "needed",
+    "tradition": "living"
+   }
+  },
+  {
+   "id": "T316",
+   "name": "Bio-ISRU for Mars and Titan",
+   "label": "extrapolated",
+   "group": "R",
+   "group_title": "Biopunk branch (Living Systems)",
+   "prereq": "T311 & T179",
+   "requirements": "Engineered microbes, sealed growth beds",
+   "capability": "Holders: food and propellant feedstock grown at Mars and Titan sites",
+   "draft": {
+    "name_zh": "火星与土卫六生物原位利用",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "bio",
+     "space"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:living",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "living",
+    "needs_facility": "offworld_station"
+   }
+  },
+  {
+   "id": "T317",
+   "name": "Engineered ecosystems for planetary shaping",
+   "label": "extrapolated",
+   "group": "R",
+   "group_title": "Biopunk branch (Living Systems)",
+   "prereq": "T316 & T137",
+   "requirements": "Generations of engineered life, monitoring",
+   "capability": "Holders: one Mars site +50% habitat capacity after 50 years",
+   "draft": {
+    "name_zh": "地化改造工程生态系统",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "bio",
+     "space"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:living",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "living",
+    "needs_facility": "offworld_station"
+   }
+  },
+  {
+   "id": "T318",
+   "name": "Autonomous logistics fleets",
+   "label": "established",
+   "group": "S",
+   "group_title": "AI-punk branch (Synthetic Minds)",
+   "prereq": "T114 & T116",
+   "requirements": "Self-driving vehicles, depots, oversight",
+   "capability": "Freight without drivers; holders build autonomous depots",
+   "draft": {
+    "name_zh": "自主物流车队",
+    "era": 6,
+    "era_name": "Information",
+    "tier": 7,
+    "tags": [
+     "compute",
+     "machine"
+    ],
+    "kind": "entry",
+    "evidence": "ordinary",
+    "work_bp": 14300,
+    "hint_bp": 15000,
+    "lore": "needed",
+    "tradition": "synthetic"
+   }
+  },
+  {
+   "id": "T319",
+   "name": "Lights-out factories",
+   "label": "extrapolated",
+   "group": "S",
+   "group_title": "AI-punk branch (Synthetic Minds)",
+   "prereq": "T318 & T122",
+   "requirements": "Robot cells, validated autonomy, power",
+   "capability": "Holders: the lights-out method (general posts −70%)",
+   "draft": {
+    "name_zh": "无人工厂",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "compute",
+     "machine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:synthetic",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "synthetic"
+   }
+  },
+  {
+   "id": "T320",
+   "name": "Machine governance centres",
+   "label": "extrapolated",
+   "group": "S",
+   "group_title": "AI-punk branch (Synthetic Minds)",
+   "prereq": "T319 & T125",
+   "requirements": "Authorized administrative systems, audits",
+   "capability": "Holders: machine governance centres (+6 regions of administration a level)",
+   "draft": {
+    "name_zh": "机器治理中心",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "compute",
+     "record"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:synthetic",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "synthetic"
+   }
+  },
+  {
+   "id": "T321",
+   "name": "Autonomous swarms",
+   "label": "extrapolated",
+   "group": "S",
+   "group_title": "AI-punk branch (Synthetic Minds)",
+   "prereq": "T318 & T122 & T123",
+   "requirements": "Expendable drones, secure command links",
+   "capability": "Holders: the Autonomous-swarm variant at G6-G7",
+   "draft": {
+    "name_zh": "自主集群",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "compute",
+     "war"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:synthetic",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "synthetic"
+   }
+  },
+  {
+   "id": "T322",
+   "name": "Self-improving design systems",
+   "label": "extrapolated",
+   "group": "S",
+   "group_title": "AI-punk branch (Synthetic Minds)",
+   "prereq": "T319 & T121",
+   "requirements": "Design models, simulated testing, human sign-off",
+   "capability": "Holders: new building stages −20% work",
+   "draft": {
+    "name_zh": "自我改进的设计系统",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "compute",
+     "machine"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:synthetic",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "synthetic"
+   }
+  },
+  {
+   "id": "T323",
+   "name": "Von Neumann probe prototypes",
+   "label": "extrapolated",
+   "group": "S",
+   "group_title": "AI-punk branch (Synthetic Minds)",
+   "prereq": "T322 & T181",
+   "requirements": "Seed factories that travel, verified replication limits",
+   "capability": "Holders: seed factories found uncrewed outposts at unclaimed sites in their zone",
+   "draft": {
+    "name_zh": "冯·诺依曼探测器原型",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "compute",
+     "space"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:synthetic",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "synthetic",
+    "needs_facility": "offworld_station"
+   }
+  },
+  {
+   "id": "T324",
+   "name": "Synthetic scientists",
+   "label": "extrapolated",
+   "group": "S",
+   "group_title": "AI-punk branch (Synthetic Minds)",
+   "prereq": "T318 & T118 & T122",
+   "requirements": "Autonomous laboratories, verification teams",
+   "capability": "Holders: automated experiment halls give research +25%",
+   "draft": {
+    "name_zh": "合成科学家",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 8,
+    "tags": [
+     "compute",
+     "science"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:synthetic",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "synthetic"
+   }
+  },
+  {
+   "id": "T325",
+   "name": "Verified value-alignment protocols",
+   "label": "extrapolated",
+   "group": "S",
+   "group_title": "AI-punk branch (Synthetic Minds)",
+   "prereq": "T324 & T115",
+   "requirements": "Formal methods, red teams, interpretability",
+   "capability": "Holders: automation unrest halved; network incident hazard halved",
+   "draft": {
+    "name_zh": "可验证价值对齐协议",
+    "era": 8,
+    "era_name": "AI",
+    "tier": 9,
+    "tags": [
+     "compute"
+    ],
+    "kind": "branch",
+    "evidence": "tradition:synthetic",
+    "work_bp": 21875,
+    "hint_bp": 25000,
+    "lore": "needed",
+    "tradition": "synthetic"
+   }
+  }
+ ]
+}

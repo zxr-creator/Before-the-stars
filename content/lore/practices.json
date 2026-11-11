@@ -674,21 +674,21 @@
  {
   "id": "C039",
   "en": {
-   "intro": "Hunger rarely arrives evenly. Basic-provision responsibility pooled a community's risk so that a bad harvest, a dead breadwinner or a long illness did not sink one household alone. The Elizabethan Poor Law of 1601 made each English parish raise a rate for its own poor, an arrangement that lasted more than two centuries and was argued over for all of them. Song dynasty China kept state almshouses, clinics and paupers' cemeteries. Provision also let children stay at their lessons instead of going out to earn. But a promise of relief feeds no one until the grain, the carers and the money actually arrive.",
+   "intro": "Hunger rarely arrives evenly. Basic-provision responsibility pooled a community's risk so that a bad harvest, a dead breadwinner or a long illness did not sink one household alone. Augustan Rome handed out free grain every month to some two hundred thousand citizens, and argued for centuries over who deserved it. Song dynasty China kept state almshouses, clinics and paupers' cemeteries. Provision also let children stay at their lessons instead of going out to earn. But a promise of relief feeds no one until the grain, the carers and the money actually arrive.",
    "quote": {
     "text": "The aged are cared for to the end of their days, the able-bodied have work to do, the young are brought up, and widowers, widows, orphans, the childless and the sick are all provided for.",
     "source": "Book of Rites, “The Conveyance of Rites”"
    }
   },
   "zh-Hans": {
-   "intro": "饥饿从不平均地降临。基本供给的责任把一个共同体的风险汇在一起，让一场歉收、一位顶梁柱的离世或一场久病，不至于压垮单独一户人家。英格兰1601年的《济贫法》要求各教区为本地穷人征收济贫税，这套办法延续了两百多年，也被争论了两百多年。北宋设居养院、安济坊和漏泽园，收养孤老、医治贫病、掩埋无主之尸。有了供给，孩子才能继续读书，而不必早早出去谋生。可是，救济的许诺喂不饱任何人，要等粮食、照护者和钱真正到了才算数。",
+   "intro": "饥饿从不平均地降临。基本供给的责任把一个共同体的风险汇在一起，让一场歉收、一位顶梁柱的离世或一场久病，不至于压垮单独一户人家。奥古斯都时代的罗马每月向约二十万公民免费发放粮食，谁该领、谁不该领，争了好几百年。北宋设居养院、安济坊和漏泽园，收养孤老、医治贫病、掩埋无主之尸。有了供给，孩子才能继续读书，而不必早早出去谋生。可是，救济的许诺喂不饱任何人，要等粮食、照护者和钱真正到了才算数。",
    "quote": {
     "text": "使老有所终，壮有所用，幼有所长，矜、寡、孤、独、废疾者皆有所养。",
     "source": "《礼记·礼运》"
    }
   },
   "zh-Hant": {
-   "intro": "飢餓從不平均地降臨。基本供給的責任把一個共同體的風險匯在一起，讓一場歉收、一位頂樑柱的離世或一場久病，不至於壓垮單獨一戶人家。英格蘭1601年的《濟貧法》要求各教區為本地窮人徵收濟貧稅，這套辦法延續了兩百多年，也被爭論了兩百多年。北宋設居養院、安濟坊和漏澤園，收養孤老、醫治貧病、掩埋無主之屍。有了供給，孩子才能繼續讀書，而不必早早出去謀生。可是，救濟的許諾喂不飽任何人，要等糧食、照護者和錢真正到了才算數。",
+   "intro": "飢餓從不平均地降臨。基本供給的責任把一個共同體的風險匯在一起，讓一場歉收、一位頂樑柱的離世或一場久病，不至於壓垮單獨一戶人家。奧古斯都時代的羅馬每月向約二十萬公民免費發放糧食，誰該領、誰不該領，爭了好幾百年。北宋設居養院、安濟坊和漏澤園，收養孤老、醫治貧病、掩埋無主之屍。有了供給，孩子才能繼續讀書，而不必早早出去謀生。可是，救濟的許諾喂不飽任何人，要等糧食、照護者和錢真正到了才算數。",
    "quote": {
     "text": "使老有所終，壯有所用，幼有所長，矜、寡、孤、獨、廢疾者皆有所養。",
     "source": "《禮記·禮運》"
@@ -698,21 +698,21 @@
  {
   "id": "C040",
   "en": {
-   "intro": "Every ruler likes review in principle and dislikes it in particular. Bounded power means that an order is only as good as the document authorizing it, and that someone outside the issuer's command can say so and make it stick. Its history is a ledger of small, hard-won procedures: the English Bill of Rights of 1689 forbidding the crown to suspend laws without Parliament, the writ of habeas corpus that makes a jailer produce his prisoner before a judge, a court annulling a minister's decree. Review is slow, and it guarantees no correct decisions. It does make someone answerable for the wrong ones.",
+   "intro": "Every ruler likes review in principle and dislikes it in particular. Bounded power means that an order is only as good as the document authorizing it, and that someone outside the issuer's command can say so and make it stick. Its history is a ledger of small, hard-won procedures: the writ of habeas corpus that makes a jailer produce his prisoner before a judge, auditors who refuse to pay for what no law authorized, a court striking down a statute, as the United States Supreme Court claimed the right to do in Marbury v. Madison in 1803. Review is slow, and it guarantees no correct decisions. It does make someone answerable for the wrong ones.",
    "quote": {
     "text": "So that power cannot be abused, things must be so arranged that power checks power.",
     "source": "Montesquieu, The Spirit of the Laws, Book XI, ch. 4 (1748)"
    }
   },
   "zh-Hans": {
-   "intro": "每个掌权者原则上都欢迎审查，具体到自己头上就不那么欢迎了。有限的公共权力意味着：一道命令的效力不超过授权它的文书，而且有不受发令者节制的人可以指出这一点，并让它算数。它的历史由一桩桩来之不易的小程序写成：1689年英格兰的《权利法案》不许国王未经议会擅自中止法律；人身保护令迫使看守把囚犯带到法官面前；法院宣布一位大臣的政令无效。审查很慢，也不保证决定正确，但它能让错误的决定有人负责。",
+   "intro": "每个掌权者原则上都欢迎审查，具体到自己头上就不那么欢迎了。有限的公共权力意味着：一道命令的效力不超过授权它的文书，而且有不受发令者节制的人可以指出这一点，并让它算数。它的历史由一桩桩来之不易的小程序写成：人身保护令迫使看守把囚犯带到法官面前；审计官拒绝为任何法律都未授权的开支付账；法院宣布一项法律无效——1803年，美国最高法院在“马伯里诉麦迪逊案”中便主张了这种权力。审查很慢，也不保证决定正确，但它能让错误的决定有人负责。",
    "quote": {
     "text": "要防止滥用权力，就必须通过事物的安排，以权力制约权力。",
     "source": "孟德斯鸠《论法的精神》第十一章第四节（1748）"
    }
   },
   "zh-Hant": {
-   "intro": "每個掌權者原則上都歡迎審查，具體到自己頭上就不那麼歡迎了。有限的公共權力意味著：一道命令的效力不超過授權它的文書，而且有不受發令者節制的人可以指出這一點，並讓它算數。它的歷史由一樁樁來之不易的小程序寫成：1689年英格蘭的《權利法案》不許國王未經議會擅自中止法律；人身保護令迫使看守把囚犯帶到法官面前；法院宣佈一位大臣的政令無效。審查很慢，也不保證決定正確，但它能讓錯誤的決定有人負責。",
+   "intro": "每個掌權者原則上都歡迎審查，具體到自己頭上就不那麼歡迎了。有限的公共權力意味著：一道命令的效力不超過授權它的文書，而且有不受發令者節制的人可以指出這一點，並讓它算數。它的歷史由一樁樁來之不易的小程序寫成：人身保護令迫使看守把囚犯帶到法官面前；審計官拒絕為任何法律都未授權的開支付賬；法院宣佈一項法律無效——1803年，美國最高法院在「馬伯裡訴麥迪遜案」中便主張了這種權力。審查很慢，也不保證決定正確，但它能讓錯誤的決定有人負責。",
    "quote": {
     "text": "要防止濫用權力，就必須通過事物的安排，以權力制約權力。",
     "source": "孟德斯鳩《論法的精神》第十一章第四節（1748）"
@@ -1101,6 +1101,1602 @@
   },
   "zh-Hant": {
    "intro": "一處站點離家越遠，那裡的人就越依賴事先作出的承諾。跨站點共同使命章程讓各創始權威為遙遠的設施訂立同一套規則：誰可以勘探、開採什麼，誰承擔哪些風險，費用如何分攤，失去聯絡時由誰指揮，以及這套安排如何維持幾十年。最接近的先例是1959年的《南極條約》，它凍結了領土主張，讓各國的考察站以合作代替競爭。章程抹不掉任何一方已經掌握的知識，也抹不掉它帶進來的債務與責任；它只能讓下一場災難成為某個人明確的責任。"
+  }
+ },
+ {
+  "id": "C065",
+  "en": {
+   "intro": "Where every litre of water and every breath of nitrogen has been lifted at great cost, waste stops being a private habit and becomes a public loss. Closed-loop thrift is the culture that grows in such places: leaks reported as promptly as fires, filters cleaned on schedule, nothing vented that could be recovered. It has humbler ancestors. In Edo-period Japan the owners of crowded row houses sold the residents' night soil to farmers, and the income was worth having. On the International Space Station, the water system turns sweat and urine back into drinking water, reclaiming well over nine-tenths. Thrift can harden into suspicion, though: neighbours who time each other's showers do not stay neighbours for long."
+  },
+  "zh-Hans": {
+   "intro": "在每一升水、每一口氮气都花了大代价运来的地方，浪费不再是个人习惯，而是公共损失。闭环节俭就是在这种地方长出来的风气：发现泄漏要像发现火情一样立刻报告，滤网按时清洗，能回收的东西一样也不排掉。它有更朴素的前身。江户时代的日本，大杂院的房东把住户的粪尿卖给近郊农民，这笔收入相当可观。国际空间站上的水处理系统把汗水和尿液重新变成饮用水，回收率远超九成。不过，节俭也可能变成猜疑：彼此掐着表看对方淋浴多久的邻居，迟早做不成邻居。"
+  },
+  "zh-Hant": {
+   "intro": "在每一升水、每一口氮氣都花了大代價運來的地方，浪費不再是個人習慣，而是公共損失。閉環節儉就是在這種地方長出來的風氣：發現洩漏要像發現火情一樣立刻報告，濾網按時清洗，能回收的東西一樣也不排掉。它有更樸素的前身。江戶時代的日本，大雜院的房東把住戶的糞尿賣給近郊農民，這筆收入相當可觀。國際太空站上的水處理系統把汗水和尿液重新變成飲用水，回收率遠超九成。不過，節儉也可能變成猜疑：彼此掐著表看對方淋浴多久的鄰居，遲早做不成鄰居。"
+  }
+ },
+ {
+  "id": "C066",
+  "en": {
+   "intro": "In weak gravity a dropped spanner does not fall; it drifts away, and a hard push sends the worker backwards. In 1966 Eugene Cernan spent more than two hours outside Gemini 9 wrestling with a task that would have taken minutes on the ground, his visor fogged and his heart racing, because there was nothing to brace against. Later crews trained underwater and fitted foot restraints and handholds everywhere. Low-gravity crafts gather such lessons into trades: how to tie down every tool, how to let a heavy load settle, how to tighten a joint without spinning yourself. They pass mostly from hand to hand, master to apprentice, and they are lost fastest when the old hands go home."
+  },
+  "zh-Hans": {
+   "intro": "在微弱的重力下，扳手松手不会掉下去，而是飘走；用力一推，人反倒朝后退去。1966年，塞尔南在“双子座9号”舱外待了两个多小时，跟一项在地面上几分钟就能完成的活计较劲，面罩起雾，心跳飞快，只因为周围没有可以借力的地方。后来的乘员改在水下训练，到处装上脚限位器和扶手。低重力工艺把这类教训汇成一门门手艺：每件工具怎样系牢，重物怎样让它慢慢落定，怎样拧紧接头而不让自己打转。这些手艺多半靠师傅带徒弟口传手授，而老手一回家，失传得也最快。"
+  },
+  "zh-Hant": {
+   "intro": "在微弱的重力下，扳手鬆手不會掉下去，而是飄走；用力一推，人反倒朝後退去。1966年，塞爾南在「雙子座9號」艙外待了兩個多小時，跟一項在地面上幾分鐘就能完成的活計較勁，面罩起霧，心跳飛快，只因為周圍沒有可以借力的地方。後來的乘員改在水下訓練，到處裝上腳限位器和扶手。低重力工藝把這類教訓匯成一門門手藝：每件工具怎樣繫牢，重物怎樣讓它慢慢落定，怎樣擰緊接頭而不讓自己打轉。這些手藝多半靠師傅帶徒弟口傳手授，而老手一回家，失傳得也最快。"
+  }
+ },
+ {
+  "id": "C067",
+  "en": {
+   "intro": "People who live far beyond the reach of a capital learn to govern themselves whether or not anyone allows it. Before they landed in 1620, forty-one men aboard the Mayflower signed a short compact binding themselves to obey the laws they would make together. Gold Rush miners in California elected their own claim officers and juries long before the state could police the diggings. Frontier assemblies give such local bodies a recognized place: they set work rosters, settle disputes and speak for residents to a distant authority whose answers arrive months late, if at all. The arrangement buys loyalty and calm. It also teaches residents that they can manage without the capital, a lesson nobody forgets.",
+   "quote": {
+    "text": "We ... do by these presents solemnly and mutually, in the presence of God and one of another, covenant and combine ourselves together into a civil body politic.",
+    "source": "The Mayflower Compact (1620)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "远离都城的人，不管有没有人准许，都会学着自己管自己。1620年，“五月花号”上的41名男子在登岸之前签下一份简短的公约，约定遵守他们将共同制定的法律。加利福尼亚淘金热时期，矿工们在州政府管得到矿区之前，就自己推选划定矿区地界的人和陪审团。边疆议会给这类地方机构一个正式名分：它排定工作轮值，了结纠纷，并替居民向一个回信要等上几个月、甚至干脆不回的远方权威说话。这种安排换来了忠诚与安定，也让居民明白，没有都城他们照样过得下去——这一课，谁也不会忘。",
+   "quote": {
+    "text": "我们……在上帝面前、彼此之间，郑重地相互立约，结成一个公民政治团体。",
+    "source": "《五月花号公约》（1620）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "遠離都城的人，不管有沒有人准許，都會學著自己管自己。1620年，「五月花號」上的41名男子在登岸之前簽下一份簡短的公約，約定遵守他們將共同制定的法律。加利福尼亞淘金熱時期，礦工們在州政府管得到礦區之前，就自己推選劃定礦區地界的人和陪審團。邊疆議會給這類地方機構一個正式名分：它排定工作輪值，了結糾紛，並替居民向一個回信要等上幾個月、甚至乾脆不回的遠方權威說話。這種安排換來了忠誠與安定，也讓居民明白，沒有都城他們照樣過得下去——這一課，誰也不會忘。",
+   "quote": {
+    "text": "我們……在上帝面前、彼此之間，鄭重地相互立約，結成一個公民政治團體。",
+    "source": "《五月花號公約》（1620）"
+   }
+  }
+ },
+ {
+  "id": "C068",
+  "en": {
+   "intro": "Some peoples never let one man speak for all. Among the Igbo of what is now southeastern Nigeria, many villages had no king; lineage heads and titled elders met in the open to argue a matter until a decision emerged that everyone could accept, and a proverb held that the Igbo have no kings. Pashtun communities still settle disputes in a jirga, men sitting in a circle so that no seat is higher than another. Decisions reached this way are slow and rarely revolutionary, but they hold, because everyone who mattered was in the circle. The trouble is who never gets a seat: the young, most women, the newcomer, and anyone whose grievance is with the elders themselves."
+  },
+  "zh-Hans": {
+   "intro": "有些民族从不让一个人替所有人说话。在今尼日利亚东南部的伊博人中，许多村落没有国王；各宗族的族长和有头衔的长者在露天聚会，把一件事反复争论，直到得出一个人人都能接受的决定。俗话说：“伊博人没有国王。”普什图人的社群至今仍用“支尔格”来了结纠纷，男人们围坐成一圈，谁的座位都不比别人高。这样作出的决定来得慢，也很少翻天覆地，却站得住，因为有分量的人都在圈子里。麻烦在于谁永远坐不进来：年轻人、大多数女人、外来户，以及一切冤屈恰恰来自长者本人的人。"
+  },
+  "zh-Hant": {
+   "intro": "有些民族從不讓一個人替所有人說話。在今奈及利亞東南部的伊博人中，許多村落沒有國王；各宗族的族長和有頭銜的長者在露天聚會，把一件事反覆爭論，直到得出一個人人都能接受的決定。俗話說：「伊博人沒有國王。」普什圖人的社群至今仍用「支爾格」來了結糾紛，男人們圍坐成一圈，誰的座位都不比別人高。這樣作出的決定來得慢，也很少翻天覆地，卻站得住，因為有分量的人都在圈子裡。麻煩在於誰永遠坐不進來：年輕人、大多數女人、外來戶，以及一切冤屈恰恰來自長者本人的人。"
+  }
+ },
+ {
+  "id": "C069",
+  "en": {
+   "intro": "A ruling line answers the most dangerous question in advance: who decides when the present leader dies. Across Polynesia, chiefs recited genealogies reaching back dozens of generations to the gods and the first voyaging canoes, and rank followed nearness to the senior line. Hereditary rule acts quickly, can call out labour for a harbour wall or a war, and spares a people a contest at every death, at least while the line is clear. When it is not, the cost arrives all at once. The Inca empire had only just finished a war between two royal half-brothers, Huáscar and Atahualpa, when Spanish adventurers landed in 1532 and found a realm already bleeding."
+  },
+  "zh-Hans": {
+   "intro": "一条执政的血脉，事先回答了最危险的问题：现任首领死后，谁说了算。在波利尼西亚各地，首领能背诵上溯几十代、一直通到神祇和最早那批远航独木舟的谱系，地位高低取决于与长房血统的远近。世袭统治决断快，修港堤、打仗都能迅速召集人力，也让一个民族不必每逢首领去世就争夺一次——前提是血脉清楚。一旦不清楚，代价便一次性压下来。1532年西班牙冒险者登陆时，印加帝国刚刚结束同父异母的两位王子瓦斯卡尔与阿塔瓦尔帕之间的内战，整个国家早已元气大伤。"
+  },
+  "zh-Hant": {
+   "intro": "一條執政的血脈，事先回答了最危險的問題：現任首領死後，誰說了算。在波利尼西亞各地，首領能背誦上溯幾十代、一直通到神祇和最早那批遠航獨木舟的譜系，地位高低取決於與長房血統的遠近。世襲統治決斷快，修港堤、打仗都能迅速召集人力，也讓一個民族不必每逢首領去世就爭奪一次——前提是血脈清楚。一旦不清楚，代價便一次性壓下來。1532年西班牙冒險者登陸時，印加帝國剛剛結束同父異母的兩位王子瓦斯卡爾與阿塔瓦爾帕之間的內戰，整個國家早已元氣大傷。"
+  }
+ },
+ {
+  "id": "C070",
+  "en": {
+   "intro": "A marriage between two lineages is also a pact, and the goods that pass with the bride are its signature. In southern Africa, lobola paid in cattle bound two families together; the herd could not be returned without unravelling the match, so both sides had reasons to keep the peace. From 198 BC onward, Han emperors sent women styled as princesses, with silk and grain, to the Xiongnu rulers of the steppe, buying decades of uneasy quiet. Such alliances turned strangers into in-laws who owed each other help and news. Their costs fell unevenly: young women moved as pledges, and when the price of a bride rose, poor young men waited years to marry, or never did."
+  },
+  "zh-Hans": {
+   "intro": "两个宗族之间的婚姻也是一纸盟约，随新娘往来的财物便是盟约上的签押。在南部非洲，以牛群支付的“洛博拉”把两家人拴在一起；牛群一旦退回，婚事也就散了，所以双方都有理由维持和睦。从公元前198年起，汉朝皇帝把冠以公主名号的宗室女，连同丝绸和粮食，嫁给草原上的匈奴单于，换来几十年不安稳的平静。这类联姻让陌生人变成彼此有义务相帮、互通消息的亲家。代价却分摊得很不均匀：年轻女子被当作信物迁来送去；聘礼一涨，穷人家的小伙子要等上好些年才娶得起亲，有的一辈子没娶上。"
+  },
+  "zh-Hant": {
+   "intro": "兩個宗族之間的婚姻也是一紙盟約，隨新娘往來的財物便是盟約上的簽押。在南部非洲，以牛群支付的「洛博拉」把兩家人拴在一起；牛群一旦退回，婚事也就散了，所以雙方都有理由維持和睦。從公元前198年起，漢朝皇帝把冠以公主名號的宗室女，連同絲綢和糧食，嫁給草原上的匈奴單于，換來幾十年不安穩的平靜。這類聯姻讓陌生人變成彼此有義務相幫、互通訊息的親家。代價卻分攤得很不均勻：年輕女子被當作信物遷來送去；聘禮一漲，窮人家的小夥子要等上好些年才娶得起親，有的一輩子沒娶上。"
+  }
+ },
+ {
+  "id": "C071",
+  "en": {
+   "intro": "A surplus kept in a storehouse is safe; a surplus given away at a feast becomes standing, alliances and a claim on future help. On the northwest coast of North America, chiefs hosted potlatches at which blankets, food and copper plaques were distributed or even destroyed, and every guest who accepted was bound to answer in kind. Canada banned the potlatch from 1885 to 1951; families held them in secret anyway. In the New Guinea highlands, big men rose by organizing pig feasts that left their rivals in debt. Gift obligations spread food through lean seasons. They also escalate: each host must outdo the last, and a family can ruin itself rather than be shamed."
+  },
+  "zh-Hans": {
+   "intro": "囤在仓里的余粮安稳；在宴席上送出去的余粮，却会变成名望、盟友和日后求助的凭据。北美西北海岸的首领举办“夸富宴”，把毛毯、食物和铜牌分送出去，甚至当众毁掉，凡是接受了的客人，日后都得照样回礼。加拿大从1885年到1951年禁止夸富宴，各家照样偷偷地办。在新几内亚高地，“大人物”靠张罗杀猪大宴起家，让对手欠下人情。馈赠义务让食物在青黄不接时流动起来，可它也会层层加码：每一位主人都得压过上一位，一户人家宁可倾家荡产，也不肯丢这个面子。"
+  },
+  "zh-Hant": {
+   "intro": "囤在倉裡的餘糧安穩；在宴席上送出去的餘糧，卻會變成名望、盟友和日後求助的憑據。北美西北海岸的首領舉辦「誇富宴」，把毛毯、食物和銅牌分送出去，甚至當眾毀掉，凡是接受了的客人，日後都得照樣回禮。加拿大從1885年到1951年禁止誇富宴，各家照樣偷偷地辦。在新幾內亞高地，「大人物」靠張羅殺豬大宴起家，讓對手欠下人情。饋贈義務讓食物在青黃不接時流動起來，可它也會層層加碼：每一位主人都得壓過上一位，一戶人家寧可傾家蕩產，也不肯丟這個面子。"
+  }
+ },
+ {
+  "id": "C072",
+  "en": {
+   "intro": "A rite of passage tells a whole community, on one day, that a child now has new duties. Among the Maasai of East Africa, boys initiated together form an age set that moves through life as a body: young warriors guarding the herds, then junior elders, then senior ones, each step marked by ceremony. Bonds formed in one season of hardship last for life, and an age set turns out to defend the herds faster than scattered households. Classical China marked a young man's coming of age with a capping ceremony. Such rites build loyalty and clear expectations. They can also demand pain or danger, and they leave little room for anyone who does not fit."
+  },
+  "zh-Hans": {
+   "intro": "成年礼在同一天告诉整个群体：一个孩子已经成了担负新职责的人。在东非马赛人中，一同受礼的少年结成一个年龄组，此后一辈子同进同退：先是守护畜群的青年战士，然后成为资历浅的长者，再成为年高的长者，每一步都有仪式标记。在同一段苦日子里结下的情谊一辈子不散，一个年龄组被召去保卫畜群，也比零散的人家集合得更快。中国古代以冠礼标志男子成人。这类礼仪培养忠诚，让人知道自己该做什么；它也可能要求承受疼痛甚至危险，而对不合群的人，几乎不留余地。"
+  },
+  "zh-Hant": {
+   "intro": "成年禮在同一天告訴整個群體：一個孩子已經成了擔負新職責的人。在東非馬賽人中，一同受禮的少年結成一個年齡組，此後一輩子同進同退：先是守護畜群的青年戰士，然後成為資歷淺的長者，再成為年高的長者，每一步都有儀式標記。在同一段苦日子裡結下的情誼一輩子不散，一個年齡組被召去保衛畜群，也比零散的人家集合得更快。中國古代以冠禮標誌男子成人。這類禮儀培養忠誠，讓人知道自己該做什麼；它也可能要求承受疼痛甚至危險，而對不合群的人，幾乎不留餘地。"
+  }
+ },
+ {
+  "id": "C073",
+  "en": {
+   "intro": "Some land is kept wild not because nobody wants it but because everyone agreed not to touch it. Along the Kenyan coast, the Mijikenda protected the forested kaya where their ancestral villages had stood; cutting a tree there brought fines and dread, and patches of coastal forest survive today largely because of it. Māori communities declare a rāhui, a temporary ban on taking fish or shellfish from a place, after a death or when stocks run low. Rules wrapped in the sacred are obeyed without patrols. Their weakness is the same as their strength: when belief fades, or a buyer offers enough, nothing but conscience stands guard."
+  },
+  "zh-Hans": {
+   "intro": "有些土地保持荒野，不是没人想要，而是大家约好了不去碰。肯尼亚沿海的米吉肯达人守护着祖辈村落旧址上的“卡亚”圣林，在那里砍一棵树要受罚，更要担惊受怕；今天沿海残存的一片片森林，很大程度上靠的就是这份敬畏。毛利人的社群在有人去世或鱼贝资源减少时宣布“拉胡伊”，暂时禁止在某处捕鱼、拾贝。披着神圣外衣的规矩，不用巡逻也有人遵守。它的弱点和长处是同一件事：信仰一旦淡了，或者买主出价够高，看守它的就只剩良心。"
+  },
+  "zh-Hant": {
+   "intro": "有些土地保持荒野，不是沒人想要，而是大家約好了不去碰。肯亞沿海的米吉肯達人守護著祖輩村落舊址上的「卡亞」聖林，在那裡砍一棵樹要受罰，更要擔驚受怕；今天沿海殘存的一片片森林，很大程度上靠的就是這份敬畏。毛利人的社群在有人去世或魚貝資源減少時宣佈「拉胡伊」，暫時禁止在某處捕魚、拾貝。披著神聖外衣的規矩，不用巡邏也有人遵守。它的弱點和長處是同一件事：信仰一旦淡了，或者買主出價夠高，看守它的就只剩良心。"
+  }
+ },
+ {
+  "id": "C074",
+  "en": {
+   "intro": "A law kept in the heads of judges can be remembered conveniently; a law cast in bronze or set up in the marketplace can be read by the people it binds. Around 450 BC the plebeians of Rome forced the patricians to publish the Twelve Tables, and Cicero recalled learning them by heart as a boy. In 536 BC Zichan, chief minister of the state of Zheng, had his penal laws cast on bronze vessels; a statesman of Jin wrote to warn him that people would now argue from the text instead of deferring to their betters. He was right, and that was the point. Public law curbs arbitrary judgement, but it also freezes old rules in place.",
+   "quote": {
+    "text": "Once the people know where disputes begin, they will cast aside ritual and appeal to the text; down to the tip of an awl, they will contend over everything.",
+    "source": "Shuxiang's letter to Zichan, Zuo Zhuan, Duke Zhao, year 6 (536 BC)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "藏在法官脑子里的法律，记起来可以很随意；铸在青铜上、立在集市里的法律，却能让受它约束的人亲眼读到。约公元前450年，罗马平民迫使贵族公布了《十二铜表法》，西塞罗回忆说，他小时候还把它当作必背的功课。公元前536年，郑国执政子产把刑律铸在鼎上；晋国的叔向写信告诫他：百姓从此会拿着条文来争，而不再敬畏上位者。叔向说得没错，而这恰恰是用意所在。公示的法律约束了任意的裁断，却也把旧规矩冻结在原处。",
+   "quote": {
+    "text": "民知争端矣，将弃礼而征于书，锥刀之末，将尽争之。",
+    "source": "《左传·昭公六年》叔向致子产书"
+   }
+  },
+  "zh-Hant": {
+   "intro": "藏在法官腦子裡的法律，記起來可以很隨意；鑄在青銅上、立在集市裡的法律，卻能讓受它約束的人親眼讀到。約公元前450年，羅馬平民迫使貴族公佈了《十二銅表法》，西塞羅回憶說，他小時候還把它當作必背的功課。公元前536年，鄭國執政子產把刑律鑄在鼎上；晉國的叔向寫信告誡他：百姓從此會拿著條文來爭，而不再敬畏上位者。叔向說得沒錯，而這恰恰是用意所在。公示的法律約束了任意的裁斷，卻也把舊規矩凍結在原處。",
+   "quote": {
+    "text": "民知爭端矣，將棄禮而徵於書，錐刀之末，將盡爭之。",
+    "source": "《左傳·昭公六年》叔向致子產書"
+   }
+  }
+ },
+ {
+  "id": "C075",
+  "en": {
+   "intro": "In an assembly the citizens are the government, at least on days they turn up. Athens's ekklesia met on the Pnyx hill several times a month; any citizen could speak, and decisions were taken by show of hands. Attendance was a chronic worry: public slaves once swept the agora with a red-painted rope to herd loiterers to the meeting, and later the city paid citizens to come. In the Swiss cantons of Glarus and Appenzell Innerrhoden, citizens still meet outdoors yearly to decide on laws. Assemblies make policy hard to impose and slow to change. They also define a citizen body, and those outside it, at Athens women, slaves and foreigners, have no voice."
+  },
+  "zh-Hans": {
+   "intro": "在公民大会上，公民本人就是政府——至少在他们到场的那些日子里是。雅典的公民大会每月在普尼克斯山上开好几次，任何公民都可以发言，表决靠举手。出席率始终让人头疼：公共奴隶曾拿着蘸了红颜料的绳子扫过市集，把闲逛的人往会场赶；后来，城邦干脆给到会的公民发钱。在瑞士的格拉鲁斯州和内阿彭策尔州，公民至今每年在露天集会一次，对法律作出决定。公民大会让政策难以强加，也难以迅速改变。它还划定了公民的范围，而圈外的人——在雅典是妇女、奴隶和外邦人——根本没有声音。"
+  },
+  "zh-Hant": {
+   "intro": "在公民大會上，公民本人就是政府——至少在他們到場的那些日子裡是。雅典的公民大會每月在普尼克斯山上開好幾次，任何公民都可以發言，表決靠舉手。出席率始終讓人頭疼：公共奴隸曾拿著蘸了紅顏料的繩子掃過市集，把閒逛的人往會場趕；後來，城邦乾脆給到會的公民發錢。在瑞士的格拉魯斯州和內阿彭策爾州，公民至今每年在露天集會一次，對法律作出決定。公民大會讓政策難以強加，也難以迅速改變。它還劃定了公民的範圍，而圈外的人——在雅典是婦女、奴隸和外邦人——根本沒有聲音。"
+  }
+ },
+ {
+  "id": "C076",
+  "en": {
+   "intro": "When the ruler is a god, or the gods' chosen son, obedience becomes worship and the granary becomes a temple. Egypt's pharaohs owned the land in principle, and its great temples ran estates, workshops and storehouses from which priests, artisans and labourers drew their rations of bread and beer. The arrangement fed people through bad years and gave a kingdom extraordinary staying power. It also turned every shortage into a crisis of faith. Under Ramesses III, around 1157 BC, the royal tomb-builders of Deir el-Medina, their rations weeks overdue, marched to the mortuary temples, sat down and refused to work, and a scribe recorded the whole dispute on papyrus."
+  },
+  "zh-Hans": {
+   "intro": "当统治者就是神，或是神选定的儿子，服从便成了敬拜，粮仓也成了神庙。埃及的法老在名义上拥有全部土地，各大神庙经营着田庄、作坊和仓库，祭司、工匠和劳力都从那里领取面包和啤酒的口粮。这套安排帮人们熬过荒年，也让一个王国格外经久。可它也让每一次短缺都变成信仰危机。约公元前1157年，拉美西斯三世在位时，德尔麦迪那为王室修陵的工匠口粮拖欠了好几个星期，他们走到葬祭庙前坐下，撂下活计不干了；一位书吏把整场纷争记在了纸草上。"
+  },
+  "zh-Hant": {
+   "intro": "當統治者就是神，或是神選定的兒子，服從便成了敬拜，糧倉也成了神廟。埃及的法老在名義上擁有全部土地，各大神廟經營著田莊、作坊和倉庫，祭司、工匠和勞力都從那裡領取麵包和啤酒的口糧。這套安排幫人們熬過荒年，也讓一個王國格外經久。可它也讓每一次短缺都變成信仰危機。約公元前1157年，拉美西斯三世在位時，德爾麥迪那為王室修陵的工匠口糧拖欠了好幾個星期，他們走到葬祭廟前坐下，撂下活計不幹了；一位書吏把整場紛爭記在了紙草上。"
+  }
+ },
+ {
+  "id": "C077",
+  "en": {
+   "intro": "A stronger power that cannot rule its neighbours directly can still make them bow. Tribute turns an imbalance of force into ceremony: envoys arrive on schedule, present local goods, perform the ritual of submission and go home with gifts and trading rights, often worth more than what they brought. Ming China ran such a system with Korea, Vietnam and dozens of other kingdoms. The kingdom of Ryukyu managed to pay tribute to two masters at once, China and, after 1609, the Japanese domain of Satsuma, and kept the second hidden from the first for over two centuries. Client rulers keep their thrones and their pride, mostly. Resentment keeps too, and waits for the overlord to weaken."
+  },
+  "zh-Hans": {
+   "intro": "一个强国若无法直接统治邻邦，仍然可以让它们低头。朝贡把力量的悬殊变成一套礼仪：使节按期而来，献上方物，行臣服之礼，然后带着赏赐和通商的机会回去，所得往往比所献更多。明朝与朝鲜、安南以及几十个其他宫廷之间都维持着这样的关系。琉球王国做到了同时向两个主子进贡：一边是中国，一边是1609年之后的日本萨摩藩，而且把后者瞒了前者两百多年。附庸的君主大多保住了王位和体面；怨气也同样被保住了，静待宗主衰弱的那一天。"
+  },
+  "zh-Hant": {
+   "intro": "一個強國若無法直接統治鄰邦，仍然可以讓它們低頭。朝貢把力量的懸殊變成一套禮儀：使節按期而來，獻上方物，行臣服之禮，然後帶著賞賜和通商的機會回去，所得往往比所獻更多。明朝與朝鮮、安南以及幾十個其他宮廷之間都維持著這樣的關係。琉球王國做到了同時向兩個主子進貢：一邊是中國，一邊是1609年之後的日本薩摩藩，而且把後者瞞了前者兩百多年。附庸的君主大多保住了王位和體面；怨氣也同樣被保住了，靜待宗主衰弱的那一天。"
+  }
+ },
+ {
+  "id": "C078",
+  "en": {
+   "intro": "Collecting taxes is expensive, slow and unpopular, so many states sold the job. A tax farmer paid the treasury a fixed sum in advance for the right to collect a province's dues, then kept whatever more he could squeeze out. Rome's publicani formed partnerships to bid for the revenues of Asia; the Gospels lump tax collectors in with sinners for a reason. In eighteenth-century France the Ferme générale collected the salt and tobacco duties with its own armed guards. The state got its money early and its hands clean. Taxpayers got a creditor with every incentive to be ruthless, and in 1794 the revolution guillotined the chemist Antoine Lavoisier, among other things for having been a tax farmer."
+  },
+  "zh-Hans": {
+   "intro": "收税费钱、费时又招人恨，于是许多国家干脆把这份差事卖掉。包税人预先向国库缴纳一笔定额，换取征收某一地区税赋的权利，多收上来的全归自己。罗马的包税商结成合伙商社，竞标亚细亚行省的税收；福音书把收税的人和罪人相提并论，不是没有缘故。18世纪的法国，“总包税所”带着自己的武装缉私队征收盐税和烟草税。国家早早拿到了钱，手上还不沾泥；纳税人却多了一个有充分理由心狠手辣的债主。1794年，大革命把化学家拉瓦锡送上断头台，罪名之一便是他当过包税人。"
+  },
+  "zh-Hant": {
+   "intro": "收稅費錢、費時又招人恨，於是許多國家乾脆把這份差事賣掉。包稅人預先向國庫繳納一筆定額，換取徵收某一地區稅賦的權利，多收上來的全歸自己。羅馬的包稅商結成合夥商社，競標亞細亞行省的稅收；福音書把收稅的人和罪人相提並論，不是沒有緣故。18世紀的法國，「總包稅所」帶著自己的武裝緝私隊徵收鹽稅和菸草稅。國家早早拿到了錢，手上還不沾泥；納稅人卻多了一個有充分理由心狠手辣的債主。1794年，大革命把化學家拉瓦錫送上斷頭臺，罪名之一便是他當過包稅人。"
+  }
+ },
+ {
+  "id": "C079",
+  "en": {
+   "intro": "A collector who keeps a share of what he collects has every reason to squeeze; one paid a fixed salary has reason only to be accurate, provided someone checks. England's excise, run directly by the crown's own officers from 1683, recruited men who could gauge a cask and keep a ledger, posted them away from their home districts and audited their books. The poet Robert Burns served as an exciseman in Dumfries; Thomas Paine was dismissed from the service in 1774, two years after writing a pamphlet pleading for better pay. Salaried collection costs more at the outset and needs schooling, supervisors and honest accounts. Underpay the officials, though, and the old temptations return through the back door."
+  },
+  "zh-Hans": {
+   "intro": "从收上来的钱里抽成的税官，有一切理由层层盘剥；领固定薪水的税官，只有一个理由——算得准，前提是有人核查。英格兰的消费税自1683年起由王室直属的官员征收，招的是会量酒桶、会记账的人，把他们派到离家乡远的地方，还要稽核他们的账簿。诗人彭斯在邓弗里斯当过消费税稽查员；托马斯·潘恩则在1774年被免职，两年前他刚写过一本为税务人员请求加薪的小册子。领薪征税起初花费更多，还需要学堂、督查和诚实的账目。可要是官员的薪水压得太低，老毛病就会从后门溜回来。"
+  },
+  "zh-Hant": {
+   "intro": "從收上來的錢裡抽成的稅官，有一切理由層層盤剝；領固定薪水的稅官，只有一個理由——算得準，前提是有人核查。英格蘭的消費稅自1683年起由王室直屬的官員徵收，招的是會量酒桶、會記賬的人，把他們派到離家鄉遠的地方，還要稽核他們的賬簿。詩人彭斯在鄧弗里斯當過消費稅稽查員；托馬斯·潘恩則在1774年被免職，兩年前他剛寫過一本為稅務人員請求加薪的小冊子。領薪徵稅起初花費更多，還需要學堂、督查和誠實的賬目。可要是官員的薪水壓得太低，老毛病就會從後門溜回來。"
+  }
+ },
+ {
+  "id": "C080",
+  "en": {
+   "intro": "Debt compounds; harvests do not. Left alone, loans turn small farmers into tenants and tenants into bondsmen, and a society splits into creditors and the desperate. Babylonian kings answered with misharum edicts that cancelled consumer debts and freed people held for them, usually at the start of a reign. In Athens in 594 BC, Solon's 'shaking off of burdens' cancelled debts secured on the debtor's own body and pulled up the marker stones from fields pledged against loans. Remission restores peace. It also teaches lenders to charge more, lend less or demand surer security, which is why the jubilee of Leviticus is a grand promise that nobody can show was ever kept.",
+   "quote": {
+    "text": "And ye shall hallow the fiftieth year, and proclaim liberty throughout all the land unto all the inhabitants thereof.",
+    "source": "Leviticus 25:10 (King James Version)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "债会利滚利，收成却不会。听之任之，借贷会把小农变成佃户，把佃户变成债奴，一个社会便裂成债主和走投无路的人两半。巴比伦的国王常在即位之初颁布“米沙鲁姆”敕令，免除民间的生活债务，释放因债被扣押的人。公元前594年，梭伦在雅典推行“解负令”，废除以债务人人身作保的债务，拔掉了插在抵债田地上的界石。免债带来安宁，也让放债人学会抬高利息、少放贷，或者要更牢靠的担保。正因如此，《利未记》中的禧年许下的是一个宏大的承诺，却没有人能证明它真的兑现过。",
+   "quote": {
+    "text": "第五十年，你们要当作圣年，在遍地给一切居民宣告自由。",
+    "source": "《利未记》25:10"
+   }
+  },
+  "zh-Hant": {
+   "intro": "債會利滾利，收成卻不會。聽之任之，借貸會把小農變成佃戶，把佃戶變成債奴，一個社會便裂成債主和走投無路的人兩半。巴比倫的國王常在即位之初頒佈「米沙魯姆」敕令，免除民間的生活債務，釋放因債被扣押的人。公元前594年，梭倫在雅典推行「解負令」，廢除以債務人人身作保的債務，拔掉了插在抵債田地上的界石。免債帶來安寧，也讓放債人學會抬高利息、少放貸，或者要更牢靠的擔保。正因如此，《利未記》中的禧年許下的是一個宏大的承諾，卻沒有人能證明它真的兌現過。",
+   "quote": {
+    "text": "第五十年，你們要當作聖年，在遍地給一切居民宣告自由。",
+    "source": "《利未記》25:10"
+   }
+  }
+ },
+ {
+  "id": "C081",
+  "en": {
+   "intro": "A school of philosophy is a habit of arguing that outlives its founder. In the fourth century BC the rulers of Qi gave scholars stipends and houses near the Jixia gate of their capital, Linzi, where Confucians, Mohists and others disputed what made a state orderly and a person good. In Athens, Zeno's followers met under a painted porch and were named after it: Stoics. Schools trained pupils, copied and contested texts, and kept rival traditions alive for centuries. They also hardened into sects with loyalties of their own, and rulers who funded thinkers expected flattery more often than truth. The First Emperor's burning of books in 213 BC showed the opposite danger.",
+   "quote": {
+    "text": "Learning without thought is labour lost; thought without learning is perilous.",
+    "source": "Confucius, Analects, Book II (tr. James Legge, 1861)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "哲学学派是一种比创立者活得更久的论辩习惯。公元前4世纪，齐国国君在都城临淄的稷门附近为学者提供俸禄和住宅，儒家、墨家等各派在那里争论怎样才能使国家安定、使人向善，史称稷下学宫。在雅典，芝诺的门徒在一道彩绘柱廊下聚会，并因此得名“斯多亚派”。学派培养弟子，抄写、争辩典籍，让对立的传统延续数百年。它们也会僵化成各有忠诚的宗派；供养思想家的君主，期待的往往是奉承而非真话。公元前213年秦始皇焚书，则显示了相反的危险。",
+   "quote": {
+    "text": "学而不思则罔，思而不学则殆。",
+    "source": "《论语·为政》"
+   }
+  },
+  "zh-Hant": {
+   "intro": "哲學學派是一種比創立者活得更久的論辯習慣。公元前4世紀，齊國國君在都城臨淄的稷門附近為學者提供俸祿和住宅，儒家、墨家等各派在那裡爭論怎樣才能使國家安定、使人向善，史稱稷下學宮。在雅典，芝諾的門徒在一道彩繪柱廊下聚會，並因此得名「斯多亞派」。學派培養弟子，抄寫、爭辯典籍，讓對立的傳統延續數百年。它們也會僵化成各有忠誠的宗派；供養思想家的君主，期待的往往是奉承而非真話。公元前213年秦始皇焚書，則顯示了相反的危險。",
+   "quote": {
+    "text": "學而不思則罔，思而不學則殆。",
+    "source": "《論語·為政》"
+   }
+  }
+ },
+ {
+  "id": "C082",
+  "en": {
+   "intro": "Shared spectacle binds a city as few laws can. Rival Greek states declared a truce every four years so that visitors could reach the games at Olympia safely. Roman politicians paid for gladiatorial shows to win votes, and emperors kept the crowds of the capital fed and entertained. In Constantinople the chariot-racing factions, the Blues and the Greens, became political parties with gangs of their own; in 532 their joint uprising, the Nika riot, nearly toppled Justinian and ended with tens of thousands massacred in the Hippodrome, by one contemporary's count. Festivals give people a calendar of joy and belonging. They also cost money, can be bought, and gather in one place the very crowd rulers fear most.",
+   "quote": {
+    "text": "Two things only does it anxiously desire: bread and the games.",
+    "source": "Juvenal, Satires, X.80–81"
+   }
+  },
+  "zh-Hans": {
+   "intro": "共同观看的盛事凝聚一座城市的力量，很少有法律能比得上。希腊各城邦哪怕彼此为敌，每四年也要宣布休战，好让运动员和观众平安前往奥林匹亚。罗马的政客自掏腰包举办角斗表演来拉选票，皇帝们则让都城的民众吃饱、看够热闹。在君士坦丁堡，赛车的蓝、绿两党成了各有打手的政治派别；532年，两党联手闹起“尼卡暴动”，差点推翻查士丁尼，据当时一位史家记载，最后有数以万计的人在赛马场里遭到屠杀。节庆给人们一份欢乐的日历和归属感；它也花钱，可以被收买，还恰好把统治者最怕的那群人聚到一处。",
+   "quote": {
+    "text": "如今它只焦急地盼着两样东西：面包和竞技。",
+    "source": "尤维纳利斯《讽刺诗》第十首"
+   }
+  },
+  "zh-Hant": {
+   "intro": "共同觀看的盛事凝聚一座城市的力量，很少有法律能比得上。希臘各城邦哪怕彼此為敵，每四年也要宣佈休戰，好讓運動員和觀眾平安前往奧林匹亞。羅馬的政客自掏腰包舉辦角鬥表演來拉選票，皇帝們則讓都城的民眾吃飽、看夠熱鬧。在君士坦丁堡，賽車的藍、綠兩黨成了各有打手的政治派別；532年，兩黨聯手鬧起「尼卡暴動」，差點推翻查士丁尼，據當時一位史家記載，最後有數以萬計的人在賽馬場裡遭到屠殺。節慶給人們一份歡樂的日曆和歸屬感；它也花錢，可以被收買，還恰好把統治者最怕的那群人聚到一處。",
+   "quote": {
+    "text": "如今它只焦急地盼著兩樣東西：麵包和競技。",
+    "source": "尤維納利斯《諷刺詩》第十首"
+   }
+  }
+ },
+ {
+  "id": "C083",
+  "en": {
+   "intro": "Discharged soldiers are dangerous to leave idle and expensive to keep under arms; land solves both problems. Rome settled veterans in colonies on conquered ground, where they farmed, married local women, kept the roads and could be called up again. Cao Cao revived the Chinese practice of military farms in AD 196, putting soldiers and displaced peasants to work on abandoned fields, and his armies ate while his rivals' starved. Colonies anchored conquests. They also took land from someone. At Camulodunum, modern Colchester, the veterans seized British farms and treated their owners as captives, Tacitus wrote; in AD 60 Boudica's rebels burned the colony to the ground."
+  },
+  "zh-Hans": {
+   "intro": "退伍的兵闲着危险，留在营里又太贵；土地把这两个难题一并解决。罗马把老兵安置在被征服土地上的殖民城里，他们种地、娶当地女子、养护道路，必要时还能再被征召。公元196年，曹操大兴屯田，让士兵和流离失所的农民耕种荒废的田地，对手的军队挨饿时，他的军队有饭吃。军屯稳住了征服的成果，可土地总是从别人手里拿来的。塔西佗写道，在卡穆洛杜努姆，也就是今天的科尔切斯特，老兵强占不列颠人的田产，把原主当作俘虏对待；公元60年，布狄卡率领的起义者把这座殖民城烧成了平地。"
+  },
+  "zh-Hant": {
+   "intro": "退伍的兵閒著危險，留在營裡又太貴；土地把這兩個難題一併解決。羅馬把老兵安置在被征服土地上的殖民城裡，他們種地、娶當地女子、養護道路，必要時還能再被徵召。公元196年，曹操大興屯田，讓士兵和流離失所的農民耕種荒廢的田地，對手的軍隊捱餓時，他的軍隊有飯吃。軍屯穩住了征服的成果，可土地總是從別人手裡拿來的。塔西佗寫道，在卡穆洛杜努姆，也就是今天的科爾切斯特，老兵強佔不列顛人的田產，把原主當作俘虜對待；公元60年，布狄卡率領的起義者把這座殖民城燒成了平地。"
+  }
+ },
+ {
+  "id": "C084",
+  "en": {
+   "intro": "An empire is only as large as the time its orders take to arrive. Persian kings kept fresh horses and riders a day's journey apart along the royal road, so a message raced from Sardis to Susa while a caravan plodded. The Inca relied on chasquis, runners who passed spoken messages and knotted cords from one waystation to the next across the Andes. The Mongols issued metal tablets that entitled a courier to horses and food at every station of the yam. Relays carried news of rebellions and tax accounts in days instead of months. They were also costly to staff and easily abused: Tang poets mocked riders who wore out horses rushing fresh lychees to an emperor's favourite.",
+   "quote": {
+    "text": "One rider in red dust, and the consort smiles; nobody knows it is the lychees coming.",
+    "source": "Du Mu, 'Passing the Huaqing Palace', first of three quatrains (9th century)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "一个帝国有多大，取决于它的命令要多久才能送到。波斯国王在御道上每隔一日路程便备好换乘的马匹和骑手，于是消息从萨迪斯飞驰到苏萨时，商队还在慢慢挪步。印加人靠“查斯基”——一站接一站的跑手，翻越安第斯山脉传递口信和绳结记录。蒙古人颁发金属牌符，持牌的信使在每一处驿站都能领到马匹和饮食。驿传让叛乱的消息和赋税的账目几天就能送达，而不必几个月。它养起来也贵，还容易被滥用：唐代诗人就讥讽过为了把新鲜荔枝送到贵妃面前而累死驿马的骑手。",
+   "quote": {
+    "text": "一骑红尘妃子笑，无人知是荔枝来。",
+    "source": "杜牧《过华清宫绝句三首》其一"
+   }
+  },
+  "zh-Hant": {
+   "intro": "一個帝國有多大，取決於它的命令要多久才能送到。波斯國王在御道上每隔一日路程便備好換乘的馬匹和騎手，於是訊息從薩迪斯飛馳到蘇薩時，商隊還在慢慢挪步。印加人靠「查斯基」——一站接一站的跑手，翻越安第斯山脈傳遞口信和繩結記錄。蒙古人頒發金屬牌符，持牌的信使在每一處驛站都能領到馬匹和飲食。驛傳讓叛亂的訊息和賦稅的賬目幾天就能送達，而不必幾個月。它養起來也貴，還容易被濫用：唐代詩人就譏諷過為了把新鮮荔枝送到貴妃面前而累死驛馬的騎手。",
+   "quote": {
+    "text": "一騎紅塵妃子笑，無人知是荔枝來。",
+    "source": "杜牧《過華清宮絕句三首》其一"
+   }
+  }
+ },
+ {
+  "id": "C085",
+  "en": {
+   "intro": "Every market has someone who shaves a weight, waters the milk or sells yesterday's bread as today's. Market inspection turns complaint into an office. Athens appointed agoranomoi to police the quality of goods and metronomoi to check measures. Islamic cities had the muhtasib, who walked the souk testing scales, breaking false measures and, according to manuals of his office, making sure bakers kneaded with clean hands. In Tang Chang'an the two great markets opened at noon to three hundred drumbeats and closed before sunset to three hundred strokes of a gong, under officials who set fair prices every ten days. Inspectors protect honest traders. They can also be bribed, and a petty office invites petty tyranny."
+  },
+  "zh-Hans": {
+   "intro": "每个集市里都有人刮薄秤砣、往奶里掺水，或者把隔夜的面包当新鲜的卖。市场监察把抱怨变成了一份差事。雅典设有管货物质量的市场监督官，以及专管量器的度量官。伊斯兰城市有“穆赫塔西卜”，他在集市里巡行，检验秤杆，砸毁不足的量器；据记载这一职守的手册，他还要查看面包师揉面时手是否干净。唐代长安的东西两市，正午击鼓三百声开市，日落前击钲三百声散市，市令每十天评定一次各类货物的公道价格。监察保护了老实的商人，也可能被收买；芝麻大的官，最容易生出芝麻大的暴政。"
+  },
+  "zh-Hant": {
+   "intro": "每個集市裡都有人刮薄秤砣、往奶裡摻水，或者把隔夜的麵包當新鮮的賣。市場監察把抱怨變成了一份差事。雅典設有管貨物品質的市場監督官，以及專管量器的度量官。伊斯蘭城市有「穆赫塔西卜」，他在集市裡巡行，檢驗秤桿，砸毀不足的量器；據記載這一職守的手冊，他還要檢視麵包師揉麵時手是否乾淨。唐代長安的東西兩市，正午擊鼓三百聲開市，日落前擊鉦三百聲散市，市令每十天評定一次各類貨物的公道價格。監察保護了老實的商人，也可能被收買；芝麻大的官，最容易生出芝麻大的暴政。"
+  }
+ },
+ {
+  "id": "C086",
+  "en": {
+   "intro": "A king with land but no cash pays his fighting men in the only currency he has. Under vassalage, a lord grants an estate in return for armed service and loyalty sworn in person: in medieval France the vassal knelt and placed his joined hands between his lord's. The kings of Western Zhou parcelled out their realm to kinsmen and allies in much the same spirit. The arrangement raises armies cheaply and governs distant land without paid officials. Its flaw is built in. Grants become hereditary, loyalties pile one upon another, and a great vassal may outgrow his king: Henry II of England, as Duke of Normandy and Count of Anjou, held more of France than the French king himself."
+  },
+  "zh-Hans": {
+   "intro": "一个有地无钱的国王，只能用他手里唯一的通货来酬劳打仗的人。在封臣制度下，领主授予一块封地，换取军役和当面立誓的效忠：中世纪的法兰西，封臣跪下，把合拢的双手放进领主的双手之间。西周的天子把天下分封给宗亲和功臣，用意大体相同。这套安排养兵便宜，不设领薪的官吏也能治理远方的土地。它的毛病与生俱来：封地变成世袭，效忠一层叠一层，一个强大的封臣可能比他的国王还强。英格兰的亨利二世以诺曼底公爵、安茹伯爵的身份，在法兰西拥有的土地比法王本人还多。"
+  },
+  "zh-Hant": {
+   "intro": "一個有地無錢的國王，只能用他手裡唯一的通貨來酬勞打仗的人。在封臣制度下，領主授予一塊封地，換取軍役和當面立誓的效忠：中世紀的法蘭西，封臣跪下，把合攏的雙手放進領主的雙手之間。西周的天子把天下分封給宗親和功臣，用意大體相同。這套安排養兵便宜，不設領薪的官吏也能治理遠方的土地。它的毛病與生俱來：封地變成世襲，效忠一層疊一層，一個強大的封臣可能比他的國王還強。英格蘭的亨利二世以諾曼底公爵、安茹伯爵的身份，在法蘭西擁有的土地比法王本人還多。"
+  }
+ },
+ {
+  "id": "C087",
+  "en": {
+   "intro": "Officials who own nothing locally and can be moved at will serve the centre, not themselves. When Qin unified China in 221 BC, the minister Li Si persuaded the First Emperor not to grant kingdoms to his sons but to divide the realm into commanderies and counties run by appointees who could be recalled. Later dynasties added the rule of avoidance: no magistrate could serve in his home province. From the 1630s France's intendants, royal agents in the provinces, played a similar part against entrenched nobles. Appointed government is uniform and loyal. Its weakness is distance: a magistrate moved every few years never learns his district, and the local clerks who do learn it rule in his name."
+  },
+  "zh-Hans": {
+   "intro": "在地方上一无所有、又可以随时调走的官员，效忠的是中央，而不是自己。公元前221年秦统一天下，丞相李斯说服始皇帝不把土地封给诸子为王，而是把天下分成郡县，交给可以随时召回的委任官员治理。后来的王朝又加上回避之制：地方官不得在本籍任职。17世纪30年代起，法兰西派往各省的督办官也起到了类似的作用，用来压制盘踞地方的贵族。郡县制整齐划一、忠于朝廷；它的弱点在于隔膜：一位每隔几年就调任的县官永远摸不透一个县，而摸透了的本地胥吏，便借他的名义当家。"
+  },
+  "zh-Hant": {
+   "intro": "在地方上一無所有、又可以隨時調走的官員，效忠的是中央，而不是自己。公元前221年秦統一天下，丞相李斯說服始皇帝不把土地封給諸子為王，而是把天下分成郡縣，交給可以隨時召回的委任官員治理。後來的王朝又加上回避之制：地方官不得在本籍任職。17世紀30年代起，法蘭西派往各省的督辦官也起到了類似的作用，用來壓制盤踞地方的貴族。郡縣制整齊劃一、忠於朝廷；它的弱點在於隔膜：一位每隔幾年就調任的縣官永遠摸不透一個縣，而摸透了的本地胥吏，便借他的名義當家。"
+  }
+ },
+ {
+  "id": "C088",
+  "en": {
+   "intro": "When cities shrank and palaces burned, communities bound by a rule of life kept copying. Benedict of Nursia's Rule, written around 530, set his monks to fixed hours of prayer, manual work and reading, and Benedictine houses became the libraries of early medieval Europe, their scriptoria turning out books letter by patient letter. Buddhist monasteries from Tibet to Japan guarded sutras the same way. Endowed houses survive collapse because they need neither market nor king. But copyists choose what lives. In 1229 a scribe in the eastern Mediterranean scraped a book of Archimedes off its parchment and wrote prayers over it; the mathematics was read again only with modern imaging.",
+   "quote": {
+    "text": "Idleness is the enemy of the soul.",
+    "source": "The Rule of Saint Benedict, ch. 48 (c. 530)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "城市萎缩、宫廷焚毁的年代，按一套生活规章结成的团体仍在抄写。努西亚的本笃约在530年写成会规，规定修士按时祈祷、劳作和读书；本笃会的修道院成了中世纪早期欧洲的图书馆，缮写室里一个字母一个字母地抄出书来。从西藏到日本的佛教寺院，也以同样的方式守护着经卷。有田产供养的修院不依赖市场，也不依赖国王，所以能熬过崩溃。可抄写的人决定什么得以存活。1229年，地中海东部的一位抄写者把一部阿基米德著作从羊皮纸上刮掉，在上面写满了祈祷文；那些数学直到现代成像技术出现才重见天日。",
+   "quote": {
+    "text": "懒散是灵魂的仇敌。",
+    "source": "《圣本笃会规》第四十八章（约530）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "城市萎縮、宮廷焚燬的年代，按一套生活規章結成的團體仍在抄寫。努西亞的本篤約在530年寫成會規，規定修士按時祈禱、勞作和讀書；本篤會的修道院成了中世紀早期歐洲的圖書館，繕寫室裡一個字母一個字母地抄出書來。從西藏到日本的佛教寺院，也以同樣的方式守護著經卷。有田產供養的修院不依賴市場，也不依賴國王，所以能熬過崩潰。可抄寫的人決定什麼得以存活。1229年，地中海東部的一位抄寫者把一部阿基米德著作從羊皮紙上刮掉，在上面寫滿了祈禱文；那些數學直到現代成像技術出現才重見天日。",
+   "quote": {
+    "text": "懶散是靈魂的仇敵。",
+    "source": "《聖本篤會規》第四十八章（約530）"
+   }
+  }
+ },
+ {
+  "id": "C089",
+  "en": {
+   "intro": "Merchants and craftsmen packed inside a wall want what a lord's steward will not grant: fixed dues, their own councils, trials before neighbours, freedom to come and go. Chartered towns bought those rights in writing, or extorted them. In much of medieval Europe a serf who lived a year and a day in a chartered town could claim his freedom, and the law of Magdeburg was copied by hundreds of towns from Saxony to Ukraine. Self-government made towns rich and inventive. It also made them combustible. In 1112 the bishop of Laon revoked the commune he had sold to his townspeople; they rose, dragged him from the wine cask where he hid, killed him and burned much of the city."
+  },
+  "zh-Hans": {
+   "intro": "挤在城墙里的商人和工匠，想要领主的管家不肯给的东西：固定的捐税、自己的议事会、由邻里参与的审判、来去自由。特许城镇用钱买、或者硬逼着领主把这些权利写成文书。在中世纪欧洲的许多地方，农奴只要在特许城镇里住满一年零一天，就能主张自由；马格德堡的城市法从萨克森一直被抄到乌克兰，为数百座城镇所采用。自治让城镇富裕而富有创造力，也让它们一点就着。1112年，拉昂主教撤销了他卖给市民的公社特许；市民揭竿而起，把躲在酒桶里的主教拖出来杀死，还烧掉了大半座城。"
+  },
+  "zh-Hant": {
+   "intro": "擠在城牆裡的商人和工匠，想要領主的管家不肯給的東西：固定的捐稅、自己的議事會、由鄰里參與的審判、來去自由。特許城鎮用錢買、或者硬逼著領主把這些權利寫成文書。在中世紀歐洲的許多地方，農奴只要在特許城鎮裡住滿一年零一天，就能主張自由；馬格德堡的城市法從薩克森一直被抄到烏克蘭，為數百座城鎮所採用。自治讓城鎮富裕而富有創造力，也讓它們一點就著。1112年，拉昂主教撤銷了他賣給市民的公社特許；市民揭竿而起，把躲在酒桶裡的主教拖出來殺死，還燒掉了大半座城。"
+  }
+ },
+ {
+  "id": "C090",
+  "en": {
+   "intro": "An empire that fills its offices by written examination turns ambition into study. Under the Ming and Qing, candidates climbed from county tests through provincial examinations to the palace examination in Beijing, where the emperor nominally ranked the finalists himself. The examination hall at Nanjing held more than twenty thousand cells, each a brick cubicle where a man ate, slept and wrote for days. Success raised a family for generations, and the system bound the gentry of a vast realm to one canon. Failure was the common outcome. Hong Xiuquan failed the qualifying examination in Guangzhou four times, then declared himself the younger brother of Christ and led the Taiping rebellion. The system was abolished in 1905."
+  },
+  "zh-Hans": {
+   "intro": "一个靠笔试填补官职的帝国，把野心变成了苦读。明清两代，读书人从县里的考试一路考上去，经乡试、会试，最后到北京参加殿试，名义上由皇帝亲自排定名次。南京的江南贡院有两万多间号舍，每间都是一个砖砌的小隔间，考生要在里面吃、睡、写上好几天。一朝考中，可以荣耀几代人；整个制度也把幅员辽阔的帝国里的士绅拴在同一套经典上。落榜才是常态。洪秀全在广州应考四次都名落孙山，后来自称耶稣的弟弟，发动了太平天国运动。科举在1905年被废止。"
+  },
+  "zh-Hant": {
+   "intro": "一個靠筆試填補官職的帝國，把野心變成了苦讀。明清兩代，讀書人從縣裡的考試一路考上去，經鄉試、會試，最後到北京參加殿試，名義上由皇帝親自排定名次。南京的江南貢院有兩萬多間號舍，每間都是一個磚砌的小隔間，考生要在裡面吃、睡、寫上好幾天。一朝考中，可以榮耀幾代人；整個制度也把幅員遼闊的帝國裡計程車紳拴在同一套經典上。落榜才是常態。洪秀全在廣州應考四次都名落孫山，後來自稱耶穌的弟弟，發動了太平天國運動。科舉在1905年被廢止。"
+  }
+ },
+ {
+  "id": "C091",
+  "en": {
+   "intro": "A university is a self-governing body of scholars with the right to certify its own members. At Bologna, from the late eleventh century, students organized themselves by nation, hired their teachers and fined any professor who started late or skipped a difficult passage. At Paris the cathedral chancellor granted the right to teach, and a degree became a passport recognized across Latin Christendom. Universities trained the lawyers, physicians and clergy that kingdoms and bishops needed, in numbers no single master could. They also bred privileges and quarrels. On St Scholastica's Day in 1355 a tavern dispute in Oxford turned into two days of rioting between townsmen and scholars that left dozens dead."
+  },
+  "zh-Hans": {
+   "intro": "大学是一个有权认证自己成员的学者自治团体。11世纪末起，博洛尼亚的学生按“同乡会”组织起来，自己聘请教师，教授迟到或跳过艰深段落都要被罚款。在巴黎，由主教座堂的教务长授予授课资格，学位于是成了在整个拉丁基督教世界通行的凭照。大学成批地培养出王国和主教们需要的法律人、医生和教士，数量远非任何一位名师所能及。它们也滋生出特权和纷争：1355年圣斯科拉斯蒂卡节，牛津一家酒馆里的口角演变成市民与学者之间两天的骚乱，死了几十个人。"
+  },
+  "zh-Hant": {
+   "intro": "大學是一個有權認證自己成員的學者自治團體。11世紀末起，博洛尼亞的學生按「同鄉會」組織起來，自己聘請教師，教授遲到或跳過艱深段落都要被罰款。在巴黎，由主教座堂的教務長授予授課資格，學位於是成了在整個拉丁基督教世界通行的憑照。大學成批地培養出王國和主教們需要的法律人、醫生和教士，數量遠非任何一位名師所能及。它們也滋生出特權和紛爭：1355年聖斯科拉斯蒂卡節，牛津一家酒館裡的口角演變成市民與學者之間兩天的騷亂，死了幾十個人。"
+  }
+ },
+ {
+  "id": "C092",
+  "en": {
+   "intro": "Long before a state can send a judge to every valley, faiths and customs are already settling disputes there. Ottoman cities had qadi courts applying Islamic law, and their surviving registers show Christians and Jews bringing cases to them too, when they thought a qadi's ruling would stick better than their own community's. In England, church courts heard cases of marriage and wills until 1857, and were nicknamed the bawdy courts. Among Somali clans, elders still apply xeer, an unwritten customary law built on compensation. Such courts reach places and quarrels that royal justice ignores. They also compete with the state and with each other, and their rules rarely weigh every witness equally."
+  },
+  "zh-Hans": {
+   "intro": "早在国家能把法官派到每一道山谷之前，各种信仰和习俗就已经在那里了结纠纷。奥斯曼帝国的城市设有依伊斯兰教法断案的卡迪法庭，留存下来的案卷显示，基督徒和犹太人也会把官司打到那里，因为他们觉得卡迪的判决比本社群的裁定更管用。在英格兰，教会法庭直到1857年还在审理婚姻和遗嘱案件，人称“风化法庭”。索马里各部族的长者至今仍依“赫尔”断事，那是一套不成文、以赔偿为本的习惯法。这类法庭能伸到王家司法顾不上的地方和纠纷里；它们也与国家、与彼此相争，而且其规矩很少把每位证人的话看得一样重。"
+  },
+  "zh-Hant": {
+   "intro": "早在國家能把法官派到每一道山谷之前，各種信仰和習俗就已經在那裡了結糾紛。奧斯曼帝國的城市設有依伊斯蘭教法斷案的卡迪法庭，留存下來的案卷顯示，基督徒和猶太人也會把官司打到那裡，因為他們覺得卡迪的判決比本社群的裁定更管用。在英格蘭，教會法庭直到1857年還在審理婚姻和遺囑案件，人稱「風化法庭」。索馬利亞各部族的長者至今仍依「赫爾」斷事，那是一套不成文、以賠償為本的習慣法。這類法庭能伸到王家司法顧不上的地方和糾紛裡；它們也與國家、與彼此相爭，而且其規矩很少把每位證人的話看得一樣重。"
+  }
+ },
+ {
+  "id": "C093",
+  "en": {
+   "intro": "Towns trading along one coast can win together what none wins alone: safe harbours, privileges abroad and the power to boycott cheats. The Hanseatic League bound Lübeck, Hamburg and scores of Baltic and North Sea towns into a loose alliance with fortified trading posts, kontors, at London, Bruges, Bergen and Novgorod. At Bergen its German merchants lived in a quarter of their own and, by its rules, stayed unmarried. When Denmark threatened its trade, the League made war and won, dictating the Peace of Stralsund in 1370. Leagues protect members and squeeze outsiders. They depend on unanimity, and as territorial kingdoms grew stronger, the Hansa's privileges were bought out or taken away one by one."
+  },
+  "zh-Hans": {
+   "intro": "沿同一片海岸做买卖的城镇，联合起来能争到单个城镇争不到的东西：安全的港口、在外国共享的特权，以及抵制任何欺骗它们的人的力量。汉萨同盟把吕贝克、汉堡以及波罗的海、北海沿岸的几十座城镇结成一个松散的联盟，在伦敦、布鲁日、卑尔根和诺夫哥罗德设有设防的商站。在卑尔根，同盟的德意志商人住在自己的街区里，按规矩不得娶妻。丹麦威胁到它的贸易时，同盟便开战，并且打赢了，于1370年强定了《施特拉尔松德和约》。商人同盟保护成员，挤压外人；它靠全体一致维持，而随着领土王国日益强大，汉萨的特权被一项项赎买或夺走。"
+  },
+  "zh-Hant": {
+   "intro": "沿同一片海岸做買賣的城鎮，聯合起來能爭到單個城鎮爭不到的東西：安全的港口、在外國共享的特權，以及抵制任何欺騙它們的人的力量。漢薩同盟把呂貝克、漢堡以及波羅的海、北海沿岸的幾十座城鎮結成一個鬆散的聯盟，在倫敦、布魯日、卑爾根和諾夫哥羅德設有設防的商站。在卑爾根，同盟的德意志商人住在自己的街區裡，按規矩不得娶妻。丹麥威脅到它的貿易時，同盟便開戰，並且打贏了，於1370年強定了《施特拉爾松德和約》。商人同盟保護成員，擠壓外人；它靠全體一致維持，而隨著領土王國日益強大，漢薩的特權被一項項贖買或奪走。"
+  }
+ },
+ {
+  "id": "C094",
+  "en": {
+   "intro": "Faith sends people on journeys no trader would make, and the routes they wear become arteries. Medieval pilgrims to Santiago de Compostela could carry a twelfth-century guidebook that rated the rivers along the way, warned against crooked toll-keepers and praised the hostels that fed travellers for nothing. When Mansa Musa of Mali passed through Cairo on the hajj in 1324, he gave away so much gold that, by one account written a few years later, its price there had still not recovered. Pilgrim roads carried news, coin, crafts and ideas between strangers who would otherwise never meet. They also carried epidemics, and every shrine's prosperity drew robbers to the road and sharp dealers to the gate."
+  },
+  "zh-Hans": {
+   "intro": "信仰让人踏上商人绝不会走的旅程，而被他们踩出来的道路，会变成交通的动脉。中世纪前往圣地亚哥—德孔波斯特拉的朝圣者，可以随身带一本12世纪的指南，书里评点沿途各条河的水能不能喝，提醒人提防奸猾的收费人，夸赞那些免费供旅人吃住的客栈。1324年，马里国王曼萨·穆萨朝觐途经开罗，散出去的黄金多到据几年后的一份记载说，那里的金价仍没缓过来。朝圣之路在素不相识的人之间传播消息、钱币、手艺和思想，也传播瘟疫；每一座圣地的兴旺，都会把强盗引上路，把奸商引到门口。"
+  },
+  "zh-Hant": {
+   "intro": "信仰讓人踏上商人絕不會走的旅程，而被他們踩出來的道路，會變成交通的動脈。中世紀前往聖地亞哥—德孔波斯特拉的朝聖者，可以隨身帶一本12世紀的指南，書裡評點沿途各條河的水能不能喝，提醒人提防奸猾的收費人，誇讚那些免費供旅人吃住的客棧。1324年，馬裡國王曼薩·穆薩朝覲途經開羅，散出去的黃金多到據幾年後的一份記載說，那裡的金價仍沒緩過來。朝聖之路在素不相識的人之間傳播訊息、錢幣、手藝和思想，也傳播瘟疫；每一座聖地的興旺，都會把強盜引上路，把奸商引到門口。"
+  }
+ },
+ {
+  "id": "C095",
+  "en": {
+   "intro": "Where coin is scarce, a lord takes his rent in days. On a medieval English manor a villein held his strips of land in return for working the lord's demesne, often two or three days a week and more at harvest, besides paying dues when he married off a daughter or inherited his father's holding. In Russia the same arrangement, barshchina, could claim half a peasant's week. Labour dues fed lords and kept fields tilled without markets or wages. They also bound people to the soil and stored up resentment that waited for its moment. After the Black Death made labour scarce, lords tried to hold wages down by law, and in 1381 English peasants rose in revolt.",
+   "quote": {
+    "text": "When Adam delved and Eve span, who was then the gentleman?",
+    "source": "Rhyme preached on by John Ball in 1381, as recorded by Thomas Walsingham"
+   }
+  },
+  "zh-Hans": {
+   "intro": "铜钱稀缺的地方，领主便收劳役当地租。在中世纪英格兰的庄园里，佃农领种自己的几条田地，代价是给领主的自营地干活，常常一周两三天，农忙时更多；嫁女儿、承继父亲的份地，还要另交一笔钱。在俄国，同样的劳役叫作“巴尔辛纳”，可以占去农民一周的一半。劳役地租养活了领主，也让田地在没有市场、没有工钱的情况下照样有人耕种；它把人拴在土地上，积下的怨恨只等时机。黑死病让人手紧缺之后，领主们试图用法令压低工钱；1381年，英格兰农民揭竿而起。",
+   "quote": {
+    "text": "亚当耕地、夏娃纺线的时候，谁是绅士？",
+    "source": "约翰·鲍尔1381年布道所用的歌谣，据托马斯·沃尔辛厄姆记载"
+   }
+  },
+  "zh-Hant": {
+   "intro": "銅錢稀缺的地方，領主便收勞役當地租。在中世紀英格蘭的莊園裡，佃農領種自己的幾條田地，代價是給領主的自營地幹活，常常一週兩三天，農忙時更多；嫁女兒、承繼父親的份地，還要另交一筆錢。在俄國，同樣的勞役叫作「巴爾辛納」，可以佔去農民一週的一半。勞役地租養活了領主，也讓田地在沒有市場、沒有工錢的情況下照樣有人耕種；它把人拴在土地上，積下的怨恨只等時機。黑死病讓人手緊缺之後，領主們試圖用法令壓低工錢；1381年，英格蘭農民揭竿而起。",
+   "quote": {
+    "text": "亞當耕地、夏娃紡線的時候，誰是紳士？",
+    "source": "約翰·鮑爾1381年佈道所用的歌謠，據托馬斯·沃爾辛厄姆記載"
+   }
+  }
+ },
+ {
+  "id": "C096",
+  "en": {
+   "intro": "Care that a family cannot give, an endowment can. In 1284 the sultan Qalawun opened the Mansuri hospital in Cairo, with wards for fevers, eye diseases and the insane, open to rich and poor, men and women alike, and paid for by the income of shops and baths. At Beaune in Burgundy, the hospital founded in 1443 is still supported in part by wine from the vineyards given to it, auctioned each November. Hospitals gathered skill and beds in one place, and almshouses sheltered the old and destitute. Gathering the sick together had a price: before anyone understood contagion, the Hôtel-Dieu of Paris crowded several patients into one bed, and many caught there what killed them."
+  },
+  "zh-Hans": {
+   "intro": "家人给不了的照护，一笔捐产可以给。1284年，苏丹盖拉温在开罗开办曼苏尔医院，设有热病、眼病和精神病等病房，不论贫富男女一概收治，经费来自店铺和浴室的收入。勃艮第博讷的济贫医院建于1443年，至今仍部分靠受赠葡萄园出产的葡萄酒维持，每年11月举行拍卖。医院把医术和床位集中到一处，济贫院则收容老人和赤贫者。把病人聚在一起也有代价：在人们弄懂传染之前，巴黎主宫医院常常几个病人挤一张床，许多人正是在那里染上了要命的病。"
+  },
+  "zh-Hant": {
+   "intro": "家人給不了的照護，一筆捐產可以給。1284年，蘇丹蓋拉溫在開羅開辦曼蘇爾醫院，設有熱病、眼病和精神病等病房，不論貧富男女一概收治，經費來自店鋪和浴室的收入。勃艮第博訥的濟貧醫院建於1443年，至今仍部分靠受贈葡萄園出產的葡萄酒維持，每年11月舉行拍賣。醫院把醫術和床位集中到一處，濟貧院則收容老人和赤貧者。把病人聚在一起也有代價：在人們弄懂傳染之前，巴黎主宮醫院常常幾個病人擠一張床，許多人正是在那裡染上了要命的病。"
+  }
+ },
+ {
+  "id": "C097",
+  "en": {
+   "intro": "A warrior class that lives by violence needs rules to stop it devouring itself. Medieval European knights professed chivalry: courage, loyalty to a lord, mercy to a fallen equal who could pay a ransom. That mercy had limits. At Agincourt in 1415, fearing a fresh attack, Henry V ordered his French prisoners killed, and his own knights balked, less from compassion than from the loss of ransoms. In Japan the samurai ethic was written down most fully during the long Tokugawa peace, when warriors had become administrators, and the word bushidō reached a wide audience only in 1900, through Nitobe Inazō's book in English. Codes of honour stiffen morale; they rarely protect those beneath the code."
+  },
+  "zh-Hans": {
+   "intro": "一个靠暴力为生的武人阶层，需要规矩来防止自相吞噬。中世纪欧洲的骑士标榜骑士精神：勇敢，忠于领主，对付得起赎金的落败同侪手下留情。这份仁慈是有限度的。1415年阿金库尔战役中，亨利五世担心敌军卷土重来，下令处死法军俘虏，他手下的骑士们迟疑不肯，与其说出于怜悯，不如说心疼赎金。在日本，武士的伦理是在德川幕府漫长的太平年代才写得最完整的，那时武士早已变成了文官；而“武士道”一词广为人知，要等到1900年新渡户稻造用英文写成的那本书。荣誉法则能鼓舞士气，却很少庇护法则之下的人。"
+  },
+  "zh-Hant": {
+   "intro": "一個靠暴力為生的武人階層，需要規矩來防止自相吞噬。中世紀歐洲的騎士標榜騎士精神：勇敢，忠於領主，對付得起贖金的落敗同儕手下留情。這份仁慈是有限度的。1415年阿金庫爾戰役中，亨利五世擔心敵軍捲土重來，下令處死法軍俘虜，他手下的騎士們遲疑不肯，與其說出於憐憫，不如說心疼贖金。在日本，武士的倫理是在德川幕府漫長的太平年代才寫得最完整的，那時武士早已變成了文官；而「武士道」一詞廣為人知，要等到1900年新渡戶稻造用英文寫成的那本書。榮譽法則能鼓舞士氣，卻很少庇護法則之下的人。"
+  }
+ },
+ {
+  "id": "C098",
+  "en": {
+   "intro": "A state that does not know who farms which field taxes the weak and misses the powerful. In 1387 the Ming dynasty compiled registers that mapped every plot, the fields drawn side by side so densely that the pages looked like fish scales, which gave the registers their name. Toyotomi Hideyoshi's surveys of the 1580s and 1590s measured Japan's fields by a single standard and recorded who answered for each one's tax, sweeping away layers of overlapping claims. Napoleon ordered a parcel-by-parcel survey of France in 1807. Surveys settle quarrels and make taxes fairer. They also expose what powerful families had hidden, and registers that are not kept up drift steadily away from the land they describe."
+  },
+  "zh-Hans": {
+   "intro": "一个不知道哪块地由谁耕种的国家，只会向弱者征税，而让强者漏网。1387年，明朝编成田册，把每一块田的形状一一绘出，块块相挨，状如鱼鳞，于是人称“鱼鳞图册”。16世纪80至90年代，丰臣秀吉在日本推行检地，用统一的尺度丈量田亩，写明每块田的年贡由谁承担，扫清了层层叠叠的权利主张。1807年，拿破仑下令对法兰西逐块丈量土地。清丈能平息争讼，让赋税更公平；它也揭出豪强之家隐瞒的田产。而不及时更新的田册，会与它所描述的土地越离越远。"
+  },
+  "zh-Hant": {
+   "intro": "一個不知道哪塊地由誰耕種的國家，只會向弱者徵稅，而讓強者漏網。1387年，明朝編成田冊，把每一塊田的形狀一一繪出，塊塊相挨，狀如魚鱗，於是人稱「魚鱗圖冊」。16世紀80至90年代，豐臣秀吉在日本推行檢地，用統一的尺度丈量田畝，寫明每塊田的年貢由誰承擔，掃清了層層疊疊的權利主張。1807年，拿破崙下令對法蘭西逐塊丈量土地。清丈能平息爭訟，讓賦稅更公平；它也揭出豪強之家隱瞞的田產。而不及時更新的田冊，會與它所描述的土地越離越遠。"
+  }
+ },
+ {
+  "id": "C099",
+  "en": {
+   "intro": "A voyage to the far side of the world could ruin one merchant; divided into shares, the risk became a gamble many could afford. In 1553 some two hundred London investors put up the money for three ships to seek a northern passage to China. Two crews, under Sir Hugh Willoughby, froze to death on the coast of Lapland; the third ship reached the White Sea, and its captain, Richard Chancellor, was received in Moscow by Ivan IV. The resulting Muscovy Company held its Russian trade for over a century. Joint stock let strangers pool capital and sell their stakes. It also let promoters sell dreams, and the South Sea Bubble of 1720 ruined thousands who had bought them."
+  },
+  "zh-Hans": {
+   "intro": "一次远航到世界另一端，足以让任何一个商人倾家荡产；把风险分成股份，它就成了许多人赌得起的一注。1553年，伦敦约两百名投资者凑钱派出三艘船，去寻找一条经北方通往中国的航路。威洛比爵士率领的两船人马冻死在拉普兰海岸；第三艘船驶进白海，船长钱塞勒被伊凡四世召见于莫斯科。由此生出的莫斯科公司，独揽对俄贸易一百多年。合股让素不相识的人汇集资本，也能转让各自的份额；它同样让鼓吹者有了兜售美梦的门路，1720年的南海泡沫便让成千上万买了梦的人血本无归。"
+  },
+  "zh-Hant": {
+   "intro": "一次遠航到世界另一端，足以讓任何一個商人傾家蕩產；把風險分成股份，它就成了許多人賭得起的一注。1553年，倫敦約兩百名投資者湊錢派出三艘船，去尋找一條經北方通往中國的航路。威洛比爵士率領的兩船人馬凍死在拉普蘭海岸；第三艘船駛進白海，船長錢塞勒被伊凡四世召見於莫斯科。由此生出的莫斯科公司，獨攬對俄貿易一百多年。合股讓素不相識的人彙集資本，也能轉讓各自的份額；它同樣讓鼓吹者有了兜售美夢的門路，1720年的南海泡沫便讓成千上萬買了夢的人血本無歸。"
+  }
+ },
+ {
+  "id": "C100",
+  "en": {
+   "intro": "Kings borrowed for wars and repaid when they felt like it, so lenders charged accordingly. A public bank changed the bargain. Sweden's Riksbank, founded in 1668 after a private bank's paper notes collapsed, is the oldest central bank still operating. In 1694 a group of London financiers lent the government £1.2 million for its war with France and in return were chartered as the Bank of England, the loan serviced from specified taxes. Because Britain kept paying, it borrowed more cheaply than France and outlasted it through a century of wars. Credit on that scale is power. It also tempts governments to borrow for today and leave the reckoning, with interest, to somebody else."
+  },
+  "zh-Hans": {
+   "intro": "国王们为打仗借钱，想还时才还，放贷人便照此要价。一家公共银行改变了这笔交易。瑞典国家银行在一家私人银行的纸钞崩盘之后，于1668年成立，是至今仍在运作的最古老的中央银行。1694年，伦敦一批金融家借给政府120万英镑用于对法战争，换来一纸特许，成立了英格兰银行，这笔借款以指定的税收付息。由于英国一直按期付息，它借钱比法国便宜，在一个世纪的连年战争中拖垮了对手。这样规模的信用就是力量；它也诱惑政府只顾眼前举债，把连本带利的清算留给别人。"
+  },
+  "zh-Hant": {
+   "intro": "國王們為打仗借錢，想還時才還，放貸人便照此要價。一家公共銀行改變了這筆交易。瑞典國家銀行在一傢俬人銀行的紙鈔崩盤之後，於1668年成立，是至今仍在運作的最古老的中央銀行。1694年，倫敦一批金融家借給政府120萬英鎊用於對法戰爭，換來一紙特許，成立了英格蘭銀行，這筆借款以指定的稅收付息。由於英國一直按期付息，它借錢比法國便宜，在一個世紀的連年戰爭中拖垮了對手。這樣規模的信用就是力量；它也誘惑政府只顧眼前舉債，把連本帶利的清算留給別人。"
+  }
+ },
+ {
+  "id": "C101",
+  "en": {
+   "intro": "When one throne rises above every estate, power flows to whoever stands nearest it. Louis XIV drew France's great nobles to Versailles, where they competed for the honour of handing him his shirt at the morning lever, while royal officials ran the provinces they had once dominated. In 1380 the Hongwu Emperor of Ming China abolished the office of chancellor and directed the ministries himself. Absolute rule cut through feuds and could reform quickly. Its weakness was a single point of failure. Hongwu's descendants inherited his workload without his energy, and the Wanli Emperor, sulking over a succession quarrel, refused for decades to receive his ministers while the court bureaucracy filled vacancies as best it could."
+  },
+  "zh-Hans": {
+   "intro": "当一个王座高踞于所有等级之上，权力便流向离它最近的人。路易十四把法兰西的大贵族召到凡尔赛，让他们争抢在国王晨起时为他递上衬衫的荣耀，而他们昔日称雄的各省，则交给王室官员治理。1380年，明太祖废除丞相，亲自统辖六部。专制统治能斩断纷争，改革起来也快；它的弱点在于一切系于一人。朱元璋的子孙继承了他的担子，却没有继承他的精力：万历皇帝为立储之争赌气，几十年不见大臣，官僚机构只能勉强填补一个个空缺。"
+  },
+  "zh-Hant": {
+   "intro": "當一個王座高踞於所有等級之上，權力便流向離它最近的人。路易十四把法蘭西的大貴族召到凡爾賽，讓他們爭搶在國王晨起時為他遞上襯衫的榮耀，而他們昔日稱雄的各省，則交給王室官員治理。1380年，明太祖廢除丞相，親自統轄六部。專制統治能斬斷紛爭，改革起來也快；它的弱點在於一切繫於一人。朱元璋的子孫繼承了他的擔子，卻沒有繼承他的精力：萬曆皇帝為立儲之爭賭氣，幾十年不見大臣，官僚機構只能勉強填補一個個空缺。"
+  }
+ },
+ {
+  "id": "C102",
+  "en": {
+   "intro": "Sovereignty that sits in an elected chamber cannot be dismissed by a king's displeasure. England learned this the hard way. In January 1642 Charles I entered the House of Commons with soldiers to arrest five members; they had fled, and the Speaker refused to say where. Civil war followed, and then, in 1688, a revolution that confirmed the Commons' grip on taxation and on the army's pay. Control of the purse made every government answer to the chamber each year. Who sat in it was another matter: until 1832 the deserted hill of Old Sarum returned two members while the growing city of Manchester returned none.",
+   "quote": {
+    "text": "May it please your Majesty, I have neither eyes to see nor tongue to speak in this place but as the House is pleased to direct me, whose servant I am here.",
+    "source": "William Lenthall, Speaker of the House of Commons, to Charles I (4 January 1642)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "坐在民选议院里的主权，不会因为国王不高兴就被打发掉。英格兰是吃了苦头才学会这一点的。1642年1月，查理一世带兵闯进下议院，要逮捕五名议员；他们已经逃走，议长拒绝说出去向。内战随之而来；1688年又一场革命，确认了下议院对征税和军饷的掌控。抓住了钱袋子，每一届政府每年都得向议院交代。至于谁坐在议院里，那是另一回事：直到1832年，荒无人烟的老塞勒姆山丘还能选出两名议员，而日渐壮大的曼彻斯特一个也没有。",
+   "quote": {
+    "text": "陛下，在这个地方，除了下院指示我看的，我没有眼睛可看；除了下院指示我说的，我没有舌头可说，因为我在此是下院的仆人。",
+    "source": "下议院议长威廉·伦索尔对查理一世所言（1642年1月4日）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "坐在民選議院裡的主權，不會因為國王不高興就被打發掉。英格蘭是吃了苦頭才學會這一點的。1642年1月，查理一世帶兵闖進下議院，要逮捕五名議員；他們已經逃走，議長拒絕說出去向。內戰隨之而來；1688年又一場革命，確認了下議院對徵稅和軍餉的掌控。抓住了錢袋子，每一屆政府每年都得向議院交代。至於誰坐在議院裡，那是另一回事：直到1832年，荒無人煙的老塞勒姆山丘還能選出兩名議員，而日漸壯大的曼徹斯特一個也沒有。",
+   "quote": {
+    "text": "陛下，在這個地方，除了下院指示我看的，我沒有眼睛可看；除了下院指示我說的，我沒有舌頭可說，因為我在此是下院的僕人。",
+    "source": "下議院議長威廉·倫索爾對查理一世所言（1642年1月4日）"
+   }
+  }
+ },
+ {
+  "id": "C103",
+  "en": {
+   "intro": "Toleration rarely began as a principle. More often it was a truce between exhausted enemies, or a ruler's calculation that loyal subjects were worth more than uniform ones. Henry IV's Edict of Nantes in 1598 gave French Protestants freedom of worship in named places, and fortified towns of their own, after decades of religious war. The Mughal emperor Akbar abolished the poll tax on non-Muslims in 1564 and invited Muslims, Hindus, Jains, Zoroastrians and Jesuits to argue before him. What one edict grants, another can withdraw. When Louis XIV revoked Nantes in 1685, some two hundred thousand Huguenots fled, and Prussia, England and the Dutch Republic gained their skills."
+  },
+  "zh-Hans": {
+   "intro": "宽容很少一开始就是原则，更多时候它是精疲力竭的敌人之间的停战，或是君主盘算出来的结果：忠诚的臣民比整齐划一的臣民更值钱。1598年，亨利四世颁布南特敕令，在几十年宗教战争之后，准许法国新教徒在指定地点礼拜，并保有自己的设防城镇。莫卧儿皇帝阿克巴在1564年废除了向非穆斯林征收的人头税，还请穆斯林、印度教徒、耆那教徒、琐罗亚斯德教徒和耶稣会士在他面前同堂论道。一道敕令给的，另一道敕令也能收回。1685年路易十四废除南特敕令，约二十万胡格诺派教徒出逃，普鲁士、英格兰和荷兰共和国因此得到了他们的手艺。"
+  },
+  "zh-Hant": {
+   "intro": "寬容很少一開始就是原則，更多時候它是精疲力竭的敵人之間的停戰，或是君主盤算出來的結果：忠誠的臣民比整齊劃一的臣民更值錢。1598年，亨利四世頒佈南特敕令，在幾十年宗教戰爭之後，准許法國新教徒在指定地點禮拜，並保有自己的設防城鎮。莫臥兒皇帝阿克巴在1564年廢除了向非穆斯林徵收的人頭稅，還請穆斯林、印度教徒、耆那教徒、瑣羅亞斯德教徒和耶穌會士在他面前同堂論道。一道敕令給的，另一道敕令也能收回。1685年路易十四廢除南特敕令，約二十萬胡格諾派教徒出逃，普魯士、英格蘭和荷蘭共和國因此得到了他們的手藝。"
+  }
+ },
+ {
+  "id": "C104",
+  "en": {
+   "intro": "A realm with one faith has one calendar, one moral vocabulary and one pulpit from which every parish hears the same proclamation. The settlement reached at Augsburg in 1555 ended the German wars of religion on that principle: each prince would choose between the Lutheran and Catholic confessions, and his subjects would follow or leave. In third-century Persia the Zoroastrian priest Kartir boasted in his inscriptions of the fire temples he had founded and of the Jews, Christians, Buddhists and Manichaeans he had persecuted. Established churches gave states cohesion, charity and parish registers. Dissenters paid the price: until 1828 English Protestants outside the Church of England were formally barred from most public offices."
+  },
+  "zh-Hans": {
+   "intro": "只有一种信仰的国度，有统一的历法、统一的道德语言，还有一座讲坛，让每个教区听到同一份文告。1555年的《奥格斯堡和约》就按这个原则结束了德意志的宗教战争：每位诸侯在路德宗和天主教之间择一，臣民要么跟从，要么离开。公元3世纪，波斯的琐罗亚斯德教祭司卡蒂尔在铭文里夸耀自己建了多少座火庙，又迫害了多少犹太教徒、基督徒、佛教徒和摩尼教徒。国教给国家带来凝聚力、慈善和教区簿册；代价由异见者承担：直到1828年，英国国教会之外的新教徒在法律上仍被排斥于大多数公职之外。"
+  },
+  "zh-Hant": {
+   "intro": "只有一種信仰的國度，有統一的歷法、統一的道德語言，還有一座講壇，讓每個教區聽到同一份文告。1555年的《奧格斯堡和約》就按這個原則結束了德意志的宗教戰爭：每位諸侯在路德宗和天主教之間擇一，臣民要麼跟從，要麼離開。公元3世紀，波斯的瑣羅亞斯德教祭司卡蒂爾在銘文裡誇耀自己建了多少座火廟，又迫害了多少猶太教徒、基督徒、佛教徒和摩尼教徒。國教給國家帶來凝聚力、慈善和教區簿冊；代價由異見者承擔：直到1828年，英國國教會之外的新教徒在法律上仍被排斥於大多數公職之外。"
+  }
+ },
+ {
+  "id": "C105",
+  "en": {
+   "intro": "Scattered investigators get further once they can meet, write to each other and publish where others will check. The Accademia dei Lincei in Rome, founded in 1603, counted Galileo among its members. In London, Henry Oldenburg began Philosophical Transactions in 1665 and ran a European correspondence so busy that in 1667 he was locked in the Tower on suspicion of spying. France's Académie des sciences paid members to study questions the crown set. Societies made reputations and kept a public record of priority and error. They could also close ranks: French academicians long dismissed reports of stones falling from the sky as peasant superstition, until an inquiry into a shower of them at L'Aigle in 1803 settled the matter."
+  },
+  "zh-Hans": {
+   "intro": "分散各地的探究者，一旦能够聚会、通信，并在别人会去核查的地方发表，就能走得更远。1603年在罗马成立的猞猁学会，伽利略也是会员。1665年，奥尔登堡在伦敦创办《哲学汇刊》，并维系着一张遍及欧洲的通信网，往来信件多到他在1667年被当作间谍嫌疑关进了伦敦塔。法兰西科学院给院士发薪俸，让他们研究王室提出的问题。学会成就声誉，也留下了谁先发现、谁出了错的公开记录。它们也会抱团排外：法国院士们长期把“石头从天上掉下来”的报告斥为乡下人的迷信，直到1803年莱格勒下了一场陨石雨，经过调查才算定论。"
+  },
+  "zh-Hant": {
+   "intro": "分散各地的探究者，一旦能夠聚會、通訊，並在別人會去核查的地方發表，就能走得更遠。1603年在羅馬成立的猞猁學會，伽利略也是會員。1665年，奧爾登堡在倫敦創辦《哲學彙刊》，並維繫著一張遍及歐洲的通訊網，往來信件多到他在1667年被當作間諜嫌疑關進了倫敦塔。法蘭西科學院給院士發薪俸，讓他們研究王室提出的問題。學會成就聲譽，也留下了誰先發現、誰出了錯的公開記錄。它們也會抱團排外：法國院士們長期把「石頭從天上掉下來」的報告斥為鄉下人的迷信，直到1803年萊格勒下了一場隕石雨，經過調查才算定論。"
+  }
+ },
+ {
+  "id": "C106",
+  "en": {
+   "intro": "Secrecy protects an invention only until someone copies it; a patent offers the inventor a different bargain: publish the method, and for a term of years nobody else may use it without leave. England's Statute of Monopolies of 1624 ended the crown's habit of selling monopolies on salt, starch and playing cards to courtiers, while keeping fourteen-year grants for the 'true and first inventor' of a new manufacture. The bargain rewards ingenuity and fills libraries with specifications. It can also strangle a field: James Watt's extended patent let him and Matthew Boulton block rivals' improved engines until 1800.",
+   "quote": {
+    "text": "The patent system ... added the fuel of interest to the fire of genius, in the discovery and production of new and useful things.",
+    "source": "Abraham Lincoln, Second Lecture on Discoveries and Inventions (1859)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "秘密只能保护一项发明，直到有人仿造出来为止；专利则给发明者开出另一笔交易：把方法公之于众，换来若干年内旁人未经准许不得使用。英格兰1624年的《垄断法》废除了王室把盐、淀粉和纸牌的专卖权卖给宠臣的做法，只保留授予新制造品“真正的首位发明人”的十四年特权。这笔交易奖励了巧思，也让图书馆里堆满了说明书。它也可能扼住一个行当的咽喉：瓦特延长了期限的专利，让他和博尔顿直到1800年都能阻止对手造出改良的机器。",
+   "quote": {
+    "text": "专利制度……为天才之火添上了利益的燃料，使人去发现和制造新的有用之物。",
+    "source": "亚伯拉罕·林肯《关于发现与发明的第二次演讲》（1859）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "秘密只能保護一項發明，直到有人仿造出來為止；專利則給發明者開出另一筆交易：把方法公之於眾，換來若干年內旁人未經准許不得使用。英格蘭1624年的《壟斷法》廢除了王室把鹽、澱粉和紙牌的專賣權賣給寵臣的做法，只保留授予新制造品「真正的首位發明人」的十四年特權。這筆交易獎勵了巧思，也讓圖書館裡堆滿了說明書。它也可能扼住一個行當的咽喉：瓦特延長了期限的專利，讓他和博爾頓直到1800年都能阻止對手造出改良的機器。",
+   "quote": {
+    "text": "專利制度……為天才之火添上了利益的燃料，使人去發現和製造新的有用之物。",
+    "source": "亞伯拉罕·林肯《關於發現與發明的第二次演講》（1859）"
+   }
+  }
+ },
+ {
+  "id": "C107",
+  "en": {
+   "intro": "If the world's wealth is a fixed stock of gold and silver, trade is a contest, and every purchase from abroad is a small defeat. Mercantilist states acted accordingly. England's Navigation Act of 1651 required goods entering its ports to arrive in English ships or those of the producing country, a blow aimed at Dutch carriers that helped start three wars. In France, Colbert subsidized royal workshops for tapestry, glass and lace and raised duties on foreign rivals. Such policies built fleets and industries behind a wall. They also invited retaliation, rewarded smugglers, made consumers pay more and treated every neighbour's prosperity as a threat.",
+   "quote": {
+    "text": "To sell more to strangers yearly than we consume of theirs in value.",
+    "source": "Thomas Mun, England's Treasure by Forraign Trade (written c. 1630, published 1664)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "如果世上的财富是一笔固定数量的金银，贸易便是一场争夺，每一次从外国买东西都是一次小小的失败。重商主义国家就照这个道理行事。英格兰1651年的《航海条例》规定，进入其港口的货物必须由英国船只或原产国船只运来，矛头直指荷兰的转运商，并促成了三场战争。在法国，柯尔贝尔扶持王家的挂毯、玻璃和花边工场，对外国对手的商品课以重税。这类政策在高墙之后养出了船队和产业，也招来报复，养肥了走私者，让消费者多掏钱，还把每一个邻国的繁荣都当成威胁。",
+   "quote": {
+    "text": "每年卖给外国人的，在价值上要多于我们消费他们的。",
+    "source": "托马斯·孟《英国得自对外贸易的财富》（约1630年写成，1664年出版）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "如果世上的財富是一筆固定數量的金銀，貿易便是一場爭奪，每一次從外國買東西都是一次小小的失敗。重商主義國家就照這個道理行事。英格蘭1651年的《航海條例》規定，進入其港口的貨物必須由英國船隻或原產國船隻運來，矛頭直指荷蘭的轉運商，並促成了三場戰爭。在法國，柯爾貝爾扶持王家的掛毯、玻璃和花邊工場，對外國對手的商品課以重稅。這類政策在高牆之後養出了船隊和產業，也招來報復，養肥了走私者，讓消費者多掏錢，還把每一個鄰國的繁榮都當成威脅。",
+   "quote": {
+    "text": "每年賣給外國人的，在價值上要多於我們消費他們的。",
+    "source": "托馬斯·孟《英國得自對外貿易的財富》（約1630年寫成，1664年出版）"
+   }
+  }
+ },
+ {
+  "id": "C108",
+  "en": {
+   "intro": "A courier service that carries the king's orders can, for a fee, carry everyone else's letters too, and then it becomes something new. From the 1490s the Taxis family ran relays of riders across the Habsburg lands and opened them to private letters. Before 1840 a British letter was usually paid for by its recipient, priced by distance and number of sheets; Rowland Hill's reform brought a uniform prepaid penny rate and the adhesive stamp, and the number of letters more than doubled within a year. Cheap post spread commerce, news and family ties. It also passed a nation's correspondence through the state's hands, and France's cabinet noir quietly opened letters for kings and ministers for two centuries."
+  },
+  "zh-Hans": {
+   "intro": "一个替国王传递命令的驿传机构，收点费用也能替所有人寄信，这时它就变成了新东西。从15世纪90年代起，塔克西斯家族在哈布斯堡领地上经营一站接一站的骑手接力，并向私人信件开放。1840年以前，英国的信件一般由收信人付费，按路程和页数计价；罗兰·希尔的改革推行全国统一的一便士预付邮资和背面涂胶的邮票，信件数量一年之内翻了一番还多。便宜的邮政促进了商业、新闻和亲情往来，也让一国的书信都要经过国家之手：法国的“黑室”替国王和大臣们悄悄拆阅信件，长达两个世纪。"
+  },
+  "zh-Hant": {
+   "intro": "一個替國王傳遞命令的驛傳機構，收點費用也能替所有人寄信，這時它就變成了新東西。從15世紀90年代起，塔克西斯家族在哈布斯堡領地上經營一站接一站的騎手接力，並向私人信件開放。1840年以前，英國的信件一般由收信人付費，按路程和頁數計價；羅蘭·希爾的改革推行全國統一的一便士預付郵資和背面塗膠的郵票，信件數量一年之內翻了一番還多。便宜的郵政促進了商業、新聞和親情往來，也讓一國的書信都要經過國家之手：法國的「黑室」替國王和大臣們悄悄拆閱信件，長達兩個世紀。"
+  }
+ },
+ {
+  "id": "C109",
+  "en": {
+   "intro": "When a storm forces a crew to throw cargo overboard, whose loss is it? Roman law, citing the sea law of Rhodes, answered that everyone whose goods were saved shares the cost of what was jettisoned, a rule still applied as general average. Insurance spread the risk further. By the 1680s merchants and underwriters met at Edward Lloyd's coffee house in London, where shipping news was read aloud and policies were signed by men writing their names under the risk. Shared rules let ships sail that no single owner dared send. They also priced everything, people included: in 1781 the crew of the Zong threw about 130 enslaved Africans overboard, and the owners sued their insurers for the loss."
+  },
+  "zh-Hans": {
+   "intro": "暴风雨逼得船员把货物抛进海里，损失算谁的？罗马法援引罗得岛的海法作答：凡是货物因此得救的人，都要分担被抛弃货物的损失——这条规则至今仍以“共同海损”之名沿用。保险把风险分得更散。到17世纪80年代，伦敦的商人和承保人聚集在爱德华·劳埃德的咖啡馆里，有人高声宣读航运消息，承保人在保单的风险条款下签上自己的名字。共同的规则让单个船主不敢派出的船得以起航；它们也给一切标价，连人也不例外：1781年，“宗”号的船员把约130名被奴役的非洲人抛入大海，船主事后竟向保险商索赔。"
+  },
+  "zh-Hant": {
+   "intro": "暴風雨逼得船員把貨物拋進海裡，損失算誰的？羅馬法援引羅得島的海法作答：凡是貨物因此得救的人，都要分擔被拋棄貨物的損失——這條規則至今仍以「共同海損」之名沿用。保險把風險分得更散。到17世紀80年代，倫敦的商人和承保人聚集在愛德華·勞埃德的咖啡館裡，有人高聲宣讀航運訊息，承保人在保單的風險條款下籤上自己的名字。共同的規則讓單個船主不敢派出的船得以起航；它們也給一切標價，連人也不例外：1781年，「宗」號的船員把約130名被奴役的非洲人拋入大海，船主事後竟向保險商索賠。"
+  }
+ },
+ {
+  "id": "C110",
+  "en": {
+   "intro": "Relief that asks nothing in return seemed to many rulers an invitation to idleness, so they attached conditions. England's poor law of 1601 made every parish support its own poor from a local rate, with overseers to collect it and decide who deserved help. Amsterdam's house of correction, opened in 1596, set vagrants to rasping brazilwood into dye powder. In 1834 England went further: able-bodied paupers could be relieved only inside a workhouse, made deliberately harsher than the worst work outside, with families split by sex and age. Relief of this kind kept people alive through bad years. It also taught them to dread asking, which was the intention.",
+   "quote": {
+    "text": "Please, sir, I want some more.",
+    "source": "Charles Dickens, Oliver Twist, ch. 2 (1838)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "在许多统治者看来，不求回报的救济等于鼓励懒惰，于是他们给救济附上条件。英格兰1601年的济贫法要求每个教区从本地税款中供养自己的穷人，由济贫监督征收，并判定谁值得帮助。阿姆斯特丹1596年开办的感化院，让流浪者把巴西苏木锉成染料粉。1834年，英格兰走得更远：身强力壮的贫民只有住进济贫院才能得到救济，而济贫院被有意弄得比外面最差的活计还要苦，一家人按性别和年龄分开居住。这样的救济让人们熬过了荒年，也教会了他们害怕开口求助——这正是设计者的本意。",
+   "quote": {
+    "text": "求求您，先生，我还想要一点。",
+    "source": "狄更斯《雾都孤儿》第二章（1838）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "在許多統治者看來，不求回報的救濟等於鼓勵懶惰，於是他們給救濟附上條件。英格蘭1601年的濟貧法要求每個教區從本地稅款中供養自己的窮人，由濟貧監督徵收，並判定誰值得幫助。阿姆斯特丹1596年開辦的感化院，讓流浪者把巴西蘇木銼成染料粉。1834年，英格蘭走得更遠：身強力壯的貧民只有住進濟貧院才能得到救濟，而濟貧院被有意弄得比外面最差的活計還要苦，一家人按性別和年齡分開居住。這樣的救濟讓人們熬過了荒年，也教會了他們害怕開口求助——這正是設計者的本意。",
+   "quote": {
+    "text": "求求您，先生，我還想要一點。",
+    "source": "狄更斯《霧都孤兒》第二章（1838）"
+   }
+  }
+ },
+ {
+  "id": "C111",
+  "en": {
+   "intro": "A crown that wanted new lands settled without paying for it could charter a company to do the work. The Virginia Company, chartered in 1606, sold shares in London and shipped settlers to Jamestown the next year, promising gold. They found swamp and fever instead, and in the 'starving time' of 1609 to 1610 most of them died. The Massachusetts Bay Company did something cleverer in 1630: its shareholders sailed with their charter, turning a trading licence into a self-governing colony. Chartered companies moved people across oceans at private risk. But the land they granted belonged to others first, and the Powhatan and many other peoples paid for each charter with their homes and lives."
+  },
+  "zh-Hans": {
+   "intro": "王室想让新土地有人定居，又不想自己掏钱，便可以特许一家公司去办。1606年获得特许的弗吉尼亚公司在伦敦发售股份，次年把移民送到詹姆斯敦，许诺那里有黄金。移民们找到的却是沼泽和热病，在1609至1610年的“饥饿时期”，大多数人死去。1630年，马萨诸塞湾公司走了一步更精明的棋：股东们带着特许状一起渡海，把一纸贸易许可变成了一个自治的殖民地。特许公司以私人的风险把人运过大洋；可它们分出去的土地原本属于别人，波瓦坦人和其他许多民族为每一张特许状付出了家园和性命。"
+  },
+  "zh-Hant": {
+   "intro": "王室想讓新土地有人定居，又不想自己掏錢，便可以特許一家公司去辦。1606年獲得特許的弗吉尼亞公司在倫敦發售股份，次年把移民送到詹姆斯敦，許諾那裡有黃金。移民們找到的卻是沼澤和熱病，在1609至1610年的「飢餓時期」，大多數人死去。1630年，馬薩諸塞灣公司走了一步更精明的棋：股東們帶著特許狀一起渡海，把一紙貿易許可變成了一個自治的殖民地。特許公司以私人的風險把人運過大洋；可它們分出去的土地原本屬於別人，波瓦坦人和其他許多民族為每一張特許狀付出了家園和性命。"
+  }
+ },
+ {
+  "id": "C112",
+  "en": {
+   "intro": "Free trade is an argument before it is a policy: that a country grows richer by buying what others make more cheaply and selling what it makes best. David Ricardo put it in 1817 with English cloth and Portuguese wine, showing that both sides gain even when one is better at everything. In 1846, after years of agitation led by Richard Cobden, Britain repealed its Corn Laws, the duties that had kept foreign grain dear for the benefit of landowners. Cheap bread followed, and so did dependence: ports open to imports are open to every slump and blockade too. Friedrich List had replied that Britain climbed to the top behind high walls, then kicked away the ladder."
+  },
+  "zh-Hans": {
+   "intro": "自由贸易先是一种主张，然后才是一项政策：一个国家买进别人造得更便宜的东西，卖出自己最擅长的东西，就会更富。1817年，李嘉图用英国的呢绒和葡萄牙的葡萄酒来说明，即便一方样样都更在行，双方交换仍然都能得益。1846年，经过科布登等人多年的鼓动，英国废除了谷物法——那套为了地主的利益、让外国粮食贵得进不来的关税。面包便宜了，依赖也随之而来：敞开的港口运进货物，遇上战争或萧条，也同样高效地运进困苦。早在1841年，李斯特就反驳说，英国是躲在高墙后面爬上顶端的，如今却要把身后的梯子踢开。"
+  },
+  "zh-Hant": {
+   "intro": "自由貿易先是一種主張，然後才是一項政策：一個國家買進別人造得更便宜的東西，賣出自己最擅長的東西，就會更富。1817年，李嘉圖用英國的呢絨和葡萄牙的葡萄酒來說明，即便一方樣樣都更在行，雙方交換仍然都能得益。1846年，經過科布登等人多年的鼓動，英國廢除了穀物法——那套為了地主的利益、讓外國糧食貴得進不來的關稅。麵包便宜了，依賴也隨之而來：敞開的港口運進貨物，遇上戰爭或蕭條，也同樣高效地運進困苦。早在1841年，李斯特就反駁說，英國是躲在高牆後面爬上頂端的，如今卻要把身後的梯子踢開。"
+  }
+ },
+ {
+  "id": "C113",
+  "en": {
+   "intro": "A constitution written in one document turns the ground rules of power into a text that ordinary people can hold up against their rulers. The delegates who met in Philadelphia in 1787 produced one that still governs, and the ten amendments ratified in 1791 listed what the new government could not do, from silencing the press to trying a man twice for one crime. Norway's constitution, adopted at Eidsvoll in 1814, is among the oldest still in force; Poland's of May 1791 lasted little more than a year before foreign armies ended it. Paper protects only where courts apply it and officials fear the courts, and a single emergency clause can swallow a charter whole.",
+   "quote": {
+    "text": "The right of the people to be secure in their persons, houses, papers, and effects, against unreasonable searches and seizures, shall not be violated.",
+    "source": "Constitution of the United States, Fourth Amendment (1791)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "把权力的基本规则写进一份文件，普通人就有了一段可以举起来对照统治者的文本。1787年聚集在费城的代表们拟出的那部宪法至今仍在施行，1791年批准的十条修正案则列明了新政府不许做的事，从压制出版到让一人因同一罪行两次受审。挪威1814年在埃兹沃尔通过的宪法，是至今仍然有效的最古老宪法之一；波兰1791年5月的宪法只撑了一年多，便被外国军队终结。纸上的条文只在法院肯适用、官员怕法院的地方才护得住人；一条紧急状态条款，就能把整部宪章吞下去。",
+   "quote": {
+    "text": "人民保护其人身、住所、文件和财物不受无理搜查和扣押的权利，不得侵犯。",
+    "source": "《美利坚合众国宪法》第四条修正案（1791）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "把權力的基本規則寫進一份檔案，普通人就有了一段可以舉起來對照統治者的文字。1787年聚集在費城的代表們擬出的那部憲法至今仍在施行，1791年批准的十條修正案則列明瞭新政府不許做的事，從壓制出版到讓一人因同一罪行兩次受審。挪威1814年在埃茲沃爾通過的憲法，是至今仍然有效的最古老憲法之一；波蘭1791年5月的憲法只撐了一年多，便被外國軍隊終結。紙上的條文只在法院肯適用、官員怕法院的地方才護得住人；一條緊急狀態條款，就能把整部憲章吞下去。",
+   "quote": {
+    "text": "人民保護其人身、住所、檔案和財物不受無理搜查和扣押的權利，不得侵犯。",
+    "source": "《美利堅合眾國憲法》第四條修正案（1791）"
+   }
+  }
+ },
+ {
+  "id": "C114",
+  "en": {
+   "intro": "In August 1793 the French Republic, at war with half of Europe, placed every citizen in permanent requisition, and within a year it had an army larger than any Europe had seen. Mass conscription makes the army a cross-section of the nation: lists of every young man, doctors to examine them, depots, and reserve classes recalled by age. Prussia copied it, and then most of Europe. When Japan introduced conscription in 1873, an official notice had called military service a \"blood tax\", and some villagers, taking the phrase literally, rioted. Numbers win battles and fill cemeteries. Exemptions bought by the rich, like the 300-dollar commutation of the American Civil War, turn a shared duty into a grievance.",
+   "quote": {
+    "text": "The young men shall go to battle; the married men shall forge arms and transport provisions.",
+    "source": "French decree on the levée en masse (23 August 1793), article 1"
+   }
+  },
+  "zh-Hans": {
+   "intro": "1793年8月，与半个欧洲交战的法兰西共和国宣布全体公民处于“永久征用”之下，不到一年，它就拥有了一支欧洲前所未见的庞大军队。普遍征兵让军队成为整个国家的一个横截面：每个适龄青年都名列兵籍，由医生体检，按年龄分批入营、编入预备役，战时再召回。普鲁士随即仿效，此后欧洲大多数国家也都照做。1873年日本推行征兵，此前的一份官方告谕把兵役称作“血税”，有些村民信以为真，竟起而暴动。人数赢得战役，也填满墓地。富人花钱买免役——美国内战时缴三百美元即可——会把共同的义务变成积怨。",
+   "quote": {
+    "text": "青年人上阵作战；已婚者锻造兵器、运送给养。",
+    "source": "法国革命政府关于全民征兵的法令（1793年8月23日）第一条"
+   }
+  },
+  "zh-Hant": {
+   "intro": "1793年8月，與半個歐洲交戰的法蘭西共和國宣佈全體公民處於「永久徵用」之下，不到一年，它就擁有了一支歐洲前所未見的龐大軍隊。普遍徵兵讓軍隊成為整個國家的一個橫截面：每個適齡青年都名列兵籍，由醫生體檢，按年齡分批入營、編入預備役，戰時再召回。普魯士隨即仿效，此後歐洲大多數國家也都照做。1873年日本推行徵兵，此前的一份官方告諭把兵役稱作「血稅」，有些村民信以為真，竟起而暴動。人數贏得戰役，也填滿墓地。富人花錢買免役——美國內戰時繳三百美元即可——會把共同的義務變成積怨。",
+   "quote": {
+    "text": "青年人上陣作戰；已婚者鍛造兵器、運送給養。",
+    "source": "法國革命政府關於全民徵兵的法令（1793年8月23日）第一條"
+   }
+  }
+ },
+ {
+  "id": "C115",
+  "en": {
+   "intro": "A volunteer army must pay well enough that people choose it over a trade. In return it gets soldiers who stay for years, learn complicated weapons thoroughly and can be trusted with them. Britain fought most of the nineteenth century this way, recruiting heavily among the Irish and Highland poor. The United States ended the draft in 1973 and built an all-volunteer force that cost far more per soldier and fielded far fewer. The bargain has two quieter costs. Long service breeds loyalty to commanders as well as to the state, as Rome learned when landless recruits looked to their generals for farms. And a society that sends only volunteers may stop asking what its wars cost."
+  },
+  "zh-Hans": {
+   "intro": "志愿兵组成的军队，必须付足薪饷，让人宁可从军也不去学一门手艺。换来的是肯服役多年的士兵：复杂的武器他们练得透，也让人放心交到他们手里。19世纪的英国大体就靠这样的军队打仗，兵源多来自爱尔兰和苏格兰高地的穷人。美国1973年停止征召，建起一支全志愿部队，每名士兵的花费高得多，人数却少得多。这笔交易还有两项不太显眼的代价。长期服役培养出对统帅的忠诚，而不只是对国家的忠诚——罗马人见识过，当无地的新兵指望将军给他们分田时会发生什么。而一个只派志愿者去打仗的社会，可能不再追问战争的代价。"
+  },
+  "zh-Hant": {
+   "intro": "志願兵組成的軍隊，必須付足薪餉，讓人寧可從軍也不去學一門手藝。換來的是肯服役多年計程車兵：複雜的武器他們練得透，也讓人放心交到他們手裡。19世紀的英國大體就靠這樣的軍隊打仗，兵源多來自愛爾蘭和蘇格蘭高地的窮人。美國1973年停止徵召，建起一支全志願部隊，每名士兵的花費高得多，人數卻少得多。這筆交易還有兩項不太顯眼的代價。長期服役培養出對統帥的忠誠，而不只是對國家的忠誠——羅馬人見識過，當無地的新兵指望將軍給他們分田時會發生什麼。而一個只派志願者去打仗的社會，可能不再追問戰爭的代價。"
+  }
+ },
+ {
+  "id": "C116",
+  "en": {
+   "intro": "The first inspectors appointed under Britain's Factory Act of 1833 numbered four, for every textile mill in the kingdom. The Act barred children under nine from the mills and limited older children's hours, and much depended on whether four men could be everywhere at once. Prussia's first restrictions, in 1839, followed partly from army complaints that factory districts were sending up recruits too stunted to serve. Inspection turned accidents, ages and hours into records someone had to sign. Its costs fell first on poor families who needed a child's wages, and then on the children themselves when work moved to sweatshops, farms and homes that no inspector visited. Ages were easily misstated."
+  },
+  "zh-Hans": {
+   "intro": "英国依据1833年《工厂法》任命的第一批监察员，一共只有四个人，负责全国所有的纺织厂。这部法律禁止九岁以下的孩子进厂，并限制大一些的孩子的工时，而成效如何，很大程度上取决于这四个人能不能分身。普鲁士1839年的第一批限制，部分起因是军方抱怨：工厂区送来的新兵发育不良，当不了兵。监察把事故、年龄和工时变成了必须有人签字的记录。它的代价首先落在需要孩子那份工钱的穷苦人家身上；当活计转移到监察员从不登门的血汗作坊、农田和家中时，代价又落回孩子自己身上。年龄很容易谎报，于是核定年龄本身也成了一门差事。"
+  },
+  "zh-Hant": {
+   "intro": "英國依據1833年《工廠法》任命的第一批監察員，一共只有四個人，負責全國所有的紡織廠。這部法律禁止九歲以下的孩子進廠，並限制大一些的孩子的工時，而成效如何，很大程度上取決於這四個人能不能分身。普魯士1839年的第一批限制，部分起因是軍方抱怨：工廠區送來的新兵發育不良，當不了兵。監察把事故、年齡和工時變成了必須有人簽字的記錄。它的代價首先落在需要孩子那份工錢的窮苦人家身上；當活計轉移到監察員從不登門的血汗作坊、農田和家中時，代價又落回孩子自己身上。年齡很容易謊報，於是核定年齡本身也成了一門差事。"
+  }
+ },
+ {
+  "id": "C117",
+  "en": {
+   "intro": "A week's illness could empty a labourer's savings, and a pauper's funeral was a shame families dreaded more than debt. Friendly societies answered with small weekly dues paid into a common box: sick pay when a member could not work, a doctor retained for the club, money for a decent burial. British orders such as the Oddfellows met in pub back rooms with regalia and passwords, and by 1900 counted millions of members. A man drawing sick pay might be visited to see whether he was really in bed. The weakness was arithmetic. Societies whose members aged together, on dues set when they were young, ran out of money."
+  },
+  "zh-Hans": {
+   "intro": "病上一个星期，就可能掏空一个劳工的积蓄；而一场靠救济操办的“贫民葬礼”，是许多人家比欠债还怕的羞耻。互助会的办法是每周交一点会费，存进公共的钱箱：会员病得做不了工时发病假钱，会里聘一位医生，人死了还有钱体面下葬。在英国，奥德费洛斯会这样的团体在酒馆后屋聚会，有徽饰和口令，到1900年前后，会员已数以百万计。会员彼此照看，也彼此监督：领病假钱的人，可能会有人上门看看他是不是真躺在床上。弱点出在算术上：会员一起变老，会费却是年轻时定下的，钱迟早不够用。"
+  },
+  "zh-Hant": {
+   "intro": "病上一個星期，就可能掏空一個勞工的積蓄；而一場靠救濟操辦的「貧民葬禮」，是許多人家比欠債還怕的羞恥。互助會的辦法是每週交一點會費，存進公共的錢箱：會員病得做不了工時發病假錢，會裡聘一位醫生，人死了還有錢體面下葬。在英國，奧德費洛斯會這樣的團體在酒館後屋聚會，有徽飾和口令，到1900年前後，會員已數以百萬計。會員彼此照看，也彼此監督：領病假錢的人，可能會有人上門看看他是不是真躺在床上。弱點出在算術上：會員一起變老，會費卻是年輕時定下的，錢遲早不夠用。"
+  }
+ },
+ {
+  "id": "C118",
+  "en": {
+   "intro": "Cholera taught cities that one household's cesspool was its neighbour's death. Edwin Chadwick's report of 1842 set disease against drains and crowding, and in 1847 Liverpool appointed Britain's first medical officer of health, William Henry Duncan. Boards of health gave such officers the power to inspect lodging houses, close foul wells and order streets cleaned and sewers laid, with money to match. In 1854 John Snow traced a London outbreak to the Broad Street pump and had its handle removed. The powers were resented almost as fiercely as the disease: that same year The Times grumbled that it would rather take its chance with cholera than be bullied into health. A board earns trust slowly, mostly by being right."
+  },
+  "zh-Hans": {
+   "intro": "霍乱让城市明白：一户人家的粪坑，就是邻居的死因。1842年，查德威克的报告把疾病与排水和拥挤对照起来；1847年，利物浦任命了英国第一位卫生医官威廉·亨利·邓肯。卫生委员会赋予这类官员检查廉价客栈、封闭污浊水井、责令清扫街道和铺设下水道的权力，还配给相应的经费。1854年，约翰·斯诺把伦敦的一场疫情追查到宽街的一台水泵，让人卸掉了它的把手。这些权力招来的怨恨几乎不亚于疾病本身：同一年，《泰晤士报》抱怨说，宁可碰碰霍乱的运气，也不愿被人逼着健康。一个委员会赢得信任很慢，主要靠一次又一次说对。"
+  },
+  "zh-Hant": {
+   "intro": "霍亂讓城市明白：一戶人家的糞坑，就是鄰居的死因。1842年，查德威克的報告把疾病與排水和擁擠對照起來；1847年，利物浦任命了英國第一位衛生醫官威廉·亨利·鄧肯。衛生委員會賦予這類官員檢查廉價客棧、封閉汙濁水井、責令清掃街道和鋪設下水道的權力，還配給相應的經費。1854年，約翰·斯諾把倫敦的一場疫情追查到寬街的一臺水泵，讓人卸掉了它的把手。這些權力招來的怨恨幾乎不亞於疾病本身：同一年，《泰晤士報》抱怨說，寧可碰碰霍亂的運氣，也不願被人逼著健康。一個委員會贏得信任很慢，主要靠一次又一次說對。"
+  }
+ },
+ {
+  "id": "C119",
+  "en": {
+   "intro": "A state that does not know how many people it has can neither tax them fairly nor feed them in a famine. From 1749 Sweden compiled national population tables from parish records, among the first countries to count itself continuously. The United States census of 1880 took most of a decade to tabulate; in 1890 Herman Hollerith's punched cards and electric tabulators produced the headline count within weeks. A statistical bureau turns a nation into published tables that anyone can check, argue over and plan with. The homeless, the nomadic and the frightened go uncounted, and every category, of faith, race or language, decides in advance what a country will be able to see about itself."
+  },
+  "zh-Hans": {
+   "intro": "一个不知道自己有多少人口的国家，既无法公平地征税，也无法在饥荒中供养百姓。1749年起，瑞典根据各教区的簿册编制全国人口表，是最早持续清点自身人口的国家之一。美国1880年的人口普查，汇总花了将近十年；到1890年，霍勒瑞斯的穿孔卡片和电动制表机几周之内就拿出了总人数。统计局把一个国家变成公开的表格，人人都能核对、争论，并据此筹划。它的盲点出在人身上：无家可归者、游牧者和心怀恐惧的人往往没被数到；而每一个分类，无论是信仰、种族还是语言，都事先决定了这个国家能看见自己的哪些面貌。"
+  },
+  "zh-Hant": {
+   "intro": "一個不知道自己有多少人口的國家，既無法公平地徵稅，也無法在饑荒中供養百姓。1749年起，瑞典根據各教區的簿冊編制全國人口表，是最早持續清點自身人口的國家之一。美國1880年的人口普查，彙總花了將近十年；到1890年，霍勒瑞斯的穿孔卡片和電動製表機幾周之內就拿出了總人數。統計局把一個國家變成公開的表格，人人都能核對、爭論，並據此籌劃。它的盲點出在人身上：無家可歸者、遊牧者和心懷恐懼的人往往沒被數到；而每一個分類，無論是信仰、種族還是語言，都事先決定了這個國家能看見自己的哪些面貌。"
+  }
+ },
+ {
+  "id": "C120",
+  "en": {
+   "intro": "When a bridge falls, the question is not only why but who should have known. Engineering institutions answer the second part. The Institution of Civil Engineers, founded in London in 1818 and chartered ten years later, with Thomas Telford as its first president, gathered papers, discussed failures in public and later examined candidates for membership. After the Quebec Bridge collapsed during construction in 1907, killing seventy-five workers, Canadian engineering graduates began receiving an iron ring at a solemn ceremony, worn on the working hand as a reminder. Codes and examinations spread hard lessons faster than any single career could. They also protect incumbents, favour credentials over talent, and can make the safest design simply the most familiar one.",
+   "quote": {
+    "text": "Civil Engineering is the art of directing the great sources of power in Nature for the use and convenience of man.",
+    "source": "Royal Charter of the Institution of Civil Engineers (1828), after Thomas Tredgold"
+   }
+  },
+  "zh-Hans": {
+   "intro": "一座桥塌了，要问的不只是为什么，还有谁本该预先知道。工程师学会回答的是后一个问题。土木工程师学会1818年在伦敦成立，十年后获得皇家特许，首任会长是托马斯·特尔福德；它汇集论文，公开讨论事故，后来还通过考试来接纳会员。1907年，魁北克大桥在施工中坍塌，七十五名工人遇难；此后加拿大的工科毕业生会在庄重的仪式上领到一枚铁戒指，戴在干活的那只手上，以示警醒。规范和考试把惨痛的教训传得比任何个人的职业生涯都快。它们也庇护既得利益者，偏爱资历甚于才干，还可能让最“安全”的设计不过是最熟悉的那一种。",
+   "quote": {
+    "text": "土木工程是驾驭自然界巨大的力量之源、以供人类使用和便利的技艺。",
+    "source": "英国土木工程师学会皇家特许状（1828），语本托马斯·特雷德戈尔德"
+   }
+  },
+  "zh-Hant": {
+   "intro": "一座橋塌了，要問的不只是為什麼，還有誰本該預先知道。工程師學會回答的是後一個問題。土木工程師學會1818年在倫敦成立，十年後獲得皇家特許，首任會長是托馬斯·特爾福德；它彙集論文，公開討論事故，後來還通過考試來接納會員。1907年，魁北克大橋在施工中坍塌，七十五名工人遇難；此後加拿大的工科畢業生會在莊重的儀式上領到一枚鐵戒指，戴在幹活的那隻手上，以示警醒。規範和考試把慘痛的教訓傳得比任何個人的職業生涯都快。它們也庇護既得利益者，偏愛資歷甚於才幹，還可能讓最「安全」的設計不過是最熟悉的那一種。",
+   "quote": {
+    "text": "土木工程是駕馭自然界巨大的力量之源、以供人類使用和便利的技藝。",
+    "source": "英國土木工程師學會皇家特許狀（1828），語本托馬斯·特雷德戈爾德"
+   }
+  }
+ },
+ {
+  "id": "C121",
+  "en": {
+   "intro": "A share is easier to buy if you know you can sell it tomorrow. Stock exchanges make that promise: a place, rules and published prices where owners meet buyers. In 1792 twenty-four New York brokers signed an agreement under a buttonwood tree on Wall Street fixing their commissions; London's dealers, too unruly for the Royal Exchange, traded for decades in the coffee houses of Change Alley. Liquidity lets savers fund ventures that will take decades to pay. It also lets fear and fashion move faster than any ledger, as in the Vienna crash of May 1873 or the October of 1929. A price is only an agreement between the last buyer and the last seller."
+  },
+  "zh-Hans": {
+   "intro": "一张股份，如果明天就能卖掉，今天就更容易买。证券交易所许下的正是这个承诺：一个场所、一套规则和公开的报价，让企业的所有者不必彼此寻找就能遇上买主。1792年，纽约的二十四名经纪人在华尔街一棵梧桐树下签约，议定彼此的佣金；伦敦的交易商因为太过喧闹，不受皇家交易所待见，几十年里都在交易巷的咖啡馆里做买卖。流动性让储户敢于资助要几十年才见回报的事业，也让恐慌和风潮跑得比任何账簿都快，1873年5月的维也纳股灾和1929年的10月都是明证。价格不过是最后一个买家和最后一个卖家之间的约定。"
+  },
+  "zh-Hant": {
+   "intro": "一張股份，如果明天就能賣掉，今天就更容易買。證券交易所許下的正是這個承諾：一個場所、一套規則和公開的報價，讓企業的所有者不必彼此尋找就能遇上買主。1792年，紐約的二十四名經紀人在華爾街一棵梧桐樹下籤約，議定彼此的佣金；倫敦的交易商因為太過喧鬧，不受皇家交易所待見，幾十年裡都在交易巷的咖啡館裡做買賣。流動性讓儲戶敢於資助要幾十年才見回報的事業，也讓恐慌和風潮跑得比任何賬簿都快，1873年5月的維也納股災和1929年的10月都是明證。價格不過是最後一個買家和最後一個賣家之間的約定。"
+  }
+ },
+ {
+  "id": "C122",
+  "en": {
+   "intro": "When the Abbé Grégoire surveyed France's languages in 1794, he found that many of the Republic's citizens could not speak French at all, and he wanted their patois gone. Schools became the instrument. A standard language taught to every child lets a conscript from Brittany understand an officer from Provence, and lets a clerk be sent anywhere. It also builds a shared story that people will die for. The price was paid by children: in Welsh schools a wooden board, the \"Welsh Not\", was hung around the neck of whoever was caught speaking Welsh. In 1913 a conference in Beijing voted on a national pronunciation, character by character. Unity is taught; so is shame."
+  },
+  "zh-Hans": {
+   "intro": "1794年，格雷古瓦神父调查了法国的语言状况，结论是共和国有相当一部分公民根本不会说法语；他希望各地的“土话”统统消失。学校成了推行的工具。教给每个孩子一种标准语，布列塔尼来的新兵就听得懂普罗旺斯来的排长，法令能在每个村子宣读，书吏也能被派到任何地方任职。它还造就一个人们愿意为之献身的共同故事。代价由孩子来付：在威尔士的学校里，谁被抓到说威尔士语，脖子上就会被挂上一块木牌，叫作“威尔士不许”。1913年，北京召开读音统一会，逐字表决全国的标准读音。统一是教出来的，羞耻也是。"
+  },
+  "zh-Hant": {
+   "intro": "1794年，格雷古瓦神父調查了法國的語言狀況，結論是共和國有相當一部分公民根本不會說法語；他希望各地的「土話」統統消失。學校成了推行的工具。教給每個孩子一種標準語，布列塔尼來的新兵就聽得懂普羅旺斯來的排長，法令能在每個村子宣讀，書吏也能被派到任何地方任職。它還造就一個人們願意為之獻身的共同故事。代價由孩子來付：在威爾士的學校裡，誰被抓到說威爾士語，脖子上就會被掛上一塊木牌，叫作「威爾士不許」。1913年，北京召開讀音統一會，逐字表決全國的標準讀音。統一是教出來的，羞恥也是。"
+  }
+ },
+ {
+  "id": "C123",
+  "en": {
+   "intro": "Ending bondage by law takes courts that will enforce it, and nearly always money, which has rarely gone to the people who were held. When Britain abolished slavery in its colonies in 1833, it borrowed twenty million pounds to compensate the owners and obliged the freed to keep working for them for years as \"apprentices\". Russia's serfs, emancipated in 1861, were made to pay for their land in instalments meant to run forty-nine years. Haiti, which freed itself by revolution, was forced in 1825 to pay France for its own independence. Brazil was the last country in the Americas to abolish slavery, in 1888. Freedom of movement unsettled whole economies for a generation, and was worth the disorder."
+  },
+  "zh-Hans": {
+   "intro": "以法律终结人身奴役，需要肯执行的法院，也几乎总需要钱，而这笔钱很少落到被奴役者手里。1833年英国在殖民地废除奴隶制时，借了两千万英镑来补偿奴隶主，还规定获得自由的人得以“学徒”身份继续为旧主人干上好几年。俄国农奴1861年获得解放，却要为分到的土地分期支付赎金，期限定为四十九年。靠革命自我解放的海地，1825年被迫为自己的独立向法国赔款。巴西直到1888年才废除奴隶制，是美洲最后一个。迁徙的自由让整片经济动荡了一代人之久；即便如此，这份混乱也值得。"
+  },
+  "zh-Hant": {
+   "intro": "以法律終結人身奴役，需要肯執行的法院，也幾乎總需要錢，而這筆錢很少落到被奴役者手裡。1833年英國在殖民地廢除奴隸制時，借了兩千萬英鎊來補償奴隸主，還規定獲得自由的人得以「學徒」身份繼續為舊主人幹上好幾年。俄國農奴1861年獲得解放，卻要為分到的土地分期支付贖金，期限定為四十九年。靠革命自我解放的海地，1825年被迫為自己的獨立向法國賠款。巴西直到1888年才廢除奴隸制，是美洲最後一個。遷徙的自由讓整片經濟動盪了一代人之久；即便如此，這份混亂也值得。"
+  }
+ },
+ {
+  "id": "C124",
+  "en": {
+   "intro": "Medieval universities preserved and taught what was known; research universities were built to add to it. The University of Berlin, founded in 1810 on plans associated with Wilhelm von Humboldt, made original inquiry part of a professor's duty and a student's training, in seminars and laboratories. At Giessen, Justus von Liebig trained a generation of chemists by putting them to work at benches. Americans crossed the Atlantic for German doctorates until Johns Hopkins, opened in 1876, brought the model home with a graduate school at its centre. The doctorate became a passport, and also a production line. Teaching can become the price of research time, and a field can narrow until only its specialists read it."
+  },
+  "zh-Hans": {
+   "intro": "中世纪的大学保存并传授已知的东西；研究型大学则是为了增添新知而建的。1810年创办的柏林大学，依照与威廉·冯·洪堡相联系的方案，把独创的探究定为教授的职责和学生训练的一部分，地点是研讨班和实验室，而不只是讲堂。在吉森，李比希让学生直接站到实验台前干活，带出了一代化学家。美国人一度要横渡大西洋去德国读博士，直到1876年开办的约翰斯·霍普金斯大学以研究生院为核心，把这套模式搬回了本土。博士学位成了一张通行证，也成了一条流水线。教学可能沦为换取研究时间的代价，一个领域也可能越钻越窄，最后只有本行的专家才读得下去。"
+  },
+  "zh-Hant": {
+   "intro": "中世紀的大學儲存並傳授已知的東西；研究型大學則是為了增添新知而建的。1810年創辦的柏林大學，依照與威廉·馮·洪堡相聯絡的方案，把獨創的探究定為教授的職責和學生訓練的一部分，地點是研討班和實驗室，而不只是講堂。在吉森，李比希讓學生直接站到實驗臺前幹活，帶出了一代化學家。美國人一度要橫渡大西洋去德國讀博士，直到1876年開辦的約翰斯·霍普金斯大學以研究生院為核心，把這套模式搬回了本土。博士學位成了一張通行證，也成了一條流水線。教學可能淪為換取研究時間的代價，一個領域也可能越鑽越窄，最後只有本行的專家才讀得下去。"
+  }
+ },
+ {
+  "id": "C125",
+  "en": {
+   "intro": "Elections are old; elections in which every adult counts are recent, and were won piece by piece. The colonies of Victoria and South Australia introduced the printed secret ballot in 1856, so that a landlord or a boss could no longer watch how a man voted. New Zealand gave women the vote in 1893 after petitions signed by tens of thousands; Switzerland held out nationally until 1971, and the canton of Appenzell Innerrhoden until its highest court intervened in 1990. Universal suffrage spreads the right to choose, and with it the work of persuasion: registers, parties, polling stations, counting. It does not guarantee wise results. It guarantees only that those who govern must periodically ask everyone they govern.",
+   "quote": {
+    "text": "The right of citizens of the United States to vote shall not be denied or abridged by the United States or by any State on account of sex.",
+    "source": "Constitution of the United States, Nineteenth Amendment (1920)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "选举古已有之；让每个成年人都算数的选举却是晚近的事，而且是一点一点争来的。1856年，澳大利亚的维多利亚和南澳大利亚两地率先采用印制选票的秘密投票，地主或雇主再也无法盯着一个人投给了谁。1893年，在数万人签名请愿之后，新西兰给予妇女投票权；瑞士在全国层面一直拖到1971年，阿彭策尔内罗德半州更是拖到1990年瑞士最高法院判决之后。普选权让选择的权利普及开来，也带来说服人的种种功夫：选民名册、政党、投票站、计票。它并不保证结果明智，只保证执政者必须定期去问一问他们所治理的每一个人。",
+   "quote": {
+    "text": "合众国公民的选举权，不得因性别而被合众国或任何一州拒绝或剥夺。",
+    "source": "《美利坚合众国宪法》第十九条修正案（1920）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "選舉古已有之；讓每個成年人都算數的選舉卻是晚近的事，而且是一點一點爭來的。1856年，澳大利亞的維多利亞和南澳大利亞兩地率先採用印製選票的秘密投票，地主或僱主再也無法盯著一個人投給了誰。1893年，在數萬人簽名請願之後，紐西蘭給予婦女投票權；瑞士在全國層面一直拖到1971年，阿彭策爾內羅德半州更是拖到1990年瑞士最高法院判決之後。普選權讓選擇的權利普及開來，也帶來說服人的種種功夫：選民名冊、政黨、投票站、計票。它並不保證結果明智，只保證執政者必須定期去問一問他們所治理的每一個人。",
+   "quote": {
+    "text": "合眾國公民的選舉權，不得因性別而被合眾國或任何一州拒絕或剝奪。",
+    "source": "《美利堅合眾國憲法》第十九條修正案（1920）"
+   }
+  }
+ },
+ {
+  "id": "C126",
+  "en": {
+   "intro": "Bismarck did not introduce sickness insurance in 1883 out of tenderness; he hoped workers with a stake in the state would have less use for socialists. Accident insurance followed in 1884, and old-age and disability pensions in 1889, payable at seventy, an age few labourers then reached. Contributions from workers, employers and the state turned the mutual society's weekly box into a national ledger that no one could leave. Britain's pensions of 1908 and the American Social Security Act of 1935 took different routes to the same idea. The arithmetic that sank small clubs did not vanish at national scale. It moved into the ratio of workers to pensioners, which every government must face as its people age."
+  },
+  "zh-Hans": {
+   "intro": "俾斯麦在1883年推出疾病保险，并非出于温情；他指望那些在国家里有了切身利益的工人，不再那么需要社会主义者。1884年又有了工伤事故保险，1889年有了养老和残疾保险，七十岁起领取，而那时能活到这个年纪的劳工并不多。工人、雇主和国家共同缴费，把互助会每周的那只钱箱，变成了一本强制参加的全国账簿。英国1908年的养老金和美国1935年的《社会保障法》路线各不相同，想法却是同一个。拖垮小互助会的那道算术题，到了全国规模也没有消失，只是变成了在职者与领养老金者的比例，每个人口日渐老去的政府都得面对它。"
+  },
+  "zh-Hant": {
+   "intro": "俾斯麥在1883年推出疾病保險，並非出於溫情；他指望那些在國家裡有了切身利益的工人，不再那麼需要社會主義者。1884年又有了工傷事故保險，1889年有了養老和殘疾保險，七十歲起領取，而那時能活到這個年紀的勞工並不多。工人、僱主和國家共同繳費，把互助會每週的那隻錢箱，變成了一本強制參加的全國賬簿。英國1908年的養老金和美國1935年的《社會保障法》路線各不相同，想法卻是同一個。拖垮小互助會的那道算術題，到了全國規模也沒有消失，只是變成了在職者與領養老金者的比例，每個人口日漸老去的政府都得面對它。"
+  }
+ },
+ {
+  "id": "C127",
+  "en": {
+   "intro": "A planning commission tries to do on paper what a market does by haggling: decide how much steel, cement, cloth and grain the country will make, and who gets it. Gosplan, set up in Moscow in 1921, drew up material balances for thousands of goods, and from 1928 five-year plans drove the Soviet economy from wooden ploughs to blast furnaces within a decade. India kept one from 1950 to 2014. It mobilizes a country for a few clear priorities and struggles with everything else, because targets get met rather than needs: Soviet jokes told of nail works meeting a plan set by weight with one gigantic nail. Planners know only what reports tell them, and reports learn to please."
+  },
+  "zh-Hans": {
+   "intro": "计划委员会想要在纸面上完成市场靠讨价还价完成的事：决定国家生产多少钢材、水泥、布匹和粮食，又分给谁。1921年在莫斯科成立的国家计划委员会为成千上万种物资编制物资平衡表；从1928年起，一个个五年计划推动苏联在十余年间从木犁走到了高炉。印度的计划委员会从1950年一直存续到2014年。这种办法能动员整个国家去完成少数几个明确的目标，对其余的一切却力不从心，因为被完成的是指标，而不是需要：苏联笑话里，一家钉子厂按重量完成计划，只造了一根巨大的钉子。计划者只知道报告告诉他们的东西，而报告学会了讨好。"
+  },
+  "zh-Hant": {
+   "intro": "計畫委員會想要在紙面上完成市場靠討價還價完成的事：決定國家生產多少鋼材、水泥、布匹和糧食，又分給誰。1921年在莫斯科成立的國家計畫委員會為成千上萬種物資編制物資平衡表；從1928年起，一個個五年計畫推動蘇聯在十餘年間從木犁走到了高爐。印度的計畫委員會從1950年一直存續到2014年。這種辦法能動員整個國家去完成少數幾個明確的目標，對其餘的一切卻力不從心，因為被完成的是指標，而不是需要：蘇聯笑話裡，一家釘子廠按重量完成計畫，只造了一根巨大的釘子。計畫者只知道報告告訴他們的東西，而報告學會了討好。"
+  }
+ },
+ {
+  "id": "C128",
+  "en": {
+   "intro": "Markets left alone tend to produce winners who would rather stop competing. Competition law forbids the obvious ways out: price-fixing agreements, mergers that leave a single seller, contracts that lock rivals out. The United States passed the Sherman Act in 1890, and in 1911 the Supreme Court broke Standard Oil into thirty-four companies. Germany went the other way for a time: in 1897 its highest court upheld a cartel agreement as lawful, and cartels flourished there until after the Second World War. Regulators also demand disclosure. The weak points are speed and capture: cases take years, and the regulated industry is often the regulator's best source of expertise and future employment.",
+   "quote": {
+    "text": "Every contract, combination in the form of trust or otherwise, or conspiracy, in restraint of trade or commerce among the several States, or with foreign nations, is hereby declared to be illegal.",
+    "source": "Sherman Antitrust Act (1890), section 1"
+   }
+  },
+  "zh-Hans": {
+   "intro": "放任不管的市场，往往会造就一些宁愿不再竞争的赢家。竞争法堵住最明显的退路：串通定价的协议、只剩一家卖主的合并、把对手关在门外的合同。美国1890年通过《谢尔曼法》；1911年，最高法院把标准石油拆成了三十四家企业。德国一度反其道而行：1897年，帝国最高法院认定一项卡特尔协议合法，此后卡特尔在德国大行其道，直到第二次世界大战之后。监管者还要求信息披露，好让买家和投资者看清自己买的是什么。它的软肋是速度和俘获：一宗案子要打好几年，而被监管的行业往往是监管者最好的专业知识来源，也是他们日后的饭碗。",
+   "quote": {
+    "text": "凡以托拉斯或其他形式订立契约、结成联合或进行共谋，以限制州际或对外贸易或商业者，均宣布为非法。",
+    "source": "美国《谢尔曼反托拉斯法》第一条（1890）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "放任不管的市場，往往會造就一些寧願不再競爭的贏家。競爭法堵住最明顯的退路：串通定價的協議、只剩一家賣主的合併、把對手關在門外的合同。美國1890年通過《謝爾曼法》；1911年，最高法院把標準石油拆成了三十四家企業。德國一度反其道而行：1897年，帝國最高法院認定一項卡特爾協議合法，此後卡特爾在德國大行其道，直到第二次世界大戰之後。監管者還要求資訊披露，好讓買家和投資者看清自己買的是什麼。它的軟肋是速度和俘獲：一宗案子要打好幾年，而被監管的行業往往是監管者最好的專業知識來源，也是他們日後的飯碗。",
+   "quote": {
+    "text": "凡以托拉斯或其他形式訂立契約、結成聯合或進行共謀，以限制州際或對外貿易或商業者，均宣佈為非法。",
+    "source": "美國《謝爾曼反托拉斯法》第一條（1890）"
+   }
+  }
+ },
+ {
+  "id": "C129",
+  "en": {
+   "intro": "In tripartite bargaining, wages are settled at one table where unions, employers' associations and the government all sit, each trading something the others want. The International Labour Organization, founded in 1919, was built the same way, with delegates from all three. In the Dutch town of Wassenaar in 1982, union and employer leaders agreed to wage restraint in exchange for shorter hours and more jobs, a bargain the government backed with tax cuts; it set the pattern for years of \"polder model\" consensus. The method buys industrial peace and predictability. It serves those already organized best, and those outside the room, the young, the temporary and the jobless, get what is left."
+  },
+  "zh-Hans": {
+   "intro": "在三方协商中，工资在同一张桌子上议定：工会、雇主联合会和政府都在座，各自拿出对方想要的东西来交换。1919年成立的国际劳工组织本身也是这样搭起来的，三方各派代表。1982年，在荷兰小城瓦森纳，工会和雇主的领袖约定压低工资涨幅，换取缩短工时、增加就业，政府随后以减税相配合；此后多年的“圩田模式”式共识，便以此为样板。这种办法换来劳资和平与可预期性，最照顾的却是已经组织起来的人；屋子外面的人——年轻人、临时工和失业者——只能分到剩下的。"
+  },
+  "zh-Hant": {
+   "intro": "在三方協商中，工資在同一張桌子上議定：工會、僱主聯合會和政府都在座，各自拿出對方想要的東西來交換。1919年成立的國際勞工組織本身也是這樣搭起來的，三方各派代表。1982年，在荷蘭小城瓦森納，工會和僱主的領袖約定壓低工資漲幅，換取縮短工時、增加就業，政府隨後以減稅相配合；此後多年的「圩田模式」式共識，便以此為樣板。這種辦法換來勞資和平與可預期性，最照顧的卻是已經組織起來的人；屋子外面的人——年輕人、臨時工和失業者——只能分到剩下的。"
+  }
+ },
+ {
+  "id": "C130",
+  "en": {
+   "intro": "Thomas Edison's laboratory at Menlo Park, opened in 1876, was called an invention factory, and he meant it: machinists, glassblowers and chemists working to a schedule on problems chosen for their market. German dye makers had already put salaried chemists on the payroll, and General Electric opened a research laboratory in 1900. Bell Telephone Laboratories, founded in 1925, became the grandest of them, where a monopoly's steady profits paid for physics that took decades to pay back. A company laboratory turns research into a budget line with deadlines. Its blind spot is its owner's interests: Xerox's Palo Alto centre devised much of the modern personal computer's interface in the 1970s, and others made the money from it."
+  },
+  "zh-Hans": {
+   "intro": "爱迪生1876年在门洛帕克开办的实验室，被人称作“发明工厂”，他自己也正是这个意思：机械师、吹玻璃匠和化学家按日程表干活，攻的是为市场挑选好的题目。德国的染料厂商早已把领薪水的化学家列入编制，通用电气则在1900年开设了研究实验室。1925年成立的贝尔电话实验室成了其中最宏大的一家：一家垄断企业稳定的利润，供养着要几十年才见回报的物理研究。企业实验室把研究变成一项有截止日期的预算。它的盲点是东家自身的利益：20世纪70年代，施乐公司的帕洛阿尔托研究中心设计出了现代个人电脑界面的大部分要素，赚到钱的却是别人。"
+  },
+  "zh-Hant": {
+   "intro": "愛迪生1876年在門洛帕克開辦的實驗室，被人稱作「發明工廠」，他自己也正是這個意思：機械師、吹玻璃匠和化學家按日程表幹活，攻的是為市場挑選好的題目。德國的染料廠商早已把領薪水的化學家列入編制，通用電氣則在1900年開設了研究實驗室。1925年成立的貝爾電話實驗室成了其中最宏大的一家：一家壟斷企業穩定的利潤，供養著要幾十年才見回報的物理研究。企業實驗室把研究變成一項有截止日期的預算。它的盲點是東家自身的利益：20世紀70年代，施樂公司的帕洛阿爾託研究中心設計出了現代個人電腦介面的大部分要素，賺到錢的卻是別人。"
+  }
+ },
+ {
+  "id": "C131",
+  "en": {
+   "intro": "When the BBC received its royal charter in 1927, John Reith, its first director-general, set out to give listeners something better than they knew they wanted: news, talks, concerts and drama, paid for by a licence fee on every receiver. A charter makes a broadcaster answer to the public through an independent board rather than to shareholders or ministers. West Germany, remembering Goebbels, divided its post-war broadcasters among the states so that no single ministry could command the airwaves again. Independence is the whole value and the constant test. In the national stoppage of 1926 the BBC aired the government's case and kept the leaders of the walkout off the air, and critics never quite let it forget."
+  },
+  "zh-Hans": {
+   "intro": "1927年BBC获得皇家特许状时，首任总裁约翰·里思立志给听众一些比他们自以为想要的更好的东西：新闻、讲座、音乐会和戏剧，经费来自每台收音机缴纳的执照费。宪章让广播机构通过一个独立的理事会向公众负责，而不是向股东或部长负责。西德记着戈培尔的教训，战后把广播机构分给各州，免得再有哪一个部能号令全部电波。独立就是全部的价值，也是无时无刻的考验：1926年那场全国性的劳资对峙中，BBC播出了政府的说法，却不让工人领袖上电台，批评者始终没让它忘掉这件事。"
+  },
+  "zh-Hant": {
+   "intro": "1927年BBC獲得皇家特許狀時，首任總裁約翰·裡思立志給聽眾一些比他們自以為想要的更好的東西：新聞、講座、音樂會和戲劇，經費來自每臺收音機繳納的執照費。憲章讓廣播機構通過一個獨立的理事會向公眾負責，而不是向股東或部長負責。西德記著戈培爾的教訓，戰後把廣播機構分給各州，免得再有哪一個部能號令全部電波。獨立就是全部的價值，也是無時無刻的考驗：1926年那場全國性的勞資對峙中，BBC播出了政府的說法，卻不讓工人領袖上電臺，批評者始終沒讓它忘掉這件事。"
+  }
+ },
+ {
+  "id": "C132",
+  "en": {
+   "intro": "In August 1922 the New York station WEAF sold ten minutes of airtime to a property firm advertising apartments in Queens, and broadcasting found its business model. Commercial stations give listeners programmes free and sell their attention to advertisers. The daytime serials that kept housewives listening were sponsored so heavily by soap manufacturers that they became \"soap operas\". Ratings services counted the audience, and the counts decided what stayed on air. The system pays for abundance and answers quickly to popular taste, including tastes no committee would have approved. Its pressures run the other way too: a programme that offends a sponsor or loses viewers vanishes, and the cheapest way to hold an audience is rarely the most truthful one."
+  },
+  "zh-Hans": {
+   "intro": "1922年8月，纽约一家电台把十分钟的播出时间卖给一家地产商，为皇后区的公寓做广告，广播从此找到了赚钱的门路。商业电台免费向听众提供节目，再把听众的注意力卖给广告商。白天播出的连续剧拉住了家庭主妇，赞助它们的多是肥皂厂商，以至于这类节目被叫作“肥皂剧”。收视调查机构清点观众人数，而人数决定哪些节目留得下来。这套体制为丰富的节目买单，对大众口味反应灵敏，包括那些任何委员会都不会批准的口味。压力也朝另一个方向使劲：得罪了赞助商或丢了观众的节目就会消失，而留住观众最便宜的办法，很少是最诚实的那一种。"
+  },
+  "zh-Hant": {
+   "intro": "1922年8月，紐約一家電臺把十分鐘的播出時間賣給一家地產商，為皇后區的公寓做廣告，廣播從此找到了賺錢的門路。商業電臺免費向聽眾提供節目，再把聽眾的注意力賣給廣告商。白天播出的連續劇拉住了家庭主婦，贊助它們的多是肥皂廠商，以至於這類節目被叫作「肥皂劇」。收視調查機構清點觀眾人數，而人數決定哪些節目留得下來。這套體制為豐富的節目買單，對大眾口味反應靈敏，包括那些任何委員會都不會批准的口味。壓力也朝另一個方向使勁：得罪了贊助商或丟了觀眾的節目就會消失，而留住觀眾最便宜的辦法，很少是最誠實的那一種。"
+  }
+ },
+ {
+  "id": "C133",
+  "en": {
+   "intro": "Margaret Sanger opened America's first birth-control clinic in Brooklyn in 1916; police closed it within days and she went to jail. Family planning services offer what she was arrested for: information, contraception and counselling. Where they arrived with schooling and falling child mortality, families shrank by choice and mothers stopped dying of pregnancies they had not wanted. The danger begins when the state counts births as well as serving them. India's emergency rule of 1975 to 1977 brought quotas for surgical birth control and millions of operations, many coerced, and China enforced birth limits from 1980 with fines and worse. A service that will not take no for an answer has become something else."
+  },
+  "zh-Hans": {
+   "intro": "1916年，玛格丽特·桑格在布鲁克林开办了美国第一家节育诊所，没过几天就被警察查封，她本人也进了监狱。计划生育服务提供的，正是她当年因之被捕的东西：知识、避孕手段和咨询。在这类服务与女子教育、儿童死亡率下降一同到来的地方，家庭自愿变小，母亲们也不再死于本不想要的怀孕。危险始于国家不只提供服务、还开始清点生育数字的时候：印度1975至1977年的紧急状态时期推行绝育指标，做了数以百万计的手术，其中许多是强迫的；中国从1980年起以罚款乃至更严厉的手段推行生育限制。一项不接受拒绝的服务，就已经变成了别的东西。"
+  },
+  "zh-Hant": {
+   "intro": "1916年，瑪格麗特·桑格在布魯克林開辦了美國第一家節育診所，沒過幾天就被警察查封，她本人也進了監獄。計畫生育服務提供的，正是她當年因之被捕的東西：知識、避孕手段和諮詢。在這類服務與女子教育、兒童死亡率下降一同到來的地方，家庭自願變小，母親們也不再死於本不想要的懷孕。危險始於國家不只提供服務、還開始清點生育數字的時候：印度1975至1977年的緊急狀態時期推行絕育指標，做了數以百萬計的手術，其中許多是強迫的；中國從1980年起以罰款乃至更嚴厲的手段推行生育限制。一項不接受拒絕的服務，就已經變成了別的東西。"
+  }
+ },
+ {
+  "id": "C134",
+  "en": {
+   "intro": "In 1872 the United States Congress set aside more than two million acres around the geysers of Yellowstone, to be kept from sale and settlement for everyone. The idea spread: Canada's Banff in 1885, South Africa's Kruger in 1926, and hundreds of protected landscapes since, with rangers, boundaries and rules about what may be cut, hunted or built. Protection by law lets forests stand and herds recover where private calculation would have cleared them. The people already living there were often the first to be removed: Shoshone, Bannock and Crow hunters were pushed out of a \"wilderness\" they had used for centuries. Parks also draw crowds, and the roads that let visitors in can love a valley to death.",
+   "quote": {
+    "text": "as a public park or pleasuring-ground for the benefit and enjoyment of the people",
+    "source": "Act of the US Congress establishing Yellowstone National Park (1 March 1872)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "1872年，美国国会把黄石间歇泉周围两百多万英亩的土地划出来，不得出售，不得定居，留给所有人。这个主意传开了：加拿大1885年设立班夫，南非1926年设立克鲁格，此后又有数以百计的保护地，有巡护员、边界，以及哪些东西不许砍、不许猎、不许建的规矩。法律的保护让森林得以挺立、兽群得以恢复，换了私人算账，这些地方早被清空了。最先被迁走的往往是本来就住在那里的人：肖肖尼人、班诺克人和克劳人的猎手，被逐出了一片他们利用了几百年的“荒野”。公园还招来人潮，让游客进得来的公路，可能把一条山谷爱到死。",
+   "quote": {
+    "text": "作为公共园林或游憩之地，供人民受益和享用。",
+    "source": "美国国会设立黄石国家公园的法案（1872年3月1日）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "1872年，美國國會把黃石間歇泉周圍兩百多萬英畝的土地劃出來，不得出售，不得定居，留給所有人。這個主意傳開了：加拿大1885年設立班夫，南非1926年設立克魯格，此後又有數以百計的保護地，有巡護員、邊界，以及哪些東西不許砍、不許獵、不許建的規矩。法律的保護讓森林得以挺立、獸群得以恢復，換了私人算賬，這些地方早被清空了。最先被遷走的往往是本來就住在那裡的人：肖肖尼人、班諾克人和克勞人的獵手，被逐出了一片他們利用了幾百年的「荒野」。公園還招來人潮，讓遊客進得來的公路，可能把一條山谷愛到死。",
+   "quote": {
+    "text": "作為公共園林或遊憩之地，供人民受益和享用。",
+    "source": "美國國會設立黃石國家公園的法案（1872年3月1日）"
+   }
+  }
+ },
+ {
+  "id": "C135",
+  "en": {
+   "intro": "A political police watches not crime but loyalty. Tsarist Russia's Third Section, founded in 1826, and its successor the Okhrana opened letters, kept files and ran agents inside revolutionary parties; one of them, Yevno Azef, rose to lead the very terror group he was paid to betray and helped plan the killing of the interior minister in 1904. East Germany's Stasi kept files on millions of its sixteen million people with the help of more than a hundred thousand unofficial informers. Opened to their subjects in 1992, the files told some readers that a husband or a best friend had been reporting on them. Such a service buys calm. It also stops honest bad news from ever reaching the top."
+  },
+  "zh-Hans": {
+   "intro": "政治警察监视的不是犯罪，而是忠诚。沙皇俄国1826年设立的“第三厅”及其后继者保安局拆阅信件、建立档案，还往革命党里安插密探；其中一个叫阿泽夫的人，竟当上了他受雇出卖的那个恐怖组织的头目，还参与策划了1904年刺杀内务大臣的行动。东德的国家安全部借助十多万名非正式线人，为一千六百万人口中的数百万人建立了档案。1992年这些档案向当事人开放，有人读到，向上面汇报自己的竟是丈夫或最好的朋友。这样的机构买来了平静，也让诚实的坏消息再也传不到顶层。"
+  },
+  "zh-Hant": {
+   "intro": "政治警察監視的不是犯罪，而是忠誠。沙皇俄國1826年設立的「第三廳」及其後繼者保安局拆閱信件、建立檔案，還往革命黨裡安插密探；其中一個叫阿澤夫的人，竟當上了他受僱出賣的那個恐怖組織的頭目，還參與策劃了1904年刺殺內務大臣的行動。東德的國家安全部藉助十多萬名非正式線人，為一千六百萬人口中的數百萬人建立了檔案。1992年這些檔案向當事人開放，有人讀到，向上面彙報自己的竟是丈夫或最好的朋友。這樣的機構買來了平靜，也讓誠實的壞訊息再也傳不到頂層。"
+  }
+ },
+ {
+  "id": "C136",
+  "en": {
+   "intro": "Laboratories need money that does not depend on next quarter's sales or one patron's whims. National science councils provide it by asking scientists to judge one another's proposals and handing out public grants accordingly. Britain set up its Medical Research Committee in 1913, funded with a penny from each insured worker's health contributions. In 1945 Vannevar Bush's report Science, the Endless Frontier argued that basic research was a public investment, and the National Science Foundation followed in 1950. The system rewards ideas that reviewers can already imagine succeeding, and researchers spend weeks writing proposals that mostly fail. Politicians, meanwhile, can always find a grant title that sounds absurd; Senator William Proxmire made a monthly award of it."
+  },
+  "zh-Hans": {
+   "intro": "实验室需要一笔不看下个季度销量、也不看某位赞助人脸色的钱。国家科学委员会提供这笔钱：请科学家评审彼此的申请，再据此发放公共经费。英国1913年设立医学研究委员会，经费来自每个参保工人所缴保险费中的一便士。1945年，万尼瓦尔·布什的报告《科学：无尽的前沿》主张基础研究是一项公共投资，美国国家科学基金会随之于1950年成立。这套制度奖励评审人已经能想象其成功的想法，研究者则要花好几个星期写申请书，而大多数申请都会落空。政客们也总能找到一个听起来荒唐的课题名称：参议员普罗克斯迈尔把这件事做成了每月颁发一次的“奖”。"
+  },
+  "zh-Hant": {
+   "intro": "實驗室需要一筆不看下個季度銷量、也不看某位贊助人臉色的錢。國家科學委員會提供這筆錢：請科學家評審彼此的申請，再據此發放公共經費。英國1913年設立醫學研究委員會，經費來自每個參保工人所繳保險費中的一便士。1945年，萬尼瓦爾·布什的報告《科學：無盡的前沿》主張基礎研究是一項公共投資，美國國家科學基金會隨之於1950年成立。這套制度獎勵評審人已經能想象其成功的想法，研究者則要花好幾個星期寫申請書，而大多數申請都會落空。政客們也總能找到一個聽起來荒唐的課題名稱：參議員普羅克斯邁爾把這件事做成了每月頒發一次的「獎」。"
+  }
+ },
+ {
+  "id": "C137",
+  "en": {
+   "intro": "Before you dam the river, write down what will happen to it. The United States made that a legal duty on New Year's Day 1970, when the National Environmental Policy Act required government agencies to publish a statement of environmental impact and alternatives for every major project. The trans-Alaska oil pipeline was held up in court over its statement until Congress intervened in 1973. Assessment brings costs into view while they can still be avoided: a route moved round a wetland, a stack built higher, a project dropped. It also produces documents thousands of pages long, written by consultants paid by the developer, and delays that the patient and well funded can use against everyone else."
+  },
+  "zh-Hans": {
+   "intro": "在给河流筑坝之前，先写下河会变成什么样。美国在1970年元旦把这件事定为法律义务：《国家环境政策法》要求政府机构为每一项重大工程编写并公布环境影响及替代方案报告，供公众阅读和提出异议。横贯阿拉斯加的输油管道就因为这份报告在法院里卡住，直到1973年国会出手干预。评价让代价在还能避开的时候显露出来：线路绕开一片湿地，烟囱加高，或者工程干脆取消。它也会产生长达数千页的文件，执笔的顾问拿的是开发商的钱；而它带来的拖延，有耐心、有财力的一方可以拿来对付所有其他人。"
+  },
+  "zh-Hant": {
+   "intro": "在給河流築壩之前，先寫下河會變成什麼樣。美國在1970年元旦把這件事定為法律義務：《國家環境政策法》要求政府機構為每一項重大工程編寫並公佈環境影響及替代方案報告，供公眾閱讀和提出異議。橫貫阿拉斯加的輸油管道就因為這份報告在法院裡卡住，直到1973年國會出手干預。評價讓代價在還能避開的時候顯露出來：線路繞開一片溼地，煙囪加高，或者工程乾脆取消。它也會產生長達數千頁的檔案，執筆的顧問拿的是開發商的錢；而它帶來的拖延，有耐心、有財力的一方可以拿來對付所有其他人。"
+  }
+ },
+ {
+  "id": "C138",
+  "en": {
+   "intro": "Sweden's Freedom of the Press Act of 1766 gave citizens the right to read official documents, a principle the clergyman Anders Chydenius had fought for in the Diet. Two centuries later, in 1966, President Lyndon Johnson signed the American Freedom of Information Act without the usual ceremony. India's Right to Information Act of 2005 let villagers demand ration-shop ledgers and the attendance rolls of public works, exposing theft that audits had missed; dozens of the activists who used it were later murdered. Disclosure is cheap to legislate and expensive to obey. Requests meet delays, fees and black ink, and officials learn that what is never written down can never be released."
+  },
+  "zh-Hans": {
+   "intro": "瑞典1766年的《出版自由法》赋予公民查阅官方文件的权利，这一原则是牧师安德斯·奇德尼乌斯在国会中力争来的。两个世纪后，1966年，美国总统林登·约翰逊签署了《信息自由法》，没有举行惯常的签字仪式。印度2005年的《信息权利法》让村民可以要求查看平价粮店的账本和公共工程的出工名册，揭出了审计都没查到的侵吞；后来，借助这部法律追查的活动人士中，有好几十人遭到杀害。信息公开立法便宜，遵守起来却昂贵：申请会遇到拖延、收费和大片涂黑，官员们也会学到，从未写下来的东西永远不必公开。"
+  },
+  "zh-Hant": {
+   "intro": "瑞典1766年的《出版自由法》賦予公民查閱官方檔案的權利，這一原則是牧師安德斯·奇德尼烏斯在國會中力爭來的。兩個世紀後，1966年，美國總統林登·約翰遜簽署了《資訊自由法》，沒有舉行慣常的簽字儀式。印度2005年的《資訊權利法》讓村民可以要求檢視平價糧店的賬本和公共工程的出工名冊，揭出了審計都沒查到的侵吞；後來，藉助這部法律追查的活動人士中，有好幾十人遭到殺害。資訊公開立法便宜，遵守起來卻昂貴：申請會遇到拖延、收費和大片塗黑，官員們也會學到，從未寫下來的東西永遠不必公開。"
+  }
+ },
+ {
+  "id": "C139",
+  "en": {
+   "intro": "Privacy became a legal argument when the camera and the popular press made it possible to sell a stranger's face and secrets; Samuel Warren and Louis Brandeis made the case in 1890. Data privacy rights extend it to records: consent before personal information is gathered, limits on reuse, a right to see and correct what is held, and an authority that can fine those who break the rules. In 1983 West Germany's constitutional court halted a national population count and declared a basic right of informational self-determination. Europe's General Data Protection Regulation followed in 2018. Consent clicked a hundred times a day risks becoming a ritual.",
+   "quote": {
+    "text": "Recent inventions and business methods call attention to the next step which must be taken for the protection of the person, and for securing to the individual what Judge Cooley calls the right \"to be let alone.\"",
+    "source": "Samuel D. Warren and Louis D. Brandeis, \"The Right to Privacy\", Harvard Law Review (1890)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "当照相机和大众报刊让人可以兜售陌生人的面孔和秘密时，隐私才成了一个法律论题；1890年，塞缪尔·沃伦和路易斯·布兰代斯为它立论。数据隐私权把这一主张延伸到记录：收集个人信息须经同意，再利用受到限制，本人有权查看和更正被保存的内容，还要有一个机构能对违规者处以罚款。1983年，西德宪法法院叫停了一次全国人口清点，宣告了“信息自决权”。欧盟《通用数据保护条例》于2018年生效；在此之前，一位西班牙律师已经赢得了让搜索引擎撤下一则陈年欠债公告的权利。同意按钮一天点上一百次，就可能沦为一种仪式。",
+   "quote": {
+    "text": "新近的发明和商业手段提醒人们，为保护人身必须迈出下一步，确保个人享有库利法官所说的“不受打扰”的权利。",
+    "source": "塞缪尔·沃伦、路易斯·布兰代斯《论隐私权》，载《哈佛法律评论》（1890）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "當照相機和大眾報刊讓人可以兜售陌生人的面孔和秘密時，隱私才成了一個法律論題；1890年，塞繆爾·沃倫和路易斯·布蘭代斯為它立論。資料隱私權把這一主張延伸到記錄：收集個人資訊須經同意，再利用受到限制，本人有權檢視和更正被儲存的內容，還要有一個機構能對違規者處以罰款。1983年，西德憲法法院叫停了一次全國人口清點，宣告了「資訊自決權」。歐盟《通用資料保護條例》於2018年生效；在此之前，一位西班牙律師已經贏得了讓搜尋引擎撤下一則陳年欠債公告的權利。同意按鈕一天點上一百次，就可能淪為一種儀式。",
+   "quote": {
+    "text": "新近的發明和商業手段提醒人們，為保護人身必須邁出下一步，確保個人享有庫利法官所說的「不受打擾」的權利。",
+    "source": "塞繆爾·沃倫、路易斯·布蘭代斯《論隱私權》，載《哈佛法律評論》（1890）"
+   }
+  }
+ },
+ {
+  "id": "C140",
+  "en": {
+   "intro": "Jeremy Bentham designed a prison in 1791 in which one unseen inspector could watch every cell, so that prisoners would behave as if always observed. Mass surveillance programmes build that tower out of cables and storage. From 1945 to 1975, under a programme called Shamrock, American telegraph companies handed over copies of almost every international telegram leaving the country. In 2013 Edward Snowden revealed that the records of ordinary phone calls were being collected in bulk. Such programmes can find networks that no warrant would have named. They also bury analysts in false alarms, silence journalists and dissenters who suspect they are heard, and leave behind archives that any later government may open for its own purposes.",
+   "quote": {
+    "text": "A new mode of obtaining power of mind over mind, in a quantity hitherto without example.",
+    "source": "Jeremy Bentham, Panopticon, preface (1791)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "1791年，边沁设计了一座监狱：一名看不见的监视者能看到每一间囚室，于是囚犯会表现得仿佛时刻被人盯着。大规模监控计划用线缆和存储设备把这座塔建了起来。1945年至1975年间，在一个代号“三叶草”的计划下，美国的电报公司把几乎每一封发往国外的电报都抄送了一份。2013年，斯诺登披露，普通电话的通话记录正被成批收集。这类计划能发现任何搜查令都点不出名字的网络，也会让分析员淹没在误报里，让怀疑自己被监听的记者和异见者噤声，还留下一座座档案库，日后任何一届政府都可以为自己的目的打开。",
+   "quote": {
+    "text": "一种获得心灵对心灵之权力的新方式，其规模前所未有。",
+    "source": "杰里米·边沁《圆形监狱》序言（1791）"
+   }
+  },
+  "zh-Hant": {
+   "intro": "1791年，邊沁設計了一座監獄：一名看不見的監視者能看到每一間囚室，於是囚犯會表現得彷彿時刻被人盯著。大規模監控計畫用線纜和儲存設備把這座塔建了起來。1945年至1975年間，在一個代號「三葉草」的計畫下，美國的電報公司把幾乎每一封發往國外的電報都抄送了一份。2013年，斯諾登披露，普通電話的通話記錄正被成批收集。這類計畫能發現任何搜查令都點不出名字的網路，也會讓分析員淹沒在誤報裡，讓懷疑自己被監聽的記者和異見者噤聲，還留下一座座檔案庫，日後任何一屆政府都可以為自己的目的開啟。",
+   "quote": {
+    "text": "一種獲得心靈對心靈之權力的新方式，其規模前所未有。",
+    "source": "傑里米·邊沁《圓形監獄》序言（1791）"
+   }
+  }
+ },
+ {
+  "id": "C141",
+  "en": {
+   "intro": "Twenty states met in Paris in 1865 to agree on how telegrams would cross their borders: common codes, charges and rules for handing messages from one network to the next. The body they founded still exists, renamed for telecommunications, one of the oldest international organizations. The International Organization for Standardization followed in Geneva in 1947. Its committees settle the dimensions of freight containers, the threads on screws and the sheet of paper called A4, which began as a German standard in 1922. Shared standards let parts from one country fit machines from another. They are written by whoever turns up to the meetings, usually the largest firms and countries, and once adopted they are very hard to change."
+  },
+  "zh-Hans": {
+   "intro": "1865年，二十个国家在巴黎开会，商定电报如何跨越国界：统一的电码、资费，以及把电文从一张网络交给另一张网络的规则。他们创立的国际电报联盟至今仍在，后来改名为国际电信联盟，是最古老的国际组织之一。国际标准化组织随后于1947年在日内瓦成立。它的委员会规定货运集装箱的尺寸、螺丝的螺纹，以及那张叫作A4的纸——它起初是德国1922年定下的标准。共同的标准让一国造的零件装得进另一国造的机器。标准由去开会的人来写，通常是最大的企业和国家；一旦通过，就很难再改。"
+  },
+  "zh-Hant": {
+   "intro": "1865年，二十個國家在巴黎開會，商定電報如何跨越國界：統一的電碼、資費，以及把電文從一張網路交給另一張網路的規則。他們創立的國際電報聯盟至今仍在，後來改名為國際電信聯盟，是最古老的國際組織之一。國際標準化組織隨後於1947年在日內瓦成立。它的委員會規定貨運集裝箱的尺寸、螺絲的螺紋，以及那張叫作A4的紙——它起初是德國1922年定下的標準。共同的標準讓一國造的零件裝得進另一國造的機器。標準由去開會的人來寫，通常是最大的企業和國家；一旦通過，就很難再改。"
+  }
+ },
+ {
+  "id": "C142",
+  "en": {
+   "intro": "Most new ventures fail, and venture capital is built on that fact. A fund backs many young firms with money and advice in exchange for a share of ownership, expecting most to die and one or two to pay for all the rest. In 1957 Georges Doriot's American Research and Development put about seventy thousand dollars into Digital Equipment; eleven years later the stake was worth hundreds of millions. That same year eight engineers walked out of Shockley's laboratory with backing arranged by Arthur Rock, and Silicon Valley learned its habits: stock for staff, tolerance of failure, quick exits. The model rewards growth above profit, follows fashion in herds, and helped inflate the bubble that burst in 2000."
+  },
+  "zh-Hans": {
+   "intro": "大多数新创事业都会失败，风险投资正是建立在这一事实之上。一只基金以资金和建议换取多家年轻企业的部分所有权，预料其中大多数会夭折，只要一两家成功，就能把其余的全部赔付回来。1957年，乔治·多里奥主持的投资机构“美国研究与发展”向数字设备这家新企业投入约七万美元，十一年后，这笔股份已价值数亿美元。同一年，八名工程师在阿瑟·罗克安排的资助下离开了肖克利的实验室，硅谷从此学会了自己的习惯：给员工配股，容忍失败，迅速套现退出。这种模式把增长看得比利润重，追逐风潮时一哄而上，也帮着吹大了2000年破灭的那个泡沫。"
+  },
+  "zh-Hant": {
+   "intro": "大多數新創事業都會失敗，風險投資正是建立在這一事實之上。一隻基金以資金和建議換取多家年輕企業的部分所有權，預料其中大多數會夭折，只要一兩家成功，就能把其餘的全部賠付回來。1957年，喬治·多里奧主持的投資機構「美國研究與發展」向數字設備這家新企業投入約七萬美元，十一年後，這筆股份已價值數億美元。同一年，八名工程師在阿瑟·羅克安排的資助下離開了肖克利的實驗室，矽谷從此學會了自己的習慣：給員工配股，容忍失敗，迅速套現退出。這種模式把增長看得比利潤重，追逐風潮時一哄而上，也幫著吹大了2000年破滅的那個泡沫。"
+  }
+ },
+ {
+  "id": "C143",
+  "en": {
+   "intro": "Code that anyone may read, copy and change sounds like a gift economy, and partly it is. In 1983 Richard Stallman announced a project to build a free operating system; in 1991 a Finnish student, Linus Torvalds, posted a kernel he called a hobby. Licences turned generosity into enforceable terms: use it freely, but pass on the same freedom. Open-source commons now carry much of the world's software, which is their strength and their danger. In 2014 the Heartbleed flaw showed how much of the internet's security rested on a cryptographic library kept by a handful of volunteers on a few thousand dollars a year in donations."
+  },
+  "zh-Hans": {
+   "intro": "人人都能阅读、复制和修改的代码，听上去像一种礼物经济，某种程度上也确实如此。1983年，理查德·斯托曼宣布要造一套自由的操作系统；1991年，芬兰大学生林纳斯·托瓦兹在网上贴出一个系统内核，说这只是业余爱好。许可证把慷慨变成了可以执行的条款：随便用，但要把同样的自由传下去。如今世界上的软件有很大一部分建在开源公共品之上，这是它的力量，也是它的隐患。2014年的“心脏出血”漏洞暴露出，互联网安全的一大块竟压在一个加密函数库上，而维护它的只有寥寥几名志愿者，每年收到的捐款不过几千美元。"
+  },
+  "zh-Hant": {
+   "intro": "人人都能閱讀、複製和修改的程式碼，聽上去像一種禮物經濟，某種程度上也確實如此。1983年，理查德·斯托曼宣佈要造一套自由的作業系統；1991年，芬蘭大學生林納斯·託瓦茲在網上貼出一個系統核心，說這只是業餘愛好。許可證把慷慨變成了可以執行的條款：隨便用，但要把同樣的自由傳下去。如今世界上的軟體有很大一部分建在開源公共品之上，這是它的力量，也是它的隱患。2014年的「心臟出血」漏洞暴露出，網際網路安全的一大塊竟壓在一個加密函式庫上，而維護它的只有寥寥幾名志願者，每年收到的捐款不過幾千美元。"
+  }
+ },
+ {
+  "id": "C144",
+  "en": {
+   "intro": "A space programme run by soldiers answers to the next war; one run by a civil agency answers to a budget committee, which is slower but more patient. When the United States founded NASA in 1958, it folded in an older advisory body for aeronautics, along with its wind tunnels and its habit of publishing results. Agencies plan missions over decades, hire contractors and keep the failure reports. That last duty is the hardest. After Challenger broke apart in 1986, the inquiry found that engineers had warned about the seals in cold weather the night before. An agency's real asset is not its rockets but its willingness to hear bad news in time.",
+   "quote": {
+    "text": "The Congress hereby declares that it is the policy of the United States that activities in space should be devoted to peaceful purposes for the benefit of all mankind.",
+    "source": "National Aeronautics and Space Act of 1958, section 102(a)"
+   }
+  },
+  "zh-Hans": {
+   "intro": "由军人掌管的航天事业听命于下一场战争；由民用机构掌管的，则听命于预算委员会——更慢，却更有耐心。1958年美国成立国家航空航天局时，把一个更早的航空咨询机构连同它的风洞、它公开发表成果的习惯一并收了进来。航天局以几十年为尺度规划任务，雇用承包商，保存失败报告。最后这项职责最难。1986年“挑战者号”解体后，调查发现，工程师们在发射前一晚就警告过低温下密封圈的问题。一个航天局真正的家底不是火箭，而是能否及时听进坏消息。",
+   "quote": {
+    "text": "国会特此宣布：美国的政策是，太空活动应当致力于和平目的，造福全人类。",
+    "source": "《1958年美国国家航空航天法》第102条（a）款"
+   }
+  },
+  "zh-Hant": {
+   "intro": "由軍人掌管的航太事業聽命於下一場戰爭；由民用機構掌管的，則聽命於預算委員會——更慢，卻更有耐心。1958年美國成立國家航空航太局時，把一個更早的航空諮詢機構連同它的風洞、它公開發表成果的習慣一併收了進來。航太局以幾十年為尺度規劃任務，僱用承包商，儲存失敗報告。最後這項職責最難。1986年「挑戰者號」解體後，調查發現，工程師們在發射前一晚就警告過低溫下密封圈的問題。一個航太局真正的家底不是火箭，而是能否及時聽進壞訊息。",
+   "quote": {
+    "text": "國會特此宣佈：美國的政策是，太空活動應當致力於和平目的，造福全人類。",
+    "source": "《1958年美國國家航空航太法》第102條（a）款"
+   }
+  }
+ },
+ {
+  "id": "C145",
+  "en": {
+   "intro": "For its first decades the United States asked one body, the Atomic Energy Commission, both to promote nuclear power and to police it; in 1974 Congress split the jobs, having noticed that a referee should not also own a team. Nuclear safety regulation licenses each design and site, stations inspectors at the plants and studies every incident for what it says about the next. After the partial meltdown at Three Mile Island in 1979, the presidential inquiry blamed less the hardware than training, procedures and a control room that buried its operators in alarms. Regulation slows construction and raises costs. Its failure mode is quieter: a regulator that grows too friendly with those it inspects."
+  },
+  "zh-Hans": {
+   "intro": "最初的几十年里，美国让同一个机构——原子能委员会——既推广核电，又监管核电；1974年，国会把这两份差事拆开，因为它终于意识到，裁判不该同时是某支球队的老板。核安全监管为每一种设计、每一处厂址颁发执照，向电厂派驻检查员，并研究每一起事件对下一起意味着什么。1979年三哩岛核电站部分堆芯熔毁后，总统调查委员会归咎的与其说是设备，不如说是培训、规程，以及一间让操作员淹没在警报声里的控制室。监管拖慢建设、抬高成本；它失灵的方式则更安静：监管者与被监管者走得太近。"
+  },
+  "zh-Hant": {
+   "intro": "最初的幾十年裡，美國讓同一個機構——原子能委員會——既推廣核電，又監管核電；1974年，國會把這兩份差事拆開，因為它終於意識到，裁判不該同時是某支球隊的老闆。核安全監管為每一種設計、每一處廠址頒發執照，向電廠派駐檢查員，並研究每一起事件對下一起意味著什麼。1979年三哩島核電廠部分堆芯熔燬後，總統調查委員會歸咎的與其說是設備，不如說是培訓、規程，以及一間讓操作員淹沒在警報聲裡的控制室。監管拖慢建設、抬高成本；它失靈的方式則更安靜：監管者與被監管者走得太近。"
+  }
+ },
+ {
+  "id": "C146",
+  "en": {
+   "intro": "Illness picks its victims without checking their savings. Universal health coverage pools the cost so that everyone is covered whether or not they can pay on the day, through taxes, mandatory insurance or a mix of both. Britain's National Health Service opened on 5 July 1948, free at the point of use; Japan reached universal insurance in 1961; a Thai scheme of 2002 let patients see a doctor for thirty baht a visit. Coverage on paper is not care in practice. Somebody must train the nurses, staff the rural clinics and decide which treatments the pool can afford, and waiting lists are where those decisions quietly show."
+  },
+  "zh-Hans": {
+   "intro": "疾病挑人，从不先查存款。全民医疗保障把费用汇在一起，让每个人都被覆盖，无论看病那天付不付得起，靠的是税收、强制保险，或二者兼用。英国国民保健服务于1948年7月5日开张，看病时分文不取；日本在1961年实现了全民保险；泰国2002年推行的计划，让病人每次看病只付三十泰铢。纸面上的覆盖不等于实际的照护：总得有人培养护士，给乡村诊所配齐人手，决定这个资金池负担得起哪些疗法——而排队名单，正是这些决定悄悄显形的地方。"
+  },
+  "zh-Hant": {
+   "intro": "疾病挑人，從不先查存款。全民醫療保障把費用匯在一起，讓每個人都被覆蓋，無論看病那天付不付得起，靠的是稅收、強制保險，或二者兼用。英國國民保健服務於1948年7月5日開張，看病時分文不取；日本在1961年實現了全民保險；泰國2002年推行的計畫，讓病人每次看病只付三十泰銖。紙面上的覆蓋不等於實際的照護：總得有人培養護士，給鄉村診所配齊人手，決定這個資金池負擔得起哪些療法——而排隊名單，正是這些決定悄悄顯形的地方。"
+  }
+ },
+ {
+  "id": "C147",
+  "en": {
+   "intro": "Air has no owner and no border, so a ton of carbon dioxide emitted anywhere is everyone's problem and nobody's bill. Climate treaties try to change that with arithmetic: national inventories compiled by agreed methods, pledges that can be checked against them, and reviews that name the laggards. The precedent everyone cites is the Montreal Protocol of 1987, which phased out ozone-destroying chemicals and worked, partly because substitutes existed. The Kyoto Protocol of 1997 bound only rich countries; the Paris Agreement of 2015 bound nearly all, but only to promises they set themselves. Accounting cannot cut a single ton. It can only make the gap between pledge and practice impossible to deny.",
+   "quote": {
+    "text": "stabilization of greenhouse gas concentrations in the atmosphere at a level that would prevent dangerous anthropogenic interference with the climate system",
+    "source": "United Nations Framework Convention on Climate Change (1992), Article 2"
+   }
+  },
+  "zh-Hans": {
+   "intro": "空气没有主人，也没有国界，所以在任何地方排出的一吨二氧化碳，都是所有人的问题，却不是谁的账单。气候条约试图用算术改变这一点：按商定的方法编制国家清单，作出可以对照核查的承诺，再通过审评点出落后者的名字。人们常举的先例是1987年的《蒙特利尔议定书》，它逐步淘汰了破坏臭氧层的化学品，而且真的奏效，部分原因是替代品已经存在。1997年的《京都议定书》只约束富裕国家；2015年的《巴黎协定》几乎约束了所有国家，约束的却只是各国自己定下的承诺。核算减不掉一吨排放，它只能让承诺与行动之间的差距无从抵赖。",
+   "quote": {
+    "text": "将大气中温室气体的浓度稳定在防止气候系统受到危险的人为干扰的水平上",
+    "source": "《联合国气候变化框架公约》（1992）第二条"
+   }
+  },
+  "zh-Hant": {
+   "intro": "空氣沒有主人，也沒有國界，所以在任何地方排出的一噸二氧化碳，都是所有人的問題，卻不是誰的賬單。氣候條約試圖用算術改變這一點：按商定的方法編制國家清單，作出可以對照核查的承諾，再通過審評點出落後者的名字。人們常舉的先例是1987年的《蒙特利爾議定書》，它逐步淘汰了破壞臭氧層的化學品，而且真的奏效，部分原因是替代品已經存在。1997年的《京都議定書》只約束富裕國家；2015年的《巴黎協定》幾乎約束了所有國家，約束的卻只是各國自己定下的承諾。核算減不掉一噸排放，它只能讓承諾與行動之間的差距無從抵賴。",
+   "quote": {
+    "text": "將大氣中溫室氣體的濃度穩定在防止氣候系統受到危險的人為干擾的水平上",
+    "source": "《聯合國氣候變化框架公約》（1992）第二條"
+   }
+  }
+ },
+ {
+  "id": "C148",
+  "en": {
+   "intro": "Treaties between rivals fail less from bad faith than from the fear of it. Verification gives each side a way to check instead of trusting: data exchanges, inspectors on the ground, seismometers listening for tests, aircraft allowed to photograph each other's territory. Under the 1987 treaty on intermediate-range missiles, American and Soviet inspectors kept watch at the gates of each other's missile plants and witnessed missiles being destroyed. Ronald Reagan liked to quote a Russian proverb: trust, but verify. Verification is intrusive and costly, and it never sees everything. Its real product is time, because a cheat detected early is a crisis instead of a war."
+  },
+  "zh-Hans": {
+   "intro": "对手之间的条约，坏就坏在怕对方使诈，倒不一定是真有人使诈。核查机制给双方一个以查验代替信任的办法：交换资料，派检查员实地查看，用地震仪监听核试验，允许飞机飞越对方领土拍照。根据1987年的中导条约，美苏两国的检查员在对方导弹厂门外常驻值守，并亲眼看着导弹被销毁。里根喜欢引用一句俄罗斯谚语：信任，但要核实。核查既侵扰又昂贵，而且永远看不全。它真正的产物是时间：及早发现的违约，是一场危机，而不是一场战争。"
+  },
+  "zh-Hant": {
+   "intro": "對手之間的條約，壞就壞在怕對方使詐，倒不一定是真有人使詐。核查機制給雙方一個以查驗代替信任的辦法：交換資料，派檢查員實地檢視，用地震儀監聽核試驗，允許飛機飛越對方領土拍照。根據1987年的中導條約，美蘇兩國的檢查員在對方導彈廠門外常駐值守，並親眼看著導彈被銷燬。里根喜歡引用一句俄羅斯諺語：信任，但要核實。核查既侵擾又昂貴，而且永遠看不全。它真正的產物是時間：及早發現的違約，是一場危機，而不是一場戰爭。"
+  }
+ },
+ {
+  "id": "C149",
+  "en": {
+   "intro": "The first rule written for space was a refusal. The Outer Space Treaty of 1967, drafted at the height of the Cold War, forbade any state to claim the Moon or any other body, banned nuclear weapons from orbit, and made each state answerable for its own objects, including those launched by its companies. A later convention, in force from 1976, created a shared register of everything placed in orbit. A commons treaty extends that logic: stations and outposts may operate, but no flag turns ground into territory. It keeps the peace by keeping the prizes small. Critics answer that what nobody may own, nobody will invest in.",
+   "quote": {
+    "text": "Outer space, including the moon and other celestial bodies, is not subject to national appropriation by claim of sovereignty, by means of use or occupation, or by any other means.",
+    "source": "Outer Space Treaty (1967), Article II"
+   }
+  },
+  "zh-Hans": {
+   "intro": "为太空写下的第一条规矩，是一个“不”字。1967年在冷战最激烈时拟定的《外层空间条约》，禁止任何国家把月球或其他天体据为己有，禁止把核武器送入轨道，并规定每个国家要为自己的航天物体负责，连本国企业发射的也算在内。1976年生效的另一项公约，建立了一份所有入轨物体的共同名册。太空公域条约把这套逻辑推得更远：空间站和前哨可以运营，但插上一面旗，并不能把地面变成领土。它靠把奖品变小来维持和平。批评者回答：谁都不许拥有的东西，也就没人肯投资。",
+   "quote": {
+    "text": "外层空间，包括月球和其他天体在内，不得由国家通过提出主权主张、通过使用或占领，或以任何其他方法据为己有。",
+    "source": "《外层空间条约》（1967）第二条"
+   }
+  },
+  "zh-Hant": {
+   "intro": "為太空寫下的第一條規矩，是一個「不」字。1967年在冷戰最激烈時擬定的《外層空間條約》，禁止任何國家把月球或其他天體據為己有，禁止把核武器送入軌道，並規定每個國家要為自己的航太物體負責，連本國企業發射的也算在內。1976年生效的另一項公約，建立了一份所有入軌物體的共同名冊。太空公域條約把這套邏輯推得更遠：太空站和前哨可以運營，但插上一面旗，並不能把地面變成領土。它靠把獎品變小來維持和平。批評者回答：誰都不許擁有的東西，也就沒人肯投資。",
+   "quote": {
+    "text": "外層空間，包括月球和其他天體在內，不得由國家通過提出主權主張、通過使用或佔領，或以任何其他方法據為己有。",
+    "source": "《外層空間條約》（1967）第二條"
+   }
+  }
+ },
+ {
+  "id": "C150",
+  "en": {
+   "intro": "The American Homestead Act of 1862 offered a hundred and sixty acres to any settler who lived on the land for five years and improved it, and some 1.6 million claims were eventually granted. Its lesson for frontiers is double. Ownership earned by living somewhere pulls people out to hard places faster than any subsidy. It also invites fraud, speculators with hired \"settlers\", and the quiet dispossession of anyone already there whom the registrar did not count. Off-world homestead claims would register a holding to whoever occupies and works it, and back the register with enforcement. On an empty world the last problem may vanish; the others travel well."
+  },
+  "zh-Hans": {
+   "intro": "美国1862年的《宅地法》规定，任何定居者只要在土地上住满五年并加以改良，就能得到160英亩，前后共批准了约160万份宅地。它留给边疆的教训有两面。靠在一个地方住下来挣得的所有权，比任何补贴都更快地把人拉向艰苦之地；它也招来舞弊，招来雇人冒充“定居者”的投机商，以及悄无声息地剥夺那些登记官没算进去的原住者。地外宅地权把一块地登记给占用并经营它的人，再以执法为登记背书。在一个空无一人的世界上，最后那个问题也许会消失；其余的问题，却很容易一路带过去。"
+  },
+  "zh-Hant": {
+   "intro": "美國1862年的《宅地法》規定，任何定居者只要在土地上住滿五年並加以改良，就能得到160英畝，前後共批准了約160萬份宅地。它留給邊疆的教訓有兩面。靠在一個地方住下來掙得的所有權，比任何補貼都更快地把人拉向艱苦之地；它也招來舞弊，招來僱人冒充「定居者」的投機商，以及悄無聲息地剝奪那些登記官沒算進去的原住者。地外宅地權把一塊地登記給佔用並經營它的人，再以執法為登記背書。在一個空無一人的世界上，最後那個問題也許會消失；其餘的問題，卻很容易一路帶過去。"
+  }
+ },
+ {
+  "id": "C151",
+  "en": {
+   "intro": "Every rocket is a bomb that has promised to behave. A launch range exists for the moments it breaks the promise: it clears the sea and air below the flight path, tracks the vehicle every second, and gives a safety officer the authority to destroy it if it strays toward people. Its rules were paid for in lives. In October 1960, at the Soviet test site in Kazakhstan, a missile being readied in a hurry ignited on the pad, killing more than seventy people, among them the marshal who had sat near it to urge the crews on; the disaster stayed secret for decades. Range discipline is tedious, expensive and widely resented, right up to the day it works."
+  },
+  "zh-Hans": {
+   "intro": "每一枚火箭都是一颗答应过要守规矩的炸弹。发射靶场就是为它违约的那一刻而设的：清空航迹下方的海面和空域，每一秒都跟踪飞行器，并授权安全官在它偏向人群时将其炸毁。这些规矩是用人命换来的。1960年10月，在苏联设在哈萨克斯坦的试验场，一枚仓促准备的导弹在发射台上点火，七十多人丧生，其中包括坐在近旁督促人员加紧作业的元帅；这场灾难被隐瞒了几十年。靶场纪律枯燥、昂贵、招人怨恨，直到它起作用的那一天。"
+  },
+  "zh-Hant": {
+   "intro": "每一枚火箭都是一顆答應過要守規矩的炸彈。發射靶場就是為它違約的那一刻而設的：清空航跡下方的海面和空域，每一秒都跟蹤飛行器，並授權安全官在它偏向人群時將其炸燬。這些規矩是用人命換來的。1960年10月，在蘇聯設在哈薩克的試驗場，一枚倉促準備的導彈在發射臺上點火，七十多人喪生，其中包括坐在近旁督促人員加緊作業的元帥；這場災難被隱瞞了幾十年。靶場紀律枯燥、昂貴、招人怨恨，直到它起作用的那一天。"
+  }
+ },
+ {
+  "id": "C152",
+  "en": {
+   "intro": "Sailors once signed articles before a voyage: the wages, the food, the length of service and the captain's powers, written down because the open sea was no place to renegotiate. Station crew articles do the same for orbit. They set tours and rotation, rest hours, the medical board that can ground or recall a crew member, and who commands when the station's owners disagree. The partners in the International Space Station wrote a crew code of conduct into their agreements for exactly that reason. Schedules are the old flashpoint. In 1973 the third Skylab crew, overworked by planners on the ground, pushed back and won a lighter timetable. Articles cost flexibility; they buy a crew that stays."
+  },
+  "zh-Hans": {
+   "intro": "过去的水手出海前要签“船员条款”：工钱、伙食、服役期限和船长的权力，统统写下来，因为茫茫大海上没法重新谈判。空间站乘员公约在轨道上做同样的事：规定任期与轮换、休息时间、有权让乘员停飞或召回的医学委员会，以及空间站的各个所有方意见不合时由谁指挥。国际空间站的伙伴国正是为此把一份乘员行为准则写进了协议。排班是老冲突点：1973年，“天空实验室”的第三批乘员被地面规划人员排得喘不过气，他们出声抗议，换来了宽松些的日程。公约让人少了些灵活，却留得住乘员。"
+  },
+  "zh-Hant": {
+   "intro": "過去的水手出海前要籤「船員條款」：工錢、伙食、服役期限和船長的權力，統統寫下來，因為茫茫大海上沒法重新談判。太空站乘員公約在軌道上做同樣的事：規定任期與輪換、休息時間、有權讓乘員停飛或召回的醫學委員會，以及太空站的各個所有方意見不合時由誰指揮。國際太空站的夥伴國正是為此把一份乘員行為準則寫進了協議。排班是老衝突點：1973年，「天空實驗室」的第三批乘員被地面規劃人員排得喘不過氣，他們出聲抗議，換來了寬鬆些的日程。公約讓人少了些靈活，卻留得住乘員。"
+  }
+ },
+ {
+  "id": "C153",
+  "en": {
+   "intro": "Orbit looks empty and is not. By the 2000s radar networks tracked tens of thousands of objects, most of them dead satellites, spent stages and fragments, all crossing paths at several kilometres a second. In 1978 the NASA scientist Donald Kessler warned that collisions could feed on themselves, each one making the shrapnel for the next. On 10 February 2009 a working commercial satellite and a defunct Russian military one met above Siberia and became two clouds of debris. Traffic management means shared tracking, warnings of close approaches, manoeuvre etiquette and rules for bringing hardware down at the end of its life. It works only if the worst offender joins."
+  },
+  "zh-Hans": {
+   "intro": "轨道看上去空空荡荡，其实不然。到21世纪头十年，雷达网络跟踪的物体已数以万计，大多是报废的卫星、用完的火箭末级和碎片，彼此以每秒数公里的速度交错而过。1978年，美国航天局的科学家唐纳德·凯斯勒警告说，碰撞可能自我繁殖，每一次都为下一次制造弹片。2009年2月10日，铱星系统的一颗仍在工作的卫星与一颗报废的俄罗斯军用卫星在西伯利亚上空相撞，化作两团碎片云。轨道交通管理意味着共享跟踪信息、发布近距离接近预警、遵守避让礼节，并规定硬件寿终时如何离轨坠落。只有最大的肇事者也加入，它才管用。"
+  },
+  "zh-Hant": {
+   "intro": "軌道看上去空空蕩蕩，其實不然。到21世紀頭十年，雷達網路跟蹤的物體已數以萬計，大多是報廢的衛星、用完的火箭末級和碎片，彼此以每秒數公里的速度交錯而過。1978年，美國航太局的科學家唐納德·凱斯勒警告說，碰撞可能自我繁殖，每一次都為下一次製造彈片。2009年2月10日，銥星系統的一顆仍在工作的衛星與一顆報廢的俄羅斯軍用衛星在西伯利亞上空相撞，化作兩團碎片雲。軌道交通管理意味著共享跟蹤資訊、釋出近距離接近預警、遵守避讓禮節，並規定硬體壽終時如何離軌墜落。只有最大的肇事者也加入，它才管用。"
+  }
+ },
+ {
+  "id": "C154",
+  "en": {
+   "intro": "The first spacecraft to search Mars for life were baked before launch. In 1975 NASA heated each Viking lander in an oven for more than a day so that it would not carry Earth's microbes to Mars and then discover them there. Planetary protection rests on that worry and its mirror image: samples brought home might carry something unwelcome, which is why the Apollo 11 crew spent three weeks in quarantine. Probes near possibly habitable moons are steered to their deaths; Galileo was plunged into Jupiter in 2003 rather than risk falling on Europa. The protocols slow every mission and annoy every engineer. Contamination, once done, cannot be undone."
+  },
+  "zh-Hans": {
+   "intro": "最早去火星寻找生命的探测器，出发前都被烤过。1975年，美国航天局把每台“海盗号”着陆器放进烘箱里加热一天多，免得它带着地球的微生物上路，到了火星再把它们当作发现。行星保护建立在这份担忧和它的镜像上：带回的样本也可能夹带不速之客，所以“阿波罗11号”的航天员回来后被隔离了三个星期。在可能宜居的卫星附近飞行的探测器，任务结束时要被引向毁灭：2003年，“伽利略号”被送进木星大气焚毁，以免它日后坠落在木卫二上。这些规程拖慢每一次任务，惹恼每一位工程师；可污染一旦造成，就无法撤销。"
+  },
+  "zh-Hant": {
+   "intro": "最早去火星尋找生命的探測器，出發前都被烤過。1975年，美國航太局把每臺「海盜號」著陸器放進烘箱裡加熱一天多，免得它帶著地球的微生物上路，到了火星再把它們當作發現。行星保護建立在這份擔憂和它的映象上：帶回的樣本也可能夾帶不速之客，所以「阿波羅11號」的航太員回來後被隔離了三個星期。在可能宜居的衛星附近飛行的探測器，任務結束時要被引向毀滅：2003年，「伽利略號」被送進木星大氣焚燬，以免它日後墜落在木衛二上。這些規程拖慢每一次任務，惹惱每一位工程師；可汙染一旦造成，就無法撤銷。"
+  }
+ },
+ {
+  "id": "C155",
+  "en": {
+   "intro": "Mining law has always run ahead of mining. In the California gold rush of 1849 miners wrote their own codes at camp meetings, fixing how large a claim could be and how often it had to be worked to be kept. Asteroid mining charters try the same trick before the first ton is landed. The United States in 2015 and Luxembourg in 2017 passed laws letting their companies own what they extract in space, without claiming the asteroid itself. Two well-funded start-ups of that decade, Planetary Resources and Deep Space Industries, were sold off before mining anything. A charter can define rights; it cannot make ore pay for the trip."
+  },
+  "zh-Hans": {
+   "intro": "采矿法总是跑在采矿前面。1849年加州淘金热中，矿工们在营地大会上自订规矩，规定一块矿区能划多大、多久不开工就算放弃。小行星采矿特许想在第一吨矿石运回之前就玩同样的把戏。美国在2015年、卢森堡在2017年先后立法，允许本国企业拥有它们在太空中开采出的东西，却不主张对小行星本身的主权。那十年里两家资金雄厚的初创企业——“行星资源”和“深空工业”——还没挖到任何东西就被转手卖掉了。特许状可以界定权利，却不能让矿石付得起路费。"
+  },
+  "zh-Hant": {
+   "intro": "採礦法總是跑在採礦前面。1849年加州淘金熱中，礦工們在營地大會上自訂規矩，規定一塊礦區能劃多大、多久不開工就算放棄。小行星採礦特許想在第一噸礦石運回之前就玩同樣的把戲。美國在2015年、盧森堡在2017年先後立法，允許本國企業擁有它們在太空中開採出的東西，卻不主張對小行星本身的主權。那十年裡兩家資金雄厚的初創企業——「行星資源」和「深空工業」——還沒挖到任何東西就被轉手賣掉了。特許狀可以界定權利，卻不能讓礦石付得起路費。"
+  }
+ },
+ {
+  "id": "C156",
+  "en": {
+   "intro": "A passage you cannot afford can be bought with years you have not yet lived. Under indenture a recruiter or employer paid the fare, and the migrant repaid it by working a fixed term, usually four to seven years, for whoever held the contract. A large share of the Europeans who reached colonial North America came this way. Between 1834 and 1917 more than a million Indians crossed to Mauritius, the Caribbean, Natal and Fiji under five-year contracts; they called themselves girmitiyas, from the English word agreement. Indenture opened distant places to the poor. It also bound them far from any court that might hear them."
+  },
+  "zh-Hans": {
+   "intro": "付不起的船票，可以用尚未度过的岁月来买。在契约制下，招募者或雇主垫付路费，移民按约干满一定年限来偿还，通常是四到七年，替持有契约的人做工。到达北美殖民地的欧洲人中，有很大一部分是这样来的。1834年至1917年间，一百多万印度人签下五年的契约，远赴毛里求斯、加勒比海、纳塔尔和斐济；他们自称“吉尔米提亚”，这个词来自英语里的“协议”。契约为穷人打开了远方，也把他们拴在了任何法庭都听不见他们声音的地方。"
+  },
+  "zh-Hant": {
+   "intro": "付不起的船票，可以用尚未度過的歲月來買。在契約制下，招募者或僱主墊付路費，移民按約幹滿一定年限來償還，通常是四到七年，替持有契約的人做工。到達北美殖民地的歐洲人中，有很大一部分是這樣來的。1834年至1917年間，一百多萬印度人簽下五年的契約，遠赴模里西斯、加勒比海、納塔爾和斐濟；他們自稱「吉爾米提亞」，這個詞來自英語裡的「協議」。契約為窮人開啟了遠方，也把他們拴在了任何法庭都聽不見他們聲音的地方。"
+  }
+ },
+ {
+  "id": "C157",
+  "en": {
+   "intro": "Some governments decided that people were worth more than a ship's fare. From 1947 Australia carried British families across the world for ten pounds an adult, children free, on condition that they stayed two years or repaid the cost; more than a million came, and were nicknamed \"Ten Pound Poms\". A century earlier South Australia sold land to pay the passage of labourers and their families. Subsidized free passage brings whole households rather than single young men, which settles a place faster and makes it a society instead of a camp. It costs the treasury, attracts some who leave after the first hard winter, and sorts migrants by whom the officials prefer."
+  },
+  "zh-Hans": {
+   "intro": "有些政府认定，人比一张船票值钱。从1947年起，澳大利亚只收每个成人十英镑、儿童分文不取，把英国家庭送到地球另一端，条件是住满两年，否则退还路费；前后来了一百多万人，被戏称为“十镑移民”。一个世纪前，南澳大利亚出售土地，用卖地的钱资助劳工携家带口渡海。资助自由移民带来的是整户人家，而不是孤身的年轻男子，这让一个地方更快安定下来，成为一个社会而不是一座营地。它花国库的钱，招来一些熬不过第一个苦冬就走的人，还会按官员的偏好筛选移民。"
+  },
+  "zh-Hant": {
+   "intro": "有些政府認定，人比一張船票值錢。從1947年起，澳大利亞只收每個成人十英鎊、兒童分文不取，把英國家庭送到地球另一端，條件是住滿兩年，否則退還路費；前後來了一百多萬人，被戲稱為「十鎊移民」。一個世紀前，南澳大利亞出售土地，用賣地的錢資助勞工攜家帶口渡海。資助自由移民帶來的是整戶人家，而不是孤身的年輕男子，這讓一個地方更快安定下來，成為一個社會而不是一座營地。它花國庫的錢，招來一些熬不過第一個苦冬就走的人，還會按官員的偏好篩選移民。"
+  }
+ },
+ {
+  "id": "C158",
+  "en": {
+   "intro": "The only gun known to have been fired in orbit belonged to a Soviet station, Salyut 3, whose rapid-fire cannon was test-fired in 1975, reportedly after the crew had left. Military space has otherwise meant satellites watching and listening. A space guard is a more modest idea borrowed from coast guards: armed crews who patrol, inspect, rescue and repel boarders under published rules of engagement, answerable to civilian law. In 2019 the United States split a Space Force from its air force, and other powers built similar commands. Arming stations raises the very fears it claims to calm, and every fight in orbit leaves wreckage circling for years, a hazard to friend and enemy alike."
+  },
+  "zh-Hans": {
+   "intro": "已知唯一在轨道上开过火的炮，属于苏联的“礼炮3号”空间站：1975年，站上的速射炮做了试射，据说当时乘员已经撤离。除此之外，军事航天大多是卫星在看、在听。太空警备队是个更朴素的主意，借自海岸警卫队：持械的乘组依照公开的交战规则巡逻、检查、救援、击退登站者，并受民事法律约束。2019年，美国把太空军从空军中分立出来，别的大国也建起了类似的司令部。给空间站配上武器，会引发它自称要平息的恐惧；而轨道上的每一场战斗留下的残骸，会绕着地球转上许多年，不分敌友地威胁所有人。"
+  },
+  "zh-Hant": {
+   "intro": "已知唯一在軌道上開過火的炮，屬於蘇聯的「禮炮3號」太空站：1975年，站上的速射炮做了試射，據說當時乘員已經撤離。除此之外，軍事航太大多是衛星在看、在聽。太空警備隊是個更樸素的主意，借自海岸警衛隊：持械的乘組依照公開的交戰規則巡邏、檢查、救援、擊退登站者，並受民事法律約束。2019年，美國把太空軍從空軍中分立出來，別的大國也建起了類似的司令部。給太空站配上武器，會引發它自稱要平息的恐懼；而軌道上的每一場戰鬥留下的殘骸，會繞著地球轉上許多年，不分敵友地威脅所有人。"
+  }
+ },
+ {
+  "id": "C159",
+  "en": {
+   "intro": "In February 2020 a district court in The Hague struck down SyRI, a Dutch government system that combed benefit, tax and housing records for signs of fraud, partly because nobody outside could see how it reached its suspicions. A year later the Dutch cabinet resigned over a childcare-benefit scandal in which risk scoring had helped wrongly brand thousands of families as cheats. Algorithmic audit courts make such scrutiny routine rather than heroic: auditors with legal access to models and data, the power to suspend a system, and an appeal for the person it misjudged. Audits are slow and need rare skills. Without them, a mistake can repeat itself thousands of times before anyone notices."
+  },
+  "zh-Hans": {
+   "intro": "2020年2月，海牙地方法院叫停了荷兰政府一套名为“系统风险指标”的系统。它在救济、税务和住房记录中搜寻欺诈迹象，法院否定它的理由之一，是外人根本看不清它凭什么起疑。一年后，荷兰内阁因育儿津贴丑闻集体辞职：在那桩丑闻里，风险评分助长了把成千上万个家庭错判为骗补者。算法审计法庭让这样的审视成为例行公事，而不必靠谁挺身而出：审计员依法可以调阅模型和数据，有权暂停一套系统，被它误判的人也有路可以申诉。审计很慢，所需的本事也稀缺。没有它，一个错误可以重复成千上万次，才有人察觉。"
+  },
+  "zh-Hant": {
+   "intro": "2020年2月，海牙地方法院叫停了荷蘭政府一套名為「系統風險指標」的系統。它在救濟、稅務和住房記錄中搜尋欺詐跡象，法院否定它的理由之一，是外人根本看不清它憑什麼起疑。一年後，荷蘭內閣因育兒津貼醜聞集體辭職：在那樁醜聞裡，風險評分助長了把成千上萬個家庭錯判為騙補者。演算法審計法庭讓這樣的審視成為例行公事，而不必靠誰挺身而出：審計員依法可以調閱模型和資料，有權暫停一套系統，被它誤判的人也有路可以申訴。審計很慢，所需的本事也稀缺。沒有它，一個錯誤可以重複成千上萬次，才有人察覺。"
+  }
+ },
+ {
+  "id": "C160",
+  "en": {
+   "intro": "The idea is older than the machines that revived it. Paying everyone a regular sum, rich or poor, working or not, removes the paperwork and stigma of proving need, and leaves people to choose how to spend their time. Trials have been small and suggestive. In Dauphin, Manitoba, a guaranteed income in the 1970s coincided with fewer people admitted for illness and injury; Finland's two-year experiment from 2017 found recipients somewhat happier and no less likely to find work. The arguments that remain are about money and meaning. A universal payment large enough to live on costs a fortune, and a cheque does not tell anyone why they are needed."
+  },
+  "zh-Hans": {
+   "intro": "这个主意比让它重获关注的机器古老得多。不论贫富、不论工作与否，定期给每个人发一笔钱，就省掉了证明自己困难的手续和羞辱，把怎样度过时间的选择留给本人。试验规模都不大，结果耐人寻味：20世纪70年代加拿大马尼托巴省多芬镇试行保障收入期间，因病因伤住院的人减少了；芬兰从2017年起为期两年的试验发现，领钱的人更快乐些，找到工作的可能也并不更低。剩下的争论关乎钱，也关乎意义：一笔足以维生的全民发放耗资巨大，而一张支票不会告诉任何人，这个社会为什么需要他。"
+  },
+  "zh-Hant": {
+   "intro": "這個主意比讓它重獲關注的機器古老得多。不論貧富、不論工作與否，定期給每個人發一筆錢，就省掉了證明自己困難的手續和羞辱，把怎樣度過時間的選擇留給本人。試驗規模都不大，結果耐人尋味：20世紀70年代加拿大馬尼托巴省多芬鎮試行保障收入期間，因病因傷住院的人減少了；芬蘭從2017年起為期兩年的試驗發現，領錢的人更快樂些，找到工作的可能也並不更低。剩下的爭論關乎錢，也關乎意義：一筆足以維生的全民發放耗資巨大，而一張支票不會告訴任何人，這個社會為什麼需要他。"
+  }
+ },
+ {
+  "id": "C161",
+  "en": {
+   "intro": "Some societies would rather pay people to work than pay them to wait. A job guarantee makes the state the employer of last resort: anyone willing can take a public job at a set wage, digging, planting, caring, teaching, mending. America's Works Progress Administration employed some eight and a half million people between 1935 and 1943, building roads, schools and airfields and sending writers out to record the memories of former slaves. India's rural employment law of 2005 promises every rural household a hundred days of paid work a year. The difficulty is finding useful work at scale, close to where people live, without undercutting ordinary jobs or becoming a machine for handing out favours."
+  },
+  "zh-Hans": {
+   "intro": "有的社会宁愿付钱让人干活，也不愿付钱让人干等。就业保障让国家充当“最后雇主”：任何愿意干的人，都能按定好的工资领一份公共差事——挖渠、植树、照护、教书、修缮。美国的公共事业振兴署在1935年至1943年间先后雇用了约850万人，修道路，建学校和机场，还派作家四处走访，记录昔日奴隶的回忆。印度2005年的农村就业法承诺，每个农村家庭每年可获一百天的有偿工作。难处在于：要在离人们住处不远的地方成批找到有用的活计，既不挤掉寻常的饭碗，也不沦为分赃的机器。"
+  },
+  "zh-Hant": {
+   "intro": "有的社會寧願付錢讓人幹活，也不願付錢讓人乾等。就業保障讓國家充當「最後僱主」：任何願意幹的人，都能按定好的工資領一份公共差事——挖渠、植樹、照護、教書、修繕。美國的公共事業振興署在1935年至1943年間先後僱用了約850萬人，修道路，建學校和機場，還派作家四處走訪，記錄昔日奴隸的回憶。印度2005年的農村就業法承諾，每個農村家庭每年可獲一百天的有償工作。難處在於：要在離人們住處不遠的地方成批找到有用的活計，既不擠掉尋常的飯碗，也不淪為分贓的機器。"
+  }
+ },
+ {
+  "id": "C162",
+  "en": {
+   "intro": "When something everyone needs runs short, someone ends up writing the list of who gets it first. In 1942 the American War Production Board's Controlled Materials Plan rationed steel, copper and aluminium among factories by priority; national laboratories still divide supercomputer time through committees that read proposals and hand out hours. Compute allocation boards apply the same discipline to the machines a society now runs on. They meter use, publish priorities for clinics, power grids, research and commerce, and hear appeals from those placed low. A clear list prevents panic and favouritism. It also makes every choice visible, and people argue hardest about the scarcity they can see."
+  },
+  "zh-Hans": {
+   "intro": "人人都需要的东西一旦短缺，总得有人写下谁先拿到的名单。1942年，美国战时生产委员会的“受控物资计划”按优先次序向各工厂分配钢、铜和铝；国家实验室至今仍由委员会审读申请书，分配超级计算机的机时。算力分配委员会把同样的纪律用在一个社会如今赖以运转的机器上：计量用量，公布诊所、电网、科研和商业的优先次序，并受理排在后面的人的申诉。一张清楚的名单能防止恐慌和偏私，也让每一个选择都摆在明处——而人们争得最凶的，正是看得见的短缺。"
+  },
+  "zh-Hant": {
+   "intro": "人人都需要的東西一旦短缺，總得有人寫下誰先拿到的名單。1942年，美國戰時生產委員會的「受控物資計畫」按優先次序向各工廠分配鋼、銅和鋁；國家實驗室至今仍由委員會審讀申請書，分配超級電腦的機時。算力分配委員會把同樣的紀律用在一個社會如今賴以運轉的機器上：計量用量，公佈診所、電網、科研和商業的優先次序，並受理排在後面的人的申訴。一張清楚的名單能防止恐慌和偏私，也讓每一個選擇都擺在明處——而人們爭得最兇的，正是看得見的短缺。"
+  }
+ },
+ {
+  "id": "C163",
+  "en": {
+   "intro": "Before anything can have rights, it needs a name that sticks. A registry of synthetic persons gives qualifying machine agents what ships have long had: a registered identity, a responsible keeper, insurance, and a record of every change to the thing itself, so that an agent copied, fine-tuned or merged can be told apart from its predecessor. In 2017 the European assembly in Strasbourg floated a special legal status for the most capable robots, and the idea drew an open letter of protest from experts the following year. The register settles liability first and rights later, if ever. Its hardest case is the agent copied a thousand times overnight: one person, or a thousand?"
+  },
+  "zh-Hans": {
+   "intro": "任何东西要享有权利，先得有一个叫得响、改不掉的名字。合成人登记制度给够格的机器代理以船舶早就有的东西：登记在册的身份、负责的管理人、保险，以及它本身每一次改动的记录，好让被复制、再次调校或合并过的代理与它的前身区分开来。2017年，欧盟的民选立法机构提议为最先进的机器人设立一种特殊的法律地位，第二年就招来一批专家联名写公开信抗议。登记册先理清责任，权利以后再说，也可能永远不说。最难办的情形，是一夜之间被复制了一千份的代理：它算一个人，还是一千个？"
+  },
+  "zh-Hant": {
+   "intro": "任何東西要享有權利，先得有一個叫得響、改不掉的名字。合成人登記制度給夠格的機器代理以船舶早就有的東西：登記在冊的身份、負責的管理人、保險，以及它本身每一次改動的記錄，好讓被複製、再次調校或合併過的代理與它的前身區分開來。2017年，歐盟的民選立法機構提議為最先進的機器人設立一種特殊的法律地位，第二年就招來一批專家聯名寫公開信抗議。登記冊先理清責任，權利以後再說，也可能永遠不說。最難辦的情形，是一夜之間被複製了一千份的代理：它算一個人，還是一千個？"
+  }
+ },
+ {
+  "id": "C164",
+  "en": {
+   "intro": "On 26 September 1983 a Soviet early-warning system reported American missiles inbound, and the duty officer, Stanislav Petrov, judged it a false alarm and did not pass it up the chain as an attack. He was right. Human-in-the-loop command law turns that night into a rule: no weapon may choose and hit a human target without a named person's authorization, given with enough time and information to mean something. The second clause is the hard one. In 2003 Patriot batteries in Iraq shot down two allied aircraft, and their operators had only seconds to overrule the machine. A human who merely rubber-stamps is a loop in name only."
+  },
+  "zh-Hans": {
+   "intro": "1983年9月26日，苏联的预警系统报告美国导弹来袭，值班军官斯坦尼斯拉夫·彼得罗夫判断这是误报，没有把它当作进攻上报。他判断对了。人在回路指挥法把那一夜变成了一条规定：任何武器都不得自行选定并攻击人员目标，必须经有名有姓的人授权，而且授权时要有足够的时间和信息，让这份授权有意义。后一半最难。2003年在伊拉克，“爱国者”导弹连击落了两架盟军飞机，操作员只有几秒钟可以推翻机器的判断。只会盖章的人，只是名义上的回路。"
+  },
+  "zh-Hant": {
+   "intro": "1983年9月26日，蘇聯的預警系統報告美國導彈來襲，值班軍官斯坦尼斯拉夫·彼得羅夫判斷這是誤報，沒有把它當作進攻上報。他判斷對了。人在迴路指揮法把那一夜變成了一條規定：任何武器都不得自行選定並攻擊人員目標，必須經有名有姓的人授權，而且授權時要有足夠的時間和資訊，讓這份授權有意義。後一半最難。2003年在伊拉克，「愛國者」導彈連擊落了兩架盟軍飛機，操作員只有幾秒鐘可以推翻機器的判斷。只會蓋章的人，只是名義上的迴路。"
+  }
+ },
+ {
+  "id": "C165",
+  "en": {
+   "intro": "Future citizens cannot vote, lobby or sue, which makes them the easiest constituency to rob. A generational equity compact gives them proxies: budgets projected across decades, a commissioner who can question any policy for its long-run cost, and courts willing to hear the argument. Wales passed a Well-being of Future Generations Act in 2015 and appointed a commissioner to watch over it. In 2021 Germany's constitutional court ruled that the national emissions law unfairly pushed the hardest cuts onto the young. Such compacts can discipline the present. They can also become a vocabulary for any interest that would like to call itself the future."
+  },
+  "zh-Hans": {
+   "intro": "未来的公民不能投票、不能游说，也不能起诉，因此是最容易被掠夺的选民。代际公平契约为他们安排代言：以几十年为跨度编制预算，设立一位可以就任何政策的长期代价提出质询的专员，并让法院愿意受理这类诉讼。威尔士在2015年通过了《未来世代福祉法》，并任命了一位专员来监督它的执行。2021年，德国宪法法院裁定，德国的减排法律把最艰难的削减不公平地推给了年轻人。这样的契约能约束当下，也可能沦为一套说辞，让任何利益集团都把自己称作“未来”。"
+  },
+  "zh-Hant": {
+   "intro": "未來的公民不能投票、不能遊說，也不能起訴，因此是最容易被掠奪的選民。代際公平契約為他們安排代言：以幾十年為跨度編制預算，設立一位可以就任何政策的長期代價提出質詢的專員，並讓法院願意受理這類訴訟。威爾士在2015年通過了《未來世代福祉法》，並任命了一位專員來監督它的執行。2021年，德國憲法法院裁定，德國的減排法律把最艱難的削減不公平地推給了年輕人。這樣的契約能約束當下，也可能淪為一套說辭，讓任何利益集團都把自己稱作「未來」。"
+  }
+ },
+ {
+  "id": "C166",
+  "en": {
+   "intro": "Uranium is heavy and hard to hide; computation is neither, except for the factories that make its chips and the power stations that feed them. A global compute treaty works at those choke points: registered data centres, declared ceilings on the largest training runs, inspectors who can read meters and audit chip shipments. Real precedents are partial. In 2023 a United States executive order required developers to report models trained beyond a fixed amount of computation, and twenty-eight countries signed a declaration on frontier risks at Bletchley Park. Both were declarations, not inspections. A treaty must also survive its oldest enemy: the party sure it can win by cheating."
+  },
+  "zh-Hans": {
+   "intro": "铀很重，也难藏；计算两样都不是——除了制造芯片的工厂和为它供电的电站。全球算力条约就卡在这些咽喉上：数据中心备案在册，最大规模的训练申报上限，检查员可以读电表、查验芯片的运输。现实中的先例都只是半截。2023年，美国一项行政令要求开发者报告训练算力超过某一门槛的模型；同年，二十八个国家在布莱奇利园签署了一份关于前沿风险的宣言。两者都是声明，不是核查。条约还必须经受住它最老的对手：那个确信靠作弊就能赢的缔约方。"
+  },
+  "zh-Hant": {
+   "intro": "鈾很重，也難藏；計算兩樣都不是——除了製造晶片的工廠和為它供電的電廠。全球算力條約就卡在這些咽喉上：資料中心備案在冊，最大規模的訓練申報上限，檢查員可以讀電錶、查驗晶片的運輸。現實中的先例都只是半截。2023年，美國一項行政令要求開發者報告訓練算力超過某一門檻的模型；同年，二十八個國家在布萊奇利園簽署了一份關於前沿風險的宣言。兩者都是宣告，不是核查。條約還必須經受住它最老的對手：那個確信靠作弊就能贏的締約方。"
+  }
+ },
+ {
+  "id": "C167",
+  "en": {
+   "intro": "Commons are rarely ruined by malice. They are ruined by many reasonable decisions taken without the full picture, which is how Newfoundland's cod, fished by careful people with modern trawlers, collapsed so completely that Canada closed the fishery in 1992 and some thirty thousand people lost their work. Machine trusteeship hands the day-to-day management of a shared resource, a fishery, an aquifer, a crowded orbit, to an authorized system that measures stocks continuously and sets the take. Elinor Ostrom showed that communities can govern commons well when the rules are their own. A machine trustee must earn that consent, and accept being overruled when it is lost."
+  },
+  "zh-Hans": {
+   "intro": "公共资源很少毁于恶意，而是毁于许多信息不全、各自合理的决定。纽芬兰的鳕鱼就是这样：捕捞者谨慎，拖网渔船先进，鱼群却崩溃得如此彻底，加拿大在1992年关闭了渔场，约三万人因此失业。机器托管把一项共享资源——一片渔场、一个含水层、一条拥挤的轨道——的日常管理交给一套获得授权的系统，由它持续测量存量、确定可取的份额。埃莉诺·奥斯特罗姆证明，只要规则出自社区自己，社区就能把公共资源管好。机器托管人必须挣得这份认可，而认可一旦失去，就得接受否决。"
+  },
+  "zh-Hant": {
+   "intro": "公共資源很少毀於惡意，而是毀於許多資訊不全、各自合理的決定。紐芬蘭的鱈魚就是這樣：捕撈者謹慎，拖網漁船先進，魚群卻崩潰得如此徹底，加拿大在1992年關閉了漁場，約三萬人因此失業。機器託管把一項共享資源——一片漁場、一個含水層、一條擁擠的軌道——的日常管理交給一套獲得授權的系統，由它持續測量存量、確定可取的份額。埃莉諾·奧斯特羅姆證明，只要規則出自社區自己，社區就能把公共資源管好。機器託管人必須掙得這份認可，而認可一旦失去，就得接受否決。"
+  }
+ },
+ {
+  "id": "C168",
+  "en": {
+   "intro": "Wherever big engines ran, the men who tended them formed a fraternity: drivers, firemen and fitters who knew that one careless shift could scald a crew or wreck a mine. In Cornwall from 1811, Joel Lean's monthly reports published how much water each pumping engine lifted for a bushel of coal, and engineers competed for the figures like athletes. Engine-house brotherhoods grew from such pride into lodges with oaths, apprenticeships, benefit funds and their own rules of the footplate. They passed on skill that no manual held. They also guarded the door, kept outsiders and newcomers waiting, and could hold an owner's whole works to ransom."
+  },
+  "zh-Hans": {
+   "intro": "凡有大机器运转的地方，照管它们的人就会结成兄弟会：司机、司炉和装配工都明白，一个班次的疏忽，就能烫伤一班人，或毁掉一座矿。从1811年起，康沃尔的乔尔·利恩每月刊印报告，公布每台抽水机烧一蒲式耳煤能提起多少水，工程师们像运动员一样争夺名次。机房兄弟会从这样的自豪里生长出来，成了有誓约、有学徒制、有互济基金、有自家“踏板规矩”的会所。它们传下了任何手册里都没有的手艺；也把着门，让外人和新手久久等候，甚至能拿业主的整座工厂当人质。"
+  },
+  "zh-Hant": {
+   "intro": "凡有大機器運轉的地方，照管它們的人就會結成兄弟會：司機、司爐和裝配工都明白，一個班次的疏忽，就能燙傷一班人，或毀掉一座礦。從1811年起，康沃爾的喬爾·利恩每月刊印報告，公佈每臺抽水機燒一蒲式耳煤能提起多少水，工程師們像運動員一樣爭奪名次。機房兄弟會從這樣的自豪裡生長出來，成了有誓約、有學徒制、有互濟基金、有自家「踏板規矩」的會所。它們傳下了任何手冊裡都沒有的手藝；也把著門，讓外人和新手久久等候，甚至能拿業主的整座工廠當人質。"
+  }
+ },
+ {
+  "id": "C169",
+  "en": {
+   "intro": "In 1901 an English speculator, William Knox D'Arcy, bought from the Shah of Persia the right to find and sell oil across most of the country for sixty years, for cash, shares and sixteen per cent of the profits. When oil was struck in 1908, the concession became the foundation of a company, and then a matter of state for the British navy. Oil concession diplomacy is the art of such bargains: royalties, protection, guaranteed access, and treaties that keep rivals out. It brings fuel cheaply and reliably for a generation. The host country eventually reads the contract again, as Iran did when it nationalized its oil industry in 1951."
+  },
+  "zh-Hans": {
+   "intro": "1901年，英国投机商威廉·诺克斯·达西向波斯国王买下了在该国大部分地区勘探和出售石油六十年的权利，代价是现金、股份和百分之十六的利润。1908年钻出石油后，这份租让成了一家石油企业的基石，继而成了关乎英国海军的国家大事。石油租让外交就是这类交易的手艺：矿区使用费、保护、有保障的供应，再加上把对手挡在门外的条约。它能让一代人用上便宜而稳定的燃料。可东道国迟早会把合同重读一遍，就像伊朗在1951年把石油工业收归国有那样。"
+  },
+  "zh-Hant": {
+   "intro": "1901年，英國投機商威廉·諾克斯·達西向波斯國王買下了在該國大部分地區勘探和出售石油六十年的權利，代價是現金、股份和百分之十六的利潤。1908年鑽出石油後，這份租讓成了一家石油企業的基石，繼而成了關乎英國海軍的國家大事。石油租讓外交就是這類交易的手藝：礦區使用費、保護、有保障的供應，再加上把對手擋在門外的條約。它能讓一代人用上便宜而穩定的燃料。可東道國遲早會把合同重讀一遍，就像伊朗在1951年把石油工業收歸國有那樣。"
+  }
+ },
+ {
+  "id": "C170",
+  "en": {
+   "intro": "In the 1930s nearly nine in ten American city homes had electricity and only about one farm in ten did: private utilities saw no profit in stringing wire across empty miles. From 1935 the new Rural Electrification Administration lent money instead to farmers' cooperatives, which built their own lines, elected their own boards and sent linemen out at night into ice storms. Within two decades most farms were lit. Public power cooperatives keep that shape: member-owned, locally governed, run at cost. Members feel the grid is theirs and look after it. But cooperatives can grow sleepy, cling to old plants and hold board elections that almost nobody attends."
+  },
+  "zh-Hans": {
+   "intro": "20世纪30年代，美国城市里将近九成的住户用上了电，农场却只有大约一成：私营电力企业觉得，在空旷的乡野上拉电线无利可图。从1935年起，新设的农村电气化管理局转而把钱借给农民的合作社，由他们自己架线、自己选举理事会，在冰暴的夜里派线路工出门抢修。不到二十年，大多数农场都亮了灯。公共电力合作社保留着这个样子：社员所有，本地治理，按成本经营。社员觉得电网是自己的，也就肯爱护它。可合作社也会变得懒散，抱着老电厂不放，理事选举几乎没人到场。"
+  },
+  "zh-Hant": {
+   "intro": "20世紀30年代，美國城市裡將近九成的住戶用上了電，農場卻只有大約一成：私營電力企業覺得，在空曠的鄉野上拉電線無利可圖。從1935年起，新設的農村電氣化管理局轉而把錢借給農民的合作社，由他們自己架線、自己選舉理事會，在冰暴的夜裡派線路工出門搶修。不到二十年，大多數農場都亮了燈。公共電力合作社保留著這個樣子：社員所有，本地治理，按成本經營。社員覺得電網是自己的，也就肯愛護它。可合作社也會變得懶散，抱著老電廠不放，理事選舉幾乎沒人到場。"
+  }
+ },
+ {
+  "id": "C171",
+  "en": {
+   "intro": "How do you warn people ten thousand years from now, when the language you speak may be as dead as Sumerian? In 1981 the United States convened a task force to answer exactly that for nuclear waste sites. The linguist Thomas Sebeok suggested a self-renewing order, something like a clergy, that would pass the warning down through ritual and legend; others proposed cats bred to change colour near radiation. Atomic stewardship orders take the first idea soberly: trained custodians, records copied in many languages, ceremonies that keep the memory alive. Their danger is the same as any clergy's. Guardians of a secret can come to believe they own it."
+  },
+  "zh-Hans": {
+   "intro": "怎样警告一万年以后的人？到那时，我们说的语言也许已经像苏美尔语一样死去。1981年，美国专门组建了一个工作组，为核废料处置场回答这个问题。语言学家托马斯·西比奥克提议成立一个“原子祭司团”：一个不断自我更新的团体，借仪式和传说把警告代代相传；还有人提议培育一种靠近辐射就会变色的猫。原子守护会冷静地采用了第一个主意：训练有素的看守人，用多种语言反复誊抄的记录，让记忆不致消散的仪式。它的危险与任何祭司团一样：守护秘密的人，可能会渐渐以为秘密归自己所有。"
+  },
+  "zh-Hant": {
+   "intro": "怎樣警告一萬年以後的人？到那時，我們說的語言也許已經像蘇美爾語一樣死去。1981年，美國專門組建了一個工作組，為核廢料處置場回答這個問題。語言學家托馬斯·西比奧克提議成立一個「原子祭司團」：一個不斷自我更新的團體，借儀式和傳說把警告代代相傳；還有人提議培育一種靠近輻射就會變色的貓。原子守護會冷靜地採用了第一個主意：訓練有素的看守人，用多種語言反覆謄抄的記錄，讓記憶不致消散的儀式。它的危險與任何祭司團一樣：守護秘密的人，可能會漸漸以為秘密歸自己所有。"
+  }
+ },
+ {
+  "id": "C172",
+  "en": {
+   "intro": "In the City of London, the old square mile of banks, firms still help choose the local council: a 2002 act lets businesses appoint voters in rough proportion to their workforce. Corporate citizenship goes further. Membership of a community comes through an employer, which issues the papers, runs the schools and clinics, and speaks for its people in public bodies. Mining towns that paid wages in company scrip, good only at the company store, show the old cost of the arrangement. Its modern versions promise efficiency and belonging to skilled staff. Those outside the firm, or dismissed from it, find themselves outside the polity as well."
+  },
+  "zh-Hans": {
+   "intro": "在伦敦金融城——那一平方英里的银行区——企业至今仍参与选举金融城的地方议事会：2002年的一部法律允许企业大致按雇员人数指派选民。企业公民权走得更远：一个人通过雇主取得共同体的成员资格，由雇主签发证件、开办学校和诊所，并在公共机构里替自己的人说话。那些用公司代币发工资、代币只能在公司商店里花的矿业小镇，展示了这种安排旧日的代价。它的现代版本向技术人员许诺效率与归属感；而公司之外的人，或者被公司辞退的人，会发现自己也被关在了政治共同体之外。"
+  },
+  "zh-Hant": {
+   "intro": "在倫敦金融城——那一平方英里的銀行區——企業至今仍參與選舉金融城的地方議事會：2002年的一部法律允許企業大致按僱員人數指派選民。企業公民權走得更遠：一個人通過僱主取得共同體的成員資格，由僱主簽發證件、開辦學校和診所，並在公共機構裡替自己的人說話。那些用公司代幣發工資、代幣只能在公司商店裡花的礦業小鎮，展示了這種安排舊日的代價。它的現代版本向技術人員許諾效率與歸屬感；而公司之外的人，或者被公司辭退的人，會發現自己也被關在了政治共同體之外。"
+  }
+ },
+ {
+  "id": "C173",
+  "en": {
+   "intro": "Most rules of research ethics were written in reaction to a scandal. The Nuremberg Code of 1947 answered the experiments of Nazi doctors; American review boards followed revelations in 1972 that a public health study at Tuskegee had left hundreds of Black men with syphilis untreated for forty years. Bioethics tribunals give such review teeth: panels with the power to stop a trial, inspect a laboratory and bar a researcher. When He Jiankui announced in 2018 that he had edited the genes of twin girls, a Chinese court later sentenced him to three years in prison. Tribunals slow research and can freeze good science. Their absence has already been tried."
+  },
+  "zh-Hans": {
+   "intro": "研究伦理的规矩，大多是在丑闻之后写成的。1947年的《纽伦堡守则》回应的是纳粹医生的人体实验；1972年，美国塔斯基吉一项公共卫生研究被揭露：数百名患梅毒的黑人男子四十年间得不到治疗。此后美国才普遍设立了审查委员会。生物伦理法庭让这类审查长出牙齿：有权叫停试验、检查实验室、禁止某位研究者再做研究。2018年贺建奎宣布他编辑了一对双胞胎女婴的基因，后来被中国法院判处三年有期徒刑。伦理法庭拖慢研究，有时也会冻住好的科学；而没有它的日子，人们已经领教过了。"
+  },
+  "zh-Hant": {
+   "intro": "研究倫理的規矩，大多是在醜聞之後寫成的。1947年的《紐倫堡守則》回應的是納粹醫生的人體實驗；1972年，美國塔斯基吉一項公共衛生研究被揭露：數百名患梅毒的黑人男子四十年間得不到治療。此後美國才普遍設立了審查委員會。生物倫理法庭讓這類審查長出牙齒：有權叫停試驗、檢查實驗室、禁止某位研究者再做研究。2018年賀建奎宣佈他編輯了一對雙胞胎女嬰的基因，後來被中國法院判處三年有期徒刑。倫理法庭拖慢研究，有時也會凍住好的科學；而沒有它的日子，人們已經領教過了。"
+  }
+ },
+ {
+  "id": "C174",
+  "en": {
+   "intro": "Since 1982 every resident of Alaska, child or adult, has received a yearly cheque from the state's oil savings fund, varying with the markets from a few hundred to a few thousand dollars. Nobody has to work for it; it is a share in something the state decided belongs to all. Machine-labour dividends apply that idea to automated output: a fixed portion of what factories, fleets and offices without workers produce flows into a fund owned by every resident and is paid out as income. It turns the gains of automation into common property. It also ties household budgets to the machines' performance, and invites endless argument over what counts as machine-made."
+  },
+  "zh-Hans": {
+   "intro": "自1982年起，阿拉斯加的每一位居民，不论大人孩子，每年都会收到州里石油储蓄基金寄来的一张支票，金额随行情起落，从几百美元到几千美元不等。谁都不必为它干活；它是一份股份，代表州里认定属于大家的东西。机器劳动红利把这个主意用到自动化产出上：没有工人的工厂、车队和办公室所产出的固定一部分，流入一个由全体居民共有的基金，再作为收入分发出去。它把自动化的收益变成共同财产，也把家家户户的预算拴在了机器的表现上，还会招来没完没了的争论：什么才算机器造出来的。"
+  },
+  "zh-Hant": {
+   "intro": "自1982年起，阿拉斯加的每一位居民，不論大人孩子，每年都會收到州裡石油儲蓄基金寄來的一張支票，金額隨行情起落，從幾百美元到幾千美元不等。誰都不必為它幹活；它是一份股份，代表州裡認定屬於大家的東西。機器勞動紅利把這個主意用到自動化產出上：沒有工人的工廠、車隊和辦公室所產出的固定一部分，流入一個由全體居民共有的基金，再作為收入分發出去。它把自動化的收益變成共同財產，也把家家戶戶的預算拴在了機器的表現上，還會招來沒完沒了的爭論：什麼才算機器造出來的。"
   }
  }
 ]
