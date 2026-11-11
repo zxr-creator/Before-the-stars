@@ -17,23 +17,46 @@ server-backed referee ([web-build.md](web-build.md)).
 
 ## Integrated MCP decision exchange
 
-Run `node tools/mcp.mjs` as a stdio MCP server (Node 22 or newer). Configure
-`BTS_URL`, `BTS_SEAT` (0–3), and `BTS_SEAT_TOKEN` in the MCP server environment.
-Credentials are never tool arguments. The adapter exposes only `get_turn` and
-`submit_turn`; it cannot create matches, export saves, or read a spectator view.
-Its newline-delimited JSON-RPC transport follows the
-[official stdio specification](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports).
+The game's MCP server is built into the game binary: `bts mcp` speaks newline-delimited
+JSON-RPC on stdio (the
+[stdio transport](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)),
+bound to one seat by its environment: `BTS_URL` (the referee, for example
+`http://127.0.0.1:7878`), `BTS_SEAT` (0–9) and `BTS_SEAT_TOKEN`. `BTS_MAX_CALLS`
+(optional) caps the tool calls of one run. `node tools/mcp.mjs` (Node 22 or newer) is the
+same server for a checkout of the repository; both read their tool definitions from
+[`tools/mcp-tools.json`](../tools/mcp-tools.json). Credentials are never tool arguments.
+The server exposes only `get_turn` and `submit_turn`; it cannot create matches, export
+saves, name another seat or read a spectator view.
 
-`get_turn` returns one complete permission-filtered observation, a cursor, receipts, public action templates,
-communication/action limits and the seats the referee is waiting on. `submit_turn`
-takes `{cursor, request_id, actions, advance}` and returns the same complete packet
-after applying the batch. `advance` is `none`, `phase`, or `round`; the MCP default
-is `phase`. Use `round` for a whole-round plan that intentionally passes remaining
-negotiation. Negotiating adaptively still requires one exchange per window: future
-replies cannot appear in an earlier round packet.
+`get_turn` takes `{view, sections}`. The default `view: "brief"` returns a text briefing
+of the seat (date, round length, people, goods, regions, standing orders, what can be
+built, knowledge, practices, projects, forces, diplomacy, objectives, last round's
+events: about 5,000 tokens for a large late-game civilization), the cursor, the seat's
+standing orders, receipts, public action templates (`action_reference.examples` and
+`.clauses`), limits, the seats the referee is waiting on and a `next` text. The briefing
+comes first as plain text; the rest follows a `--- decision packet (JSON) ---` line as
+JSON. `view: "full"` returns the complete permission-filtered observation, which can run
+to several hundred kilobytes (over the tool-result limit of most agents), so name the
+parts you need: `sections: ["regions"]`, `["catalog", "knowledge"]` and so on (any
+top-level `Observation` field).
 
-The HTTP equivalents are `GET /api/turn?seat=N&token=T` and `POST /api/turn` with
-those fields plus `seat, token`. At most 32 actions are accepted in one batch.
+`submit_turn` takes `{cursor, request_id, actions, advance, view}` and returns the
+receipts and the updated packet (brief unless `view: "full"`). `advance` is `none`,
+`phase`, or `round`; the MCP default is `phase`. `none` only applies the actions, so an
+agent can read the receipts and submit corrections before it finishes the phase. Use
+`round` for a whole-round plan that intentionally passes remaining negotiation.
+Negotiating adaptively still requires one exchange per window: future replies cannot
+appear in an earlier round packet.
+
+Rounds last up to fifty years. An order is carried out once; a **standing order**
+(`{"kind": "directive", "op": "add", "directive": {...}}`: `build_target`,
+`research_agenda`, `auto_research`, `reform_agenda`, `settle_target`) is re-checked every
+January inside the round, so standing orders are an agent's main tool for what must keep
+happening. The packet's `action_reference` and `next` say so.
+
+The HTTP equivalents are `GET /api/turn?seat=N&token=T[&view=brief][&sections=a,b]` and
+`POST /api/turn` with those fields plus `seat, token` (without `view` the HTTP packet is
+the full one, as before). At most 32 actions are accepted in one batch.
 Receipts remain per action: accepted actions stay applied when another fails,
 and any rejection prevents automatic advance. `STALE_TURN` rejects a changed
 observation before applying anything. An exact `request_id` retry returns its
@@ -42,6 +65,34 @@ The latest 128 request results, bounded to 16 MiB of encoded payload, are cached
 starts a new generation and process restart loses that cache. Read a fresh packet
 after either event. Do not invent a new request ID merely because a response timed
 out. Native/model-driven seats remain protected by the same authority checks.
+
+### Bring your own agent
+
+Give a seat the controller `external` (in setup: **Your own agent**). When the match
+starts, the game shows that seat's token and ready-made configurations (also under
+**Game menu → Connect your agent…**). The match waits for your agent at every phase.
+
+Claude Code: save an MCP configuration such as
+
+```json
+{"mcpServers": {"before-the-stars": {"command": "/path/to/bts", "args": ["mcp"],
+  "env": {"BTS_URL": "http://127.0.0.1:7878", "BTS_SEAT": "0", "BTS_SEAT_TOKEN": "<token>"}}}}
+```
+
+as `bts-seat-1.json` and run
+`claude --mcp-config bts-seat-1.json --allowedTools mcp__before-the-stars__get_turn,mcp__before-the-stars__submit_turn`
+(or add the server to a project's `.mcp.json`). Codex, for one session without changing
+`~/.codex/config.toml`:
+
+```sh
+codex -c 'mcp_servers.bts.command="/path/to/bts"' -c 'mcp_servers.bts.args=["mcp"]' \
+      -c 'mcp_servers.bts.env={BTS_URL="http://127.0.0.1:7878",BTS_SEAT="0",BTS_SEAT_TOKEN="<token>"}'
+```
+
+From a checkout, `node tools/mcp.mjs` with the same three variables works in either.
+Then tell the agent to call `get_turn` and `submit_turn` when it is its turn. Without
+`--require-tokens` the referee does not check tokens, so any program on the machine may
+play a free seat; start it with `--require-tokens` to enforce them.
 
 ## Endpoints
 
@@ -61,8 +112,8 @@ out. Native/model-driven seats remain protected by the same authority checks.
 | `POST /api/session/import` | the save text as the body | Replaces the match and returns its summary with tokens. The save is checked and rehearsed first; a refused save (`400 INVALID_SAVE`) leaves the match in progress untouched |
 | `GET /api/export/chronicle` | `?seat=N&format=md\|json` | The seat's own chronicle |
 
-`controllers` is a list of four of `"human"`, `"external"`, `"easy"`, `"medium"`,
-`"hard"`. `regions` is 24, 48 or 72. `horizon` is in months (2880 standard; 960 is the
+`controllers` is a list of two to ten of `"human"`, `"external"`, `"easy"`, `"medium"`,
+`"hard"` and the model-driven controllers below. `regions` is 24, 48 or 72. `horizon` is in months (2880 standard; 960 is the
 short development fixture, for which `pace_bp: 3300` is suggested). With
 `public_seed: false` the world root is mixed with server entropy and the seed label
 alone no longer reconstructs the world.
@@ -90,12 +141,18 @@ ready, running native controllers itself. After the plan phase it resolves
 | `start_project` | any | `build`, `research`, `survey`, `settle`, `study`, `resettle`, `recruit`, `religion`, `ftl_trial`, `ftl_deployment`, `ftl_replacement` |
 | `manage_project` | any | `pause`, `resume`, `cancel`, and priority 0–9 (lower first) |
 | `investigate` | any | Follow up a lead |
-| `propose_reform` | any | Enact a recognized practice whose requirements are met |
+| `propose_reform`, `repeal` | any | Enact a recognized practice whose requirements are met; repeal an enacted one |
+| `directive` | any | Standing orders, re-checked every January inside the round: `op` `add` (with `directive`: `build_target`, `research_agenda`, `auto_research`, `reform_agenda`, `settle_target`; one standing for the same thing is replaced), `remove` or `move` (with `id`, `position`) |
 | `start_program`, `manage_program` | any | Education programmes |
 | `demolish`, `military_order`, `forfeit` | any | |
 
 Clause kinds: `goods`, `knowledge`, `practice`, `maps`, `non_aggression`,
-`defensive_pact`, `peace`, `subordination`, `cede_region`. A clause may reference only
+`defensive_pact`, `peace`, `subordination`, `cede_region`, `secondment` (lend
+qualified people) and `joint_programme` (share a programme facility). `months: 0` on
+`non_aggression` or `defensive_pact` makes it open-ended; `break_treaty` with
+`notice: true` ends such clauses at the close of the next round without a breach.
+`set_policy` `war_policy` (`accept_white_peace_after_months`, `accept_cession_max`)
+lets an armistice come into force inside a long round. A clause may reference only
 technology or practice handles present in the proposer's own observation.
 
 Example batch:
@@ -129,39 +186,88 @@ The spectator view is referee-level disclosure and is never available to a seat.
 
 ## Model-driven seats
 
-A seat can be driven by a language model. In `POST /api/match`, use one of these
-`controllers` values, with optional per-seat `agent_options`:
+The referee can run a language model in a seat itself. In `POST /api/match`, use one of
+these `controllers` values, with optional per-seat `agent_options`:
 
-| Controller | How it runs | Credentials |
+| Controller | How it runs | Sign-in |
 | --- | --- | --- |
-| `claude-api` | Claude over the Messages API (default model `claude-opus-5-5`) | `ANTHROPIC_API_KEY` in the referee's environment, a profile from `ant auth login`, or `api_key` in `agent_options` |
-| `claude-code` | The local `claude` command in print mode, with no tools, in an empty temporary directory | That CLI's own login (a Claude subscription) |
-| `codex` | The local `codex exec` command, read-only sandbox, empty temporary directory | That CLI's own login |
-| `openai-api` | Any OpenAI-compatible chat-completions endpoint | `OPENAI_API_KEY`, or `api_key`; `base_url` selects the endpoint; `model` is required |
+| `claude-code` | **Agent** (recommended). The local `claude` runs as an agent with the game's MCP server bound to the seat and plays through `get_turn`/`submit_turn` | `auth: "login"`: that CLI's own sign-in (a Claude subscription); `auth: "api_key"`: `api_key`, given to the CLI's environment only |
+| `codex` | **Agent**. The local `codex exec` with the game's MCP server for that run only | `auth: "login"`: that CLI's own sign-in (ChatGPT); `auth: "api_key"`: `api_key` as `CODEX_API_KEY` in its environment |
+| `claude-api` | **One-shot**. Claude over the Messages API (default model `claude-opus-5-5`, adaptive thinking, the rules prompt cached) | `ANTHROPIC_API_KEY` in the referee's environment, a profile from `ant auth login`, or `api_key` |
+| `openai-api` | **One-shot**. Any OpenAI-compatible chat-completions endpoint | `OPENAI_API_KEY`, or `api_key`; `base_url` selects the endpoint; `model` is required |
 
 ```json
-{"controllers": ["human", "claude-api", "codex", "hard"],
- "agent_options": {"1": {"model": "claude-opus-5-5", "consult_every": 5},
-                   "2": {"model": "your-codex-model", "consult_every": 10}}}
+{"controllers": ["human", "claude-code", "codex", "claude-api"],
+ "agent_options": {"1": {"model": "claude-sonnet-5-5", "effort": "medium", "max_usd": 0.5},
+                   "2": {"model": "gpt-6-astra", "consult_every": 2},
+                   "3": {"model": "claude-opus-5-5", "consult_every": 5}}}
 ```
 
-`agent_options` fields: `model`, `consult_every` (ask the model every N rounds; default
-1), `api_key`, `base_url`, `effort`. A key sent here is kept in memory only and is never
-written to a save; a `base_url` is saved without user information or query, either of
-which could carry one.
+`agent_options` fields: `model`, `effort` (`low` … `max`), `consult_every` (ask the model
+every N rounds; default 1), `auth` (`login` or `api_key`, for the CLI agents), `api_key`,
+`base_url`, and the cost guard: `budget_seconds` (time one consultation may take; default
+300), `max_calls` (game tool calls per consultation; default 12), `max_usd` (Claude Code's
+`--max-budget-usd` per consultation; default 0.50), `max_tokens` (output tokens of a
+one-shot reply; default 16,000) and `max_failures` (failed consultations in a row before
+the seat stops; default 3). A key sent here is kept in memory only: it is never written to
+a save, a log, the agent log or the match summary, reaches a CLI only through its
+environment (never its command line), and is scrubbed from error text. A `base_url` is
+saved without user information or query, either of which could carry one.
 
-A model seat is an ordinary external seat. Each time it is consulted the referee renders
-that seat's own observation as a compact text briefing and asks for one JSON object:
-a short note, the domains to delegate to the steward, and up to 24 ordinary actions.
-Invalid actions are rejected individually and reported in the agent log. The model sees
-nothing but its seat's observation; the command-line tools are run without tools and
-outside the repository. A steward runs every domain until the model says otherwise, so
-a slow, failing or rarely consulted model never stalls its civilization: after three
-consecutive failures the seat is marked `stopped` and the steward carries on alone.
+**Agent seats.** When the referee waits on the seat, the worker starts the CLI in an empty
+temporary directory with a token that admits that seat for this consultation only
+(`409 TURN_OVER` once it ends) and the prompt "It is your turn". The agent reads its
+brief packet, decides, submits with `advance: "none"`, reads the receipts, corrects and
+finishes with `advance: "phase"`, then answers with `{"note", "delegate"}`. The exact
+invocations:
+
+```sh
+claude -p --output-format json --system-prompt <rules> --mcp-config mcp.json --strict-mcp-config \
+       --tools "" --allowedTools mcp__bts__get_turn,mcp__bts__submit_turn \
+       --no-session-persistence --disable-slash-commands --max-turns <calls+4> --max-budget-usd <usd> \
+       [--model M] [--effort E] [--bare]          # --bare (and ANTHROPIC_API_KEY) only with auth api_key
+codex exec --skip-git-repo-check --ephemeral --ignore-user-config --ignore-rules -s read-only \
+       --color never --json -C <tmp> -o <tmp>/last-message.txt [-m M] [-c model_reasoning_effort="E"] \
+       --disable shell_tool --disable unified_exec --disable apps --disable plugins --disable browser_use \
+       --disable computer_use --disable image_generation --disable multi_agent -c web_search="disabled" \
+       -c mcp_servers.bts.command="<bts>" -c 'mcp_servers.bts.args=["mcp"]' \
+       -c 'mcp_servers.bts.env={BTS_URL=…,BTS_SEAT=…,BTS_MAX_CALLS=…}' -c 'mcp_servers.bts.env_vars=["BTS_SEAT_TOKEN"]' \
+       -c 'mcp_servers.bts.enabled_tools=["get_turn","submit_turn"]' -c mcp_servers.bts.default_tools_approval_mode="approve" -
+```
+
+`mcp.json` (written with owner-only permissions into the temporary directory) starts
+`<bts> mcp` with `BTS_URL`, `BTS_SEAT`, `BTS_SEAT_TOKEN` and `BTS_MAX_CALLS`. Claude Code
+also gets `CLAUDE_CODE_DISABLE_CLAUDE_MDS=1` and `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`; with
+`auth: "login"` any `ANTHROPIC_API_KEY` of the referee's environment is removed so the
+person's subscription is used. Neither CLI's global configuration or login is read for
+tools or changed.
+
+**One-shot seats.** Each time the seat is consulted the referee renders its own
+observation as the same text briefing and asks for one JSON object: a short note, the
+domains to delegate to the steward, and up to 24 ordinary actions. Invalid actions are
+rejected individually and reported in the agent log.
+
+**Failures.** A consultation that fails is retried with backoff (5 s, then 20 s) unless the
+error is one a retry cannot fix (a missing program, an expired sign-in, a model the account
+does not offer, a missing key). Then the steward plays that round (`steward_took_over` in
+the log) and the seat's own delegation comes back with its next success. After
+`max_failures` failures in a row the seat is `stopped` and the steward runs it alone until
+`POST /api/agent/control {"seat": N, "op": "resume"}` (the observer console's **Resume**);
+`"op": "stop"` stops consulting a seat. The model sees nothing but its seat's own
+observation; the CLIs' file, shell and web tools are off and their output is treated as
+untrusted (every order is validated by the referee like anyone else's).
+
+| Method and path | Body or query | Returns |
+| --- | --- | --- |
+| `GET /api/agents/providers` | `?refresh=1` to skip the 30 s cache | Whether `claude` and `codex` are installed and signed in (`claude auth status`, `codex login status`), the models Codex offers (`codex debug models`), which key variables are set (booleans), and the MCP command. No model is called; nothing personal is passed on |
+| `POST /api/agents/test` | `{provider, model, effort, auth, api_key, base_url}` | One tiny real call with these settings (for the CLIs, with the game's MCP server started too): `{ok, reply, seconds, cost_usd, tokens, mcp}` or `{ok: false, error, hint}`. One test at a time |
+| `POST /api/agent/control` | `{seat, op: "resume" \| "stop"}` | Match summary. Refused when tokens are required |
 
 Each seat in the match summary carries `agent: {provider, model, consult_every, state,
-last_note, calls, last_error, thinking_seconds}` (`state` is `idle`, `thinking`, `error`
-or `stopped`).
+last_note, calls, last_error, last_hint, thinking_seconds, mode, errors_in_row,
+max_failures, spent_usd, tokens, budget_seconds}` (`state` is `idle`, `thinking`, `error`
+or `stopped`; `mode` is `agent` or `oneshot`). Agent log entries add `date`, `hint`,
+`attempts`, `tool_calls`, `turns`, `cost_usd`, `tokens` and `steward_took_over`.
 
 ## Stewards
 
