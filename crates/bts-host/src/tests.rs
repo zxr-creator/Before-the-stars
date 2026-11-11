@@ -144,17 +144,18 @@ fn a_seat_view_and_its_turn_packet_never_contain_spectator_fields() {
         }
     }
     // the packet is the same permission-filtered observation plus bookkeeping, nothing more
-    let mut keys: Vec<&str> = packet.body.as_object().unwrap().keys().map(String::as_str).collect();
+    // (and the public building tree, static content, when the client lacks it)
+    let mut keys: Vec<&str> = packet.body.as_object().unwrap().keys().map(String::as_str).filter(|k| *k != "building_tree").collect();
     keys.sort_unstable();
-    assert_eq!(keys, ["action_reference", "cursor", "limits", "next", "observation", "receipts", "round_advanced", "submitted", "waiting_for"]);
+    assert_eq!(keys, ["action_reference", "building_tree_hash", "cursor", "limits", "next", "observation", "receipts", "round_advanced", "submitted", "waiting_for"]);
     assert_eq!(packet.body["observation"], obs.body);
     // a submission's reply is held to the same shape
     let cursor = packet.body["cursor"].as_str().unwrap();
     let reply = post(&mut h, "/api/turn", json!({ "seat": 0, "request_id": "r1", "cursor": cursor, "actions": [], "advance": "round" }));
     assert_eq!(reply.status, 200, "{}", reply.text);
-    let mut keys: Vec<&str> = reply.body.as_object().unwrap().keys().map(String::as_str).collect();
+    let mut keys: Vec<&str> = reply.body.as_object().unwrap().keys().map(String::as_str).filter(|k| *k != "building_tree").collect();
     keys.sort_unstable();
-    assert_eq!(keys, ["action_reference", "cursor", "limits", "next", "observation", "receipts", "round_advanced", "submitted", "waiting_for"]);
+    assert_eq!(keys, ["action_reference", "building_tree_hash", "cursor", "limits", "next", "observation", "receipts", "round_advanced", "submitted", "waiting_for"]);
     assert_eq!(reply.body["observation"]["seat"], 0);
     // and the match summary names no seed secret and no token of a native seat
     let m = get(&mut h, "/api/match");
@@ -778,4 +779,17 @@ fn addresses_are_scrubbed_of_credentials() {
     assert_eq!(scrub_url("user:pw@host.example/v1?k=v"), "host.example/v1");
     assert_eq!(scrub_url("https://host/?token=abc"), "https://host/");
     assert_eq!(scrub_url(""), "");
+}
+
+/// The public building tree is served without a token, the same in every match,
+/// and names the hash the turn packet carries (design chapter 37, section 8.9).
+#[test]
+fn the_building_tree_is_public_and_the_same_for_every_match() {
+    let mut a: Host = new_match(SERVER, ["human", "easy", "medium", "hard"]);
+    let mut b: Host = new_match(BROWSER, ["easy", "easy", "medium", "hard"]);
+    let ta = get(&mut a, "/api/building-tree");
+    assert_eq!(ta.status, 200);
+    assert_eq!(ta.body, get(&mut b, "/api/building-tree").body);
+    assert_eq!(get(&mut a, "/api/turn?seat=0").body["building_tree_hash"], ta.body["hash"]);
+    assert!(!ta.text.contains("\"T0") && !ta.text.contains("jump_yard"));
 }

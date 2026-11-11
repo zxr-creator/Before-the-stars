@@ -14,7 +14,13 @@ export function createHandler({ url = process.env.BTS_URL || 'http://127.0.0.1:7
       actions: { type: 'array', maxItems: 32, items: { type: 'object', properties: { kind: { type: 'string' } }, required: ['kind'], additionalProperties: true } },
       advance: { type: 'string', enum: ['none', 'phase', 'round'], default: 'phase' },
     }, required: ['cursor', 'request_id', 'actions'], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false } },
+    { name: 'get_building_tree', description: 'Read the public building tree: every building, its upgrade line and stages, costs, posts and land, with technology requirements shown only by era and field. The same for every seat; the turn packet names its hash.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false } },
   ];
+  const tree = async () => {
+    const res = await fetch(new URL('/api/building-tree', url), { signal: AbortSignal.timeout(30000) });
+    const data = await res.json();
+    return { content: [{ type: 'text', text: JSON.stringify(data) }], ...(res.ok ? { structuredContent: data } : { isError: true }) };
+  };
   const request = async (body) => {
     const endpoint = new URL('/api/turn', url);
     if (!body) { endpoint.searchParams.set('seat', String(seat)); endpoint.searchParams.set('token', token); }
@@ -41,6 +47,10 @@ export function createHandler({ url = process.env.BTS_URL || 'http://127.0.0.1:7
       if (m.params?.name === 'get_turn') {
         if (Object.keys(args).length) return error(-32602, 'get_turn takes no arguments');
         return reply(await request());
+      }
+      if (m.params?.name === 'get_building_tree') {
+        if (Object.keys(args).length) return error(-32602, 'get_building_tree takes no arguments');
+        return reply(await tree());
       }
       if (m.params?.name !== 'submit_turn') return error(-32602, 'Unknown tool');
       if (Object.keys(args).some(k => !['cursor', 'request_id', 'actions', 'advance'].includes(k)) || typeof args.cursor !== 'string' || typeof args.request_id !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(args.request_id ?? '') || !Array.isArray(args.actions) || args.actions.length > 32 || args.actions.some(a => !a || typeof a.kind !== 'string') || !['none', 'phase', 'round'].includes(args.advance ?? 'phase')) return error(-32602, 'Invalid submission arguments');

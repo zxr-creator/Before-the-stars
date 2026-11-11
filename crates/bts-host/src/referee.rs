@@ -843,8 +843,11 @@ impl<A: AgentSlot> Host<A> {
             ("POST", "/api/match") => self.new_match(req.body, req.entropy),
             ("GET", "/api/turn") => {
                 let seat = arg("seat").and_then(|x| x.parse().ok()).unwrap_or(0);
-                turn::get(self, seat, arg("token").unwrap_or("")).map(|v| Reply::json(v.to_string()))
+                turn::get(self, seat, arg("token").unwrap_or(""), arg("known_tree_hash")).map(|v| Reply::json(v.to_string()))
             }
+            // the public building tree: static content, the same for every seat and match
+            // of this content version, served without a token (design chapter 37, 8.9)
+            ("GET", "/api/building-tree") => Ok(Reply::json(bts_engine::observe::building_tree_json().to_string())),
             ("POST", "/api/turn") => match serde_json::from_str::<turn::Submission>(req.body) {
                 // every applied exchange is saved, including within-round orders, rather than only ready
                 Ok(b) => turn::submit(self, b).map(|(v, fresh)| Reply::json(v.to_string()).with(Effects { changed: fresh, autosave: fresh, ..Default::default() })),

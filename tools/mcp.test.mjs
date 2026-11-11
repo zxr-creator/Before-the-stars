@@ -19,7 +19,7 @@ test('MCP lifecycle, consolidated packet, bound identity, failures and validatio
     assert.equal((await call('tools/list')).error.code, -32002);
     assert.equal((await call('initialize', { protocolVersion: '2025-06-18' })).result.protocolVersion, '2025-06-18');
     assert.equal(await handle({ jsonrpc: '2.0', method: 'notifications/initialized' }), null);
-    assert.deepEqual((await call('tools/list')).result.tools.map(x => x.name), ['get_turn', 'submit_turn']);
+    assert.deepEqual((await call('tools/list')).result.tools.map(x => x.name), ['get_turn', 'submit_turn', 'get_building_tree']);
     const packet = await call('tools/call', { name: 'get_turn' });
     assert.equal(packet.result.structuredContent.observation.seat, 2);
     assert.equal(new URL(calls[0].url, 'http://localhost').searchParams.get('token'), 'secret');

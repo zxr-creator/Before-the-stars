@@ -19,8 +19,9 @@ server-backed referee ([web-build.md](web-build.md)).
 
 Run `node tools/mcp.mjs` as a stdio MCP server (Node 22 or newer). Configure
 `BTS_URL`, `BTS_SEAT` (0–3), and `BTS_SEAT_TOKEN` in the MCP server environment.
-Credentials are never tool arguments. The adapter exposes only `get_turn` and
-`submit_turn`; it cannot create matches, export saves, or read a spectator view.
+Credentials are never tool arguments. The adapter exposes only `get_turn`,
+`submit_turn` and `get_building_tree` (the public building tree); it cannot create
+matches, export saves, or read a spectator view.
 Its newline-delimited JSON-RPC transport follows the
 [official stdio specification](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports).
 
@@ -60,6 +61,7 @@ out. Native/model-driven seats remain protected by the same authority checks.
 | `GET /api/session/export` | | The whole session as bare save text (what a save file holds inside). Refused (403) like the save file |
 | `POST /api/session/import` | the save text as the body | Replaces the match and returns its summary with tokens. The save is checked and rehearsed first; a refused save (`400 INVALID_SAVE`) leaves the match in progress untouched |
 | `GET /api/export/chronicle` | `?seat=N&format=md\|json` | The seat's own chronicle |
+| `GET /api/building-tree` | | The public building tree (protocol 2.3): every building, line, stage and upgrade edge, technology requirements masked to era and field, sealed content absent. No token: it is the same for every seat and match of the content version. Turn packets carry `building_tree_hash`, and the tree itself when `known_tree_hash` (query or submission field) differs, or in the first round when none is given |
 
 `controllers` is a list of four of `"human"`, `"external"`, `"easy"`, `"medium"`,
 `"hard"`. `regions` is 24, 48 or 72. `horizon` is in months (2880 standard; 960 is the

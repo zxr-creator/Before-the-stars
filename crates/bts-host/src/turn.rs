@@ -28,6 +28,10 @@ pub struct Submission {
     pub actions: Vec<Action>,
     #[serde(default)]
     pub advance: Advance,
+    /// The building tree hash the client holds; the packet carries the tree in full
+    /// when it differs (protocol 2.3).
+    #[serde(default)]
+    pub known_tree_hash: Option<String>,
 }
 
 #[derive(Default, Deserialize, Serialize, PartialEq)]
@@ -67,6 +71,8 @@ fn action_reference(obs: &Observation) -> Value {
         json!({"kind":"set_policy","setting":{"kind":"facility","region":0,"facility":"known_catalog_kind","enabled":true}}),
         json!({"kind":"military_order","army":0,"order":{"kind":"hold"}}),
         json!({"kind":"demolish","region":0,"facility":"known_catalog_kind","levels":1}),
+        json!({"kind":"start_project","spec":{"kind":"upgrade","region":0,"from":"known_catalog_kind","to":"its_upgrades_to_kind","levels":1},"priority":5}),
+        json!({"kind":"set_policy","setting":{"kind":"borders","immigration":"selective","emigration":"free"}}),
     ];
     if obs.culture.movement.is_some() {
         examples.push(json!({"kind":"start_project","spec":{"kind":"religion","beliefs":[],"name":null},"priority":5}));
@@ -79,22 +85,34 @@ fn action_reference(obs: &Observation) -> Value {
     json!({"note":"Templates only: replace sample references with handles/IDs from your observation; availability and costs are authoritative there. Do not submit this entire example list. pause/resume/cancel manage projects/programs; role assault/maneuver/denial; priorities 0–9; lower is first. Signed treaty clauses are binding, message prose is not.", "examples":examples})
 }
 
-fn packet<A: AgentSlot>(host: &Host<A>, seat: SeatId, receipts: Vec<Receipt>, submitted: bool, advanced: bool) -> Value {
+fn packet<A: AgentSlot>(host: &Host<A>, seat: SeatId, receipts: Vec<Receipt>, submitted: bool, advanced: bool, known_tree: Option<&str>) -> Value {
     let s = host.session.as_ref().unwrap();
     let obs = s.m.observe(seat);
-    json!({
+    // the public building tree: in full when the client's copy differs, or, for a
+    // client that names none, in the first round only (protocol 2.3)
+    let tree = bts_engine::observe::building_tree();
+    let inline = match known_tree {
+        Some(h) => h != tree.hash,
+        None => obs.round <= 1,
+    };
+    let mut v = json!({
         "cursor": cursor(&obs), "action_reference": action_reference(&obs), "observation": obs, "receipts": receipts,
         "submitted": submitted, "round_advanced": advanced,
         "waiting_for": s.m.waiting_on(),
         "limits": {"actions_per_submission": MAX_ACTIONS_PER_BATCH, "counterparts_per_round": 3,
                    "envelopes_per_pair_per_round": 10, "negotiation_windows": 5},
-        "next": "Submit a batch with this cursor and a unique request_id. Use phase to hear replies; round passes all remaining diplomacy. Rejected actions prevent automatic advance; accepted actions remain applied."
-    })
+        "next": "Submit a batch with this cursor and a unique request_id. Use phase to hear replies; round passes all remaining diplomacy. Rejected actions prevent automatic advance; accepted actions remain applied.",
+        "building_tree_hash": tree.hash
+    });
+    if inline {
+        v["building_tree"] = serde_json::to_value(tree).unwrap();
+    }
+    v
 }
 
-pub(crate) fn get<A: AgentSlot>(host: &Host<A>, seat: SeatId, token: &str) -> Result<Value> {
+pub(crate) fn get<A: AgentSlot>(host: &Host<A>, seat: SeatId, token: &str, known_tree: Option<&str>) -> Result<Value> {
     host.seat_access(seat, token, false)?;
-    Ok(packet(host, seat, vec![], false, false))
+    Ok(packet(host, seat, vec![], false, false, known_tree))
 }
 
 /// Apply one submission. The flag is false when the reply is the stored result of
@@ -127,7 +145,7 @@ pub(crate) fn submit<A: AgentSlot>(host: &mut Host<A>, b: Submission) -> Result<
         if s.m.try_advance() { s.drive(); }
     }
     let advanced = s.m.round() != before;
-    let response = packet(host, b.seat, receipts, true, advanced);
+    let response = packet(host, b.seat, receipts, true, advanced, b.known_tree_hash.as_deref());
     let bytes = fingerprint.len() + response.to_string().len();
     if bytes <= 16 * 1024 * 1024 {
         let cache = &mut host.turn_cache;
@@ -157,8 +175,8 @@ mod tests {
         host
     }
     fn order(st: &Host<NoAgents>, id: &str) -> Submission {
-        Submission { seat: 0, token: String::new(), request_id: id.into(), cursor: get(st, 0, "").unwrap()["cursor"].as_str().unwrap().into(),
-            actions: vec![Action::SetPolicy { setting: PolicySetting::Rename { name: "New identity".into() } }], advance: Advance::None }
+        Submission { seat: 0, token: String::new(), request_id: id.into(), cursor: get(st, 0, "", None).unwrap()["cursor"].as_str().unwrap().into(),
+            actions: vec![Action::SetPolicy { setting: PolicySetting::Rename { name: "New identity".into() } }], advance: Advance::None, known_tree_hash: None }
     }
     #[test]
     fn retry_never_reapplies_and_changed_payload_conflicts() {
@@ -188,15 +206,26 @@ mod tests {
         assert_eq!(hash, st.session.as_ref().unwrap().m.state_hash());
     }
     #[test]
+    fn the_packet_carries_the_public_tree_only_when_the_client_lacks_it() {
+        let st = state();
+        let tree = bts_engine::observe::building_tree();
+        let fresh = get(&st, 0, "", Some("0")).unwrap();
+        assert_eq!(fresh["building_tree_hash"], tree.hash);
+        assert_eq!(fresh["building_tree"]["hash"], tree.hash);
+        let known = get(&st, 0, "", Some(&tree.hash)).unwrap();
+        assert!(known.get("building_tree").is_none());
+        assert_eq!(known["observation"]["building_tree_hash"], tree.hash);
+    }
+    #[test]
     fn packets_enforce_seat_permissions_and_never_include_spectator_state() {
         let mut st = state();
-        assert_eq!(get(&st, 255, "").unwrap_err().0, 403);
-        assert_eq!(get(&st, 1, "").unwrap_err().0, 403, "a native seat's packet is closed while an external seat plays");
+        assert_eq!(get(&st, 255, "", None).unwrap_err().0, 403);
+        assert_eq!(get(&st, 1, "", None).unwrap_err().0, 403, "a native seat's packet is closed while an external seat plays");
         st.cfg.require_tokens = true;
-        assert_eq!(get(&st, 0, "bad-token").unwrap_err().0, 403);
-        assert_eq!(get(&st, 1, "").unwrap_err().0, 403);
+        assert_eq!(get(&st, 0, "bad-token", None).unwrap_err().0, 403);
+        assert_eq!(get(&st, 1, "", None).unwrap_err().0, 403);
         let token = st.session.as_ref().unwrap().tokens[0].clone();
-        let p = get(&st, 0, &token).unwrap();
+        let p = get(&st, 0, &token, None).unwrap();
         assert_eq!(p["observation"]["seat"], 0);
         assert!(p.get("spectator").is_none());
         assert!(p.get("seed").is_none());
