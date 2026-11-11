@@ -11,7 +11,7 @@ pub mod tables;
 use bts_protocol::*;
 use serde::{Deserialize, Serialize};
 
-pub const POLICY_VERSION: &str = "bts-native/1.2.0";
+pub const POLICY_VERSION: &str = "bts-native/1.3.0";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Difficulty {
@@ -73,6 +73,10 @@ pub struct Memory {
     /// is never undone by a steward.
     #[serde(default)]
     pub methods_set: Vec<(RegionId, String)>,
+    /// Month in which the seat first saw that it could enter its next era, and the
+    /// era (design chapter 37, section 3; the AI waits for a prepared crossing).
+    #[serde(default)]
+    pub era_eligible: Option<(u8, Month)>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -1165,6 +1165,7 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
         research(ai, &mut p);
     }
     if on("culture") {
+        eras(ai, &mut p, &regions, capital);
         culture(ai, &mut p, capital);
     }
     if on("economy") {
@@ -1403,6 +1404,11 @@ fn research_score(p: &Plan, t: &TechCard, needed: &HashSet<&str>, cap_for: &dyn 
         Some(fv) if fv.incumbent.as_deref() == Some(t.handle.as_str()) => 500,
         _ => 0,
     };
+    // a held tradition's own branch is where its works teach (doc 39, section 3.2)
+    let v_trad = v_trad + match info.and_then(|i| i.tradition.as_deref()) {
+        Some(k) if held_traditions(obs).contains(&k) => 1500,
+        _ => 0,
+    };
     let v_breadth = 1000;
     // the expected loss of locking a rival the seat values: a card that would lock a
     // discovered rival it has not understood weighs less
@@ -1613,6 +1619,366 @@ fn practice_score(p: &Plan, c: &PracticeCard, route: &HashSet<String>, forbidden
     let value = (effect + route_v - tension).max(100);
     let cost = c.reform_work / 1_000 + 400 * c.load as i64 + 10;
     Some(value * 1_000 / cost)
+}
+
+/// The traditions the seat holds, by key.
+fn held_traditions(obs: &Observation) -> Vec<&str> {
+    obs.era.as_ref().map(|e| e.traditions.iter().filter_map(|t| t.held.as_deref()).collect()).unwrap_or_default()
+}
+
+/// How much of a deposit the seat knows of in its own regions and those next to
+/// them that it has surveyed (tonnes in the ground).
+fn known_deposit(obs: &Observation, d: Deposit) -> i64 {
+    let own: HashSet<RegionId> = obs.regions.iter().filter(|r| r.own.is_some()).map(|r| r.id).collect();
+    obs.regions
+        .iter()
+        .filter(|r| own.contains(&r.id) || r.neighbors.iter().any(|n| own.contains(&n.region)))
+        .filter_map(|r| r.survey.as_ref())
+        .flat_map(|s| s.deposits.iter())
+        .filter(|x| x.kind == d)
+        .map(|x| x.remaining.max(0))
+        .sum()
+}
+
+/// The value of a charter to this seat now, from its situation (design chapter 37,
+/// section 4.3: scored against the strategy weights with the costs of section 3.4).
+fn charter_score(ai: &NativeAi, obs: &Observation, key: &str) -> i64 {
+    let at_war = obs.others.iter().any(|o| o.at_war);
+    let threatened = at_war || obs.others.iter().any(|o| their_power(obs, o.seat) * 2 > own_power(obs) * 3);
+    let stab = obs.civ.stability as i64;
+    let research_minded = matches!(ai.difficulty, Difficulty::Hard | Difficulty::Expert);
+    let cap = |c: ResearchClass| obs.civ.research.iter().find(|r| r.class == c).map(|r| r.capacity).unwrap_or(0);
+    let admin_tight = obs.civ.admin_load + 2 >= obs.civ.admin_capacity;
+    let has = |kind: &str| obs.regions.iter().filter_map(|r| r.own.as_ref()).any(|o| o.facilities.iter().any(|f| f.kind == kind && f.level > 0));
+    let compute: i64 = obs.regions.iter().filter_map(|r| r.own.as_ref()).map(|o| o.power.compute_supply).sum();
+    let low = stab < 55;
+    let base = 100 + (mix(ai.policy_seed ^ key.len() as u64 ^ key.bytes().fold(0u64, |a, b| a.wrapping_mul(131).wrapping_add(b as u64))) % 40) as i64;
+    base + match key {
+        "citizen_levy" => if threatened { 120 } else if low { -80 } else { -20 },
+        "road_and_law" => if admin_tight { 140 } else { 30 },
+        "academies" => if cap(ResearchClass::Scholarly) > 6_000 { 90 + if research_minded { 40 } else { 0 } } else { -60 },
+        "feudal_estates" => if threatened { 100 } else { -10 },
+        "guild_charters" => 60,
+        "monastic_learning" => if has("archive") { 60 + if research_minded { 40 } else { 0 } } else { -40 },
+        "chartered_companies" => if has("port") && !low { 50 } else { -40 },
+        "standing_army" => if threatened { 110 } else { -20 },
+        "republic_of_letters" => 60 + if research_minded { 50 } else { 0 } + 15 * obs.others.len() as i64,
+        "laissez_faire" => if low { -60 } else { 70 },
+        "factory_acts" => if low { 120 } else { 30 },
+        "national_railways" => if has("rail") { 80 } else { 10 },
+        "mass_mobilization" => if threatened && !low { 120 } else { -60 },
+        "welfare_state" => if low { 110 } else { 40 },
+        "planned_electrification" => if has("generator") || has("hydro") { 70 } else { 20 },
+        "open_networks" => 60 + if research_minded { 40 } else { 0 },
+        "surveillance_state" => if low { 110 } else { 0 },
+        "automation_drive" => 50,
+        "frontier_charter" => if has("launch_complex") { 70 } else { 20 },
+        "lunar_industry" => if has("orbital_station") { 60 } else { 20 },
+        "planetary_protection" => if has("interferometer") || has("orbital_station") { 50 + if research_minded { 30 } else { 0 } } else { 0 },
+        "machine_stewardship" => if admin_tight { 130 } else { 40 },
+        "human_primacy" => if low { 120 } else { 20 },
+        "compute_commons" => if compute > 2_000_000 && research_minded { 80 } else { 0 },
+        _ => 0,
+    }
+}
+
+/// Posts the seat fills in works of these kinds.
+fn posts_in(obs: &Observation, kinds: &[&str]) -> i64 {
+    obs.regions.iter().filter_map(|r| r.own.as_ref()).flat_map(|o| o.facilities.iter()).filter(|f| kinds.contains(&f.kind.as_str())).map(|f| f.staffed as i64).sum()
+}
+
+/// The path the seat would choose for a slot, by what its land holds and what it
+/// already runs (design chapter 37, section 4.3), or none. Each path scores its
+/// favoured resources against what a seat of the Standard map typically knows of
+/// them (100 = typical; most seats know of every kind, so the comparison is what
+/// differs), the posts of its signature works, and a small lean of the seat's own.
+fn tradition_choice(obs: &Observation, slot: &str, seed: u64) -> Option<&'static str> {
+    let own: Vec<&RegionView> = obs.regions.iter().filter(|r| r.own.is_some()).collect();
+    let lean = |key: &str| (mix(seed ^ key.bytes().fold(7u64, |a, b| a.wrapping_mul(131).wrapping_add(b as u64))) % 31) as i64 - 15;
+    let mut best: Option<(i64, &'static str)> = None;
+    let mut consider = |score: i64, key: &'static str| {
+        if score > 0 && best.map(|b| score > b.0).unwrap_or(true) {
+            best = Some((score, key));
+        }
+    };
+    if slot == "machine" {
+        // tonnes known, in millions; posts in thousands
+        let coal = known_deposit(obs, Deposit::Coal) / 1_000_000;
+        let crude = (known_deposit(obs, Deposit::Crude) + known_deposit(obs, Deposit::Gas) / 2) / 1_000_000;
+        let copper = known_deposit(obs, Deposit::CopperOre) / 1_000_000;
+        let hydro_sites = own.iter().filter(|r| r.survey.as_ref().map(|s| s.hydro > 0).unwrap_or(false)).count() as i64;
+        let steam_posts = posts_in(obs, &["steam", "steelworks", "rail"]) / 1_000;
+        let engine_posts = posts_in(obs, &["refinery", "diesel", "depot"]) / 1_000;
+        let wire_posts = posts_in(obs, &["generator", "hydro", "grid"]) / 1_000;
+        if coal > 0 {
+            consider((coal * 100 / 60_000).min(200) + steam_posts.min(100) + lean("steam"), "steam");
+        }
+        if crude > 0 {
+            consider((crude * 100 / 18_000).min(200) + engine_posts.min(100) + lean("engine"), "engine");
+        }
+        if copper > 0 && hydro_sites >= 3 {
+            consider((hydro_sites * 100 / 11).min(200) + wire_posts.min(100) + lean("wire"), "wire");
+        }
+        return best.map(|b| b.1);
+    }
+    let uranium = known_deposit(obs, Deposit::UraniumOre) / 1_000;
+    let quartz = known_deposit(obs, Deposit::Quartz) / 1_000_000;
+    let rare = known_deposit(obs, Deposit::RareEarths) / 1_000_000;
+    let pop = obs.civ.population.max(1) as i64;
+    let arable: i64 = own.iter().filter_map(|r| r.survey.as_ref()).map(|s| s.arable as i64).sum();
+    let arable_per_m = arable * 1_000_000 / pop;
+    let stewards = obs.culture.religions.iter().any(|r| r.beliefs.iter().any(|b| b.key == "stewardship") && r.followers_known * 3 > obs.civ.population);
+    let household = obs.civ.labor.household as i64;
+    let working = obs.civ.labor.working_age.max(1) as i64;
+    let elec: (i64, i64) = own.iter().filter_map(|r| r.own.as_ref()).fold((0, 0), |a, o| (a.0 + o.power.elec_supply, a.1 + o.power.elec_demand));
+    let fission_ok = obs.catalog.facilities.iter().any(|f| f.kind == "fission" && f.available);
+    let computing = posts_in(obs, &["datacenter", "fab"]) / 1_000;
+    if uranium > 0 && !stewards {
+        consider((uranium * 100 / 30_000).min(200) + if fission_ok { 40 } else { 0 } + posts_in(obs, &["fission"]) / 1_000 + lean("atom"), "atom");
+    }
+    if quartz > 0 || rare > 0 {
+        consider((quartz * 50 / 350).min(100) + (rare * 50 / 110).min(100) + computing.min(100) / 2 + lean("network"), "network");
+    }
+    if arable_per_m > 0 {
+        consider((arable_per_m * 100 / 7).min(200) + (posts_in(obs, &["pharma"]) / 1_000).min(100) + lean("living"), "living");
+    }
+    // labour the binding constraint (few without posts) and electricity to spare
+    if household * 10 < working * 3 && elec.0 > elec.1 {
+        consider(120 + computing.min(100) / 2 + lean("synthetic"), "synthetic");
+    }
+    best.map(|b| b.1)
+}
+
+/// Eras, charters and traditions (design chapter 37, sections 3-4): enter an era
+/// once the crossing is likely to go well (or the seat has waited long enough),
+/// fill the charter places, commit the tradition slots by endowment some decades
+/// after they open, build the held path's works, and switch only in a dark age.
+fn eras(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
+    let obs = p.obs;
+    let Some(ev) = obs.era.as_ref() else { return };
+    let month = obs.month;
+    let rm = obs.calendar.as_ref().map(|c| c.round_months).unwrap_or(12);
+    // ---- charters: fill the free places ----------------------------------------
+    let held = ev.charters.iter().filter(|c| c.held).count();
+    if held < ev.charter_slots as usize {
+        let best = ev.charters.iter().filter(|c| !c.held && c.available).max_by_key(|c| (charter_score(ai, obs, &c.key), c.key.clone()));
+        if let Some(c) = best {
+            p.push(Action::ChooseCharter { charter: c.key.clone() });
+        }
+    } else if p.diff != Difficulty::Easy {
+        // replace a held charter only for a clearly better one, and only when it is free
+        let dark = ev.age.as_ref().map(|a| a.kind == "dark").unwrap_or(false);
+        if dark {
+            let worst = ev.charters.iter().filter(|c| c.held).min_by_key(|c| charter_score(ai, obs, &c.key));
+            let best = ev.charters.iter().filter(|c| !c.held && c.available).max_by_key(|c| (charter_score(ai, obs, &c.key), c.key.clone()));
+            if let (Some(w), Some(b)) = (worst, best) {
+                if charter_score(ai, obs, &b.key) > charter_score(ai, obs, &w.key) + 60 {
+                    p.push(Action::ChooseCharter { charter: b.key.clone() });
+                }
+            }
+        }
+    }
+    // ---- entering the next era ------------------------------------------------------
+    if let Some(next) = &ev.next {
+        if !next.eligible {
+            ai.memory.era_eligible = None;
+        } else {
+            let since = match ai.memory.era_eligible {
+                Some((e, m)) if e == next.era => m,
+                _ => {
+                    ai.memory.era_eligible = Some((next.era, month));
+                    month
+                }
+            };
+            // the expected score of the crossing from what the seat can see now
+            let lin = |v: i64, lo: i64, hi: i64| ((v - lo).clamp(0, hi - lo) * 25 / (hi - lo)).clamp(0, 25);
+            let food = lin(obs.civ.food_fulfillment_bp as i64, 9_000, 9_900);
+            let order = lin((obs.civ.stability as i64 - next.strain_if_entered as i64) * 100, 6_500, 9_000);
+            let modern = lin(next.modern_share_bp as i64, 2_000, 6_000);
+            let at_war = obs.others.iter().any(|o| o.at_war);
+            let integrity = if at_war { 10 } else { 25 };
+            let expected = food + order + modern + integrity;
+            // Hard waits for a crossing that should end in a golden age, Medium for a
+            // steady one; both stop waiting after their patience
+            let (aim, patience_years) = match p.diff {
+                Difficulty::Easy => (0, 0),
+                Difficulty::Medium => (70, 20),
+                Difficulty::Hard | Difficulty::Expert => (85, 30),
+            };
+            let waited = (month - since) as i64 / 12;
+            // a round longer than the patience left decides now: never into a likely dark age
+            let decide_now = waited + rm as i64 / 12 > patience_years;
+            if expected >= aim || (decide_now && expected >= 55) || waited >= patience_years * 2 {
+                p.push(Action::EnterEra);
+            }
+        }
+    }
+    // ---- the next era's built proof, once its knowledge is in hand ---------------------
+    if let Some(next) = ev.next.as_ref().filter(|n| !n.eligible && ev.transition.is_none()) {
+        let known = next.conditions.iter().all(|c| c.satisfied || (c.handle.is_none() && !c.text.starts_with("An undiscovered") && !c.text.starts_with("An unrecognized")));
+        if known {
+            let has_of = |p: &Plan, kind: &str| regions.iter().any(|r| p.level(r, kind) > 0) || p.civ_pending(kind);
+            let (archive, precinct, port, powder, arsenal, dc) = (has_of(p, "archive"), has_of(p, "holy_site"), has_of(p, "port"), has_of(p, "powder_mill"), has_of(p, "arsenal"), has_of(p, "datacenter"));
+            let has = |kind: &str| match kind {
+                "archive" => archive,
+                "holy_site" => precinct,
+                "port" => port,
+                "powder_mill" => powder,
+                "arsenal" => arsenal,
+                _ => dc,
+            };
+            match next.era {
+                2 => {
+                    if !has("archive") && !has("holy_site") {
+                        p.try_build(capital, "archive", 1, 3);
+                    }
+                }
+                3 => {
+                    if !has("port") {
+                        let coast = regions.iter().copied().find(|r| r.coastal);
+                        match coast {
+                            Some(r) => {
+                                p.try_build(r, "port", 1, 3);
+                            }
+                            None => {
+                                for r in regions.iter().take(3) {
+                                    p.try_build(r, "roads", 1, 3);
+                                }
+                            }
+                        }
+                    }
+                    if !has("powder_mill") && !has("arsenal") {
+                        if !p.try_build(capital, "powder_mill", 1, 3) {
+                            p.try_build(capital, "arsenal", 1, 3);
+                        }
+                    }
+                }
+                4 => {
+                    let levels: i64 = regions.iter().map(|r| p.level(r, "machine_shop") as i64 + p.level(r, "textile_mill") as i64 + p.level(r, "steelworks") as i64).sum();
+                    if levels < 10 && !p.civ_pending("machine_shop") {
+                        try_build_sized(p, capital, "machine_shop", (10 - levels).clamp(1, 6) as u16, 3);
+                    }
+                }
+                5 => {
+                    // 300 units of electricity a month: falling water where there is a
+                    // site, otherwise generator halls behind the steam stations
+                    let elec: i64 = regions.iter().filter_map(|r| r.own.as_ref()).map(|o| o.power.elec_supply).sum();
+                    if elec < 300_000 && !p.civ_pending("hydro") && !p.civ_pending("generator") {
+                        let site = regions.iter().copied().find(|r| r.survey.as_ref().map(|s| s.hydro > 0).unwrap_or(false));
+                        let built = site.map(|r| try_build_sized(p, r, "hydro", 2, 3)).unwrap_or(false);
+                        if !built {
+                            if let Some(r) = regions.iter().copied().find(|r| p.level(r, "steam") > 0) {
+                                try_build_sized(p, r, "generator", 2, 3);
+                            }
+                        }
+                    }
+                }
+                6 => {
+                    if !has("datacenter") {
+                        p.try_build(capital, "datacenter", 1, 3);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    // ---- traditions --------------------------------------------------------------------
+    for t in &ev.traditions {
+        if !t.offered || t.reform_to.is_some() {
+            continue;
+        }
+        match &t.held {
+            None => {
+                // 20-60 years after the slot opens (Easy at once), by endowment
+                let opened = ev.history.iter().find(|h| h.era == if t.slot == "machine" { 4 } else { 6 }).map(|h| h.month).unwrap_or(month);
+                let delay = if p.diff == Difficulty::Easy { 0 } else { 20 + (mix(ai.policy_seed ^ t.slot.len() as u64) % 41) as u32 };
+                if month >= opened + delay * 12 || month + rm >= opened + delay * 12 + 12 * 20 {
+                    if let Some(path) = tradition_choice(obs, &t.slot, ai.policy_seed) {
+                        p.push(Action::ChooseTradition { slot: t.slot.clone(), path: path.into() });
+                    }
+                }
+            }
+            Some(h) => {
+                // switch only in a dark age, when the held path has stopped growing and
+                // the land now favours another
+                let dark = ev.age.as_ref().map(|a| a.kind == "dark").unwrap_or(false);
+                if dark && p.diff != Difficulty::Easy && t.switch_allowed_from <= month && t.mastery_bp < 2_000 && t.signature_share_bp < 300 {
+                    if let Some(path) = tradition_choice(obs, &t.slot, ai.policy_seed) {
+                        if path != h.as_str() {
+                            p.push(Action::ChooseTradition { slot: t.slot.clone(), path: path.into() });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // ---- the held paths' works ------------------------------------------------------------
+    let held = held_traditions(obs);
+    let towns: Vec<&RegionView> = {
+        let mut v: Vec<&RegionView> = regions.to_vec();
+        v.sort_by_key(|r| std::cmp::Reverse(r.own.as_ref().map(|o| o.population).unwrap_or(0)));
+        v
+    };
+    let levels_of = |kind: &str| -> i64 { regions.iter().filter_map(|r| r.own.as_ref()).flat_map(|o| o.facilities.iter()).filter(|f| f.kind == kind).map(|f| f.level as i64).sum() };
+    let pop = obs.civ.population as i64;
+    let mut wants: Vec<(&str, i64)> = Vec::new();
+    for k in &held {
+        match *k {
+            "steam" => wants.push(("steam_hammer", 2 + levels_of("machine_shop") / 2)),
+            "engine" => wants.push(("motor_works", 2 + levels_of("refinery") / 2)),
+            "wire" => wants.push(("tramways", 1)),
+            "atom" => {
+                wants.push(("isotope_works", 1 + pop / 50_000_000));
+                if p.line(Good::NuclearFuel).map(|l| l.produced > 0).unwrap_or(false) {
+                    wants.push(("compact_reactor", 2 + levels_of("fission")));
+                }
+            }
+            "network" => {
+                wants.push(("noc", 1));
+                wants.push(("implant_clinic", 1));
+            }
+            "living" => wants.push(("biofoundry", 2 + pop / 40_000_000)),
+            "synthetic" => {
+                if obs.civ.admin_load + 2 >= obs.civ.admin_capacity {
+                    wants.push(("machine_governance", 1));
+                }
+            }
+            _ => {}
+        }
+    }
+    for (kind, target) in wants {
+        if !p.fac_type(kind).map(|f| f.available).unwrap_or(false) || p.civ_pending(kind) {
+            continue;
+        }
+        let have = levels_of(kind);
+        if have >= target {
+            continue;
+        }
+        let per_region = kind == "tramways" || kind == "implant_clinic";
+        let sites: Vec<&RegionView> = if per_region { towns.iter().copied().take(3).filter(|r| p.level(r, kind) == 0).collect() } else { vec![capital] };
+        for r in sites {
+            let n = if per_region { 1 } else { (target - have).clamp(1, 4) as u16 };
+            if p.try_build(r, kind, n, 5) && !per_region {
+                break;
+            }
+        }
+    }
+    // lights-out machining where compute and power are to spare (chosen, never automatic)
+    if held.contains(&"synthetic") {
+        let compute: (i64, i64) = regions.iter().filter_map(|r| r.own.as_ref()).fold((0, 0), |a, o| (a.0 + o.power.compute_supply, a.1 + o.power.compute_demand));
+        if compute.0 > compute.1 * 2 {
+            for r in regions {
+                if let Some(f) = r.own.as_ref().unwrap().facilities.iter().find(|f| f.kind == "machine_shop" && f.level > 0) {
+                    let avail = p.fac_type("machine_shop").map(|t| t.recipes.iter().any(|x| x.key == "lights_out" && x.available)).unwrap_or(false);
+                    if avail && f.method.as_deref() != Some("lights_out") {
+                        p.push(Action::SetPolicy { setting: PolicySetting::Method { region: r.id, facility: "machine_shop".into(), method: Some("lights_out".into()) } });
+                        ai.memory.methods_set.push((r.id, "machine_shop".into()));
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn culture(ai: &NativeAi, p: &mut Plan, capital: &RegionView) {
