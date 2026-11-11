@@ -35,10 +35,14 @@ const LOOKAHEAD = 0.6;
 /** Overall level of the mix at full volume, calibrated from the offline renders. */
 export const MIX_LEVEL = 0.8;
 /**
- * Level of the recordings (each normalised to -18 LUFS integrated) against the composed
- * score in the same chain; see REC_TRIM_DB in tracks/CREDITS.md for how it was measured.
+ * Level of the recordings against the composed score. Each file is normalised to -18 LUFS
+ * integrated; the offline renders of the score through this chain (scripts/music-render.mjs,
+ * music and master at full) measure -15.1 to -15.8 LUFS, where a recording without trim
+ * would sit near -19.9 (after MIX_LEVEL). +3 dB brings the recordings to about -17 LUFS:
+ * 1.5 dB under the score on average, as their peaks run some 6 dB higher (wider dynamics),
+ * which keeps their climaxes under full scale before the glue compressor.
  */
-const REC_TRIM_DB = 0;
+const REC_TRIM_DB = 3;
 /** If a recording has not started this long after it was asked for, the score bridges the wait. */
 const BRIDGE_MS = 3000;
 const curve = (v: number) => Math.max(0, Math.min(1, v)) ** 2;

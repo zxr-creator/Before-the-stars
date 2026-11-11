@@ -1,0 +1,375 @@
+[
+ {
+  "id": "vltava",
+  "file": "vltava.webm",
+  "title": "Vltava (The Moldau), from Má vlast",
+  "composer": "Bedřich Smetana",
+  "performer": "Musopen Symphony",
+  "eras": [
+   "title"
+  ],
+  "moods": [
+   "title"
+  ],
+  "duration": 209.5,
+  "excerpt": "opening 3:30 of 12:51 (the two springs and the river's main theme), faded",
+  "license": "Public domain",
+  "licenseText": "{{Copyright information |recording={{PD-author|[https://musopen.org/ Musopen]}} |musical composition={{PD-old-auto-expired|deathyear=1884}} }}",
+  "source": "https://commons.wikimedia.org/wiki/File:Smetana_-_M%C3%A1_Vlast_-_Vltava_%28Musopen_Symphony%29.flac",
+  "retrieved": "2026-11-10",
+  "note": "Recording commissioned by Musopen (2012 Kickstarter project) and released by Musopen into the public domain ({{PD-author|Musopen}}); composition public domain (Smetana d. 1884)."
+ },
+ {
+  "id": "danse-sacree",
+  "file": "danse-sacree.webm",
+  "title": "Danse sacrée, from Danses for harp and strings",
+  "composer": "Claude Debussy",
+  "performer": "Marine Chamber Orchestra, \"The President's Own\" United States Marine Band (MSgt Karen Grimsey, harp; Maj Jason K. Fettig)",
+  "eras": [
+   "ancient",
+   "space"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 290,
+  "license": "Public domain",
+  "licenseText": "{{PD-USGov-Military-Marines}} {{PD-US}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Danse_Sacr%C3%A9e.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Performance and recording by a US Marine Corps band in the course of duty: a work of the US federal government, public domain ({{PD-USGov-Military-Marines}}); composition public domain (Debussy d. 1918; published 1904)."
+ },
+ {
+  "id": "lamentation",
+  "file": "lamentation.webm",
+  "title": "Lamentation for Holy Saturday (Tonus peregrinus)",
+  "composer": "Gregorian chant (anonymous)",
+  "performer": "Membeth (voice)",
+  "eras": [
+   "ancient",
+   "classical"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 179.8,
+  "excerpt": "first 3:00 of 6:09, faded",
+  "license": "CC0",
+  "licenseText": "{{self|Cc-zero}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Lamentation.III.Karsamstag.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Own recording by the singer (Wikimedia user Membeth), released under CC0 ({{self|Cc-zero}}); the chant is anonymous medieval liturgical music, public domain."
+ },
+ {
+  "id": "coriolan",
+  "file": "coriolan.webm",
+  "title": "Coriolan Overture, Op. 62",
+  "composer": "Ludwig van Beethoven",
+  "performer": "Musopen Symphony",
+  "eras": [
+   "ancient",
+   "classical"
+  ],
+  "moods": [
+   "war"
+  ],
+  "duration": 179.9,
+  "excerpt": "first 3:00 of 8:19, faded",
+  "license": "Public domain",
+  "licenseText": "{{Copyright information |recording={{PD-author|[https://musopen.org/ Musopen]}} |musical composition={{PD-old-auto-expired|deathyear=1827}} }}",
+  "source": "https://commons.wikimedia.org/wiki/File:Beethoven_-_Coriolan_Overture%2C_Op._62_%28Musopen_Symphony%29.flac",
+  "retrieved": "2026-11-10",
+  "note": "Recording commissioned by Musopen and released by Musopen into the public domain ({{PD-author|Musopen}}); composition public domain (Beethoven d. 1827)."
+ },
+ {
+  "id": "breves-dies",
+  "file": "breves-dies.webm",
+  "title": "Breves dies hominis (conductus, Notre-Dame school)",
+  "composer": "Léonin or Pérotin",
+  "performer": "Makemi (voice)",
+  "eras": [
+   "classical"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 211.9,
+  "license": "Public domain",
+  "licenseText": "{{PD-self}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Breves_dies_hominis.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Performed live and recorded by the uploader (Wikimedia user Makemi), released into the public domain ({{PD-self}}); composition 12th–13th century, public domain."
+ },
+ {
+  "id": "veni-sancte",
+  "file": "veni-sancte.webm",
+  "title": "Veni Sancte Spiritus (sequence for Pentecost)",
+  "composer": "Gregorian chant (anonymous)",
+  "performer": "Membeth (voice)",
+  "eras": [
+   "classical"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 157.3,
+  "license": "Public domain",
+  "licenseText": "{{PD-self}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Veni.sancte.spiritus.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Own recording by the singer (Wikimedia user Membeth), released into the public domain ({{PD-self}}); 13th-century sequence, public domain."
+ },
+ {
+  "id": "dies-irae",
+  "file": "dies-irae.webm",
+  "title": "Dies irae (sequence of the Requiem)",
+  "composer": "Gregorian chant (anonymous)",
+  "performer": "Membeth (voice)",
+  "eras": [
+   "classical"
+  ],
+  "moods": [
+   "war"
+  ],
+  "duration": 180,
+  "excerpt": "first 3:00 of 7:14, faded",
+  "license": "Public domain",
+  "licenseText": "{{PD-self}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Dies.irae.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Own recording by the singer (Wikimedia user Membeth), released into the public domain ({{PD-self}}); 13th-century sequence, public domain."
+ },
+ {
+  "id": "byrd-ave-verum",
+  "file": "byrd-ave-verum.webm",
+  "title": "Ave verum corpus",
+  "composer": "William Byrd",
+  "performer": "Stile Antico",
+  "eras": [
+   "earlyModern"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 258.2,
+  "license": "CC0",
+  "licenseText": "{{cc-zero}} {{LicenseReview}} {{ArrangedLicenseReview|site=Vimeo|archive=http://web.archive.org/web/20191002192741/https://vimeo.com/stpaulsindy|type=audio}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Byrd_-_Ave_Verum_Corpus_%28Stile_Antico%29.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Published on Vimeo by St. Paul's Episcopal Church, Indianapolis (StPaulsIndy) under CC0; the CC0 licence was verified on the Vimeo page by a Commons licence reviewer ({{cc-zero}} {{LicenseReview}}); composition public domain (Byrd d. 1623)."
+ },
+ {
+  "id": "albinoni-adagio",
+  "file": "albinoni-adagio.webm",
+  "title": "Oboe Concerto in D minor, Op. 9 No. 2: II. Adagio",
+  "composer": "Tomaso Albinoni",
+  "performer": "Paul Arden-Taylor (oboe)",
+  "eras": [
+   "earlyModern"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 257.7,
+  "license": "CC0",
+  "licenseText": "{{Cc-zero}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Albinoni%2C_Concerto_for_Oboe_and_Strings_No._2_in_D_minor%2C_Op._9%2C_II._Adagio.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Musopen recording released under CC0 ({{Cc-zero}}); composition public domain (Albinoni d. 1751)."
+ },
+ {
+  "id": "water-music-sarabande",
+  "file": "water-music-sarabande.webm",
+  "title": "Water Music: Sarabande (Suite No. 3 in G, HWV 350)",
+  "composer": "George Frideric Handel",
+  "performer": "Marine Chamber Orchestra, \"The President's Own\" United States Marine Band (Maj Michelle Rakers)",
+  "eras": [
+   "earlyModern"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 167.4,
+  "license": "Public domain",
+  "licenseText": ";Composition{{PD-old-auto-expired|deathyear=1759}} ;Performance and recording{{PD-USGov-Military-Marines}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Handel%27s_Water_Music_-_16._Sarabande_-_Chamber_Orchestra_-_United_States_Marine_Band.opus",
+  "retrieved": "2026-11-10",
+  "note": "Performance and recording by a US Marine Corps band: a work of the US federal government, public domain ({{PD-USGov-Military-Marines}}); composition public domain (Handel d. 1759)."
+ },
+ {
+  "id": "vivaldi-summer-presto",
+  "file": "vivaldi-summer-presto.webm",
+  "title": "The Four Seasons, Summer, RV 315: III. Presto",
+  "composer": "Antonio Vivaldi",
+  "performer": "The Modena Chamber Orchestra",
+  "eras": [
+   "earlyModern"
+  ],
+  "moods": [
+   "war"
+  ],
+  "duration": 176.6,
+  "license": "Public domain (marked by the owner)",
+  "licenseText": "{{PDMark-owner}}",
+  "source": "https://commons.wikimedia.org/wiki/File:The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Summer%2C_RV_315_-_III._Presto.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Musopen recording marked as public domain by its owner ({{PDMark-owner}}); composition public domain (Vivaldi d. 1741)."
+ },
+ {
+  "id": "haydn-lark-adagio",
+  "file": "haydn-lark-adagio.webm",
+  "title": "String Quartet in D, Op. 64 No. 5 \"The Lark\": II. Adagio cantabile",
+  "composer": "Joseph Haydn",
+  "performer": "Musopen String Quartet",
+  "eras": [
+   "industrial"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 290,
+  "license": "Public domain",
+  "licenseText": "{{Copyright information |recording={{PD-author|[https://musopen.org/ Musopen]}} |musical composition={{PD-old-auto-expired|deathyear=1809}} }}",
+  "source": "https://commons.wikimedia.org/wiki/File:Haydn_-_String_Quartet%2C_Op._64_No._5_in_D_major_%27The_Lark%27_-_II._Adagio._Cantabile_%28Musopen_String_Quartet%29.flac",
+  "retrieved": "2026-11-10",
+  "note": "Recording commissioned by Musopen and released by Musopen into the public domain ({{PD-author|Musopen}}); composition public domain (Haydn d. 1809)."
+ },
+ {
+  "id": "holberg-air",
+  "file": "holberg-air.webm",
+  "title": "From Holberg's Time, Op. 40: IV. Air",
+  "composer": "Edvard Grieg",
+  "performer": "Marine Chamber Orchestra, \"The President's Own\" United States Marine Band (Maj Jason K. Fettig)",
+  "eras": [
+   "industrial"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 316.9,
+  "license": "Public domain",
+  "licenseText": ";Composition{{PD-old-auto-expired|deathyear=1907}} ;Performance and Recording{{PD-USGov-Military-Marines}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Grieg%27s_Suite_for_Strings%2C_Op._40%2C_%22From_Holberg%E2%80%99s_Time%22_-_IV._Air_-_Chamber_Orchestra_-_United_States_Marine_Band.mp3",
+  "retrieved": "2026-11-10",
+  "note": "Performance and recording by a US Marine Corps band: a work of the US federal government, public domain ({{PD-USGov-Military-Marines}}); composition public domain (Grieg d. 1907)."
+ },
+ {
+  "id": "brahms-tragic",
+  "file": "brahms-tragic.webm",
+  "title": "Tragic Overture, Op. 81",
+  "composer": "Johannes Brahms",
+  "performer": "Musopen Symphony",
+  "eras": [
+   "industrial"
+  ],
+  "moods": [
+   "war"
+  ],
+  "duration": 179.9,
+  "excerpt": "first 3:00 of 13:50, faded",
+  "license": "Public domain",
+  "licenseText": "{{Copyright information |recording={{PD-author|[https://musopen.org/ Musopen]}} |musical composition={{PD-old-auto-expired|deathyear=1897}} }}",
+  "source": "https://commons.wikimedia.org/wiki/File:Brahms_-_Tragic_Overture%2C_Op._81_%28Musopen_Symphony%29.flac",
+  "retrieved": "2026-11-10",
+  "note": "Recording commissioned by Musopen and released by Musopen into the public domain ({{PD-author|Musopen}}); composition public domain (Brahms d. 1897)."
+ },
+ {
+  "id": "elgar-serenade",
+  "file": "elgar-serenade.webm",
+  "title": "Serenade for Strings in E minor, Op. 20: II. Larghetto",
+  "composer": "Edward Elgar",
+  "performer": "United States Army Strings",
+  "eras": [
+   "modern"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 351.5,
+  "excerpt": "the second movement (3:25–9:17) of the file, which holds the whole serenade",
+  "license": "Public domain",
+  "licenseText": ";Performance {{PD-USGov-Military-Army}} ;Composition {{PD-old-auto-1923|deathyear=1934}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Serenade_for_Strings_-mvt-1-_Elgar.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Performance and recording by a US Army band: a work of the US federal government, public domain ({{PD-USGov-Military-Army}}); composition public domain in the US (published 1893) and in the EU and UK (Elgar d. 1934)."
+ },
+ {
+  "id": "holst-chaconne",
+  "file": "holst-chaconne.webm",
+  "title": "First Suite in E-flat for Military Band, Op. 28 No. 1: I. Chaconne",
+  "composer": "Gustav Holst",
+  "performer": "United States Air Force Heritage of America Band, Concert Band",
+  "eras": [
+   "modern"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 269.8,
+  "license": "Public domain",
+  "licenseText": ";Composition{{PD-old-auto-expired|deathyear=1934}} ;Performance{{PD-USGov-Military-Air Force}} ;Recording{{PD-USGov-Military-Air Force}}",
+  "source": "https://commons.wikimedia.org/wiki/File:First_Suite_in_E-flat_for_Military_Band_-_I._Chaconne_-_Concert_Band_-_United_States_Air_Force_Heritage_of_America_Band.mp3",
+  "retrieved": "2026-11-10",
+  "note": "Performance and recording by a US Air Force band: a work of the US federal government, public domain ({{PD-USGov-Military-Air Force}}); composition public domain in the US (published 1921) and in the EU and UK (Holst d. 1934)."
+ },
+ {
+  "id": "pathetique-march",
+  "file": "pathetique-march.webm",
+  "title": "Symphony No. 6 in B minor, Op. 74 \"Pathétique\": III. Allegro molto vivace",
+  "composer": "Pyotr Ilyich Tchaikovsky",
+  "performer": "Musopen Symphony",
+  "eras": [
+   "modern",
+   "space"
+  ],
+  "moods": [
+   "war"
+  ],
+  "duration": 250,
+  "excerpt": "closing 4:10 of 9:53 (the march to its end), faded in",
+  "license": "Public domain",
+  "licenseText": "{{Copyright information |recording={{PD-author|[https://musopen.org/ Musopen]}} |musical composition={{PD-old-auto-expired|deathyear=1893}} }}",
+  "source": "https://commons.wikimedia.org/wiki/File:Tchaikovsky_-_Symphony_No._6_in_B_minor%2C_Op._74_%27Path%C3%A9tique%27_-_III._Allegro_molto_vivace_%28Musopen_Symphony%29.flac",
+  "retrieved": "2026-11-10",
+  "note": "Recording commissioned by Musopen and released by Musopen into the public domain ({{PD-author|Musopen}}); composition public domain (Tchaikovsky d. 1893)."
+ },
+ {
+  "id": "bach-busoni-nun-komm",
+  "file": "bach-busoni-nun-komm.webm",
+  "title": "Nun komm, der Heiden Heiland, BWV 659 (arranged for piano by Busoni)",
+  "composer": "Johann Sebastian Bach, arr. Ferruccio Busoni",
+  "performer": "Membeth (piano)",
+  "eras": [
+   "space"
+  ],
+  "moods": [
+   "peace"
+  ],
+  "duration": 277.7,
+  "license": "Public domain",
+  "licenseText": "{{PD-self}}",
+  "source": "https://commons.wikimedia.org/wiki/File:Bach.Busoni.Nun.komm.der.Heiden.Heiland.BWV.659.mitteltoenig.ogg",
+  "retrieved": "2026-11-10",
+  "note": "Own recording by the pianist (Wikimedia user Membeth), released into the public domain ({{PD-self}}, also marked {{cc-zero}}); composition public domain (Bach d. 1750; Busoni's transcription published 1907–09, Busoni d. 1924)."
+ },
+ {
+  "id": "mendelssohn-quartet-6",
+  "file": "mendelssohn-quartet-6.webm",
+  "title": "String Quartet No. 6 in F minor, Op. 80: I. Allegro vivace assai",
+  "composer": "Felix Mendelssohn",
+  "performer": "Musopen String Quartet",
+  "eras": [
+   "space"
+  ],
+  "moods": [
+   "war"
+  ],
+  "duration": 179.7,
+  "excerpt": "first 3:00 of 7:42, faded",
+  "license": "Public domain",
+  "licenseText": "{{Copyright information |recording={{PD-author|[https://musopen.org/ Musopen]}} |musical composition={{PD-old-auto-expired|deathyear=1847}} }}",
+  "source": "https://commons.wikimedia.org/wiki/File:Mendelssohn_-_String_Quartet_No._6_in_F_minor%2C_Op._80_-_I._Allegro_vivace_assai_%28Musopen_String_Quartet%29.flac",
+  "retrieved": "2026-11-10",
+  "note": "Recording commissioned by Musopen and released by Musopen into the public domain ({{PD-author|Musopen}}); composition public domain (Mendelssohn d. 1847)."
+ }
+]
