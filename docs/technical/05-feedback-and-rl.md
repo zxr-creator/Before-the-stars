@@ -1,5 +1,13 @@
 # Information Panels, Actions, and Agentic RL Feedback
 
+> **Next-design override (2026-11-13):** use
+> [FTL-only completion](../design/15-victory-and-ftl.md),
+> [one agent decision contract](../design/43-agent-access-and-decision-packets.md),
+> and [automatic institutional education](../design/44-institutional-education.md)
+> where this historical specification differs. The current ruleset-3 calendar is
+> described in chapter 42; old 240-round figures are historical fixtures. These
+> changes require implementation and versioned migration.
+
 The objective is a fast, inspectable decision loop. Physical time cannot skip demographic, transport, contract, or cultural delays to provide more reward. Reduce computation and reading latency instead. Authoritative multicore Rust and TypeScript panels/CLI/MCP share one observation projection. This remains a design, with no implementation or measured performance claims.
 
 ## One dataset, two presentations

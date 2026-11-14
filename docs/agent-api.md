@@ -1,5 +1,12 @@
 # Agent API
 
+> **Current implementation reference (audited 2026-11-13, protocol 2.6).**
+> This page documents shipped endpoints. The simpler next-design experience is in
+> [chapter 43](design/43-agent-access-and-decision-packets.md); its proposed commands
+> are not available yet. [Chapter 44](design/44-institutional-education.md) will replace
+> routine course actions, and [chapter 15](design/15-victory-and-ftl.md) changes victory.
+> Neither change is implemented by this documentation update.
+
 Humans, native AI and external agents use one protocol. The browser client is simply
 one consumer of the HTTP API below. The authoritative types are in
 [`crates/bts-protocol/src/lib.rs`](../crates/bts-protocol/src/lib.rs); JSON field names
@@ -115,8 +122,11 @@ play a free seat; start it with `--require-tokens` to enforce them.
 | `GET /api/building-tree` | | The public building tree (protocol 2.3): every building, line, stage and upgrade edge, technology requirements masked to era and field, sealed content absent. No token: it is the same for every seat and match of the content version. Turn packets carry `building_tree_hash`, and the tree itself when `known_tree_hash` (query or submission field) differs, or in the first round when none is given |
 
 `controllers` is a list of two to ten of `"human"`, `"external"`, `"easy"`, `"medium"`,
-`"hard"` and the model-driven controllers below. `regions` is 24, 48 or 72. `horizon` is in months (2880 standard; 960 is the
-short development fixture, for which `pace_bp: 3300` is suggested). With
+`"hard"` and the model-driven controllers below. The current standard CLI configuration uses 60 Earth-like regions and the 525-round
+historical calendar; map-size limits follow the running host's configuration. The old
+2,880-month/960-month horizons are development fixtures, not the standard calendar.
+The CLI `--horizon` selects a fixture calendar; do not assume it is equivalent to an
+HTTP field without checking the current MatchConfig contract. With
 `public_seed: false` the world root is mixed with server entropy and the seed label
 alone no longer reconstructs the world.
 

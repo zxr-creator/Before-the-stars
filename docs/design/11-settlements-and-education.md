@@ -1,5 +1,15 @@
 # Settlements, Urban–Rural Networks, and Education
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 Design and referee material, originally version 0.3. Causal relationships, behavioral responses, and hidden parameters in this document must not enter seat-facing rule summaries. Players can see their land, facilities, inventories, service accounts, and sourced population, employment, school, and military reports. They must investigate relationships themselves. In 1.0, [32](32-population-and-education-v1.0.md) supersedes fine population grouping, monthly occupational matching, and continuous credential decay; the economic and spatial constraints below remain.
 
 ## From early communities to urban civilization

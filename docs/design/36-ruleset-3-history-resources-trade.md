@@ -1,5 +1,15 @@
 # 36. Ruleset 3.0: a historical calendar, resources, productivity and trade
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 Status: design and implementation plan; no code is changed by this chapter. It builds
 on ruleset 2.0 as it stands on branch `worktree-agent-ae3d44154d3d3f88e` (commit
 `6986601`): `docs/units-and-scale.md`, `docs/conservation-audit.md` and

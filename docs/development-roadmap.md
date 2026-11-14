@@ -1,5 +1,9 @@
 # Development stages and acceptance
 
+> **Next work order (2026-11-13):** follow [the handoff](next-design-handoff.md):
+> operational FTL victory, institutional education, packet/onboarding repair, then
+> policy calibration. Older milestones below are historical where they conflict.
+
 Build one explainable, replayable game that can both fail and finish before expanding content. Stage numbers express dependencies, not delivery-date promises. The repository currently contains design and historical protocol drafts only; the following implementation remains future work.
 
 Current authority is the [complete v1.0 plan](design/30-complete-plan-v1.0.md) and chapters 31–34. v1.0 adopts competitive-only play, four civilizations with 1–4 external seats, three native-AI difficulties, simplified population, corrected fixed graphs, a stylized atlas and a Civilization-style Historic Moments timeline. It retains the production catalogs, real inputs, contracts, warfare, limited communication, uncertainty and sustained FTL/global-governance requirements. No game implementation starts in this revision.

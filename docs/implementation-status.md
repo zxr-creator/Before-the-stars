@@ -1,5 +1,10 @@
 # Implementation status against the v1.0 design
 
+> **2026-11-13 review:** the next-design revision in chapters 42–44 and revised chapter 15
+> is not implemented. Current-code source findings and two reproduced CLI timeouts are
+> recorded in [audit 09](reviews/09-current-implementation-audit.md). Retain the historical
+> calibration results below; do not count documentation changes as repaired gameplay.
+
 The design documents in this directory remain the specification. This file records how
 the playable implementation in `crates/` and `apps/web/` relates to them. "Abstracted"
 means the mechanism exists in a simpler form with the same strategic feedback;

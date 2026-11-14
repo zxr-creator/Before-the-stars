@@ -1,17 +1,21 @@
 # Before the Stars
 
-A competitive civilization strategy game for humans and AI agents. Four civilizations
-grow from primitive, non-religious camps toward sustained faster-than-light capability
-while managing the interdependence of food, labour, education, production, knowledge,
-culture, diplomacy and war. One seat at most can win, and winning takes **both** real
-governance of the whole inhabited world **and** a jump-capable service the winner can
-build, crew, supply and replace.
+A competitive civilization strategy game for humans and AI agents, with an authoritative
+Rust engine, TypeScript client, native opponents and optional model-driven seats.
+The desktop application and browser/WebAssembly build share the game rules.
 
-This repository contains the v1.0 design documentation (`docs/`) and a playable
-implementation of it: an authoritative Rust rules engine with native non-LLM opponents
-and optional language-model seats, and a desktop application for macOS and Windows
-(the same client also runs in a browser, and as a static site with the engine compiled
-to WebAssembly).
+**Design update, 2026-11-13:** the next ruleset wins by completing an operational FTL
+engine, without global unification. Education becomes automatic through maintained
+schools, universities and advanced institutions; agent access is simplified around
+one decision contract. Read the [revision](docs/design/42-ftl-completion-and-playability.md)
+and [implementation handoff](docs/next-design-handoff.md).
+
+**Implementation status:** this documentation branch does not change game code.
+The audited game 0.4.0 / ruleset 3.0.0 at `fabe33b` still requires global governance
+and fleet-wide FTL acceptance and still uses explicit education programmes.
+The [audit](docs/reviews/09-current-implementation-audit.md) records the current failures
+and two unmodified full-campaign runs. The default world has four civilizations;
+larger configurations and their limits are described in the ruleset-3 documents.
 
 ![The world map and round briefing late in a match](docs/screenshots/world.png)
 

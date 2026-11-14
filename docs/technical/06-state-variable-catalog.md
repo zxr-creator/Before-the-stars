@@ -1,5 +1,13 @@
 # 1.0 Engine State Variable Catalog
 
+> **Next-design override (2026-11-13):** use
+> [FTL-only completion](../design/15-victory-and-ftl.md),
+> [one agent decision contract](../design/43-agent-access-and-decision-packets.md),
+> and [automatic institutional education](../design/44-institutional-education.md)
+> where this historical specification differs. The current ruleset-3 calendar is
+> described in chapter 42; old 240-round figures are historical fixtures. These
+> changes require implementation and versioned migration.
+
 Designer/referee material, not a public rule summary, executable implementation, or frozen Rust/TypeScript schema. Field names are proposed semantic names; implementation must establish types, units, and migrations. Existing JSON 0.1/0.2 contracts do not automatically upgrade. Never serialize this catalog directly to a seat: the complete knowledge graph, cultural responses, world root key, actual population, and unrevealed endpoint are private. The [1.0 complete plan](../design/30-complete-plan-v1.0.md) controls current scope; the [0.5 engine plan](../design/00-v0.5-engine-plan.md) retains the parameter-freeze process.
 
 Candidate content, courses, cultural directions, and transitions originate in [dynamic development](../design/20-dynamic-development-v0.6.md) and atlases 17–19. [31](../design/31-knowledge-and-culture-v1.0.md) specifies the fixed complete graph and dynamic local view; [32](../design/32-population-and-education-v1.0.md) supersedes fine household/pregnancy/disease objects and continuous per-credential decay. [21](../design/21-production-chains-v0.7.md) and [23](../design/23-industrial-development-v0.7.md) specify recipes, capital, industrial layers, quality, energy, residual elements, transitions, and task compute. Six technological traditions are observation summaries, not six resource ledgers.

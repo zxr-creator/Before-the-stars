@@ -1,8 +1,28 @@
 # Before the Stars — documentation index
 
-The current design version is **v1.0**. This is an English-language, design-only repository. It contains designer knowledge, hidden mechanisms and eventual objectives; it is not a competitive player or agent handbook. Existing JSON schemas are historical drafts, not the current API.
+The playable implementation audited on 2026-11-13 is game **0.4.0 / ruleset 3.0.0**
+(commit `fabe33b`). Its current content has **300 technologies and 174 practices**.
+The **next-design revision dated 2026-11-13** changes victory, education and agent
+access. It is documentation only; the running game still uses the old victory rule.
+This repository contains designer knowledge and is not an isolated competitive agent handbook.
 
-## Start here
+## Latest revision — start here
+
+1. [Playability and Civilization VI comparison](design/42-ftl-completion-and-playability.md).
+2. [Victory: complete an operational FTL engine](design/15-victory-and-ftl.md).
+3. [Education through maintained institutions](design/44-institutional-education.md).
+4. [Simplified coding-agent and API access](design/43-agent-access-and-decision-packets.md).
+5. [Current implementation audit and two reproduced campaigns](reviews/09-current-implementation-audit.md).
+6. [Implementation handoff](next-design-handoff.md).
+
+These documents override conflicting global-integration/fleet-wide victory, manual
+training and hidden-graph policy assumptions in older chapters. Chapter 36's historical
+calendar, chapters 37–40's nonconflicting systems and chapter 41's lean scope remain.
+The current API is [agent-api.md](agent-api.md); historical JSON schemas in `contracts/`
+are not the implementation contract. See [implementation-status.md](implementation-status.md)
+for shipped behavior. No design revision silently migrates an existing save.
+
+## Historical v1.0 foundation
 
 1. [Complete v1.0 plan](design/30-complete-plan-v1.0.md): product, scope, time, interconnected systems, victory and development gates.
 2. [Knowledge and culture](design/31-knowledge-and-culture-v1.0.md): a fixed complete graph, dynamic discovery and implementation, prerequisite corrections, culture and education.
@@ -29,7 +49,7 @@ The current design version is **v1.0**. This is an English-language, design-only
 | [12 Population and development](design/12-population-and-development.md) | Population constraints, crises, low fertility and bottlenecks |
 | [13 War resolution](design/13-war-resolution.md) | Recruitment, training, command, simultaneous losses and occupation |
 | [14 Contract resolution](design/14-contract-resolution.md) | Partial delivery, research failure, breach, custody and settlement |
-| [15 Victory and FTL](design/15-victory-and-ftl.md) | Global authority, sustained military capability and terminal reward |
+| [15 Victory and FTL](design/15-victory-and-ftl.md) | Operational FTL project completion and terminal reward (next design) |
 | [16 Knowledge and culture engine](design/16-knowledge-and-culture-engine.md) | State transitions, evidence, adoption, experience and slow transmission |
 | [29 Diplomacy communication](design/29-diplomacy-communication-v0.8.1.md) | Three counterparts, ten pair envelopes, five windows and protected rights |
 
@@ -74,12 +94,12 @@ The current design version is **v1.0**. This is an English-language, design-only
 - Release records: [v0.7](releases/v0.7-review-package.md), [v0.8](releases/v0.8-review-package.md), [v0.8.1](releases/v0.8.1-review-package.md), [v1.0](releases/v1.0-review-package.md).
 - [References and design boundaries](references.md): primary research, inspirations and what the sources do not establish.
 
-## Authority and retained requirements
+## Historical v1.0 authority and retained requirements
 
 Chapters 30–34 take precedence for v1.0 scope, graph corrections, population simplification, competition, native AI, art and timeline. Recipes and industrial strata remain in 21–22 and advanced applications in 25. Current monthly timing and variable ownership live in technical/07 and technical/06. Warfare, contracts and sustained victory use 13–15; communication uses 29. Earlier documents that describe cooperative winners, a 4–8-seat product target, all-pixel rendering, per-household population or changing complete graphs are historical where explicitly marked and do not override v1.0.
 
 The design preserves primitive development, no initial religion, real educational and industrial investment, local cultural population shares, technological military advantage, comparable same-tier roles, consequential diplomacy, uncertain information, real governance after conquest and FTL on every winning path. Original art and a readable interface do not alter the common information boundary.
 
-The current content baseline is 138 technologies, 64 practices, 24 courses, 34 recipes, 10 capital modules, six transitions, eighteen tradition layers and nine advanced application packages. Counts do not establish balance. The same content version has the same complete graphs in every match; only world conditions, evidence, visible graphs, implementation and adoption differ.
+The historical v1.0 content baseline was 138 technologies, 64 practices, 24 courses, 34 recipes, 10 capital modules, six transitions, eighteen tradition layers and nine advanced application packages. Counts do not establish balance. The same content version has the same complete graphs in every match; only world conditions, evidence, visible graphs, implementation and adoption differ.
 
-Freeze `ruleset_version`, `content_version`, `generator_version`, `protocol_version` and policy versions before a match. No live update may change victory, timing, secrets or economics. All machine-contract migration, SDK generation, engine development, client development, model adaptation and release deployment remain future work.
+Freeze `ruleset_version`, `content_version`, `generator_version`, `protocol_version` and policy versions before a match. No live update may change victory, timing, secrets or economics. This paragraph describes the historical v1.0 plan, not current implementation status. Use the latest-revision entry points above for current and planned behavior.

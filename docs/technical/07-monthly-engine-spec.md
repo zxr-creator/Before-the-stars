@@ -1,5 +1,13 @@
 # 1.0 Monthly Engine, Actors, and Closed Ledgers
 
+> **Next-design override (2026-11-13):** use
+> [FTL-only completion](../design/15-victory-and-ftl.md),
+> [one agent decision contract](../design/43-agent-access-and-decision-packets.md),
+> and [automatic institutional education](../design/44-institutional-education.md)
+> where this historical specification differs. The current ruleset-3 calendar is
+> described in chapter 42; old 240-round figures are historical fixtures. These
+> changes require implementation and versioned migration.
+
 This specification defines one world month for implementation and mechanism review, not an omniscient seat manual. It retains the [economy's](../design/02-civilization-systems.md) eight stages and closes their dependencies, without real-time interruption windows or simulation code. Entities/units are in the [state catalog](06-state-variable-catalog.md), knowledge/culture in the [knowledge specification](../design/16-knowledge-and-culture-engine.md). [32](../design/32-population-and-education-v1.0.md) replaces fine population, household, disease, and qualification processing; this document incorporates those changes.
 
 ## Time, snapshots, and effectiveness

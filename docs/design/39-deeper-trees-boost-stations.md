@@ -1,5 +1,15 @@
 # 39. Deeper trees, path dependence, boost (运载力) and space stations (ruleset 3.0 addendum)
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 Status: design addendum, content plan and plan changes; no code and no `content/` file is
 changed by this chapter. It extends `37-eras-space-buildings-military.md` (doc 37) and
 `36-ruleset-3-history-resources-trade.md` (doc 36), which stay normative wherever this

@@ -1,5 +1,15 @@
 # 35. Scale, construction and the industrial base (ruleset 2.0) - change plan
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 Companion to `docs/units-and-scale.md`, which is normative for units. This chapter is
 the implementation plan and the specification of the new mechanics. It is implemented
 in six slices; each slice keeps `cargo test --release` green and is committed

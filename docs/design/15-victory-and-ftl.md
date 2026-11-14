@@ -1,69 +1,117 @@
-# 1.0: Military-Wide FTL Acceptance and Complete Victory
+# Victory: complete an operational FTL engine
 
-The user confirmed that global integration remains mandatory and the reward measures complete-victory time; pure FTL achievement is recorded separately. **Conquering everyone still requires FTL. Possessing FTL without global integration does not win.** This document replaces the 0.3 interpretation of two prototype trials as sufficient FTL acceptance. Two trials remain necessary.
+Revised 2026-11-13 at the user's request. **Next-design specification, not yet implemented.**
+This replaces `G96 AND F24 AND Trials96`. Ruleset 3.0.0 at the audited commit still
+uses that old rule. See [chapter 42](42-ftl-completion-and-playability.md) for evidence.
 
-Version 1.0 has competitive matches only. Cooperation, alliances, licensing, and federal institutions remain available actions, but every completed match has at most one winning original seat. The full competition specification is [33](33-competition-and-native-ai-v1.0.md).
+## 1. Sole victory condition
 
-## Meaning of military-wide capability
+The first eligible original civilization to complete a verified operational FTL engine
+project wins. **Global integration is not required.** Conquest, population, territory
+and military supremacy are not alternate victories. A conqueror still needs FTL;
+a peaceful civilization can win while independent rivals survive.
 
-“Military-wide” means the highest command system can continuously command, transport, maintain, and replenish the military forces needed for its responsibilities. Every infantry soldier does not need an engine, and starting a war is not required. Strategic transport and local defense may specialize; peaceful integration can pass through standard exercises. Acceptance tests actual control, personnel, equipment, manufacturing, and services, rather than substituting a national technology level.
+Completion requires physical construction, commissioning and a verified loaded jump
+and recovery. Researching a technology, hoarding money or announcing success is not
+completion. Scientific, educational and industrial capacity must actually support the
+project; unrelated national systems need not pass simultaneous acceptance checks.
 
-The victory contract is sealed at initialization and its complete verifiable requirements become available when the final objective is revealed. The standard template contains six capabilities. Steam and diesel traditions must transition across domains, acquiring electrical, computing, materials, and space capabilities before implementing different engineering solutions under the same explicit science-fiction assumption. There is no scientifically asserted steam-to-FTL shortcut.
+The proposed acceptance scope is deliberately narrower than the former military-wide
+requirement: finish a working engine programme. Second independent assembly plants,
+three global deployment nodes, replacement fleets, 96 governance months and 24 months
+of fleet-wide readiness are not mandatory. Fleet-wide deployment may remain an optional
+post-victory achievement. This is a design choice accompanying the user's FTL-only
+request, not a claim that deleting governance alone fixes the current game.
 
-The historical [0.8 multicivilization case](../reviews/07-postindustrial-campaign-v0.8.md) specifies components, training, manufacturing, trials, and governance dates for its scenario. Those numbers do not replace this chapter's general windows; its former cooperative-winner interpretation is superseded by 1.0 competition. Advanced AI, cybernetic, and biological capabilities are specified in [25](25-ai-cyber-bio-industries-v0.8.md); they are not all mandatory FTL branches.
+## 2. Engineering state machine
 
-| Acceptance item | Standard task and persistence requirement | Exploit prevented |
+`unknown → revealed → authorized → constructing → commissioning → flight_ready
+→ trial_in_progress → recovered_and_verified → completed`.
+
+| Stage | Required evidence | Interruption behavior |
 | --- | --- | --- |
-| Engineering reliability | At least two loaded FTL round trips, at least 12 months apart, using two independently operable propulsion assemblies | Repeatedly claiming success with one prototype; treating an unloaded signal as transport capability |
-| Military-wide interfaces | Joint exercise of highest command, safety authorization, communications, navigation, task allocation, supply, and maintenance; every active task formation has compatible transport or local support | Research knowledge without deployable forces; nominal compatibility |
-| Deployment tasks | Demonstrate transport, maintenance, and recovery at each of 3 fixed revealed test nodes, with scenario-defined mass, energy, and personnel, within 6 months | A single factory-door flight; renaming formations to erase distant obligations |
-| Series manufacturing | Produce at least 2 qualified standard assemblies within 24 months from actual inputs at two independently executable manufacturing units, with usable plans, personnel, and lawful continuing use rights | Merely buying two finished units, registering one assembly twice, or borrowing a ship for a day |
-| Maintenance and replacement | Maintain task capability for 24 consecutive months; actually replace one assembly and hand over to a replacement crew; inventory/contracts cover the following 12-month maintenance plan | Ending production immediately after the maiden flight; lacking spares, instructors, or training |
-| Social and fiscal support | Maintain resident services and effective finance/logistics throughout the governance window below; military resources cannot also count as delivered civilian services | Cutting water, food, and maintenance to cross the finish line once |
+| Revealed | Acquired evidence exposes the objective and known prerequisites | No early packet or example reveals hidden FTL targets |
+| Authorized | Known viable design, sponsoring seat and funded project | Authorization is not construction; show missing observed requirements |
+| Constructing | Delivered engine materials, real work and facilities | Shortages pause affected work; consumed inputs remain spent |
+| Commissioning | Installed engine, quality tests, assigned qualified team, launch/recovery support | Automatic specialist conversion is a real project stage, not a separate course click |
+| Flight ready | Exclusive mission input/capacity reservations and completed tests | Reserved stock, staff and service slots cannot be spent elsewhere |
+| Trial in progress | Standard nonzero payload follows the paid loaded jump-and-return protocol | Actual interruptions cause documented delay, damage or loss; no arbitrary failure added to prolong the game |
+| Recovered and verified | Returned payload/engine and telemetry pass the test; programme rights held through recovery | Diplomatic claims and undelivered promises do not count |
+| Completed | Month-end settlement confirms evidence and eligibility | Record immutable completion time; adjudicate all seats together |
 
-Standard task scale is fixed at initialization from world scale, initial population, and task distance, expressed in actual product units and personnel teams. Temporary demobilization does not reduce it. The first numeric content pack must specify each FTL design's payload, energy, assembly recipes, and training hours. These content parameters may be calibrated; the six acceptance mechanisms are no longer unspecified. Standards cannot change during a match to make a model win.
+Manufacturing replication and quality evidence belong within the engine's construction
+and commissioning. They are not a requirement to build a second space empire. The
+new content version must define a concrete bill, minimum work/durations, standard
+payload and support capacity, exposed when discovered. Reuse relevant current prototype
+and trial recipes as calibration inputs, removing global/fleet prerequisites rather
+than applying an unexplained universal discount. Current T166 and its physical
+requirements are the starting point; T167 fleet standards are not the terminal gate.
+Audit all transitive practice, material, teaching and site prerequisites.
 
-Two manufacturing units need not mean two countries or incompatible technologies. Independent execution means critical machines and working hours cannot be counted twice; renaming one factory does not create two units. This is the game's reliability standard, not a claim about necessary real interstellar engineering.
+Research and accepted components persist. Missing fuel pauses preparation rather than
+erasing science. Physical damage can destroy an engine; material design changes
+invalidate only affected tests. Operating services are checked when used, not inferred
+from old certificates. The same operational predicate must serve quotes, UI, project
+start and flight/recovery, including upgraded stations and partner services.
 
-## Rights, joint contributions, and acceptance scope
+## 3. Cooperation and control
 
-Imported equipment, joint research, manufacturing licenses, and federal specialization may contribute if the eventual winner has genuinely executable command and service rights throughout the complete window. Licenses expiring during that window, unaccepted outsourced services, and private facilities beyond its authority cannot count as owned capability. Signed future services may support planning; only months actually performed count toward sustained acceptance.
+Launch, fabrication, laboratories and teams may be domestic or contracted. Count actual
+exclusive delivered capacity, not nominal future promises. A supplier cannot sell the
+same slot twice. People assigned to a mission cannot simultaneously work elsewhere.
+Necessary test material has a reachable acquisition/substitution path; direct ownership
+of every world test node cannot remain a hidden victory gate.
 
-Force establishment does not determine minimum task scale. Acceptance covers all actual active tasks and defense, occupation, and resettlement responsibilities still unresolved from the preceding 24 months. Reasonable withdrawal can reduce future expenditure, but cannot delete unfinished responsibilities or substitute for fixed standard tasks. Formation transfers, renaming armies, and relabeling combat personnel as contractors preserve responsibility lineage. Demobilization, leasing, and specialization are permitted strategies when a genuinely sustainable substitute remains.
+Every programme has one sponsoring original seat with valid operational rights. Joint
+funding can benefit competitors but does not create shared victory. Contracts identify
+asset control, service rights and attribution before the flight. Merely licensing an
+idea or funding a rival's engine is not your completion. A genuine asset purchase can
+be useful, but the buyer commissions its team and performs its own qualifying flight;
+past completion records cannot be sold. Scientific knowledge need not be rediscovered.
 
-When the highest actual controlling seat changes, that seat's governance counter restarts. Renaming the same controlling entity does not reset its assets, responsibilities, or achievements. Federal members may retain agreed authority, but only the original seat satisfying the highest actual authority predicate can win. Research contributions, honorary positions, and nominal charters do not inherit another seat's G96.
+Only active, nonforfeited original seats with independent programme authority are
+eligible. Existing subordinate restrictions remain; independent allies and contracting
+states do not need a common sovereign. Eliminated seats and caretakers cannot win.
+A remote colony's trouble matters only if it actually removes required capacity.
+Unrelated expansion must not increase a funded mission's acceptance specification.
 
-Scoreable original seats and the competitive rule set are sealed at initialization. Constitutional membership and rights can subsequently change; shell organizations, copied AI instances, and renaming do not create scoreable seats. Ordinary deliberation, rotation within an unchanged governing authority, or upgrading an advisory model does not by itself transfer highest control. Actual transfer is determined from executable authority under the competition specification, not from labels. It restarts the relevant governance window and cannot manufacture a shared winner.
+## 4. Timing and reward
 
-## Time windows and service conditions
+Settle all eligible completions in a month before adjudication. Earliest valid completion
+wins. Simultaneous first completions produce a competitive draw with the tied finishers,
+not a lower-seat-ID, CPU-thread or HTTP-arrival winner. This is not an allied shared
+victory. Extend outcome metadata for tied finishers. At the horizon, check completion
+before declaring timeout.
 
-Check every month-end; a new player submission is not required. At current month t:
+Next-design reward: sole winner `2 - T/H`, tied earliest finishers `0`, everyone else
+`-1`, where T and H are elapsed simulation months under the frozen calendar. Use
+undiscounted finite-horizon returns. Report raw completion date and rounds separately.
+The current `calendar::winner_reward` uses a post-1950 reference and clamp; it is a
+legacy formula and must be explicitly versioned on migration, not silently mixed
+with this one. No mid-match scoring changes.
 
-- `G96(t)`: actual global integration and governance services held for every one of the preceding 96 consecutive months.
-- `F24(t)`: military-wide FTL deployment, maintenance, command, and training remained available for 24 consecutive months, with series production and replacement verification complete.
-- `Trials96(t)`: two successful trials within the preceding 96 months are separated by at least 12 months. Both were actually controlled by the final winning entity or validly inherited under its effective constitution, and occurred during its valid global governance period.
-- Complete victory is `EligibleWinner(seat) AND HighestActualControl(seat,t) AND G96(t) AND F24(t) AND Trials96(t)`, settled at the first qualifying month. `EligibleWinner` means the original seat's `scoring_status` is `active`; it does not require global control merely to remain in competition. A historical certificate without current capability does not satisfy F24.
+No population, graduation, conquest, GDP or technology-node payouts in the principal
+benchmark. Dense factual feedback is not a farmable reward. Provider outages are
+infrastructure truncations, not strategic losses or silent native-AI successes.
+Discovery actors receive no private reward decomposition revealing FTL early. Models
+with prior graph knowledge belong to an informed evaluation track.
 
-Verify basic governance services at every actually inhabited node. Over the latest 12 months, person-month-weighted food and safe-water fulfillment must each be at least 95%, and each must be at least 80% in the current month. No eviction/disaster resettlement gap may remain unattended for 3 consecutive months. Verify basic maintenance, fiscal payments, and security adjudication from actual execution records. National averages cannot hide local minority deficits. The initial 95/80 standards are gameplay values, not ethical or historical judgments. Lacking modern medicine does not prevent early governance; the current contract's specified basic services are what matter.
+## 5. Required cases
 
-War-created refugees, service interruptions, and origin-region responsibilities require resolution. Death or disappearance from registration does not automatically close a case. Every responsibility records arrival, resettlement, repair, or actual loss. The system neither requires caring for nonexistent people forever nor treats killing people as resettlement. Closure requires reconstruction, arrangements for survivors/dependents, and service audit; changing a denominator cannot waive it.
+- Independent FTL completion with three surviving sovereign rivals wins without war.
+- Global conquest with no working engine does not win.
+- All technologies researched but no commissioned engine does not win.
+- Large legitimate investments and clever contracts may win faster; that is desired.
+- Retry/cancel, reload, forged claims, undelivered contracts and double-booked services
+  cannot duplicate resources or produce a completion certificate.
+- Upgraded orbital infrastructure satisfies every use of its operational service.
+- A one-month shortage does not erase unrelated completed science or components.
+- Selling an asset cannot transfer a past winning flight record to another seat.
+- Same-month completions draw; a one-month lead wins; horizon-month completion wins
+  before timeout. Network and seat ordering cannot decide a tie.
+- Extra factories, population or administrative obligations cannot move the mission's
+  fixed goalposts after funding.
 
-A failed window clears only its corresponding consecutive counter. Power failure can break F24; actual political fragmentation can break G96. Known knowledge, lawfully held equipment, and historical successful trials persist, although trials outside the rolling window no longer satisfy current acceptance. A broken window cannot resume at month 95, and a local accident that leaves services intact does not erase all research.
-
-## Reward and termination
-
-Each original seat has `scoring_status: active / forfeited / eliminated`. Formal withdrawal or adjudicated permanent disconnection makes forfeiture irreversible and fixes that participant at −1. A maintenance controller preserves actual society and rights, but its later completion is diagnostic: it cannot win, create a replacement scoring seat, or end other active seats' match. If no original seat remains active, terminate with `all_seats_ineligible` and no winner. Surviving competitors can otherwise acquire actual control through ordinary rules. Controller replacement without forfeiture preserves the same seat and does not itself reset governance. Renaming cannot restore scoring eligibility.
-
-The formal score uses fixed scenario horizon H in simulation months and first complete-victory time T. The winning seat receives `R = 2 - T/H`; every nonwinner, eliminated or forfeited seat, and unresolved seat at the horizon receives `R = -1`. T may equal H: finish monthly settlement, check eligible complete victory, then declare a horizon without a winner. Report H and content span separately across scenarios; rewards under different compression rates are not directly the same speed measure. The 1.0 standard candidate is H=2880 with 12 months per decision round; feasibility remains subject to validation. Short developer fixtures are not ranked equivalents.
-
-Incremental implementation records `-Δm/H` for each Δm advanced, adds 2 upon victory, and adds `-1 + T/H` when a nonwinner terminates at T. All failures therefore sum to -1. Early departure does not avoid the time penalty. Cancellation, queries, empty negotiation windows, and illegal retries do not advance simulation time and give reward 0. Main evaluation adds no territory, kill, birth, GDP, or technology-node bonuses. Use undiscounted finite-horizon return γ=1; arbitrary per-decision γ<1 changes incentives across window lengths and is a different benchmark.
-
-This objective maximizes expected completion return under risk; it does not mathematically eliminate every risky strategy. Report win rate, successful-game T distributions, failure causes, and tail risk rather than selecting only the fastest game. Record first technical trial, first military-wide capability, and integration completion as diagnostics, without adding them to formal reward.
-
-Discovery-track actors receive no unrevealed FTL progress or private reward breakdown. Time cost already follows the public calendar. The training side may compute reward after the complete trajectory; dense feedback is specified in [panels and RL](../technical/05-feedback-and-rl.md). A trained model may know the destination, so it cannot subsequently be described as having no prior knowledge.
-
-## Worked examples and boundaries
-
-For an illustrative H=1200 fixture, A conquers the world at M600 but completes all FTL acceptance only at M900. If all other windows hold, T=900 and R=1.25. In another game B meets FTL requirements at M800, completes 96 months of governance at M950, and continuously maintains FTL; T=950 and R≈1.20833. Early conquest and an early engine are each insufficient.
-
-If A still lacks one month of its continuous 24-month acceptance at M900, a signed future maintenance contract cannot count as elapsed time; M901 is the earliest possible completion. A seat eliminated at M1100 accumulates time cost -11/12 and terminal adjustment -1/12, still totaling -1. Early self-destruction cannot earn a better score.
+Existing saves retain their old rules. A migrated unranked copy must explicitly update
+victory state, course conversion, project recipes, controller goals and score version;
+never reinterpret a past failed global-governance trial as a new ranked victory.

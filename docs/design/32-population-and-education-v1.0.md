@@ -1,5 +1,15 @@
 # 1.0: A Smaller Population Model with Meaningful Education
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 This document replaces the population implementation choices in [12](12-population-and-development.md), the household/job matching detail in [07](../technical/07-monthly-engine-spec.md), and continuous per-qualification readiness decay in [19](19-education-and-transmission-v0.6.md). Their resource conservation, delayed learning, unequal access, cultural diversity, and historical cautions remain valid. It is a design specification, not implemented simulation or measured performance.
 
 The purpose of population is to constrain food, labor, learning, military organization, and social change. Version 1.0 does not simulate marriages, individual households, individual pregnancies, genealogies, or every person's employment decision. A society can grow, reach a plateau, suffer a crisis, recover, or age without a different script for each outcome.

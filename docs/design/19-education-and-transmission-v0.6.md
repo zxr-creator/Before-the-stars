@@ -1,5 +1,15 @@
 # 0.6 — Education, Skills, and Intergenerational Transmission
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 This referee/content-design document implements the [rural–urban education principles](11-settlements-and-education.md) as inspectable abilities, courses, capacities, and transmission. It adds documentation only. Monthly ordering follows the [engine](../technical/07-monthly-engine-spec.md); cultural signals follow [knowledge and culture](16-knowledge-and-culture-engine.md). Hours, class sizes, durations, and forgetting rates are proposed calibration baselines, not empirical estimates of historical schooling or human learning.
 
 **Version precedence:** [31](31-knowledge-and-culture-v1.0.md) and [32](32-population-and-education-v1.0.md) preserve the 24 course templates and real learning constraints while replacing individual-family bookkeeping and continuous per-qualification readiness with sparse cohorts and event-driven Current / Review due / Supervised / Restoring / Dormant states. Section 7 retains the older design for traceability; its continuous numerical decay is not the v1.0 runtime rule.

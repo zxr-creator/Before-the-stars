@@ -1,5 +1,15 @@
 # Era Knowledge, Agendas, and the Ultimate Objective
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 The endpoint is military-wide FTL acceptance and effective global political integration. Conquest cannot replace FTL. [The victory specification](15-victory-and-ftl.md) governs the tests. Designers know this framework, but exploration configurations do not disclose it in the opening prompt; referee rules remain fixed. A trained policy may already know the objective, so exploration evaluations must disclose training history rather than pretend to erase prior knowledge.
 
 [The first-game walkthrough](27-first-game-mental-model-v0.8.md) illustrates development. Its historical cooperative outcome is not a v1.0 victory mode. Having no match memory does not remove real scientific knowledge: restrictions concern match information, action eligibility, and obtainable evidence. The complete walkthrough contains late-game information and must not be included in exploration starting materials.

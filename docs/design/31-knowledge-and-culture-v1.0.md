@@ -1,5 +1,15 @@
 # v1.0 — Fixed Knowledge Graphs, Dynamic Civilizations
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 This is a design specification, not an implemented simulation or a balance result. It revises the discovery, cultural development, education, and presentation rules in [16](16-knowledge-and-culture-engine.md)–[20](20-dynamic-development-v0.6.md). The complete catalogs remain **138 technologies, 64 cultural practices, and 24 course templates**. Population aggregation follows [32](32-population-and-education-v1.0.md). All playable modes are competitive; sharing knowledge or creating joint institutions never creates shared victory.
 
 ## 1. What is fixed, and what actually changes?

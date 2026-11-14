@@ -1,5 +1,15 @@
 # Before the Stars: Game Framework
 
+> **2026-11-13 design precedence:** this chapter retains historical rules where it
+> describes global-integration/fleet-wide victory, mandatory manual courses, or
+> native access to unrevealed victory ancestry. For the next ruleset use
+> [42: playability](42-ftl-completion-and-playability.md),
+> [15: FTL completion](15-victory-and-ftl.md),
+> [43: agent access](43-agent-access-and-decision-packets.md), and
+> [44: institutional education](44-institutional-education.md). These are design
+> changes awaiting implementation, not modifications to existing saves. Other
+> nonconflicting rules and the later ruleset-3 calendar remain applicable.
+
 The player leads a political community across generations, influencing society through government, organizations, and contracts. Technology creates possibilities; the economy and population provide the means to realize them; factions and culture shape cooperation; other civilizations change benefits and risks. The central decisions are which bottleneck to address next, whether to build internally or cooperate, and how much dependency and political cost to accept.
 
 ## Scope and scale

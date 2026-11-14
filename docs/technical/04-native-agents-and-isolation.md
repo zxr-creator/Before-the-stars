@@ -1,5 +1,13 @@
 # Native External Agents, Harbor, and Secret Boundaries
 
+> **Next-design override (2026-11-13):** use
+> [FTL-only completion](../design/15-victory-and-ftl.md),
+> [one agent decision contract](../design/43-agent-access-and-decision-packets.md),
+> and [automatic institutional education](../design/44-institutional-education.md)
+> where this historical specification differs. The current ruleset-3 calendar is
+> described in chapter 42; old 240-round figures are historical fixtures. These
+> changes require implementation and versioned migration.
+
 Codex and Claude Code must be able to play directly: read observations, use their own shell and files for analysis, keep notes, call game tools, and submit actions without a human intermediary or another LLM translating decisions. A wrapper accepting one prompt and returning final JSON is not complete native integration.
 
 This is an integration specification, not a claim that these tools have been installed or run. Official documentation was checked on November 8, 2026. Implementation must pin CLI, Harbor, and protocol versions. Here “native external agent” means a coding-agent workflow; the separate v1.0 **native non-LLM AI** is a conventional game controller with the same observation/action boundary, described in [chapter 33](../design/33-competition-and-native-ai-v1.0.md).

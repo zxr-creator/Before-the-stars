@@ -1,5 +1,13 @@
 # Agent Protocol
 
+> **Next-design override (2026-11-13):** use
+> [FTL-only completion](../design/15-victory-and-ftl.md),
+> [one agent decision contract](../design/43-agent-access-and-decision-packets.md),
+> and [automatic institutional education](../design/44-institutional-education.md)
+> where this historical specification differs. The current ruleset-3 calendar is
+> described in chapter 42; old 240-round figures are historical fixtures. These
+> changes require implementation and versioned migration.
+
 The written protocol uses v0.4 as its baseline with v0.5, v0.8.1, and v1.0 additions; it is not implemented. Humans, scripts, native non-LLM AI, and external models use the same observations and actions. Model names do not affect world rules. v0.1/v0.2 schemas and JSON examples are frozen historical drafts; the v0.3 migration is also incomplete. This revision changes no implementation or machine contract. See [v0.4 changes](../contracts/v0.4-changes.md) and [v0.8.1 diplomacy](../contracts/v0.8.1-diplomacy-addendum.md). Current phases/actions are incompatible with old schemas. P0 must freeze a new protocol version; old schemas cannot authenticate current seats or support claims of a working SDK.
 
 v0.5 adds projections for monthly operation, standing sales, wage advances, and concrete work units; see [the interface addendum](../contracts/v0.5-design-addendum.md). It retains these actions, but fields await machine contracts. Rule and protocol versions are frozen separately.
