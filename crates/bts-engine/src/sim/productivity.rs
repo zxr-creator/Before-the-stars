@@ -369,7 +369,9 @@ pub fn region_factors_with(w: &World, seat: SeatId, ri: usize, sizes: &[u32]) ->
     let mut city = [10_000i64; SECTORS];
     let trams = crate::sim::eras::tram_city_add(w, seat, ri);
     for s in Sector::ALL {
-        city[s.index()] = city_factor_with(class, *s, agglomeration, 0, water_bp, pressure);
+        // (ruleset 3.1) prosperity is the standard of living, once it is counted
+        let prosperity = if civ.era.era >= crate::sim::eras::SOL_FROM_ERA { civ.era.sol_bp as i64 } else { 0 };
+        city[s.index()] = city_factor_with(class, *s, agglomeration, prosperity, water_bp, pressure);
         if trams > 0 && matches!(s, Sector::Industry | Sector::Services | Sector::Knowledge) {
             city[s.index()] = (city[s.index()] + trams).min(13_000);
         }

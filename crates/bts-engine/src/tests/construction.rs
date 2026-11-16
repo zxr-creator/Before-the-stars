@@ -828,13 +828,13 @@ fn no_site_crew_needs_people_who_cannot_exist_yet() {
         // tradition institutions included, now that traditions can be held (slice 13)
         assert!(all.prac[i], "{} can never be enacted", p.id);
     }
-    for (k, f) in c.facilities.iter().enumerate() {
+    for (k, f) in c.facilities.iter().enumerate().filter(|(_, f)| !f.retired) {
         assert!(all.fac[k], "{} can never be built", f.key);
     }
     for q in Qual::ALL {
         assert!(all.qual[q.index()], "nobody can ever qualify as {q:?}");
     }
-    for g in Good::ALL.iter().filter(|g| !crate::content::offworld_good(**g)) {
+    for g in Good::ALL.iter().filter(|g| !crate::content::offworld_good(**g) && !crate::content::good_retired(**g)) {
         assert!(all.good[g.index()], "{g:?} can never be made");
     }
     // every facility can be built for the first time: its own requirement, its bill
@@ -861,7 +861,7 @@ fn no_site_crew_needs_people_who_cannot_exist_yet() {
     // the institute's training shops need components, which only machine shops and
     // the components works of two traditions (held from the Industrial era) make
     let makers: Vec<&str> = c.facilities.iter().filter(|f| f.recipes.iter().any(|r| r.outputs.iter().any(|(g, _)| *g == Good::Components))).map(|f| f.key).collect();
-    assert_eq!(makers, vec!["machine_shop", "steam_hammer", "motor_works"]);
+    assert_eq!(makers, vec!["machine_shop", "steam_hammer", "automaton_works", "motor_works"]);
     assert!(c.facilities[c.f("tech_institute")].cost.iter().any(|(g, _)| *g == Good::Components) || c.facilities[c.f("tech_institute")].req_src.contains("T06"));
     assert!(!without("laboratory").sci_method());
     assert!(c.facilities[c.f("tech_institute")].crew.iter().all(|(qs, _)| !qs.contains(&Qual::Mechanic)));

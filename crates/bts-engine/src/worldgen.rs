@@ -1333,7 +1333,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             embargo: Vec::new(),
             fills: Vec::new(),
             subjugate_camps: false,
-            schooling: true,
+            schooling: cfg.schooling,
             space: crate::sim::space::CivSpace::new(),
         });
     }

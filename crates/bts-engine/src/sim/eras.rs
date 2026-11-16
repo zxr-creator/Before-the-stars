@@ -497,6 +497,10 @@ pub struct EraState {
     pub told_eligible: u8,
     /// Held path per slot (indices into [`TRADITIONS`]).
     pub traditions: [Option<u8>; 2],
+    /// Standard of living: the share of the era's household basket supplied, a
+    /// twelve-month average in basis points (ruleset 3.1; 5,000 before it is counted).
+    #[serde(default = "half")]
+    pub sol_bp: u16,
     pub mastery: [u16; 2],
     /// Strength of the held paths, basis points, reckoned once a month ([`strength`]).
     #[serde(default)]
@@ -1349,6 +1353,7 @@ pub fn stability_delta(w: &World, seat: SeatId) -> i64 {
     if civ.projects.iter().any(|p| matches!(p.kind, ProjKind::TraditionReform { .. })) {
         d -= 5;
     }
+    d += sol_stability(civ);
     // Sun and Commons; the watched cities of the Network
     d += 6 * strength(civ, "sun") / 10_000;
     if held(civ, "network") {
@@ -1832,6 +1837,21 @@ pub fn orbital_fuel_bp(civ: &Civ, key: &str) -> i64 {
 }
 
 /// Public services of the Welfare State: medicine and media per thousand residents a month.
+/// The era from which the household basket is counted (Early Modern).
+pub const SOL_FROM_ERA: u8 = 3;
+pub fn half() -> u16 {
+    5_000
+}
+/// Stability from the standard of living: -3 with an empty basket, +3 with a full one.
+pub fn sol_stability(civ: &Civ) -> i64 {
+    if civ.era.era < SOL_FROM_ERA {
+        return 0;
+    }
+    if civ.era.sol_bp == 0 {
+        return 0;
+    }
+    (civ.era.sol_bp as i64 - 5_000) * 3 / 5_000
+}
 pub const WELFARE_MEDICINE_PER_K: i64 = 2;
 pub const WELFARE_MEDIA_PER_K: i64 = 1;
 
@@ -1839,6 +1859,25 @@ pub const WELFARE_MEDIA_PER_K: i64 = 1;
 /// public services). Called once a month from the economy's commit.
 pub fn monthly_draws(w: &mut World, seat: SeatId) {
     let si = seat as usize;
+    // households take the era's basket from the common stock (ruleset 3.1): what
+    // they get is their standard of living. Nothing waits for it and nothing stops.
+    let era = w.civs[si].era.era;
+    if era >= SOL_FROM_ERA {
+        let pop = w.civ_population(seat) as i64;
+        let (mut need, mut got) = (0i64, 0i64);
+        for (g, per_k) in expected_basket(era) {
+            let n = pop * per_k / 1000;
+            if n > 0 {
+                need += n;
+                got += w.civs[si].take(g, n);
+            }
+        }
+        let now = if need > 0 { got * 10_000 / need } else { 5_000 };
+        let e = &mut w.civs[si].era;
+        // (a seat's first month of counting starts from the middle)
+        let prev = if e.sol_bp == 0 { 5_000 } else { e.sol_bp as i64 };
+        e.sol_bp = ((prev * 11 + now) / 12).max(1) as u16;
+    }
     if charter_held(&w.civs[si], "welfare_state") {
         let pop = w.civ_population(seat) as i64;
         let med = pop * WELFARE_MEDICINE_PER_K / 1000;

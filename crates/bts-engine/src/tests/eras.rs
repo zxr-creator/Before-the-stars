@@ -443,7 +443,7 @@ fn era_and_tradition_views_respect_the_information_boundary() {
     set_era(&mut m.world, 0, 4);
     let v = m.observe(0).era.unwrap();
     let machine = &v.traditions[0];
-    assert_eq!(machine.options.len(), 3);
+    assert_eq!(machine.options.len(), 4);
     let json = serde_json::to_string(machine).unwrap();
     for hidden in ["Refinery", "Hydroelectric", "Diesel machinery"] {
         assert!(!json.contains(hidden), "{hidden} leaks before it is discovered");

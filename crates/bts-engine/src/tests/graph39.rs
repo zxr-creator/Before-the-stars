@@ -65,8 +65,9 @@ fn reachable_practices(forbidden: &[usize]) -> Vec<bool> {
 #[test]
 fn deeper_graphs_are_well_formed() {
     let c = content();
-    assert_eq!(c.techs.len(), 300);
-    assert_eq!(c.families.len(), 15);
+    // ruleset 3.1: 75 trivial modern and future nodes merged (scripts/merge_late_tech.py)
+    assert_eq!(c.techs.len(), 225);
+    assert_eq!(c.families.len(), 6);
     // no technology needs a practice and no practice a technology through `prereq`
     for t in &c.techs {
         let mut ps = Vec::new();

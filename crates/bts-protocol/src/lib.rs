@@ -968,6 +968,16 @@ pub struct GoodLine {
     /// works can sustain (the industrial base of the jump programme).
     #[serde(default)]
     pub withheld: i64,
+    /// Asked of the stock last round and not there: unmet demand (ruleset 3.1).
+    #[serde(default)]
+    pub short: i64,
+    /// The good's home price last round as a share of its base price, basis points
+    /// (ruleset 3.1): 10,000 when supply (made and bought) met demand (used, sold
+    /// and unmet); up to 17,500 when demand was twice supply or more, down to 2,500
+    /// when supply was twice demand or more. A signal for planning: above 12,500
+    /// the good is scarce, below 7,500 it is in glut. Nothing is paid at it at home.
+    #[serde(default)]
+    pub price_bp: u16,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1065,6 +1075,13 @@ pub struct OwnCiv {
     pub quals: Vec<QualCount>,
     pub labor: LaborSummary,
     pub research: Vec<ResearchLine>,
+    /// Standard of living (ruleset 3.1): how much of the era's household basket
+    /// (`era.expected_basket`: textiles and consumer goods per thousand residents)
+    /// the stores supplied over the last year, basis points. Above 5,000 it steadies
+    /// the realm (up to +3 stability) and its towns work better; below, it unsettles
+    /// it (down to -3). Counted from the Early Modern era.
+    #[serde(default)]
+    pub standard_of_living_bp: u16,
     pub policies: Policies,
     pub factions: Vec<FactionView>,
     /// Maximum share of non-food labour the state can direct to projects.

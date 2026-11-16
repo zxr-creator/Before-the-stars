@@ -33,6 +33,10 @@ pub struct MatchConfig {
     /// classic sustained contract of design chapter 15 for those who ask for it.
     #[serde(default)]
     pub victory: VictoryRule,
+    /// Whether seats start with public schooling on (ruleset 3.1; the default). A
+    /// seat can still turn its own off or on in play (`set_policy` / `schooling`).
+    #[serde(default = "yes")]
+    pub schooling: bool,
 }
 
 impl MatchConfig {
@@ -79,6 +83,7 @@ impl Default for MatchConfig {
             public_seed: true,
             world: WorldKind::EarthLike,
             victory: VictoryRule::Standard,
+            schooling: true,
         }
     }
 }
@@ -1002,6 +1007,9 @@ pub struct Flows {
     /// can sustain (`sim::victory`).
     #[serde(default = "zeros_ng")]
     pub withheld: Vec<i64>,
+    /// Asked of the stock and not there (unmet demand), by good (ruleset 3.1).
+    #[serde(default = "zeros_ng")]
+    pub short: Vec<i64>,
     /// Births, and deaths of residents and soldiers (battle and militia losses included).
     pub births: u32,
     pub deaths: u32,
@@ -1036,7 +1044,7 @@ fn zeros_nq() -> Vec<i64> {
 
 impl Flows {
     pub fn new() -> Self {
-        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], births: 0, deaths: 0, migration: 0, moved_internal: 0, emigrated: 0, immigrated: 0, refugees: 0, salvaged: vec![0; NG], deaths_cause: [0; 5] }
+        Flows { produced: vec![0; NG], consumed: vec![0; NG], lost: vec![0; NG], traded_in: vec![0; NG], traded_out: vec![0; NG], withheld: vec![0; NG], short: vec![0; NG], births: 0, deaths: 0, migration: 0, moved_internal: 0, emigrated: 0, immigrated: 0, refugees: 0, salvaged: vec![0; NG], deaths_cause: [0; 5] }
     }
 }
 
@@ -1409,6 +1417,14 @@ impl Civ {
         let t = amount.min(have).max(0);
         self.stock[g.index()] -= t;
         self.flows.consumed[g.index()] += t;
+        // what was asked for and was not there: the unmet demand behind the good's
+        // price (ruleset 3.1). It is a record, never a debt.
+        if amount > t {
+            if self.flows.short.len() < NG {
+                self.flows.short.resize(NG, 0);
+            }
+            self.flows.short[g.index()] += amount - t;
+        }
         t
     }
     /// Remove up to `amount` that nobody used (spoilage, carriage loss, abandoned

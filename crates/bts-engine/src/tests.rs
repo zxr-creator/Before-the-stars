@@ -26,10 +26,11 @@ mod standard;
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
 /// They run the classic victory contract (design chapter 15), whose sealed objective
-/// and sustained windows they were written for; the standard contract of ruleset
-/// 3.1 has its own tests in `tests/standard.rs`.
+/// and sustained windows they were written for, with the seats running their own
+/// courses; the standard contract and public schooling of ruleset 3.1 have their
+/// own tests in `tests/standard.rs`.
 fn cfg(seed: &str) -> MatchConfig {
-    MatchConfig { seed: seed.into(), regions: 24, calendar: MatchConfig::fixture_calendar(240), victory: VictoryRule::Classic, ..Default::default() }
+    MatchConfig { seed: seed.into(), regions: 24, calendar: MatchConfig::fixture_calendar(240), victory: VictoryRule::Classic, schooling: false, ..Default::default() }
 }
 
 fn run_rounds(m: &mut Match, rounds: u32) {
@@ -71,7 +72,7 @@ fn the_graph_is_the_same_in_every_world() {
     let a = Match::new(cfg("alpha"), 1);
     let b = Match::new(cfg("omega"), 1);
     assert_ne!(a.state_hash(), b.state_hash());
-    assert_eq!(content().techs.len(), 300);
+    assert_eq!(content().techs.len(), 225);
     assert!(content().practices.len() >= 64);
     assert_ne!(content().graph_hash, 0);
 }
@@ -361,7 +362,7 @@ fn a_broken_window_restarts_from_zero() {
 
 #[test]
 fn the_horizon_ends_the_match_without_a_winner() {
-    let mut m = Match::new(MatchConfig { seed: "short".into(), regions: 24, calendar: MatchConfig::fixture_calendar(2), ..Default::default() }, 1);
+    let mut m = Match::new(MatchConfig { seed: "short".into(), regions: 24, calendar: MatchConfig::fixture_calendar(2), victory: VictoryRule::Classic, ..Default::default() }, 1);
     run_rounds(&mut m, 5);
     assert!(m.finished());
     assert_eq!(m.winner(), None);
@@ -639,7 +640,7 @@ fn the_observation_states_its_units() {
     assert_eq!(unit(Good::Medicine).tonnes_per_unit_milli, 40);
     assert_eq!(u.settlement_bounds, SETTLEMENT_BOUNDS.to_vec());
     assert_eq!(u.work_unit, "worker-month");
-    assert_eq!(u.limits, PeopleLimits { settlers_min: 20_000, settlers_max: 400_000, soldiers_min: 1_000, soldiers_max: 5_000_000, program_seats_max: 2_000_000, founding_cohort_max: 4_000 });
+    assert_eq!(u.limits, PeopleLimits { settlers_min: 20_000, settlers_max: 400_000, soldiers_min: 1_000, soldiers_max: 5_000_000, program_seats_max: 2_000_000, founding_cohort_max: 20_000 });
     // an observation written before the field existed still parses
     let mut v = serde_json::to_value(&obs).unwrap();
     v.as_object_mut().unwrap().remove("units");
@@ -695,7 +696,7 @@ fn person_denominated_orders_are_bounded_in_people() {
 }
 
 #[test]
-fn a_founding_cohort_is_at_most_four_thousand_and_courses_use_materials_per_thousand() {
+fn a_founding_cohort_is_at_most_twenty_thousand_and_courses_use_materials_per_thousand() {
     let mut m = Match::new(cfg("cohort"), 1);
     let c = content();
     let capital = m.world.civs[0].capital;
@@ -709,18 +710,22 @@ fn a_founding_cohort_is_at_most_four_thousand_and_courses_use_materials_per_thou
     m.world.regions[home].quals[Qual::Artisan.index()] = 0;
     crate::sim::projects::step(&mut m.world, 0);
     let p = m.world.civs[0].programs[0].clone();
-    assert_eq!(p.enrolled, 4_000, "{:?}", p.blockers);
+    assert_eq!(p.enrolled, 20_000, "{:?}", p.blockers);
     assert_eq!(p.teachers, 0);
-    assert_eq!(m.world.regions[home].students, 4_000);
-    // with instructors the class size is people per instructor, unchanged
+    assert_eq!(m.world.regions[home].students, 20_000);
+    // (ruleset 3.1) with too few instructors the whole cohort still enrols, in larger
+    // classes and for longer: all the instructors there are teach it
     m.world.civs[0].programs[0] = Program { id: 901, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![], last_grad: 0, auto: false };
     m.world.regions[home].students = 0;
     m.world.regions[home].quals[Qual::Artisan.index()] = 1_000;
     crate::sim::projects::step(&mut m.world, 0);
     let p = m.world.civs[0].programs[0].clone();
     let class = c.courses[c.course_ix["E002"]].class_size as u32;
-    assert_eq!(p.enrolled, (1_000 * class).min(20_000), "{:?}", p.blockers);
-    assert_eq!(p.teachers, (p.enrolled + class - 1) / class);
+    assert_eq!(p.enrolled, 20_000, "{:?}", p.blockers);
+    assert_eq!(p.teachers, 1_000);
+    let months = c.courses[c.course_ix["E002"]].months as u32;
+    let wanted = (20_000 + class - 1) / class;
+    assert_eq!(p.duration as u32, months + months * (wanted - 1_000) / wanted, "a course short of instructors takes longer, at most twice as long");
     // a month of teaching draws 0.1 t of materials and 0.02 tool lots per learner
     let (mat, tools) = (m.world.civs[0].stock[Good::Materials.index()], m.world.civs[0].stock[Good::Tools.index()]);
     crate::sim::projects::step(&mut m.world, 0);
@@ -1745,6 +1750,7 @@ fn an_eliminated_polity_loses_its_stores_and_nobody_vanishes() {
     }
     assert_eq!(m.world.armies.iter().filter(|a| a.owner == 3).map(|a| a.count()).sum::<u32>(), 5_000);
     let learners = m.world.regions[home].students;
+    let entrant = m.world.civs[3].programs.first().and_then(|p| p.entrant);
     // it cedes its only region to seat 2 and ceases to govern
     let id = m.world.id();
     m.world.offers.push(Offer { id, from: 3, to: 2, clauses: vec![Clause::CedeRegion { from: 3, region: capital }], text: String::new(), created: 0, expires_round: 99, status: "open".into() });
@@ -1767,7 +1773,9 @@ fn an_eliminated_polity_loses_its_stores_and_nobody_vanishes() {
     assert!(food_before > 0 && m.world.civs[3].flows.lost[Good::Food.index()] - lost_before > 0);
     assert!(m.world.civs[3].programs.is_empty());
     assert_eq!(m.world.regions[home].students, 0, "{learners} learners went back to what they were");
-    if learners > 0 {
+    // (ruleset 3.1: the cohort enrolled people without a qualification, who go back
+    // to being that; only holders who had enrolled are booked as returned)
+    if learners > 0 && entrant.is_some() {
         assert_eq!(after.civs[2].qual_flows.returned[Qual::Tallier.index()], learners as i64);
     }
     for _ in 0..12 {
@@ -2118,8 +2126,8 @@ fn a_scripted_match_balances_every_month_for_thirty_years() {
     // the script did what it says: every channel of both ledgers moved
     let sum = |f: &dyn Fn(&QualFlows) -> &Vec<i64>| -> i64 { prev.civs.iter().map(|c| f(&c.qual_flows).iter().sum::<i64>()).sum() };
     assert!(sum(&|q| &q.trained) > 0, "nobody graduated");
-    assert!(sum(&|q| &q.entered) > 0, "no holder enrolled in a further course");
-    assert!(sum(&|q| &q.returned) > 0, "no closed course returned its learners");
+    // (ruleset 3.1: people without a qualification enrol first, so a holder enrols in
+    // a further course only where there are none; the script no longer forces it)
     assert!(sum(&|q| &q.died) > 0 && sum(&|q| &q.retired) > 0);
     assert!(sum(&|q| &q.enlisted) > 0, "recruits and militia took no qualifications with them");
     assert!(sum(&|q| &q.moved_in) > 0 && sum(&|q| &q.moved_in) == sum(&|q| &q.moved_out), "no region changed hands");

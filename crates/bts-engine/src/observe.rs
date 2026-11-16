@@ -777,6 +777,21 @@ fn field_recipes(w: &World, seat: SeatId, _def: &crate::content::FacDef) -> Vec<
         .collect()
 }
 
+/// A good's home price over a round, basis points of its base price: the balance of
+/// demand (used, sold abroad, asked for and not there) against supply (made, bought
+/// abroad), as `1 + 0.75 x (D - S) / min(D, S)` bounded to 0.25-1.75.
+pub fn home_price_bp(f: &Flows, g: Good) -> u16 {
+    let i = g.index();
+    let supply = f.produced[i] + f.traded_in[i] + f.withheld.get(i).copied().unwrap_or(0);
+    let demand = f.consumed[i] + f.traded_out[i] + f.short.get(i).copied().unwrap_or(0);
+    if supply <= 0 && demand <= 0 {
+        return 10_000;
+    }
+    let m = supply.min(demand).max(1) as i128;
+    let d = ((demand - supply) as i128 * 7_500 / m).clamp(-7_500, 7_500);
+    (10_000 + d) as u16
+}
+
 pub fn victory_revealed(w: &World, seat: SeatId) -> bool {
     w.cfg.disclosed_objective || w.civs[seat as usize].milestones.interstellar.is_some()
 }
@@ -887,6 +902,8 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             capacity: if *g == Good::Food { Some(storage) } else { None },
             lost: civ.last_flows.lost.get(g.index()).copied().unwrap_or(0),
             withheld: civ.last_flows.withheld.get(g.index()).copied().unwrap_or(0),
+            short: civ.last_flows.short.get(g.index()).copied().unwrap_or(0),
+            price_bp: home_price_bp(&civ.last_flows, *g),
         })
         .collect();
     let quals = Qual::ALL
@@ -976,6 +993,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         quals,
         labor: civ.labor.clone(),
         research,
+        standard_of_living_bp: if civ.era.era >= crate::sim::eras::SOL_FROM_ERA && civ.era.sol_bp > 0 { civ.era.sol_bp } else { 5_000 },
         policies: Policies {
             food_reserve_months: civ.food_reserve_months,
             labor_weights: LaborCategory::ALL.iter().map(|l| (*l, civ.labor_weights[l.index()])).collect(),

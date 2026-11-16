@@ -158,7 +158,7 @@ fn the_new_methods_trade_one_real_thing_for_another() {
     assert!(amount(nc, Good::Tools) < amount(hand, Good::Tools) && nc.elec > 0 && nc.compute > 0 && nc.general_bp < 10_000);
     assert!(nc.extra_skilled.iter().any(|(qs, _)| qs[0] == Qual::Programmer));
     // mechanized workings raise what deep workings raise and draw as much from the deposit
-    for mine in ["mine_copper", "mine_iron", "mine_coal", "mine_tin", "mine_bauxite", "mine_quartz"] {
+    for mine in ["mine_copper", "mine_iron", "mine_coal", "mine_bauxite", "mine_rare_earths"] {
         let (deep, mech) = (rec(mine, "deep"), rec(mine, "mechanized"));
         assert_eq!(mech.outputs, deep.outputs, "{mine}");
         assert_eq!((mech.depletes, mech.disturb_bp), (deep.depletes, 10_000), "{mine}");
@@ -381,11 +381,11 @@ fn field_methods_are_held_by_region_and_a_region_on_traction_burns_no_fuel() {
     };
     // design chapter 36, table 3.3: one level's rations, inputs and posts
     assert_eq!(line("hand"), (Good::Food, 30_000, 0, 0, 10_000, true));
-    assert_eq!(line("traction"), (Good::Food, 46_000, 0, 0, 8_000, true));
+    assert_eq!(line("traction"), (Good::Food, 52_000, 0, 0, 8_000, true));
     assert_eq!(ft.recipes.iter().find(|r| r.key == "traction").unwrap().inputs.iter().map(|i| (i.good, i.amount)).collect::<Vec<_>>(), vec![(Good::Horses, 30)]);
-    assert_eq!(line("inputs"), (Good::Food, 120_000, 150, 0, 6_000, true));
-    assert_eq!(line("mechanized"), (Good::Food, 110_000, 0, 100, 3_000, true));
-    assert_eq!(line("intensive"), (Good::Food, 250_000, 300, 150, 2_000, true));
+    assert_eq!(line("inputs"), (Good::Food, 150_000, 150, 0, 6_000, true));
+    assert_eq!(line("mechanized"), (Good::Food, 150_000, 0, 100, 3_000, true));
+    assert_eq!(line("intensive"), (Good::Food, 330_000, 300, 150, 2_000, true));
     assert!(ft.recipes.iter().all(|r| r.key != "restorative"), "a method resting on undiscovered knowledge is not named");
 }
 

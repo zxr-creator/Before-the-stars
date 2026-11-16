@@ -1218,6 +1218,18 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
         p.store_push.insert(Good::Fuel);
         p.store_push.insert(Good::Spares);
     }
+    // the households' basket from the Early Modern era (ruleset 3.1): a full basket
+    // steadies the realm and its towns work better
+    if let Some(e) = obs.era.as_ref().filter(|e| e.era >= 3) {
+        for b in &e.expected_basket {
+            if p.stock(b.good) < b.amount * pop / 1000 * 3 {
+                p.wanted.insert(b.good);
+                if b.good == Good::Textiles {
+                    p.wanted.insert(Good::Fibres);
+                }
+            }
+        }
+    }
     // thirty tool lots and sixty tonnes of materials in hand for every thousand people
     if p.stock(Good::Tools) < 12_000 + pop * 30 / K {
         p.wanted.insert(Good::Tools);
@@ -2518,7 +2530,9 @@ fn standing_demand(p: &Plan, regions: &[&RegionView], g: Good) -> i64 {
             month += per_level * f.level as i64;
         }
     }
-    (month * 12).max(p.line(g).map(used_in_year).unwrap_or(0))
+    // the households' basket (ruleset 3.1): per thousand residents a month
+    let basket: i64 = p.obs.era.as_ref().map(|e| e.expected_basket.iter().filter(|b| b.good == g).map(|b| b.amount).sum::<i64>()).unwrap_or(0) * p.obs.civ.population as i64 / 1000;
+    ((month + basket) * 12).max(p.line(g).map(used_in_year).unwrap_or(0))
 }
 
 /// Levels of `ft` that would close the gap between what the seat needs of `g` in a
@@ -3045,9 +3059,6 @@ fn new_capabilities(p: &mut Plan, regions: &[&RegionView], capital: &RegionView)
         .iter()
         .filter(|f| f.available && f.category != "Food" && !p.civ_has(&f.kind) && !p.civ_pending(&f.kind))
         .filter(|f| !matches!(f.kind.as_str(), "holy_site" | "barracks" | "jump_base" | "grid" | "generator" | "granary" | "roads" | "port" | "waterworks" | "sewers" | "water_treatment" | "clinic" | "hospital"))
-        // household goods and luxuries have no use until the people consume them
-        // (ruleset 3.0 slice 11): built only when something the seat runs asks for them
-        .filter(|f| !matches!(f.kind.as_str(), "weaving" | "textile_mill" | "fibre_farm" | "spice_farm" | "fine_wares" | "consumer_works"))
         .collect();
     cands.sort_by_key(|f| (f.work, f.kind.clone()));
     let mut started = 0;

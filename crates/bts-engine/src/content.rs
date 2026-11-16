@@ -1401,6 +1401,11 @@ fn retire_goods(facs: &mut [FacDef]) {
             if ins > 0 && r.inputs.is_empty() && !r.outputs.is_empty() && !extractive {
                 return false;
             }
+            // nor may a method that lost an input put out more mass than it still takes in
+            let mass = |v: &[(Good, i64)]| -> i64 { v.iter().map(|(g, a)| a * good_mass_kg(*g)).sum() };
+            if r.inputs.len() < ins && !extractive && mass(&r.outputs) > mass(&r.inputs) {
+                return false;
+            }
             true
         });
         if had > 0 && f.recipes.is_empty() && f.provides.is_empty() {
@@ -1966,7 +1971,7 @@ fn facilities() -> Vec<FacDef> {
         fac("food_synthesis", "Food synthesis works", "Industry", "Food made from electricity, chemicals and the carbon of the air: not limited by land, only by power and inputs. Six hundred thousand rations a month per level.")
             .req("T132 & T135").cost(&[(Metal, 30.0), (Components, 15.0), (Conductors, 6.0), (Instruments, 4.0)]).work(400.0)
             .skilled(&[Q::Technician], 2_000).general(2_000)
-            .recipe(rec("food_synthesis", "Atmospheric food synthesis").inp(&[(Chemicals, 4.0)]).out(&[(Food, 600.0)]).elec(300.0))
+            .recipe(rec("food_synthesis", "Atmospheric food synthesis").inp(&[(Chemicals, 10.0)]).out(&[(Food, 600.0)]).elec(300.0))
             .upkeep(&[(Spares, 0.5)]).labor(L::Industry).tags(&[Tag::Chem, Tag::Bio]),
         fac("purifier", "High-purity materials works", "Industry", "Electrochemical purification into substrates that ordinary glass or metal cannot replace.")
             .req("T103").cost(&[(Metal, 20.0), (Components, 10.0), (Conductors, 6.0), (Instruments, 4.0)]).work(300.0)
@@ -3235,7 +3240,7 @@ mod tests {
     #[test]
     fn catalog_counts_and_graph_are_valid() {
         let c = content();
-        assert_eq!(c.techs.len(), 300);
+        assert_eq!(c.techs.len(), 225);
         assert_eq!(c.practices.len(), 174);
         assert_eq!(c.courses.len(), 24);
         // Knowledge prerequisites are acyclic: every node is reachable by repeatedly

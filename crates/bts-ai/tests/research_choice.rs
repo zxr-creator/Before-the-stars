@@ -101,18 +101,19 @@ fn hard_starts_the_critical_card_first() {
 
 /// `family_choice` and the self-block rule: with a rival of a family visible and
 /// something waiting on it, Hard does not adopt the other member first, even
-/// though it is cheaper (symbolic expert systems against statistical learning).
+/// though it is cheaper (woodblock printing against movable type; ruleset 3.1
+/// merged the late families, so the test uses the Printing family).
 #[test]
 fn hard_does_not_lock_out_a_rival_it_needs() {
     let (mut obs, mut ai) = early_plan(6);
-    let expert = card(&name_of("T243"), "k-expert", 10_000);
-    let mut statistical = card(&name_of("T116"), "k-stat", 400_000);
+    let expert = card(&name_of("T200"), "k-expert", 10_000);
+    let mut statistical = card(&name_of("T048"), "k-stat", 400_000);
     statistical.can_investigate = false;
     // a known requirement waits on statistical learning ("planned")
-    let mut waiting = card(&name_of("T175"), "k-deep", 900_000);
+    let mut waiting = card(&name_of("T113"), "k-deep", 900_000);
     waiting.can_investigate = false;
     waiting.state = KnowledgeState::Discovered;
-    waiting.known_requirements = vec![KnownRequirement { text: "statistical learning".into(), satisfied: false, handle: Some("k-stat".into()) }];
+    waiting.known_requirements = vec![KnownRequirement { text: "movable type".into(), satisfied: false, handle: Some("k-stat".into()) }];
     fixture(&mut obs, vec![expert, statistical, waiting], 3);
     let s = started(&ai.decide(&obs));
     assert!(!s.contains(&"k-expert".to_string()), "{s:?}");

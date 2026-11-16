@@ -171,7 +171,7 @@ fn a_four_billion_world_is_counted_without_overflow() {
 /// The field methods of design table 3.3: rations and posts per level.
 #[test]
 fn field_methods_follow_the_table() {
-    let expect = [("hand", 30_000, 10_000), ("traction", 46_000, 8_000), ("rotation", 60_000, 8_000), ("inputs", 120_000, 6_000), ("mechanized", 110_000, 3_000), ("intensive", 250_000, 2_000), ("restorative", 380_000, 1_500)];
+    let expect = [("hand", 30_000, 10_000), ("traction", 52_000, 8_000), ("rotation", 72_000, 8_000), ("inputs", 150_000, 6_000), ("mechanized", 150_000, 3_000), ("intensive", 330_000, 2_000), ("restorative", 500_000, 1_500)];
     for (key, rations, posts) in expect {
         let m = &economy::FIELD_METHODS[economy::field_method_index(key).unwrap()];
         assert_eq!((m.rations, m.posts), (rations, posts), "{key}");
@@ -182,7 +182,7 @@ fn field_methods_follow_the_table() {
     let o = m.observe(0);
     let fields = o.catalog.facilities.iter().find(|f| f.kind == "fields").unwrap();
     let r = fields.recipes.iter().find(|r| r.key == "restorative").unwrap();
-    assert_eq!((r.outputs[0].amount, r.general_posts), (380_000, 1_500));
+    assert_eq!((r.outputs[0].amount, r.general_posts), (500_000, 1_500));
 }
 
 /// The mortality and fertility factors at their extremes.
