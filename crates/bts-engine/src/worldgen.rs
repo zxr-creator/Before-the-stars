@@ -1158,6 +1158,11 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
         let target = near.iter().filter(|(x, d)| *d >= 1 && !starts.contains(x)).map(|(x, d)| (*d, draw_range(secret, &[stream("viab-salt"), s as u64, *x as u64], 5), *x)).min().map(|p| p.2).unwrap_or(home);
         regions[target].deposits.push(DepositState::new(Deposit::Salt, 500_000_000, 7000));
     }
+    // ruleset 3.1: the deposits of retired goods are not placed (they were drawn above
+    // so that every other draw of the generator stays where it was)
+    for r in regions.iter_mut() {
+        r.deposits.retain(|d| !crate::content::deposit_retired(d.kind));
+    }
     resource_proximity(&mut regions);
     let ice_links = ice_links(&regions, height);
 
@@ -1328,6 +1333,7 @@ pub fn generate(cfg: MatchConfig, entropy: u64) -> World {
             embargo: Vec::new(),
             fills: Vec::new(),
             subjugate_camps: false,
+            schooling: true,
             space: crate::sim::space::CivSpace::new(),
         });
     }

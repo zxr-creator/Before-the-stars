@@ -1355,6 +1355,16 @@ pub fn step(w: &mut World, seat: SeatId) {
             left -= moved;
             quota -= moved.min(quota);
         }
+        // what stays empty is what public schooling trains for (ruleset 3.1)
+        if left > 0 {
+            if let Some(q) = quals.first() {
+                let v = &mut w.regions[sink].last.vacant;
+                if v.len() < NQ {
+                    v.resize(NQ, 0);
+                }
+                v[q.index()] += left;
+            }
+        }
     }
 
     // people without posts drift toward regions that are hiring, a few percent a

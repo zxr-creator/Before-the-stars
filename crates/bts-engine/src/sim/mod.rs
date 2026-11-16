@@ -18,6 +18,7 @@ pub mod population;
 pub mod productivity;
 pub mod projects;
 pub mod raiders;
+pub mod schooling;
 pub mod space;
 pub mod victory;
 

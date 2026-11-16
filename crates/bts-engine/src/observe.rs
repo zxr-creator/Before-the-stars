@@ -710,6 +710,10 @@ pub fn known_goods(w: &World, seat: SeatId) -> Vec<bool> {
             k[crate::content::deposit_good(*d).index()] = true;
         }
     }
+    // retired goods are named to nobody (ruleset 3.1)
+    for g in crate::content::RETIRED_GOODS {
+        k[g.index()] = false;
+    }
     k
 }
 
@@ -978,6 +982,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             mobilization_bp: civ.mobilization_bp,
             war_policies: civ.war_policy.iter().enumerate().filter_map(|(o, p)| p.map(|(m, c)| WarPolicyView { seat: o as SeatId, accept_white_peace_after_months: Some(m), accept_cession_max: c })).collect(),
             camp_subjugate: civ.subjugate_camps,
+            schooling: civ.schooling,
         },
         factions,
         mobilization_cap_bp: economy::mobilization_cap(w, seat),
@@ -1449,6 +1454,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             graduates_total: p.graduates,
             paused: p.paused,
             blockers: p.blockers.clone(),
+            auto: p.auto,
         })
         .collect();
     let best_gen = military::military_tier(w, seat);

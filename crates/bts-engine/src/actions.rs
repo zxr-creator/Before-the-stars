@@ -40,6 +40,9 @@ pub fn prac_from_handle(w: &World, seat: SeatId, handle: &str) -> Option<usize> 
 pub fn facility_visible(w: &World, seat: SeatId, kind: usize) -> bool {
     let c = content();
     let def = &c.facilities[kind];
+    if def.retired {
+        return false;
+    }
     let civ = &w.civs[seat as usize];
     let mut ts = Vec::new();
     def.req.techs(&mut ts);
@@ -579,6 +582,15 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 }
                 PolicySetting::CampPolicy { subjugate } => {
                     w.civs[si].subjugate_camps = subjugate;
+                }
+                PolicySetting::Schooling { enabled } => {
+                    w.civs[si].schooling = enabled;
+                    if !enabled {
+                        // the courses the referee opened pass to the seat as they stand
+                        for p in w.civs[si].programs.iter_mut() {
+                            p.auto = false;
+                        }
+                    }
                 }
                 PolicySetting::Tribute { region, goods, years } => {
                     let ri = region as usize;
@@ -1179,7 +1191,7 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                 return fail("RATE_LIMITED", "too many programmes");
             }
             let id = w.id();
-            w.civs[si].programs.push(Program { id, course: ci, region, seats, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: def.months, graduates: 0, paused: false, blockers: vec![], last_grad: 0 });
+            w.civs[si].programs.push(Program { id, course: ci, region, seats, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: def.months, graduates: 0, paused: false, blockers: vec![], last_grad: 0, auto: false });
             Ok(("Programme opened. Cohorts enrol while learners, teachers and places exist.".into(), Some(id)))
         }
         Action::ManageProgram { program, op, seats } => {

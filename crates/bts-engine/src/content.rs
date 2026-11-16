@@ -1339,6 +1339,77 @@ pub struct FacDef {
     /// 8.6): housing, networks and industrial works. Fields and pastures take their
     /// own land and are counted apart.
     pub land_milli: i64,
+    /// Ruleset 3.1: the works made or used only goods that were retired
+    /// ([`RETIRED_GOODS`]). It cannot be built and is shown to nobody.
+    pub retired: bool,
+}
+
+/// Goods retired by ruleset 3.1 (`docs/design/42-playable-ruleset-3.1.md`): minor
+/// ores and luxuries that each fed one recipe, or none. They are stripped from
+/// every bill, recipe and upkeep at load; their works are retired with them, their
+/// deposits are not placed, and no view names them. The enum keeps the variants so
+/// that the protocol and the stock vectors keep their shape.
+pub const RETIRED_GOODS: [Good; 12] = [
+    Good::Spices,
+    Good::FineWares,
+    Good::Precious,
+    Good::Tin,
+    Good::Saltpetre,
+    Good::Salt,
+    Good::Lithium,
+    Good::CobaltNickel,
+    Good::Helium,
+    Good::Gas,
+    Good::Quartz,
+    Good::Batteries,
+];
+/// The deposits of retired goods.
+pub const RETIRED_DEPOSITS: [Deposit; 8] = [Deposit::Tin, Deposit::Salt, Deposit::Saltpetre, Deposit::Precious, Deposit::Gas, Deposit::Lithium, Deposit::CobaltNickel, Deposit::Quartz];
+
+pub fn good_retired(g: Good) -> bool {
+    RETIRED_GOODS.contains(&g)
+}
+
+pub fn deposit_retired(d: Deposit) -> bool {
+    RETIRED_DEPOSITS.contains(&d)
+}
+
+/// Strip the retired goods from the facility table (see [`RETIRED_GOODS`]).
+fn retire_goods(facs: &mut [FacDef]) {
+    let keep = |v: &mut Vec<(Good, i64)>| v.retain(|(g, _)| !good_retired(*g));
+    for f in facs.iter_mut() {
+        keep(&mut f.cost);
+        keep(&mut f.upkeep);
+        let had = f.recipes.len();
+        let extractive = f.extractive;
+        f.recipes.retain_mut(|r| {
+            // the helium-free substitutes are the only methods left: one of each pair
+            if r.key.ends_with("_hts") {
+                return false;
+            }
+            let (ins, outs) = (r.inputs.len(), r.outputs.len());
+            r.inputs.retain(|(g, _)| !good_retired(*g));
+            r.outputs.retain(|(g, _)| !good_retired(*g));
+            if r.depletes.map(deposit_retired).unwrap_or(false) || r.helium {
+                return false;
+            }
+            // a method that made only retired goods, or that would now make goods
+            // out of nothing, goes
+            if outs > 0 && r.outputs.is_empty() {
+                return false;
+            }
+            if ins > 0 && r.inputs.is_empty() && !r.outputs.is_empty() && !extractive {
+                return false;
+            }
+            true
+        });
+        if had > 0 && f.recipes.is_empty() && f.provides.is_empty() {
+            f.retired = true;
+        }
+        if matches!(f.site, Site::Deposit(d) if deposit_retired(d)) {
+            f.retired = true;
+        }
+    }
 }
 
 /// Service a tonne of coal, and of refined fuel, gives when burned in site engines:
@@ -1614,6 +1685,7 @@ fn fac(key: &'static str, name: &'static str, category: &'static str, desc: &'st
         era: 0,
         land: false,
         land_milli: 0,
+        retired: false,
     })
 }
 impl FB {
@@ -2873,6 +2945,7 @@ fn load() -> Content {
     let tech_ix: HashMap<String, usize> = tj.iter().enumerate().map(|(i, t)| (t.id.clone(), i)).collect();
     let prac_ix: HashMap<String, usize> = pj.iter().enumerate().map(|(i, p)| (p.id.clone(), i)).collect();
     let mut facs = facilities();
+    retire_goods(&mut facs);
     let fac_ix: HashMap<String, usize> = facs.iter().enumerate().map(|(i, f)| (f.key.to_string(), i)).collect();
     assert_eq!(fac_ix.len(), facs.len(), "duplicate facility key");
     let pr = |s: &str| parse_req(s, &tech_ix, &prac_ix, &fac_ix);
@@ -3029,7 +3102,7 @@ fn load() -> Content {
                 months: c.months,
                 class_size: c.class_size,
                 venue: meta.venue,
-                materials: meta.materials.iter().map(|(g, a)| (*g, m(*a))).collect(),
+                materials: meta.materials.iter().filter(|(g, _)| !good_retired(*g)).map(|(g, a)| (*g, m(*a))).collect(),
             }
         })
         .collect();
@@ -3038,6 +3111,9 @@ fn load() -> Content {
     let mut tiers = unit_tiers();
     for t in tiers.iter_mut() {
         t.req = pr(t.req_src);
+        for v in [&mut t.equipment, &mut t.alternative, &mut t.maneuver_extra, &mut t.upkeep] {
+            v.retain(|(g, _)| !good_retired(*g));
+        }
     }
 
     let mut tech_enables: Vec<Vec<String>> = vec![Vec::new(); techs.len()];

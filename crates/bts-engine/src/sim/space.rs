@@ -188,7 +188,8 @@ pub const M_REFINERY: usize = 7;
 pub const MODULES: [ModDef; 8] = [
     ModDef { key: "habitat", name: "Habitat", req: "T144", mass: 300, posts: &[(Qual::Orbital, 500)], power: -10 },
     ModDef { key: "life_support", name: "Life support", req: "T144", mass: 200, posts: &[(Qual::Technician, 200)], power: -30 },
-    ModDef { key: "solar", name: "Solar array", req: "T106 & T143", mass: 150, posts: &[(Qual::Technician, 50)], power: 100 },
+    // ruleset 3.1: one array carries a first station (core, shipyard, berth, life support)
+    ModDef { key: "solar", name: "Solar array", req: "T106 & T143", mass: 150, posts: &[(Qual::Technician, 50)], power: 300 },
     ModDef { key: "reactor", name: "Reactor", req: "T147", mass: 600, posts: &[(Qual::Technician, 1_000)], power: 400 },
     ModDef { key: "docking", name: "Docking and depot", req: "T142", mass: 500, posts: &[(Qual::Orbital, 1_500)], power: -20 },
     // ruleset 3.1: the shipyard stands on its own (the doc-35 ground yard is optional)
@@ -381,7 +382,7 @@ impl SpaceWorld {
                 block: PopBlock::new(0, None),
                 works: vec![0; WORKS.len()],
                 building: Vec::new(),
-                deposits: d.deposits.iter().map(|(k, a, q)| DepositState::new(*k, *a, *q)).collect(),
+                deposits: d.deposits.iter().filter(|(k, _, _)| !crate::content::deposit_retired(*k)).map(|(k, a, q)| DepositState::new(*k, *a, *q)).collect(),
                 served_hist: [10_000; 12],
                 served_bp: 10_000,
                 rate_bp: 0,

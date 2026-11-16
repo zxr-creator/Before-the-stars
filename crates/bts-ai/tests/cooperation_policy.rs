@@ -92,6 +92,8 @@ fn a_programme_short_of_crews_asks_a_partner_with_terms_the_referee_accepts() {
         assemblies_operational: 0,
         deployment_done: false,
         replacement_done: false,
+        rule: "classic".into(),
+        ..Default::default()
     });
     for o in obs.others.iter_mut() {
         o.trust = o.trust.max(60);

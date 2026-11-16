@@ -423,6 +423,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             complete(w, seat, p);
         }
     }
+    crate::sim::schooling::step(w, seat);
     step_programs(w, seat);
 }
 
@@ -921,6 +922,15 @@ fn step_programs(w: &mut World, seat: SeatId) {
                     entrant = *e;
                 }
             }
+            // ruleset 3.1: a course never waits for a ladder of earlier courses. Where
+            // none of its usual entrants is to be had, people without a qualification
+            // enrol and take half as long again.
+            let mut from_scratch = false;
+            if entrant_avail == 0 && unskilled > 0 && !course.entrants.contains(&None) {
+                entrant = None;
+                entrant_avail = unskilled;
+                from_scratch = true;
+            }
             if entrant_avail == 0 {
                 blockers.push("No eligible learners here".into());
             }
@@ -937,6 +947,9 @@ fn step_programs(w: &mut World, seat: SeatId) {
             if bootstrap {
                 duration *= 2;
                 blockers.push("No qualified instructor: a founding cohort is working it out slowly".into());
+            }
+            if from_scratch {
+                duration = duration * 3 / 2;
             }
             if w.civs[si].est_id("C046") && entrant.is_some() {
                 duration = duration * 8 / 10;
@@ -983,7 +996,10 @@ fn step_programs(w: &mut World, seat: SeatId) {
             if p.teacher_qual.is_none() {
                 blockers.push("Founding cohort without a qualified instructor".into());
             }
-            if ok {
+            // (ruleset 3.1) short of materials a class goes on at half speed rather
+            // than stopping: only a closed venue stops it
+            let closed = blockers.iter().any(|b| b == "The venue is closed");
+            if ok || (!closed && month % 2 == 0) {
                 p.progress += 1;
             }
             p.blockers = blockers;

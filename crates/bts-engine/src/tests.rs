@@ -21,11 +21,15 @@ mod eras;
 mod cities;
 mod job3;
 mod space;
+mod standard;
 
 /// Ruleset-2.0-style unit tests run on the fixture clock: twelve-month rounds from
 /// 5000 BC (design chapter 36, section 2.2).
+/// They run the classic victory contract (design chapter 15), whose sealed objective
+/// and sustained windows they were written for; the standard contract of ruleset
+/// 3.1 has its own tests in `tests/standard.rs`.
 fn cfg(seed: &str) -> MatchConfig {
-    MatchConfig { seed: seed.into(), regions: 24, calendar: MatchConfig::fixture_calendar(240), ..Default::default() }
+    MatchConfig { seed: seed.into(), regions: 24, calendar: MatchConfig::fixture_calendar(240), victory: VictoryRule::Classic, ..Default::default() }
 }
 
 fn run_rounds(m: &mut Match, rounds: u32) {
@@ -218,7 +222,7 @@ fn endgame_world() -> World {
     // the educational base: running courses for both qualifications
     let campus = w.regions.iter().position(|r| r.fac(c.f("tech_institute")).is_some()).unwrap() as RegionId;
     for (i, course) in ["E023", "E024"].iter().enumerate() {
-        w.civs[0].programs.push(Program { id: 9100 + i as u32, course: c.course_ix[*course], region: campus, seats: 10_000, enrolled: 10_000, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 24, graduates: 0, paused: false, blockers: vec![], last_grad: 0 });
+        w.civs[0].programs.push(Program { id: 9100 + i as u32, course: c.course_ix[*course], region: campus, seats: 10_000, enrolled: 10_000, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 24, graduates: 0, paused: false, blockers: vec![], last_grad: 0, auto: false });
     }
     let yard = c.f("jump_yard");
     let yard_regions: Vec<RegionId> = w.regions.iter().filter(|r| r.fac(yard).is_some()).map(|r| r.id).collect();
@@ -701,7 +705,7 @@ fn a_founding_cohort_is_at_most_four_thousand_and_courses_use_materials_per_thou
     m.world.regions[home].facilities.sort_by_key(|f| f.kind);
     let (cap, reserved) = crate::sim::projects::venue_seats(&m.world, 0, home, crate::content::Cap::SeatsLodge);
     assert_eq!((cap, reserved), (32_000, 0));
-    m.world.civs[0].programs.push(Program { id: 900, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![], last_grad: 0 });
+    m.world.civs[0].programs.push(Program { id: 900, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![], last_grad: 0, auto: false });
     m.world.regions[home].quals[Qual::Artisan.index()] = 0;
     crate::sim::projects::step(&mut m.world, 0);
     let p = m.world.civs[0].programs[0].clone();
@@ -709,7 +713,7 @@ fn a_founding_cohort_is_at_most_four_thousand_and_courses_use_materials_per_thou
     assert_eq!(p.teachers, 0);
     assert_eq!(m.world.regions[home].students, 4_000);
     // with instructors the class size is people per instructor, unchanged
-    m.world.civs[0].programs[0] = Program { id: 901, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![], last_grad: 0 };
+    m.world.civs[0].programs[0] = Program { id: 901, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![], last_grad: 0, auto: false };
     m.world.regions[home].students = 0;
     m.world.regions[home].quals[Qual::Artisan.index()] = 1_000;
     crate::sim::projects::step(&mut m.world, 0);

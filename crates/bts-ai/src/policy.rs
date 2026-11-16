@@ -1270,6 +1270,11 @@ pub fn plan_domains(ai: &mut NativeAi, obs: &Observation, only: Option<&[String]
     // (after the others: its programme orders are many and must not crowd them out)
     if on("education") {
         education(&mut p, &regions, working);
+        // with public schooling on (ruleset 3.1) the referee runs the courses: the
+        // policy keeps only its venue building
+        if obs.civ.policies.schooling {
+            p.actions.retain(|a| !matches!(a, Action::StartProgram { .. } | Action::ManageProgram { .. }));
+        }
     }
     // what we want but cannot make at home is worth asking neighbours for
     let mut imports: Vec<Good> = p
@@ -3967,12 +3972,13 @@ fn space(p: &mut Plan, regions: &[&RegionView]) {
                 return;
             }
             let full = used >= slots;
-            // power first: a reactor where one can be built (four arrays' worth in one
-            // slot), else an array, when the station runs short
+            // power first when the station runs short: arrays (300 units each, no
+            // fuel, a handful of technicians); a reactor only on a station that
+            // already carries two arrays and has its fuel in the orbital store
             if !full && used > 0 && st.power_bp.unwrap_or(10_000) < 9_000 {
-                // reactors are crewed aboard (a thousand technicians a level): two at most
-                let part = if has("reactor") && level(st, "Reactor") < 2 { "reactor" } else { "solar" };
-                if has(part) {
+                let fuelled = store("earth_orbit", Good::NuclearFuel) >= 7_200;
+                let part = if has("reactor") && level(st, "Solar array") >= 2 && level(st, "Reactor") < 2 && fuelled { "reactor" } else { "solar" };
+                if has(part) && level(st, "Solar array") < 4 {
                     p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: part.into() }));
                     return;
                 }
@@ -3990,10 +3996,6 @@ fn space(p: &mut Plan, regions: &[&RegionView]) {
             }
             // more power before a shipyard: a reactor where it can be built
             for (key, name, want) in plan {
-                // with reactors, arrays are not added beyond the first
-                if key == "solar" && has("reactor") && level(st, name) >= 1 {
-                    continue;
-                }
                 if !full && has(key) && level(st, name) < want {
                     p.push(order(SpaceOrder::Place { orbit: "leo".into(), part: key.into() }));
                     return;

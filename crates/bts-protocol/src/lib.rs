@@ -986,6 +986,11 @@ pub struct Policies {
     /// (bts-protocol/2.6).
     #[serde(default)]
     pub camp_subjugate: bool,
+    /// Public schooling (`set_policy` / `schooling`, on by default): the referee
+    /// opens, sizes and closes courses from the seat's vacant qualified posts, so a
+    /// seat only has to build the venues (lodges, schools, colleges, institutes).
+    #[serde(default)]
+    pub schooling: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -2168,6 +2173,9 @@ pub struct ProgramView {
     pub graduates_total: u32,
     pub paused: bool,
     pub blockers: Vec<String>,
+    /// Opened and sized by public schooling: the referee manages it (ruleset 3.1).
+    #[serde(default)]
+    pub auto: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -2390,7 +2398,7 @@ pub enum VictoryRule {
     Classic,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct VictoryView {
     pub governance_months: u32,
     pub governance_needed: u32,
@@ -2706,6 +2714,10 @@ pub enum PolicySetting {
     /// What survivors of a raider camp this seat breaks become (protocol 2.4;
     /// design chapter 40, section 5.6): subjects with the land, or refugees.
     CampPolicy { subjugate: bool },
+    /// Turn public schooling on or off (ruleset 3.1; on by default). While on, the
+    /// referee runs the seat's courses from its vacant qualified posts; the seat
+    /// may still open programmes of its own beside them.
+    Schooling { enabled: bool },
     /// Pay tribute to the raider camp sighted in `region` (design 5.7): the goods go
     /// to the camp's store at once and its raids on this seat stop for `years`.
     Tribute { region: RegionId, goods: Vec<GoodQty>, years: u8 },

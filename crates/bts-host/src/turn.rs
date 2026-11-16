@@ -135,10 +135,19 @@ fn action_reference(obs: &Observation) -> Value {
     if obs.culture.movement.is_some() {
         examples.push(json!({"kind":"start_project","spec":{"kind":"religion","beliefs":[],"name":null},"priority":5}));
     }
-    if obs.objectives.victory.is_some() {
-        for kind in ["ftl_trial", "ftl_deployment", "ftl_replacement"] {
-            examples.push(json!({"kind":"start_project","spec":{"kind":kind},"priority":5}));
+    match obs.objectives.victory.as_ref() {
+        // the standard contract's only programme order, once an assembly exists
+        Some(v) if v.rule == "standard" => {
+            if v.assemblies_operational > 0 {
+                examples.push(json!({"kind":"start_project","spec":{"kind":"ftl_trial"},"priority":2}));
+            }
         }
+        Some(_) => {
+            for kind in ["ftl_trial", "ftl_deployment", "ftl_replacement"] {
+                examples.push(json!({"kind":"start_project","spec":{"kind":kind},"priority":5}));
+            }
+        }
+        None => {}
     }
     let clauses = vec![
         json!({"kind":"goods","from":0,"good":"food","amount_per_month":50000,"months":12}),

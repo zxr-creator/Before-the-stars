@@ -341,7 +341,24 @@ pub fn briefing(obs: &Observation, delegates: &[String]) -> String {
     for a in &obs.objectives.agendas {
         s += &format!("  {}: {} ({})\n", a.title, a.description, a.progress);
     }
-    if let Some(v) = &obs.objectives.victory {
+    if let Some(v) = obs.objectives.victory.as_ref().filter(|v| v.rule == "standard") {
+        s += &format!("  HOW TO WIN: {}\n", v.summary);
+        s += &format!("  Your standing: {} points.", v.standing);
+        let rivals: Vec<String> = v.standings.iter().filter(|x| x.seat != obs.seat).map(|x| format!("{} {} pts, {}/6 steps{}", x.name, x.points, x.steps, if x.sovereign { "" } else { " (not sovereign)" })).collect();
+        if !rivals.is_empty() {
+            s += &format!(" Rivals: {}.", rivals.join("; "));
+        }
+        s += "\n  JUMP PROGRAMME (each step is permanent once reached):\n";
+        for (i, c) in v.steps.iter().enumerate() {
+            let mark = if c.ok { "done" } else if v.next_step.as_deref() == Some(c.category.as_str()) { "NEXT" } else { "    " };
+            s += &format!("    {} {}. {} — {}\n", mark, i + 1, c.label, c.detail);
+        }
+        if v.trial_ready {
+            s += "    A jump trial can be ordered now: start_project {\"kind\":\"ftl_trial\"}.\n";
+        } else if v.assemblies_operational > 0 && !v.trial_blocker.is_empty() {
+            s += &format!("    Jump trial blocked: {}.\n", v.trial_blocker);
+        }
+    } else if let Some(v) = &obs.objectives.victory {
         s += &format!("  FINAL OBJECTIVE: {}\n  Governance months {}/{}, jump capability months {}/{}, qualifying trials {}.\n", v.summary, v.governance_months, v.governance_needed, v.ftl_months, v.ftl_needed, v.trials.len());
         for c in v.governance_checks.iter().chain(v.ftl_checks.iter()).filter(|c| !c.ok).take(8) {
             s += &format!("    not yet: {} — {}\n", c.label, c.detail);

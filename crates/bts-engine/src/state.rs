@@ -331,6 +331,11 @@ pub struct RegionMonth {
     /// Rations.
     pub food_made: i64,
     pub qual_employed: Vec<u32>,
+    /// Qualified posts left empty this month after spare holders moved in from the
+    /// seat's other regions, by the post's first-choice qualification (ruleset 3.1:
+    /// what public schooling trains for).
+    #[serde(default)]
+    pub vacant: Vec<u32>,
     pub tag_staff: Vec<u32>,
     /// Worker-months one called-up worker supplied this month: the construction factor
     /// of productivity (10,000 = one; at most 15,000; ruleset 3.0 slice 6).
@@ -718,6 +723,9 @@ pub struct Program {
     /// Month in which the last cohort graduated (0: none has).
     #[serde(default)]
     pub last_grad: Month,
+    /// Opened and sized by public schooling (`sim::schooling`), not by the seat.
+    #[serde(default)]
+    pub auto: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -937,6 +945,10 @@ pub struct Contact {
     /// Month in which a region last changed hands between the two (for armistice).
     #[serde(default)]
     pub last_control_change: Month,
+}
+
+pub fn yes() -> bool {
+    true
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -1253,6 +1265,10 @@ pub struct Civ {
     /// What survivors of a cleared raider camp become: subjects (true) or refugees.
     #[serde(default)]
     pub subjugate_camps: bool,
+    /// Public schooling (ruleset 3.1): the referee opens, sizes and closes the
+    /// seat's courses from its vacant posts. On unless the seat turns it off.
+    #[serde(default = "yes")]
+    pub schooling: bool,
     /// Boost, zone stores and the off-world accounts (design chapters 37 §6, 39 §4).
     #[serde(default = "crate::sim::space::CivSpace::new")]
     pub space: crate::sim::space::CivSpace,
