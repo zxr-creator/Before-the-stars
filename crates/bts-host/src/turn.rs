@@ -38,6 +38,13 @@ pub struct Submission {
     /// when it differs (protocol 2.3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub known_tree_hash: Option<String>,
+    /// Domains handed to the built-in steward from now on (ruleset 3.1): any of
+    /// "economy", "research", "education", "culture", "expansion", "military". The
+    /// steward is the native policy, restricted to those domains and to this seat's
+    /// own view; it places its orders at the end of every planning phase. An empty
+    /// list takes everything back; leaving the field out changes nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delegate: Option<Vec<String>>,
 }
 
 /// How much of a decision packet to send.
@@ -179,7 +186,7 @@ fn next_text(obs: &Observation) -> String {
         Phase::Finished => "The match is over.",
     };
     format!(
-        "{phase} This round resolves {months} months in one go. One-off orders are carried out once; standing orders (kind directive) act every January inside the round, so use them for what must keep happening. Submit one batch with this cursor and a unique request_id: advance phase finishes your part of this phase, round also passes the remaining diplomacy, none only applies the orders so you can read the receipts and submit again. Rejected actions prevent the advance; accepted actions stay applied."
+        "{phase} Read `priorities` first: it lists what matters most now, each with an example order. To play at a high level only, pass delegate (for example [\"economy\",\"education\",\"research\"]) with a submission and the built-in steward runs those domains every round. This round resolves {months} months in one go. One-off orders are carried out once; standing orders (kind directive) act every January inside the round, so use them for what must keep happening. Submit one batch with this cursor and a unique request_id: advance phase finishes your part of this phase, round also passes the remaining diplomacy, none only applies the orders so you can read the receipts and submit again. Rejected actions prevent the advance; accepted actions stay applied."
     )
 }
 
@@ -218,6 +225,9 @@ fn packet<A: AgentSlot>(host: &Host<A>, seat: SeatId, receipts: Vec<Receipt>, su
             "cursor": cursor(&obs), "view": "brief",
             "seat": seat, "round": obs.round, "phase": obs.phase, "window": obs.window, "date": obs.date,
             "briefing": crate::brief::briefing(&obs, &delegates),
+            "priorities": crate::brief::priorities(&obs),
+            "delegated": delegates,
+            "steward_domains": bts_ai::NativeAi::steward_domains(),
             "standing_orders": obs.directives,
             "receipts": receipts,
             "submitted": submitted, "round_advanced": advanced,
@@ -276,6 +286,9 @@ pub(crate) fn submit<A: AgentSlot>(host: &mut Host<A>, b: Submission) -> Result<
     }
     let s = host.session.as_mut().unwrap();
     let before = s.m.round();
+    if let Some(domains) = b.delegate.clone() {
+        s.set_delegates(b.seat, domains);
+    }
     let receipts = s.m.act(b.seat, b.actions);
     if let Some(slot) = host.agents.get_mut(b.seat as usize).and_then(|a| a.as_mut()) {
         slot.record(&b.token, &receipts);
@@ -319,7 +332,7 @@ mod tests {
     }
     fn order(st: &Host<NoAgents>, id: &str) -> Submission {
         Submission { seat: 0, token: String::new(), request_id: id.into(), cursor: get(st, 0, "", &View::default()).unwrap()["cursor"].as_str().unwrap().into(),
-            actions: vec![Action::SetPolicy { setting: PolicySetting::Rename { name: "New identity".into() } }], advance: Advance::None, view: None, sections: None, known_tree_hash: None }
+            actions: vec![Action::SetPolicy { setting: PolicySetting::Rename { name: "New identity".into() } }], advance: Advance::None, view: None, sections: None, known_tree_hash: None, delegate: None }
     }
     #[test]
     fn retry_never_reapplies_and_changed_payload_conflicts() {

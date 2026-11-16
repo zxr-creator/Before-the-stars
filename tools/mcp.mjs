@@ -82,7 +82,7 @@ export function createHandler({
         return reply(await tree());
       }
       if (m.params?.name !== 'submit_turn') return error(-32602, 'Unknown tool');
-      if (Object.keys(args).some(k => !['cursor', 'request_id', 'actions', 'advance', 'view'].includes(k)) || typeof args.cursor !== 'string' || typeof args.request_id !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(args.request_id ?? '') || !Array.isArray(args.actions) || args.actions.length > 32 || args.actions.some(a => !a || typeof a.kind !== 'string') || !['none', 'phase', 'round'].includes(args.advance ?? 'phase')) return error(-32602, 'Invalid submission arguments');
+      if (Object.keys(args).some(k => !['cursor', 'request_id', 'actions', 'advance', 'view', 'delegate'].includes(k)) || (args.delegate !== undefined && (!Array.isArray(args.delegate) || args.delegate.length > 6 || args.delegate.some(d => typeof d !== 'string'))) || typeof args.cursor !== 'string' || typeof args.request_id !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(args.request_id ?? '') || !Array.isArray(args.actions) || args.actions.length > 32 || args.actions.some(a => !a || typeof a.kind !== 'string') || !['none', 'phase', 'round'].includes(args.advance ?? 'phase')) return error(-32602, 'Invalid submission arguments');
       if (spent) return reply(budget());
       calls++;
       return reply(await request({ ...args, advance: args.advance ?? 'phase', view }));

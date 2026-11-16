@@ -178,7 +178,7 @@ impl Server {
                 let request_ok = obj.get("request_id").and_then(Value::as_str).is_some_and(|r| !r.is_empty() && r.len() <= 80 && r.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_'));
                 let actions_ok = obj.get("actions").and_then(Value::as_array).is_some_and(|a| a.len() <= 32 && a.iter().all(|x| x["kind"].is_string()));
                 let advance = obj.get("advance").and_then(Value::as_str).unwrap_or("phase");
-                if obj.keys().any(|k| !["cursor", "request_id", "actions", "advance", "view"].contains(&k.as_str())) || !obj.get("cursor").is_some_and(Value::is_string) || !request_ok || !actions_ok || !["none", "phase", "round"].contains(&advance) {
+                if obj.keys().any(|k| !["cursor", "request_id", "actions", "advance", "view", "delegate"].contains(&k.as_str())) || obj.get("delegate").is_some_and(|d| !d.as_array().is_some_and(|a| a.len() <= 6 && a.iter().all(Value::is_string))) || !obj.get("cursor").is_some_and(Value::is_string) || !request_ok || !actions_ok || !["none", "phase", "round"].contains(&advance) {
                     return error(-32602, "Invalid submission arguments");
                 }
                 let Ok(v) = view(obj) else { return error(-32602, "view must be \"brief\" or \"full\"") };
@@ -186,7 +186,10 @@ impl Server {
                     return reply(budget_error(self.binding.max_calls));
                 }
                 self.calls += 1;
-                let body = json!({ "cursor": obj["cursor"], "request_id": obj["request_id"], "actions": obj["actions"], "advance": advance, "view": v });
+                let mut body = json!({ "cursor": obj["cursor"], "request_id": obj["request_id"], "actions": obj["actions"], "advance": advance, "view": v });
+                if let Some(d) = obj.get("delegate") {
+                    body["delegate"] = d.clone();
+                }
                 reply(self.referee(Some(body), &v, &[]))
             }
             "get_building_tree" => {

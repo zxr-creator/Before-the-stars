@@ -382,6 +382,127 @@ pub fn briefing(obs: &Observation, delegates: &[String]) -> String {
     s
 }
 
+/// What matters most for the seat now, most important first: a short to-do list
+/// for an agent, each entry with why it matters and, where one exists, an example
+/// order (ruleset 3.1). Computed only from the seat's own observation.
+pub fn priorities(obs: &Observation) -> Vec<serde_json::Value> {
+    use serde_json::json;
+    let mut out: Vec<serde_json::Value> = Vec::new();
+    let mut add = |title: String, why: String, example: Option<serde_json::Value>| {
+        if out.len() < 10 {
+            out.push(match example {
+                Some(e) => json!({ "do": title, "why": why, "example": e }),
+                None => json!({ "do": title, "why": why }),
+            });
+        }
+    };
+    if obs.outcome.is_some() || obs.status != SeatStatus::Active {
+        return out;
+    }
+    let capital = obs.civ.capital;
+    let pop = obs.civ.population.max(1) as i64;
+    // ---- food first -----------------------------------------------------------------
+    let food = obs.civ.goods.iter().find(|g| g.good == Good::Food).map(|g| g.stock).unwrap_or(0);
+    let months = food / (pop * obs.units.food_per_person_month.max(1));
+    if obs.civ.food_fulfillment_bp < 9_800 || months < 3 {
+        add(
+            "Grow more food".into(),
+            format!("People got {}% of their food and {} months are in store. Hunger stops growth and unsettles the realm.", obs.civ.food_fulfillment_bp / 100, months),
+            Some(json!({"kind":"directive","op":"add","directive":{"kind":"build_target","region":capital,"facility":"fields","levels":4,"priority":1}})),
+        );
+    }
+    // ---- the way to win -------------------------------------------------------------
+    if let Some(v) = obs.objectives.victory.as_ref().filter(|v| v.rule == "standard") {
+        if v.trial_ready && v.second_trial_from.map(|m| obs.month + 6 >= m).unwrap_or(true) {
+            add("Fly a jump trial".into(), "It is the next step of the jump programme, and the second flight wins the match.".into(), Some(json!({"kind":"start_project","spec":{"kind":"ftl_trial"},"priority":1})));
+        } else if let Some(step) = v.steps.iter().find(|c| !c.ok).filter(|c| c.category != "orbit" || obs.catalog.facilities.iter().any(|f| f.kind == "proving_ground" || f.kind == "launch_complex")) {
+            let example = match step.category.as_str() {
+                "orbit" => obs.catalog.facilities.iter().find(|f| (f.kind == "launch_complex" || f.kind == "proving_ground") && f.available).map(|f| json!({"kind":"start_project","spec":{"kind":"build","region":capital,"facility":f.kind,"levels":1},"priority":2})),
+                "station" => Some(json!({"kind":"space","order":{"op":"place","orbit":"leo","part":"k1"}})),
+                "shipyard" => Some(json!({"kind":"space","order":{"op":"place","orbit":"leo","part":"shipyard"}})),
+                "assembly" => obs.catalog.facilities.iter().find(|f| (f.kind == "jump_yard" || f.kind == "lattice_works") && f.available).map(|f| json!({"kind":"start_project","spec":{"kind":"build","region":capital,"facility":f.kind,"levels":1},"priority":2})),
+                _ => None,
+            };
+            let lead = v.standings.iter().filter(|x| x.seat != obs.seat && x.sovereign).map(|x| x.steps).max().unwrap_or(0);
+            let mine = v.steps.iter().filter(|c| c.ok).count() as u32;
+            add(
+                format!("Jump programme, step {}: {}", mine + 1, step.label),
+                format!("{} {}", step.detail, if lead > mine { format!("A rival is ahead of you ({lead} of 6 steps).") } else { "The first seat to complete all six steps wins.".into() }),
+                example,
+            );
+        }
+    }
+    // ---- an era waiting to be entered ---------------------------------------------------
+    if let Some(n) = obs.era.as_ref().and_then(|e| e.next.as_ref()).filter(|n| n.eligible) {
+        add(format!("Enter the {} era", n.name), "Its knowledge is understood and its proof is built: entering opens new charters and works.".into(), Some(json!({"kind":"enter_era"})));
+    }
+    // ---- an unfilled tradition slot ------------------------------------------------------
+    if let Some(e) = obs.era.as_ref() {
+        for t in e.traditions.iter().filter(|t| t.offered && t.held.is_none() && t.reform_to.is_none()) {
+            if let Some(o) = t.options.first() {
+                add(
+                    format!("Choose a {} tradition", t.slot),
+                    format!("A path shapes the whole age (its works, bonuses and look). Options: {}.", t.options.iter().map(|o| format!("{} ({})", o.name, o.key)).collect::<Vec<_>>().join(", ")),
+                    Some(json!({"kind":"choose_tradition","slot":t.slot,"path":o.key})),
+                );
+            }
+        }
+    }
+    // ---- knowledge standing idle -----------------------------------------------------------
+    let idle: i64 = obs.civ.research.iter().map(|l| l.capacity - l.used).sum();
+    let waiting = obs.knowledge.techs.iter().filter(|t| t.can_investigate).count();
+    let auto = obs.directives.iter().any(|d| matches!(d.directive, Directive::AutoResearch { on: true, .. }));
+    if waiting > 0 && idle > 0 && !auto {
+        add(
+            "Keep research going".into(),
+            format!("{waiting} question(s) can be investigated and research capacity stands idle. A standing order investigates automatically every year."),
+            Some(json!({"kind":"directive","op":"add","directive":{"kind":"auto_research","on":true}})),
+        );
+    }
+    if !obs.knowledge.leads.is_empty() && !auto {
+        add("Follow up the leads".into(), format!("{} lead(s) wait to become questions.", obs.knowledge.leads.len()), obs.knowledge.leads.first().map(|l| json!({"kind":"investigate","lead":l.handle})));
+    }
+    // ---- scarce goods (home price well above base) -----------------------------------------
+    let mut scarce: Vec<&GoodLine> = obs.civ.goods.iter().filter(|g| g.good != Good::Food && g.price_bp >= 12_500 && g.short > 0).collect();
+    scarce.sort_by_key(|g| std::cmp::Reverse(g.price_bp));
+    for g in scarce.into_iter().take(3) {
+        let maker = obs.catalog.facilities.iter().find(|f| f.available && f.recipes.iter().any(|r| r.available && r.outputs.iter().any(|o| o.good == g.good)));
+        add(
+            format!("Make more {}", g.good.label().to_lowercase()),
+            format!("Demand outran supply last round (home price {}% of base): works and orders went short of it.", g.price_bp / 100),
+            maker.map(|f| json!({"kind":"directive","op":"add","directive":{"kind":"build_target","region":capital,"facility":f.kind,"levels":2,"priority":3}})),
+        );
+    }
+    // ---- schooling short of places ------------------------------------------------------------
+    if let Some(b) = obs.briefing.iter().find(|b| b.title == "Schooling is short of places") {
+        add("Build places to teach in".into(), b.detail.clone(), None);
+    }
+    // ---- the household basket --------------------------------------------------------------------
+    if obs.era.as_ref().map(|e| e.era >= 3).unwrap_or(false) && obs.civ.standard_of_living_bp < 4_000 {
+        add(
+            "Supply the households".into(),
+            format!("The standard of living is {}%: the stores supply too little of the textiles and consumer goods people expect, which costs stability and makes towns less productive.", obs.civ.standard_of_living_bp / 100),
+            obs.catalog.facilities.iter().find(|f| f.available && (f.kind == "textile_mill" || f.kind == "weaving")).map(|f| json!({"kind":"directive","op":"add","directive":{"kind":"build_target","region":capital,"facility":f.kind,"levels":2,"priority":4}})),
+        );
+    }
+    // ---- before rocketry is known: the long road ---------------------------------------------
+    if out.is_empty() {
+        if let Some(v) = obs.objectives.victory.as_ref().filter(|v| v.rule == "standard" && v.steps.iter().all(|c| !c.ok)) {
+            let _ = v;
+            add(
+                "Grow, learn and settle".into(),
+                "The jump programme starts with rocketry, ages away. Until then: keep people fed, settle and survey neighbouring regions, build schools and places of study, keep research running, and enter each new era when it opens.".into(),
+                Some(json!({"kind":"directive","op":"add","directive":{"kind":"auto_research","on":true}})),
+            );
+        }
+    }
+    // ---- order ----------------------------------------------------------------------------------
+    if obs.civ.stability < 45 {
+        add("Restore order".into(), format!("Stability is {}. Below 35 the realm starts to come apart: feed people, fill the household basket, end wars, lighten the call-up.", obs.civ.stability), None);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
