@@ -2325,8 +2325,10 @@ fn facilities() -> Vec<FacDef> {
             .provides(Cap::FtlBase, 1.0).upkeep(&[(Spares, 4.0)]).labor(L::Industry).tags(&[Tag::Space]).max(1),
         // the one declared fictional material (design chapter 36, section 5.2): crystal
         // conditioned in the anomaly's field, only at the three test nodes
-        fac("lattice_works", "Lattice conditioning works", "Jump engineering", "Conditions high-purity crystal in the anomaly's field into interface lattice. Only at a test node, one works each.")
-            .req("T164 | T165").site(Site::TestNode)
+        // ruleset 3.1: the works stand anywhere (one a region); at the three test nodes
+        // only the classic contract's deployment nodes must stand
+        fac("lattice_works", "Lattice conditioning works", "Jump engineering", "Conditions high-purity crystal in a reproduced anomaly field into interface lattice, the one input a jump assembly cannot do without. One works a region.")
+            .req("T164 | T165")
             .cost(&[(Metal, 60.0), (Components, 40.0), (Electronics, 40.0), (Magnets, 10.0), (Instruments, 20.0)]).work(3000.0)
             .skilled(&[Q::Scientist, Q::FtlEngineer], 6_000).general(4_000)
             .recipe(rec("lattice", "Lattice conditioning").inp(&[(Substrate, 1.0), (Magnets, 1.0), (Helium, 0.1)]).out(&[(Lattice, 40.0)]).elec(2000.0))

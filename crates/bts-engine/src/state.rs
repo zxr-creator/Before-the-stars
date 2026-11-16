@@ -29,6 +29,10 @@ pub struct MatchConfig {
     /// Earth-like planet by default; the classic flat map for fixtures.
     #[serde(default)]
     pub world: WorldKind,
+    /// How the match is won (ruleset 3.1): the standard contract by default, the
+    /// classic sustained contract of design chapter 15 for those who ask for it.
+    #[serde(default)]
+    pub victory: VictoryRule,
 }
 
 impl MatchConfig {
@@ -74,6 +78,7 @@ impl Default for MatchConfig {
             disclosed_objective: false,
             public_seed: true,
             world: WorldKind::EarthLike,
+            victory: VictoryRule::Standard,
         }
     }
 }
@@ -954,6 +959,10 @@ pub struct FtlState {
     pub ftl_checks: Vec<Check>,
     pub first_capability: Option<Month>,
     pub integration_month: Option<Month>,
+    /// The month each step of the jump programme was first reached (standard
+    /// contract; `sim::victory::STEPS`). A step once reached is never lost.
+    #[serde(default)]
+    pub steps: Vec<Option<Month>>,
 }
 
 /// The goods ledger of one civilization over one decision round, in base units and
@@ -1423,6 +1432,9 @@ pub struct Outcome {
     pub month: Month,
     pub winner: Option<SeatId>,
     pub reason: String,
+    /// How it was decided: "jump", "supremacy", "standing", "classic" or "none".
+    #[serde(default)]
+    pub kind: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1554,6 +1566,16 @@ impl World {
             }
         }
         Some(top)
+    }
+    /// Ruleset 3.1: a real station in orbit is an orbital station. Wherever a rule
+    /// asks for the ground works "orbital_station", the seat's station in any orbit
+    /// serves; wherever it asks for "orbital_yard", a station with a shipyard module.
+    pub fn station_stands_in(&self, seat: SeatId, key: &str) -> bool {
+        match key {
+            "orbital_station" => self.space.stations.iter().any(|s| s.owner == seat),
+            "orbital_yard" => self.space.stations.iter().any(|s| s.owner == seat && s.modules[crate::sim::space::M_SHIPYARD] > 0),
+            _ => false,
+        }
     }
     pub fn top_authority(&self, seat: SeatId) -> SeatId {
         let mut top = seat;
@@ -1698,6 +1720,7 @@ impl ReqCtx for CivCtx<'_> {
         // region's own works and never come here.
         self.world.regions.iter().any(|r| r.owner == Some(self.seat) && r.fac(i).map(|f| f.level > 0).unwrap_or(false))
             || service_of_facility(content().facilities[i].key).map(|s| self.world.programme_access(self.seat, s)).unwrap_or(false)
+            || self.world.station_stands_in(self.seat, content().facilities[i].key)
     }
     fn pop(&self) -> u64 {
         self.world.civ_population(self.seat)

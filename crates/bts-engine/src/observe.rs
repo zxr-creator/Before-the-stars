@@ -1598,7 +1598,53 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
     if civ.milestones.interstellar.is_some() {
         milestones.push("Interstellar feasibility".into());
     }
-    let victory_view = if revealed {
+    let standard = w.cfg.victory == VictoryRule::Standard;
+    // the standard contract is public from the first round: its steps name nothing
+    // a seat has not discovered (the test nodes stay hidden until the reveal)
+    let victory_view = if standard {
+        let live = &civ.ftl;
+        let steps = victory::step_checks(w, seat);
+        let next_step = steps.iter().find(|c| !c.ok).map(|c| c.category.clone());
+        let operational = live.assemblies.iter().filter(|a| !a.retired).count() as u32;
+        let shipyard = victory::own_shipyard(w, seat);
+        let preparing = civ.projects.iter().any(|p| p.kind == ProjKind::FtlTrial);
+        let trial_blocker = if operational == 0 {
+            "No operational jump assembly yet"
+        } else if !shipyard {
+            "The station in low Earth orbit needs a shipyard module"
+        } else if preparing {
+            "A trial is already being prepared"
+        } else {
+            ""
+        };
+        let mut standings: Vec<StandingView> = (0..w.civs.len())
+            .filter(|o| *o == si || civ.contacts[*o].met)
+            .map(|o| StandingView { seat: o as SeatId, name: w.civs[o].name.clone(), points: victory::standing(w, o as SeatId), steps: victory::steps_done(w, o as SeatId), sovereign: w.civs[o].status == SeatStatus::Active && w.civs[o].overlord.is_none() })
+            .collect();
+        standings.sort_by_key(|x| (std::cmp::Reverse(x.points), x.seat));
+        Some(VictoryView {
+            governance_months: 0,
+            governance_needed: 0,
+            ftl_months: 0,
+            ftl_needed: 0,
+            trials: live.trials.iter().map(|t| t.0).collect(),
+            governance_checks: Vec::new(),
+            ftl_checks: steps.clone(),
+            test_nodes: if revealed { w.test_nodes.iter().copied().filter(|n| civ.memory[*n as usize].seen).collect() } else { Vec::new() },
+            assemblies_operational: operational,
+            deployment_done: false,
+            replacement_done: false,
+            summary: "Three ways to win, and only one seat can. (1) Complete the jump programme first: reach orbit, place a station in low Earth orbit, give it a shipyard, build a jump assembly, and fly two loaded jump round trips at least twelve months apart. Every step is permanent once reached. (2) Be the only sovereign power left: every other seat eliminated or your subordinate. (3) If neither happens by the horizon, the highest standing wins: 1,000 points for each programme step, one for each thousandth of the world's people under your authority, one for each technology understood.".into(),
+            rule: "standard".into(),
+            steps,
+            next_step,
+            standing: victory::standing(w, seat),
+            standings,
+            trial_ready: trial_blocker.is_empty() && civ.knows_id("T166"),
+            trial_blocker: trial_blocker.into(),
+            second_trial_from: live.trials.first().map(|t| t.0 + TRIAL_SPACING),
+        })
+    } else if revealed {
         let live = &civ.ftl;
         Some(VictoryView {
             governance_months: live.gov_streak,
@@ -1613,6 +1659,14 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
             deployment_done: live.deployment_done.is_some(),
             replacement_done: live.replacement_done.is_some(),
             summary: "Complete victory needs all three at once: 96 continuous months as the highest real authority over every inhabited region, with food, water and order holding everywhere; 24 continuous months of fleet-wide jump capability with series manufacture, deployment, replacement and crews; and two loaded jump round trips at least 12 months apart inside the last 96 months, flown during that governance. Conquest never waives the jump requirements and jump flights never waive governance. Only one seat can win.".into(),
+            rule: "classic".into(),
+            steps: Vec::new(),
+            next_step: None,
+            standing: 0,
+            standings: Vec::new(),
+            trial_ready: false,
+            trial_blocker: String::new(),
+            second_trial_from: None,
         })
     } else {
         None
@@ -1671,7 +1725,7 @@ pub fn observe(w: &World, seat: SeatId) -> Observation {
         window: w.window,
         ready: civ.ready,
         status: civ.status,
-        outcome: w.outcome.as_ref().map(|o| MatchOutcome { finished_month: o.month, winner: o.winner, reason: o.reason.clone(), reward: victory::reward(w, seat) }),
+        outcome: w.outcome.as_ref().map(|o| MatchOutcome { finished_month: o.month, winner: o.winner, reason: o.reason.clone(), reward: victory::reward(w, seat), kind: o.kind.clone() }),
         civ: own_civ,
         regions,
         world: WorldFrame { width: w.width, height: w.height, region_count: w.regions.len() as u16, wrap_x: w.cfg.world == WorldKind::EarthLike, kind: Some(w.cfg.world) },
@@ -1997,7 +2051,7 @@ pub fn spectate(w: &World) -> SpectatorView {
         window: w.window,
         date: Some(date_view(&w.cfg, w.month)),
         calendar: Some(calendar_view(w)),
-        outcome: w.outcome.as_ref().map(|o| SpectatorOutcome { finished_month: o.month, winner: o.winner, reason: o.reason.clone() }),
+        outcome: w.outcome.as_ref().map(|o| SpectatorOutcome { finished_month: o.month, winner: o.winner, reason: o.reason.clone(), kind: o.kind.clone() }),
         world: WorldFrame { width: w.width, height: w.height, region_count: w.regions.len() as u16, wrap_x: w.cfg.world == WorldKind::EarthLike, kind: Some(w.cfg.world) },
         regions,
         civs,

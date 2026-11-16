@@ -25,7 +25,7 @@
 //!   from qualified people the seat's works do not employ (a tenth of them aboard,
 //!   counted where they live), powered by their own arrays and reactors.
 
-use crate::content::{content, good_mass_kg};
+use crate::content::good_mass_kg;
 use crate::state::*;
 use crate::util::*;
 use bts_protocol::*;
@@ -161,7 +161,7 @@ pub struct CoreDef {
 
 pub const CORES: [CoreDef; 4] = [
     CoreDef { key: "k1", name: "K1 truss core", req: "T142 & T144", mass: 400, slots: 4, posts: &[(Qual::Orbital, 2_000), (Qual::Technician, 2_000)], power: -20, aboard_cap: 400 },
-    CoreDef { key: "k2", name: "K2 frame core", req: "T142 & T144 & T145 & F:orbital_station", mass: 2_000, slots: 8, posts: &[], power: -200, aboard_cap: 2_200 },
+    CoreDef { key: "k2", name: "K2 frame core", req: "T142 & T144 & T145", mass: 2_000, slots: 8, posts: &[], power: -200, aboard_cap: 2_200 },
     CoreDef { key: "k3", name: "K3 orbital complex", req: "T153", mass: 8_000, slots: 14, posts: &[(Qual::Orbital, 40_000)], power: -400, aboard_cap: 4_000 },
     CoreDef { key: "k4", name: "K4 orbital city spine", req: "T177", mass: 30_000, slots: 20, posts: &[(Qual::Orbital, 60_000)], power: -800, aboard_cap: 6_000 },
 ];
@@ -191,8 +191,8 @@ pub const MODULES: [ModDef; 8] = [
     ModDef { key: "solar", name: "Solar array", req: "T106 & T143", mass: 150, posts: &[(Qual::Technician, 50)], power: 100 },
     ModDef { key: "reactor", name: "Reactor", req: "T147", mass: 600, posts: &[(Qual::Technician, 1_000)], power: 400 },
     ModDef { key: "docking", name: "Docking and depot", req: "T142", mass: 500, posts: &[(Qual::Orbital, 1_500)], power: -20 },
-    // the doc-35 orbital yard is its ground segment: posts and inputs stay there
-    ModDef { key: "shipyard", name: "Shipyard", req: "T145 & C058 & F:orbital_yard", mass: 6_000, posts: &[], power: -600 },
+    // ruleset 3.1: the shipyard stands on its own (the doc-35 ground yard is optional)
+    ModDef { key: "shipyard", name: "Shipyard", req: "T145", mass: 3_000, posts: &[(Qual::Orbital, 2_000), (Qual::Technician, 2_000)], power: -200 },
     ModDef { key: "lab", name: "Research laboratory", req: "T143", mass: 300, posts: &[(Qual::Scientist, 1_000), (Qual::Technician, 500)], power: -40 },
     ModDef { key: "refinery", name: "Propellant refinery", req: "T159", mass: 400, posts: &[(Qual::Technician, 300)], power: -100 },
 ];
@@ -1033,7 +1033,6 @@ pub fn stations_step(w: &mut World) {
                     free[q] += take[q] as i64;
                 }
             }
-            let yard_running = w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(content().f("orbital_yard")).map(|f| f.level > 0 && f.operated).unwrap_or(false));
             let t135 = w.civs[s].knows_id("T135");
             for &i in &mine {
                 let (core, modules, orbit) = {
@@ -1099,9 +1098,6 @@ pub fn stations_step(w: &mut World) {
                 st.staffed = filled as u32;
                 // the shipyard runs on its ground segment, the doc-35 orbital yard
                 st.rate_bp = rate as u16;
-                if modules[M_SHIPYARD] > 0 && !yard_running {
-                    st.rate_bp = st.rate_bp.min(4_999);
-                }
             }
         }
         // research stations at sites, at last month's rate

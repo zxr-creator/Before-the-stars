@@ -912,6 +912,11 @@ pub struct MatchOutcome {
     pub reason: String,
     /// Formal reward for this seat: `2 - T/H` for the unique winner, otherwise -1.
     pub reward: f64,
+    /// How the match was decided: "jump" (the programme completed), "supremacy"
+    /// (the only sovereign left), "standing" (highest standing at the horizon),
+    /// "classic" or "none".
+    #[serde(default)]
+    pub kind: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -2369,6 +2374,22 @@ pub struct Check {
     pub category: String,
 }
 
+/// The victory contract of a match (ruleset 3.1, `docs/design/42-playable-ruleset-3.1.md`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VictoryRule {
+    /// The first sovereign seat to complete the jump programme (six permanent steps
+    /// ending in two loaded jump round trips) wins; so does a seat left as the only
+    /// sovereign; at the horizon the highest standing wins. A match always has a
+    /// winner while a sovereign seat remains.
+    #[default]
+    Standard,
+    /// Design chapter 15: 96 continuous months of world governance, 24 continuous
+    /// months of fleet-wide jump capability and two trials flown during it. A match
+    /// may end without a winner.
+    Classic,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct VictoryView {
     pub governance_months: u32,
@@ -2386,6 +2407,44 @@ pub struct VictoryView {
     pub deployment_done: bool,
     #[serde(default)]
     pub replacement_done: bool,
+    /// The victory contract of the match: "standard" (ruleset 3.1) or "classic".
+    #[serde(default)]
+    pub rule: String,
+    /// Standard contract: the steps of the jump programme in order. `category` is
+    /// the step's key, `ok` whether it has been reached (a step is never lost),
+    /// `detail` when it was reached or what reaches it.
+    #[serde(default)]
+    pub steps: Vec<Check>,
+    /// Standard contract: the key of the next step to reach, if any is left.
+    #[serde(default)]
+    pub next_step: Option<String>,
+    /// Standard contract: this seat's standing in points, and the standings of the
+    /// seats it has met (public): the highest standing wins at the horizon.
+    #[serde(default)]
+    pub standing: i64,
+    #[serde(default)]
+    pub standings: Vec<StandingView>,
+    /// Standard contract: whether a jump trial can be ordered now, and if not, why.
+    #[serde(default)]
+    pub trial_ready: bool,
+    #[serde(default)]
+    pub trial_blocker: String,
+    /// Standard contract: the first month a trial flown now would count as the
+    /// second round trip (first trial plus twelve months), once a first was flown.
+    #[serde(default)]
+    pub second_trial_from: Option<Month>,
+}
+
+/// A seat's public standing under the standard contract.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct StandingView {
+    pub seat: SeatId,
+    pub name: String,
+    pub points: i64,
+    /// Programme steps reached, of six.
+    pub steps: u32,
+    /// Whether the seat can still win (active and not a subordinate).
+    pub sovereign: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -2435,6 +2494,8 @@ pub struct SpectatorOutcome {
     pub finished_month: Month,
     pub winner: Option<SeatId>,
     pub reason: String,
+    #[serde(default)]
+    pub kind: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

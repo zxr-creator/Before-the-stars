@@ -360,7 +360,7 @@ fn print_table(s: &Session) {
     println!("round {:>3}  month {:>5}  {}  phase {:?}", s.m.round(), s.m.month(), s.m.date().label, s.m.phase());
     for d in s.m.diagnostics() {
         println!(
-            "  seat {} {:<11} {:<10} pop {:>7} reg {:>2} tech {:>3} (tier {}) prac {:>2} army {:>5} stab {:>2} food {:>3}% sci {:<5} gov {:>2} ftl {:>2}{}",
+            "  seat {} {:<11} {:<10} pop {:>7} reg {:>2} tech {:>3} (tier {}) prac {:>2} army {:>5} stab {:>2} food {:>3}% sci {:<5} {} {:>2} {} {:>2}{}",
             d.seat,
             d.name,
             format!("{:?}", d.status),
@@ -373,8 +373,10 @@ fn print_table(s: &Session) {
             d.stability,
             d.food_bp / 100,
             d.sci_method.map(|m| bts_engine::calendar::year_label(s.m.config().calendar.date(m).0)).unwrap_or_else(|| "-".into()),
-            d.gov_streak,
-            d.ftl_streak,
+            if s.m.config().victory == bts_protocol::VictoryRule::Standard { "steps" } else { "gov" },
+            if s.m.config().victory == bts_protocol::VictoryRule::Standard { d.steps } else { d.gov_streak },
+            if s.m.config().victory == bts_protocol::VictoryRule::Standard { "stations" } else { "ftl" },
+            if s.m.config().victory == bts_protocol::VictoryRule::Standard { d.stations as u32 } else { d.ftl_streak },
             d.overlord.map(|o| format!(" under {o}")).unwrap_or_default()
         );
     }
@@ -394,6 +396,9 @@ fn run_config(args: &Args) -> MatchConfig {
     let kinds: Vec<ControllerKind> = ai.split(',').filter_map(controller).collect();
     cfg.controllers = if kinds.len() == 4 { kinds } else { vec![ControllerKind::NativeMedium; 4] };
     cfg.disclosed_objective = args.has("disclosed");
+    if args.get("victory", "standard") == "classic" {
+        cfg.victory = bts_protocol::VictoryRule::Classic;
+    }
     if args.get("world", "earth_like") == "classic" {
         cfg.world = bts_protocol::WorldKind::Classic;
     }
@@ -481,6 +486,9 @@ fn run(args: &Args) {
         let (s, rows) = run_one(cfg, args, rounds, every, !args.has("quiet"));
         print_table(&s);
         println!("finished: {}  winner: {:?}  {}  elapsed {:.1}s  state hash {:016x}", s.m.finished(), s.m.winner(), s.m.date().label, start.elapsed().as_secs_f64(), s.m.state_hash());
+        if let Some((kind, reason)) = s.m.outcome() {
+            println!("outcome: {kind}: {reason}");
+        }
         if let Some(path) = args.flags.get("save") {
             std::fs::write(path, s.save()).expect("write save");
         }

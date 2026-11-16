@@ -42,7 +42,7 @@ fn observations_carry_the_date_and_the_calendar() {
 fn the_quick_calendar_has_the_same_dates_in_fewer_rounds() {
     let m = Match::new(MatchConfig { calendar: CalendarId::Quick, ..standard("quick") }, 1);
     let c = m.observe(0).calendar.unwrap();
-    assert_eq!((c.rounds, c.round_months, c.horizon_month), (230, 1200, 89_988));
+    assert_eq!((c.rounds, c.round_months, c.horizon_month), (280, 1200, 89_988));
 }
 
 #[test]

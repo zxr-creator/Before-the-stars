@@ -1016,6 +1016,9 @@ fn apply_inner(w: &mut World, seat: SeatId, action: Action) -> Result<(String, O
                     if w.civs[si].ftl.assemblies.iter().filter(|a| !a.retired).count() == 0 {
                         return fail("INSUFFICIENT_VISIBLE_BUDGET", "no operational jump assembly exists");
                     }
+                    if w.cfg.victory == VictoryRule::Standard && !crate::sim::victory::own_shipyard(w, seat) {
+                        return fail("INSUFFICIENT_VISIBLE_BUDGET", "a jump trial flies from your own orbital shipyard: the station in low Earth orbit needs a shipyard module");
+                    }
                     if w.civs[si].projects.iter().any(|p| p.kind == ProjKind::FtlTrial) {
                         return fail("CONFLICTING_ACTIONS", "a trial is already being prepared");
                     }

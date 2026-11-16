@@ -524,6 +524,8 @@ pub fn tech_site_ok(w: &World, seat: SeatId, tech: usize) -> bool {
             w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(k).map(|f| f.level > 0 && f.run.as_ref().map(|x| x.rate_bp >= 2500 || (x.blockers & 1024 != 0 && f.staffed * 2 >= f.staff_needed)).unwrap_or(false)).unwrap_or(false))
                 || service_of_facility(key).map(|s| w.programme_access(seat, s)).unwrap_or(false)
                 || (key == "orbital_station" && w.programme_access(seat, ProgrammeService::OrbitalYard))
+                // a crewed station in orbit is the installation itself (ruleset 3.1)
+                || (matches!(key, "orbital_station" | "orbital_yard") && w.space.stations.iter().any(|s| s.owner == seat && s.staffed > 0 && (key == "orbital_station" || s.modules[crate::sim::space::M_SHIPYARD] > 0)))
         }
     }
 }

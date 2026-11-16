@@ -1,7 +1,15 @@
-//! Complete victory: G96 AND F24 AND Trials96, checked every month-end.
+//! Victory, checked every month-end.
 //!
-//! Conquest never waives jump capability and jump capability never waives real
-//! governance of every inhabited region. A broken window clears only its own
+//! **Standard contract** (ruleset 3.1, the default): the jump programme is six
+//! permanent steps ([`STEPS`]); the first sovereign seat to reach the last one, a
+//! second loaded jump round trip, wins. A seat left as the only sovereign (every
+//! other seat eliminated, forfeited or its subordinate) wins at once, and at the
+//! horizon the highest standing ([`standing`]) wins. Nothing in it is a streak: a
+//! step once reached is never lost, so no shortage can undo progress.
+//!
+//! **Classic contract** (design chapter 15, `VictoryRule::Classic`): G96 AND F24 AND
+//! Trials96. Conquest never waives jump capability and jump capability never waives
+//! real governance of every inhabited region. A broken window clears only its own
 //! consecutive counter.
 
 use crate::content::{content, Cap};
@@ -99,6 +107,176 @@ pub fn contracted_imports(w: &World, seat: SeatId, g: Good) -> i64 {
 pub fn seconded_to(w: &World, seat: SeatId, q: Qual) -> bool {
     w.treaties.iter().filter(|t| t.status == "active").flat_map(|t| t.secondments.iter()).any(|s| s.borrower == seat && s.qual == q && s.owed > 0 && w.month < s.due)
 }
+
+// ---------------------------------------------------------------------------
+// The standard contract
+// ---------------------------------------------------------------------------
+
+/// The steps of the jump programme: key, title, and what reaches it.
+pub const STEPS: [(&str, &str, &str); 6] = [
+    ("orbit", "Reach orbit", "A proving ground or launch complex makes its first boost."),
+    ("station", "A space station in low Earth orbit", "Place a station core in low Earth orbit (space order `place`, part `k1`)."),
+    ("shipyard", "An orbital shipyard", "Add a shipyard module to the station in low Earth orbit."),
+    ("assembly", "A jump assembly", "A jump assembly line completes its first assembly."),
+    ("first_jump", "First loaded jump round trip", "Fly a jump trial (project `ftl_trial`) with an assembly and the orbital shipyard."),
+    ("second_jump", "Second jump round trip", "Fly a second trial at least twelve months after the first. This wins the match."),
+];
+
+/// Standing points: a programme step, the share of the world's people under the
+/// seat's authority (per thousand) and a technology understood.
+pub const STEP_POINTS: i64 = 1_000;
+
+/// Whether each step's condition holds for the seat this month.
+fn steps_now(w: &World, seat: SeatId) -> [bool; 6] {
+    let civ = &w.civs[seat as usize];
+    let leo = |yard: bool| w.space.stations.iter().any(|s| s.owner == seat && s.orbit == 0 && (!yard || s.modules[crate::sim::space::M_SHIPYARD] > 0));
+    let t = &civ.ftl.trials;
+    let second = t.iter().any(|a| t.iter().any(|b| b.0 >= a.0 + TRIAL_SPACING));
+    [civ.space.made_total > 0, leo(false), leo(true), !civ.ftl.assemblies.is_empty(), !t.is_empty(), second]
+}
+
+/// The seat's own low Earth orbit station carries a shipyard module (what a jump
+/// trial flies from under the standard contract).
+pub fn own_shipyard(w: &World, seat: SeatId) -> bool {
+    w.space.stations.iter().any(|s| s.owner == seat && s.orbit == 0 && s.modules[crate::sim::space::M_SHIPYARD] > 0)
+}
+
+pub fn steps_done(w: &World, seat: SeatId) -> u32 {
+    w.civs[seat as usize].ftl.steps.iter().filter(|s| s.is_some()).count() as u32
+}
+
+/// The standing of a seat: 1,000 for each programme step, a point for each
+/// thousandth of the world's people under its authority, a point for each
+/// technology understood. Public among seats that have met.
+pub fn standing(w: &World, seat: SeatId) -> i64 {
+    let civ = &w.civs[seat as usize];
+    if civ.status != SeatStatus::Active {
+        return 0;
+    }
+    let world: u64 = w.regions.iter().map(|r| r.population() as u64).sum();
+    let mine: u64 = (0..w.regions.len()).filter(|i| w.authority(*i) == Some(seat)).map(|i| w.regions[i].population() as u64).sum();
+    let share = if world == 0 { 0 } else { (mine as u128 * 1000 / world as u128) as i64 };
+    let techs = (0..civ.tech.len()).filter(|i| civ.knows(*i)).count() as i64;
+    steps_done(w, seat) as i64 * STEP_POINTS + share + techs
+}
+
+/// The programme steps as checks, in order, with what the next one needs.
+pub fn step_checks(w: &World, seat: SeatId) -> Vec<Check> {
+    let civ = &w.civs[seat as usize];
+    let now = steps_now(w, seat);
+    STEPS
+        .iter()
+        .enumerate()
+        .map(|(i, (key, label, how))| {
+            let at = civ.ftl.steps.get(i).copied().flatten();
+            let detail = match at {
+                Some(m) => format!("Reached in {}", crate::util::event_label(&w.cfg, m)),
+                None if now[i] => "Reached this month".to_string(),
+                None => (*how).to_string(),
+            };
+            Check { label: (*label).to_string(), detail, ok: at.is_some(), category: (*key).to_string() }
+        })
+        .collect()
+}
+
+fn standard_step(w: &mut World) {
+    let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
+    let n = w.civs.len();
+    // ---- the programme: record the steps reached this month ---------------------
+    for s in 0..n {
+        if w.civs[s].status != SeatStatus::Active {
+            continue;
+        }
+        let seat = s as SeatId;
+        if w.civs[s].ftl.steps.len() < STEPS.len() {
+            w.civs[s].ftl.steps.resize(STEPS.len(), None);
+        }
+        let now = steps_now(w, seat);
+        for i in 0..STEPS.len() {
+            // in order: a later step is recorded only on top of the earlier ones
+            if now[i] && w.civs[s].ftl.steps[i].is_none() && (i == 0 || w.civs[s].ftl.steps[i - 1].is_some()) {
+                w.civs[s].ftl.steps[i] = Some(month);
+                let name = w.civs[s].name.clone();
+                let capital = w.civs[s].capital;
+                let left = STEPS.len() - 1 - i;
+                moment(
+                    w,
+                    seat,
+                    MomentCategory::Endgame,
+                    format!("Jump programme: {}", STEPS[i].1),
+                    if left == 0 { format!("{name} completed the jump programme in {when}.") } else { format!("{name} reached step {} of {} of the jump programme in {when}. Next: {}", i + 1, STEPS.len(), STEPS[i + 1].2) },
+                    Some(capital),
+                    "jump",
+                    i >= 3,
+                    vec![format!("Step {} of {} reached in {when}", i + 1, STEPS.len())],
+                );
+                // rivals in contact hear of every step: the race is public
+                for o in 0..n {
+                    if o != s && w.civs[o].contacts[s].met && w.civs[o].status == SeatStatus::Active {
+                        brief(w, o as SeatId, if i >= 3 { "danger" } else { "warning" }, format!("{name}: {}", STEPS[i].1), format!("{name} reached step {} of {} of the jump programme. The first seat to complete all {} wins.", i + 1, STEPS.len(), STEPS.len()), None, "objectives");
+                    }
+                }
+            }
+        }
+        if w.civs[s].ftl.steps[3].is_some() && w.civs[s].ftl.first_capability.is_none() {
+            w.civs[s].ftl.first_capability = Some(month);
+        }
+    }
+    let sovereign = |w: &World, s: usize| w.civs[s].status == SeatStatus::Active && w.civs[s].overlord.is_none();
+    // ---- 1. the jump programme complete -------------------------------------------
+    let done: Option<usize> = (0..n).filter(|s| sovereign(w, *s) && w.civs[*s].ftl.steps.iter().all(|x| x.is_some())).min_by_key(|s| (w.civs[*s].ftl.steps[STEPS.len() - 1], *s));
+    if let Some(s) = done {
+        let name = w.civs[s].name.clone();
+        finish(w, Some(s as SeatId), "jump", format!("{name} completed the jump programme: a second loaded jump round trip, flown from its own orbital shipyard"));
+        return;
+    }
+    // ---- 2. the only sovereign left -----------------------------------------------
+    let free: Vec<usize> = (0..n).filter(|s| sovereign(w, *s)).collect();
+    if n >= 2 && free.len() == 1 {
+        let s = free[0];
+        let name = w.civs[s].name.clone();
+        finish(w, Some(s as SeatId), "supremacy", format!("{name} is the only sovereign power left: every other seat is eliminated or its subordinate"));
+        return;
+    }
+    if free.is_empty() {
+        finish(w, None, "none", "No original seat remains eligible".into());
+        return;
+    }
+    // ---- 3. the horizon: the highest standing wins ------------------------------------
+    if month >= w.cfg.horizon() {
+        let best = free.iter().copied().max_by_key(|s| (standing(w, *s as SeatId), std::cmp::Reverse(*s))).unwrap();
+        let name = w.civs[best].name.clone();
+        let pts = standing(w, best as SeatId);
+        finish(w, Some(best as SeatId), "standing", format!("The horizon was reached; {name} holds the highest standing ({pts} points, {} of {} programme steps)", steps_done(w, best as SeatId), STEPS.len()));
+    }
+}
+
+fn finish(w: &mut World, winner: Option<SeatId>, kind: &str, reason: String) {
+    let month = w.month;
+    let when = crate::util::event_label(&w.cfg, month);
+    w.outcome = Some(Outcome { month, winner, reason: reason.clone(), kind: kind.to_string() });
+    w.phase = Phase::Finished;
+    if let Some(seat) = winner {
+        let capital = w.civs[seat as usize].capital;
+        let title = match kind {
+            "jump" => "Before the stars",
+            "supremacy" => "One power remains",
+            _ => "The leading civilization",
+        };
+        moment(w, seat, MomentCategory::Endgame, title.into(), format!("In {when}: {reason}."), Some(capital), "victory", true, vec![format!("Victory settled in {when}")]);
+        let name = w.civs[seat as usize].name.clone();
+        for o in 0..w.civs.len() {
+            if o != seat as usize && w.civs[o].status != SeatStatus::Eliminated {
+                brief(w, o as SeatId, "danger", format!("{name} has won the match"), format!("{reason}."), None, "objectives");
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The classic contract
+// ---------------------------------------------------------------------------
 
 pub fn governance_checks(w: &World, seat: SeatId) -> Vec<Check> {
     let civ = &w.civs[seat as usize];
@@ -345,24 +523,29 @@ pub fn complete_trial(w: &mut World, seat: SeatId) {
     let capital = w.civs[si].capital;
     let last = w.civs[si].ftl.trials.last().map(|t| t.1);
     let oyard = c.f("orbital_yard");
-    let support = w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(oyard).map(|f| f.level > 0 && f.operated).unwrap_or(false)) || w.programme_access(seat, ProgrammeService::OrbitalYard);
+    let standard = w.cfg.victory == VictoryRule::Standard;
+    // the standard contract flies from the seat's own orbital shipyard; the classic
+    // one from an operating orbital yard, its own or a partner's
+    let support = if standard { own_shipyard(w, seat) } else { w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(oyard).map(|f| f.level > 0 && f.operated).unwrap_or(false)) || w.programme_access(seat, ProgrammeService::OrbitalYard) };
     let pick = w.civs[si].ftl.assemblies.iter().filter(|a| !a.retired).map(|a| a.id).find(|id| Some(*id) != last).or_else(|| w.civs[si].ftl.assemblies.iter().filter(|a| !a.retired).map(|a| a.id).next());
     let Some(assembly) = pick else {
         brief(w, seat, "warning", "Jump trial cancelled".into(), "No operational jump assembly was available. Propellant and stores prepared for the trial were consumed.".into(), None, "objectives");
         return;
     };
     if !support {
-        brief(w, seat, "warning", "Jump trial cancelled".into(), "No orbital yard was operating to support the flight.".into(), None, "objectives");
+        brief(w, seat, "warning", "Jump trial cancelled".into(), if standard { "The station in low Earth orbit has no shipyard module to support the flight.".into() } else { "No orbital yard was operating to support the flight.".into() }, None, "objectives");
         return;
     }
-    let governing = w.civs[si].ftl.gov_streak > 0;
+    let governing = standard || w.civs[si].ftl.gov_streak > 0;
     if governing {
         w.civs[si].ftl.trials.push((month, assembly));
     }
     let n = w.civs[si].ftl.trials.len();
     let name = w.civs[si].name.clone();
     moment(w, seat, MomentCategory::Endgame, format!("Loaded jump round trip, {when}"),
-        if governing {
+        if standard {
+            format!("An assembly of {name} carried a standard load out and back. It is jump round trip {n} of the two the programme needs, at least twelve months apart.")
+        } else if governing {
             format!("An assembly of {name} carried a standard load out and back under fleet control. It is qualifying trial {n} of the current window.")
         } else {
             format!("An assembly of {name} carried a standard load out and back. It is a technical success; because it did not occur under effective global governance it does not count toward acceptance.")
@@ -419,6 +602,10 @@ pub fn step(w: &mut World) {
     if w.outcome.is_some() {
         return;
     }
+    if w.cfg.victory == VictoryRule::Standard {
+        standard_step(w);
+        return;
+    }
     let month = w.month;
     let when = crate::util::event_label(&w.cfg, month);
     let mut winner: Option<SeatId> = None;
@@ -464,19 +651,19 @@ pub fn step(w: &mut World) {
     }
     if let Some(seat) = winner {
         let name = w.civs[seat as usize].name.clone();
-        w.outcome = Some(Outcome { month, winner: Some(seat), reason: format!("{name} completed 96 months of global governance, 24 months of fleet-wide jump capability and two qualifying trials") });
+        w.outcome = Some(Outcome { month, winner: Some(seat), reason: format!("{name} completed 96 months of global governance, 24 months of fleet-wide jump capability and two qualifying trials"), kind: "classic".into() });
         w.phase = Phase::Finished;
         let capital = w.civs[seat as usize].capital;
         moment(w, seat, MomentCategory::Endgame, "Before the stars".into(), format!("In {when}, {name} met every condition: one government for the inhabited world, and a jump-capable service it can build, crew, supply and replace."), Some(capital), "victory", true, vec![format!("Complete victory settled in {when}")]);
         return;
     }
     if !w.civs.iter().any(|c| c.status == SeatStatus::Active) {
-        w.outcome = Some(Outcome { month, winner: None, reason: "No original seat remains eligible".into() });
+        w.outcome = Some(Outcome { month, winner: None, reason: "No original seat remains eligible".into(), kind: "none".into() });
         w.phase = Phase::Finished;
         return;
     }
     if month >= w.cfg.horizon() {
-        w.outcome = Some(Outcome { month, winner: None, reason: "The horizon was reached without a complete victory".into() });
+        w.outcome = Some(Outcome { month, winner: None, reason: "The horizon was reached without a complete victory".into(), kind: "none".into() });
         w.phase = Phase::Finished;
     }
 }

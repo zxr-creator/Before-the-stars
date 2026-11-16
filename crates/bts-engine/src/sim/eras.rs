@@ -568,7 +568,9 @@ pub fn proof_met(w: &World, seat: SeatId, e: u8) -> bool {
         }
         5 => governed().map(|r| r.last.power.elec_made + r.last.power.elec_from_generators).sum::<i64>() >= 300_000,
         6 => runs("datacenter"),
-        7 => w.civs[seat as usize].era.launch_months >= 12 && runs("orbital_station"),
+        // ruleset 3.1: the proof of the Space era is a station in orbit (the ground
+        // works with twelve months of launches still serves)
+        7 => w.space.stations.iter().any(|s| s.owner == seat) || (w.civs[seat as usize].era.launch_months >= 12 && runs("orbital_station")),
         8 => w.civs[seat as usize].compute_supply >= 1_000_000 && ai_era_levels(w, seat) >= 20,
         9 => runs("jump_testbed"),
         _ => false,

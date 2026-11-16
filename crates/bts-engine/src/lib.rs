@@ -139,6 +139,10 @@ impl Match {
     pub fn winner(&self) -> Option<SeatId> {
         self.world.outcome.as_ref().and_then(|o| o.winner)
     }
+    /// How and why the match ended: (kind, reason).
+    pub fn outcome(&self) -> Option<(String, String)> {
+        self.world.outcome.as_ref().map(|o| (o.kind.clone(), o.reason.clone()))
+    }
     pub fn reward(&self, seat: SeatId) -> f64 {
         sim::victory::reward(&self.world, seat)
     }
@@ -322,6 +326,9 @@ impl Match {
                 soldiers: self.world.armies.iter().filter(|a| a.owner == civ.seat).map(|a| a.count()).sum(),
                 gov_streak: civ.ftl.gov_streak,
                 ftl_streak: civ.ftl.ftl_streak,
+                steps: sim::victory::steps_done(&self.world, civ.seat),
+                standing: sim::victory::standing(&self.world, civ.seat),
+                stations: self.world.space.stations.iter().filter(|s| s.owner == civ.seat).count(),
                 assemblies: civ.ftl.assemblies.len(),
                 trials: civ.ftl.trials.len(),
                 sci_method: civ.milestones.sci_method,
@@ -347,6 +354,10 @@ pub struct SeatDiagnostics {
     pub soldiers: u32,
     pub gov_streak: u32,
     pub ftl_streak: u32,
+    /// Standard contract: programme steps reached (of six) and standing points.
+    pub steps: u32,
+    pub standing: i64,
+    pub stations: usize,
     pub assemblies: usize,
     pub trials: usize,
     pub sci_method: Option<Month>,

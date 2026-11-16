@@ -753,7 +753,7 @@ fn offer_value(ai: &NativeAi, obs: &Observation, offer: &OfferView) -> i64 {
             Clause::Maps { from } => v += if *from == me { -10 } else { 15 },
             Clause::NonAggression { .. } => {
                 // once the final objective is known, the stronger side has no use for a long truce
-                let ambitious = (obs.objectives.victory.is_some() && ai.difficulty != Difficulty::Easy || integrating(ai.difficulty, obs)) && mine > theirs;
+                let ambitious = (revealed(obs) && ai.difficulty != Difficulty::Easy || integrating(ai.difficulty, obs)) && mine > theirs;
                 v += if ai.memory.war_target == Some(other) || ambitious { -200 } else if theirs > mine { 60 } else { 25 };
             }
             Clause::DefensivePact { .. } => v += if trust >= 60 { 30 } else { -20 },
@@ -816,7 +816,7 @@ fn payment_good(obs: &Observation, monthly: bool) -> Option<Good> {
 /// with it, the installation is in this seat's catalog, a recurring payment only with
 /// escrow established here, and a single payment only from stock in hand.
 fn cooperation_ask(ai: &NativeAi, obs: &Observation, o: &ForeignCiv) -> Option<Action> {
-    if ai.difficulty == Difficulty::Easy || obs.objectives.victory.is_none() || o.at_war || o.trust < 40 {
+    if ai.difficulty == Difficulty::Easy || !programme_on(obs) || o.at_war || o.trust < 40 {
         return None;
     }
     // only once the jump works themselves are in view: before that, nobody has posts for these people
@@ -902,7 +902,7 @@ fn lending_cost(obs: &Observation, q: Qual, count: u32, months: u16, trust: i64)
     let base = count * months as i64 / 2_000;
     let risk = if trust < 50 { base / 2 } else { 0 };
     // the jump programme's own crews are not lent while this seat is building one
-    let own_need = obs.objectives.victory.is_some() && matches!(q, Qual::FtlEngineer | Qual::Orbital) && employed * 10 >= have * 6;
+    let own_need = programme_on(obs) && matches!(q, Qual::FtlEngineer | Qual::Orbital) && employed * 10 >= have * 6;
     base + risk + if own_need { base * 3 } else { 0 }
 }
 
@@ -911,7 +911,7 @@ fn lending_cost(obs: &Observation, q: Qual, count: u32, months: u16, trust: i64)
 fn expert_value(obs: &Observation, q: Qual, count: u32, months: u16) -> i64 {
     let (have, employed) = holders(obs, q);
     let base = count as i64 * months as i64 / 2_000;
-    let short = employed * 10 >= have * 9 || (obs.objectives.victory.is_some() && matches!(q, Qual::FtlEngineer | Qual::Orbital) && base_short(obs, "Educational base"));
+    let short = employed * 10 >= have * 9 || (programme_on(obs) && matches!(q, Qual::FtlEngineer | Qual::Orbital) && base_short(obs, "Educational base"));
     if short { base * 2 } else { base / 5 }
 }
 
@@ -943,7 +943,7 @@ fn service_value(obs: &Observation, s: ProgrammeService, months: u16) -> i64 {
     if have {
         return 0;
     }
-    let wanted = obs.objectives.victory.is_some() && (base_short(obs, "Launch and recovery") || base_short(obs, "Scientific base"));
+    let wanted = programme_on(obs) && (base_short(obs, "Launch and recovery") || base_short(obs, "Scientific base"));
     if !wanted {
         return months as i64 * 2;
     }
@@ -1017,7 +1017,7 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
                 if losing && obs.round >= last + 2 {
                     ai.memory.last_offer_round[s as usize] = obs.round;
                     out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::Peace, Clause::NonAggression { months: term(obs, 120, (6, 600)) }], text: Some("We propose an end to this war.".into()) });
-                } else if winning && obs.round >= last + 3 && (obs.objectives.victory.is_some() || integrating(ai.difficulty, obs)) {
+                } else if winning && obs.round >= last + 3 && (revealed(obs) || integrating(ai.difficulty, obs)) {
                     ai.memory.last_offer_round[s as usize] = obs.round;
                     out.push(Action::ProposeTreaty { to: s, clauses: vec![Clause::Peace, Clause::Subordination { from: s, tribute_bp: 1000 }], text: Some("Keep your local government under our authority and the fighting stops.".into()) });
                 }
@@ -1028,7 +1028,7 @@ fn negotiate(ai: &mut NativeAi, obs: &Observation) -> Vec<Action> {
             }
             // a pact with a stronger neighbour is worth asking for
             let pact = obs.diplomacy.treaties.iter().any(|t| t.status == "active" && t.parties.contains(&s) && t.clauses.iter().any(|c| matches!(c, Clause::NonAggression { .. })));
-            let ambitious = obs.objectives.victory.is_some() && ai.difficulty != Difficulty::Easy || integrating(ai.difficulty, obs);
+            let ambitious = revealed(obs) && ai.difficulty != Difficulty::Easy || integrating(ai.difficulty, obs);
             // a neighbour at a third of our strength or less is offered protection
             // under our authority before any war (design chapter 36, section 7)
             if integrating(ai.difficulty, obs) && borders(obs, s) && o.overlord.is_none() && !obs.civ.subordinates.contains(&s) && mine > theirs.max(1) * 3 && their_population(obs, s) * 2 < obs.civ.population as i64 {
@@ -2275,7 +2275,7 @@ fn education(p: &mut Plan, regions: &[&RegionView], working: i64) {
         (Qual::Orbital, 110 * K),
         (Qual::FtlEngineer, 80 * K),
     ];
-    let jump_crews = |q: Qual| obs.objectives.victory.is_some() && matches!(q, Qual::Orbital | Qual::FtlEngineer);
+    let jump_crews = |q: Qual| programme_on(obs) && matches!(q, Qual::Orbital | Qual::FtlEngineer);
     // 1. work out who is short and who is in surplus; stop feeding surpluses first
     struct Need<'c> {
         courses: Vec<&'c CourseType>,
@@ -3120,14 +3120,20 @@ fn administration(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
 /// among their other new capabilities.
 fn programme(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
     let obs = p.obs;
-    if !matches!(p.diff, Difficulty::Hard | Difficulty::Expert) {
+    // under the standard contract (ruleset 3.1) every difficulty runs the programme,
+    // and the station in orbit stands in for the ground station and yard
+    let standard = standard_rule(obs);
+    if !standard && !matches!(p.diff, Difficulty::Hard | Difficulty::Expert) {
         return;
     }
     let frontier_work = obs.knowledge.techs.iter().any(|t| t.class == ResearchClass::Frontier && t.state >= KnowledgeState::Discovered && t.state < KnowledgeState::Understood);
-    let lab_target: u16 = if obs.objectives.victory.is_some() { 3 } else if frontier_work { 2 } else { 1 };
+    let lab_target: u16 = if standard { if frontier_work { 2 } else { 1 } } else if obs.objectives.victory.is_some() { 3 } else if frontier_work { 2 } else { 1 };
     for (kind, target) in [("launch_complex", 1u16), ("high_energy", lab_target), ("orbital_station", 1), ("orbital_yard", 1), ("jump_testbed", 1)] {
         if p.full() {
             break;
+        }
+        if standard && matches!(kind, "orbital_station" | "orbital_yard") {
+            continue;
         }
         let Some(ft) = p.fac_type(kind).filter(|f| f.available) else { continue };
         let have: u16 = regions.iter().map(|r| p.level(r, kind)).sum();
@@ -3216,6 +3222,24 @@ fn programme(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
 /// is a diesel station worth building (a level of one burns six tonnes a month).
 fn fuel_to_spare(p: &Plan) -> bool {
     p.line(Good::Fuel).map(|l| made_in_year(l) > used_in_year(l) * 11 / 10 && l.stock > used_in_year(l) / 6 + 100_000).unwrap_or(false)
+}
+
+/// The classic contract's sealed objective has been revealed to the seat: from then
+/// on the classic policy fights for the world. The standard contract is public from
+/// the first round and is no call to arms.
+fn revealed(obs: &Observation) -> bool {
+    obs.objectives.victory.as_ref().map(|v| v.rule != "standard").unwrap_or(false)
+}
+
+/// The jump programme is under way: revealed (classic), or its first step reached
+/// (standard).
+fn programme_on(obs: &Observation) -> bool {
+    obs.objectives.victory.as_ref().map(|v| v.rule != "standard" || v.steps.iter().any(|c| c.ok)).unwrap_or(false)
+}
+
+/// Whether the match runs the standard victory contract (ruleset 3.1).
+fn standard_rule(obs: &Observation) -> bool {
+    obs.objectives.victory.as_ref().map(|v| v.rule == "standard").unwrap_or(false)
 }
 
 /// The installations of the victory programme (public rules, design chapter 35).
@@ -3543,7 +3567,7 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
     if ai.memory.war_target.map(|t| obs.others.iter().find(|o| o.seat == t).map(|o| o.status == SeatStatus::Eliminated || o.overlord == Some(seat)).unwrap_or(true)).unwrap_or(false) {
         ai.memory.war_target = None;
     }
-    let revealed = obs.objectives.victory.is_some();
+    let revealed = revealed(obs);
     if ai.memory.war_target.is_none() && !at_war && p.diff != Difficulty::Easy && obs.civ.overlord.is_none() && soldiers >= 150 * K {
         let pacts: Vec<SeatId> = obs.diplomacy.treaties.iter().filter(|t| t.status == "active" && t.clauses.iter().any(|c| matches!(c, Clause::NonAggression { .. } | Clause::DefensivePact { .. }))).flat_map(|t| t.parties.iter().copied()).collect();
         let edge = if matches!(p.diff, Difficulty::Hard | Difficulty::Expert) { 2 } else { 3 };
@@ -3725,6 +3749,10 @@ fn military(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &
 fn endgame(p: &mut Plan, regions: &[&RegionView]) {
     let obs = p.obs;
     let Some(v) = &obs.objectives.victory else { return };
+    if v.rule == "standard" {
+        endgame_standard(p, regions, v);
+        return;
+    }
     // two independent assembly lines in two regions
     if let Some(ft) = p.fac_type("jump_yard") {
         if ft.available {
@@ -3780,6 +3808,54 @@ fn endgame(p: &mut Plan, regions: &[&RegionView]) {
     }
     if v.assemblies_operational >= 3 && !v.replacement_done && !busy("ftl_replacement") {
         p.push(Action::StartProject { spec: ProjectSpec::FtlReplacement, priority: Some(2) });
+    }
+}
+
+/// The standard contract's last steps (ruleset 3.1): one jump assembly line, the
+/// lattice it needs made at home, then two loaded round trips twelve months apart.
+fn endgame_standard(p: &mut Plan, regions: &[&RegionView], v: &VictoryView) {
+    let obs = p.obs;
+    let by_people = |p: &Plan, kind: &str| -> Vec<&RegionView> {
+        let mut hosts: Vec<&RegionView> = regions.iter().copied().filter(|r| p.level(r, kind) == 0 && !p.pending(r.id, kind)).collect();
+        hosts.sort_by_key(|r| (!p.can_crew(r, kind), std::cmp::Reverse(r.own.as_ref().map(|o| o.population).unwrap_or(0)), r.id));
+        hosts
+    };
+    let available = |p: &Plan, kind: &str| p.fac_type(kind).map(|f| f.available).unwrap_or(false);
+    // lattice first (an assembly takes 30 lots a level-month; a works makes 40)
+    if available(p, "lattice_works") && !p.civ_has("lattice_works") && !p.civ_pending("lattice_works") {
+        for r in by_people(p, "lattice_works").into_iter().take(2) {
+            if p.try_build(r, "lattice_works", 1, 2) {
+                break;
+            }
+        }
+    }
+    if available(p, "jump_yard") && !p.civ_has("jump_yard") && !p.civ_pending("jump_yard") {
+        for r in by_people(p, "jump_yard").into_iter().take(2) {
+            if p.try_build(r, "jump_yard", 1, 2) {
+                break;
+            }
+        }
+    }
+    if p.civ_has("jump_yard") || p.civ_has("lattice_works") {
+        for g in [Good::Lattice, Good::Magnets, Good::Substrate, Good::Hardware, Good::Electronics, Good::Components, Good::Conductors] {
+            if p.stock(g) < 60_000 {
+                p.wanted.insert(g);
+            }
+        }
+    }
+    // the flights: the first as soon as it can be ordered, the second so that it
+    // lands at least twelve months after the first (a trial takes six months)
+    if v.trial_ready {
+        let due = match v.second_trial_from {
+            None => true,
+            Some(m) => obs.month + 6 >= m,
+        };
+        if due {
+            for g in [Good::Fuel, Good::Spares, Good::Electronics, Good::Components] {
+                p.wanted.insert(g);
+            }
+            p.push(Action::StartProject { spec: ProjectSpec::FtlTrial, priority: Some(1) });
+        }
     }
 }
 
@@ -3860,9 +3936,9 @@ fn space(p: &mut Plan, regions: &[&RegionView]) {
             // the station's build order within the core's slots (public: K1 4, K2 8, K3 14, K4 20)
             let plan: [(&str, &str, u16); 8] = [
                 ("solar", "Solar array", 1),
-                ("docking", "Docking and depot", 1),
-                ("life_support", "Life support", 1),
                 ("shipyard", "Shipyard", 1),
+                ("life_support", "Life support", 1),
+                ("docking", "Docking and depot", 1),
                 ("docking", "Docking and depot", 2),
                 ("habitat", "Habitat", 1),
                 ("solar", "Solar array", 2),
@@ -3902,7 +3978,8 @@ fn space(p: &mut Plan, regions: &[&RegionView]) {
                 }
             }
             // berths and supplies in place: the outpost comes before the rest of the station
-            if level(st, "Docking and depot") >= 2 && !sv.sites.iter().any(|s| s.owner == Some(obs.seat)) && has("outpost") && boost.cap.max(boost.stock) >= 4_800 {
+            let yard_first = standard_rule(obs) && has("shipyard") && level(st, "Shipyard") == 0;
+            if !yard_first && level(st, "Docking and depot") >= 2 && !sv.sites.iter().any(|s| s.owner == Some(obs.seat)) && has("outpost") && boost.cap.max(boost.stock) >= 4_800 {
                 if let Some(key) = ["shackleton_rim", "arcadia_planitia", "mare_imbrium", "jezero_delta", "valles_marineris", "daedalus"].into_iter().find(|k| sv.sites.iter().any(|s| s.site == *k && s.owner.is_none())) {
                     p.push(order(SpaceOrder::FoundOutpost { site: key.into(), propulsion: None }));
                     if p.stock(Good::Fuel) < 20_000 {

@@ -15,7 +15,8 @@ use serde::{Deserialize, Serialize};
 pub enum CalendarId {
     /// 5000 BC to AD 2500 in 525 rounds (design table 2.2).
     Standard,
-    /// The same dates and rules in 230 rounds.
+    /// The same dates and rules in 280 rounds: a shorter antiquity, the standard
+    /// game's rounds from AD 1000 to 1950, five-year rounds after.
     Quick,
     /// Tests and calibration only: `rounds` rounds of `months_per_round` months from
     /// 1 January of `start_astro_year`. The reward reference is the start, so the
@@ -61,15 +62,19 @@ const STANDARD: [Segment; 8] = [
     Segment { first_round: 251, last_round: 525, years_per_round: 2, from: 1950, to: 2500 },
 ];
 
+// Ruleset 3.1: the quick game shortens antiquity only. From AD 1000 it keeps the
+// standard game's rounds to 1950 (a seat that decides once a century cannot build
+// an industrial economy: the 230-round table of ruleset 3.0 left every native seat
+// at sixty technologies in AD 2500), then plays five-year rounds to the horizon.
 const QUICK: [Segment; 8] = [
     Segment { first_round: 1, last_round: 30, years_per_round: 100, from: -5000, to: -2000 },
     Segment { first_round: 31, last_round: 55, years_per_round: 80, from: -2000, to: 1 },
     Segment { first_round: 56, last_round: 75, years_per_round: 50, from: 1, to: 1000 },
-    Segment { first_round: 76, last_round: 85, years_per_round: 50, from: 1000, to: 1500 },
-    Segment { first_round: 86, last_round: 95, years_per_round: 20, from: 1500, to: 1700 },
-    Segment { first_round: 96, last_round: 110, years_per_round: 10, from: 1700, to: 1850 },
-    Segment { first_round: 111, last_round: 120, years_per_round: 10, from: 1850, to: 1950 },
-    Segment { first_round: 121, last_round: 230, years_per_round: 5, from: 1950, to: 2500 },
+    Segment { first_round: 76, last_round: 95, years_per_round: 25, from: 1000, to: 1500 },
+    Segment { first_round: 96, last_round: 115, years_per_round: 10, from: 1500, to: 1700 },
+    Segment { first_round: 116, last_round: 145, years_per_round: 5, from: 1700, to: 1850 },
+    Segment { first_round: 146, last_round: 170, years_per_round: 4, from: 1850, to: 1950 },
+    Segment { first_round: 171, last_round: 280, years_per_round: 5, from: 1950, to: 2500 },
 ];
 
 /// Historical year (signed, no year zero) of an astronomical year.
@@ -253,10 +258,10 @@ mod tests {
     }
 
     #[test]
-    fn quick_schedule_sums_to_230_rounds_on_the_same_dates() {
+    fn quick_schedule_sums_to_280_rounds_on_the_same_dates() {
         let c = CalendarId::Quick;
-        assert_eq!(c.rounds(), 230);
-        let total: u32 = (1..=230).map(|r| c.round_months(r)).sum();
+        assert_eq!(c.rounds(), 280);
+        let total: u32 = (1..=280).map(|r| c.round_months(r)).sum();
         assert_eq!(total, 89_988);
         assert_eq!(c.round_months(56), 588);
         for seg in c.segments() {
