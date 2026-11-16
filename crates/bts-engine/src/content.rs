@@ -2328,10 +2328,14 @@ fn facilities() -> Vec<FacDef> {
         // units a level; at 3,000 the all-native campaigns lost a third of the seats
         // that completed the graph (docs/calibration/slice-e-*.txt). 1,000 units is ten
         // times ruleset 1.0's draw and half a level of fission.
-        fac("high_energy", "High-energy laboratory", "Research", "Accelerators, plasma devices and the sixty thousand people who can run them. Draws 1,000 units of electricity a month.")
+        // ruleset 3.1: the programme's works draw a quarter to two fifths of the
+        // electricity they drew (400, 2,000, 1,000 and 500 units for the laboratory,
+        // the testbed, an assembly line and a lattice works): a seat without uranium
+        // could not power them from coal and water at all
+        fac("high_energy", "High-energy laboratory", "Research", "Accelerators, plasma devices and the sixty thousand people who can run them. Draws 400 units of electricity a month.")
             .req("T146 & C045").cost(&[(Metal, 150.0), (Components, 80.0), (Electronics, 80.0), (Conductors, 80.0), (Instruments, 50.0), (Magnets, 20.0)]).work(4000.0)
             .skilled(&[Q::Scientist], 40_000).skilled(&[Q::Technician], 12_000).skilled(&[Q::Electrician], 8_000)
-            .recipe(rec("frontier", "Frontier experiments").research(RC::Frontier, 60.0).inp(&[(Helium, 0.05)]).elec(1000.0).compute(50.0))
+            .recipe(rec("frontier", "Frontier experiments").research(RC::Frontier, 60.0).inp(&[(Helium, 0.05)]).elec(400.0).compute(50.0))
             .recipe(rec("frontier_hts", "Frontier experiments, nitrogen-cooled magnets").research(RC::Frontier, 60.0).elec(1500.0).compute(50.0))
             .upkeep(&[(Instruments, 6.0), (Electronics, 4.0), (Spares, 4.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Science]),
         // ---- space and jump engineering ----------------------------------
@@ -2383,8 +2387,8 @@ fn facilities() -> Vec<FacDef> {
         fac("jump_testbed", "Jump testbed", "Jump engineering", "The first installation able to reproduce the anomaly under load. Needs an orbital yard and vast power.")
             .req("T163 & C045 & C056 & F:orbital_yard & F:high_energy")
             .cost(&[(Metal, 250.0), (Components, 250.0), (Electronics, 200.0), (Conductors, 200.0), (Hardware, 30.0), (Instruments, 80.0), (Magnets, 40.0)]).work(8000.0)
-            .skilled(&[Q::Scientist], 30_000).skilled(&[Q::FtlEngineer, Q::Technician], 12_000).skilled(&[Q::Orbital], 10_000)
-            .recipe(rec("jump_trials", "Jump-interface experiments").research(RC::Frontier, 60.0).inp(&[(Helium, 0.2)]).elec(8000.0).compute(100.0))
+            .skilled(&[Q::Scientist], 30_000).skilled(&[Q::Technician, Q::FtlEngineer], 12_000).skilled(&[Q::Orbital], 10_000)
+            .recipe(rec("jump_trials", "Jump-interface experiments").research(RC::Frontier, 60.0).inp(&[(Helium, 0.2)]).elec(2000.0).compute(100.0))
             .recipe(rec("jump_trials_hts", "Jump-interface experiments, nitrogen-cooled").research(RC::Frontier, 60.0).elec(9600.0).compute(100.0))
             .upkeep(&[(Spares, 6.0), (Electronics, 5.0), (Instruments, 3.0)]).labor(L::Knowledge).tags(&[Tag::HighEnergy, Tag::Space]).max(1),
         fac("jump_yard", "Jump assembly line", "Jump engineering", "An independently operable line of seventy-six thousand people that completes one standard jump assembly in twenty-four months of full work.")
@@ -2393,7 +2397,7 @@ fn facilities() -> Vec<FacDef> {
             .skilled(&[Q::FtlEngineer], 16_000).skilled(&[Q::Technician], 16_000).skilled(&[Q::Mechanic], 16_000).skilled(&[Q::Electrician], 8_000).general(20_000)
             .recipe(rec("assembly", "Jump assembly manufacture")
                 .inp(&[(Components, 60.0), (Electronics, 45.0), (Hardware, 3.0), (Conductors, 18.0), (Insulation, 9.0), (Metal, 45.0), (Substrate, 3.0), (Lattice, 30.0), (Magnets, 6.0), (Helium, 0.1)])
-                .elec(4000.0).assembly(1.0 / 24.0))
+                .elec(1000.0).assembly(1.0 / 24.0))
             .recipe(rec("assembly_hts", "Jump assembly manufacture, nitrogen-cooled")
                 .inp(&[(Components, 60.0), (Electronics, 45.0), (Hardware, 3.0), (Conductors, 18.0), (Insulation, 9.0), (Metal, 45.0), (Substrate, 3.0), (Lattice, 30.0), (Magnets, 6.0)])
                 .elec(4800.0).assembly(1.0 / 24.0))
@@ -2413,7 +2417,7 @@ fn facilities() -> Vec<FacDef> {
             .req("T164 | T165")
             .cost(&[(Metal, 60.0), (Components, 40.0), (Electronics, 40.0), (Magnets, 10.0), (Instruments, 20.0)]).work(3000.0)
             .skilled(&[Q::Scientist, Q::FtlEngineer], 6_000).general(4_000)
-            .recipe(rec("lattice", "Lattice conditioning").inp(&[(Substrate, 1.0), (Magnets, 1.0), (Helium, 0.1)]).out(&[(Lattice, 40.0)]).elec(2000.0))
+            .recipe(rec("lattice", "Lattice conditioning").inp(&[(Substrate, 1.0), (Magnets, 1.0), (Helium, 0.1)]).out(&[(Lattice, 40.0)]).elec(500.0))
             .recipe(rec("lattice_hts", "Lattice conditioning, nitrogen-cooled").inp(&[(Substrate, 1.0), (Magnets, 1.0)]).out(&[(Lattice, 40.0)]).elec(2400.0))
             .upkeep(&[(Spares, 2.0)]).labor(L::Industry).tags(&[Tag::HighEnergy, Tag::Space]).max(1),
         // ---- tradition works (design chapter 37, section 4.1; ruleset 3.0 slice 13) ----

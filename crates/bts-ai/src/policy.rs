@@ -3059,6 +3059,9 @@ fn new_capabilities(p: &mut Plan, regions: &[&RegionView], capital: &RegionView)
         .iter()
         .filter(|f| f.available && f.category != "Food" && !p.civ_has(&f.kind) && !p.civ_pending(&f.kind))
         .filter(|f| !matches!(f.kind.as_str(), "holy_site" | "barracks" | "jump_base" | "grid" | "generator" | "granary" | "roads" | "port" | "waterworks" | "sewers" | "water_treatment" | "clinic" | "hospital"))
+        // under the standard contract the station in orbit is the station: the ground
+        // works of the classic programme would only tie up crews, fuel and power
+        .filter(|f| !(standard_rule(obs) && matches!(f.kind.as_str(), "orbital_station" | "orbital_yard" | "interferometer")))
         .collect();
     cands.sort_by_key(|f| (f.work, f.kind.clone()));
     let mut started = 0;
@@ -3248,7 +3251,10 @@ fn programme(p: &mut Plan, regions: &[&RegionView], capital: &RegionView) {
         let coal = p.stock(Good::Coal) > 30_000 || p.produces(Good::Coal);
         let fuel = fuel_to_spare(p);
         let fission = p.stock(Good::NuclearFuel) > 50_000 || p.produces(Good::NuclearFuel);
+        // (a receiver of orbital power: 3,000 units a level with no fuel at all)
+        let beamed = p.fac_type("orbital_power").map(|f| f.available).unwrap_or(false) && short >= 500_000;
         let _ = (fission && try_build_sized(p, r, "fission", need, 2))
+            || (beamed && try_build_sized(p, r, "orbital_power", 1, 2))
             || try_build_sized(p, r, "hydro", need, 2)
             || ((p.level(r, "generator") as i64) * 60_000 < o.power.elec_demand + o.power.shaft_to_generators && try_build_sized(p, r, "generator", need, 2))
             || (coal && try_build_sized(p, r, "steam", need, 2))
@@ -3284,7 +3290,7 @@ fn standard_rule(obs: &Observation) -> bool {
 }
 
 /// The installations of the victory programme (public rules, design chapter 35).
-const PROGRAMME_KINDS: [&str; 8] = ["high_energy", "launch_complex", "orbital_station", "orbital_yard", "jump_testbed", "jump_yard", "jump_base", "proving_ground"];
+const PROGRAMME_KINDS: [&str; 10] = ["high_energy", "launch_complex", "orbital_station", "orbital_yard", "jump_testbed", "jump_yard", "jump_base", "proving_ground", "lattice_works", "rocket_works"];
 
 /// Research posts in proportion to the people (job 4b; design chapter 36, section
 /// 2.7 assumes 0.3% of the population in research posts by 1700, rising to 2% by
