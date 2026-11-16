@@ -417,6 +417,11 @@ export interface EraView {
   charters: CharterView[];
   charter_slots: number;
   charter_note: string;
+  /**
+   * Ruleset 3.1: the name of the seat's age as its traditions colour it ("Age of Steam" for a
+   * Steampunk seat); the era's plain name without a tradition. Empty on older referees.
+   */
+  age_name?: string;
   next: NextEraView | null;
   /** Expected household basket per thousand residents a month (read by the consumption rules of slice 11). */
   expected_basket: GoodQty[];
@@ -482,6 +487,14 @@ export interface TraditionView {
   reform_project: number | null;
   switch_allowed_from: Month;
   options: TraditionOption[];
+  /**
+   * Ruleset 3.1: strength of the held path, basis points: a quarter for holding it, the rest
+   * from mastery and from its branch technologies understood. Its effects scale with it.
+   */
+  strength_bp?: number;
+  /** Ruleset 3.1: branch technologies of the held path understood, and how many it has. */
+  branch_known?: number;
+  branch_total?: number;
 }
 
 export interface TraditionOption {
@@ -497,6 +510,15 @@ export interface TraditionOption {
   unit_variant: string;
   drawbacks: string[];
   held: boolean;
+  /** Ruleset 3.1: what the path gives at full strength, one line each. */
+  effects?: string[];
+  /** Ruleset 3.1: the name the seat's age takes while the path is held ("Age of Steam"). */
+  age_name?: string;
+  /**
+   * Ruleset 3.1: visual style key for towns and works of a seat on this path: "steam", "diesel",
+   * "electric", "clockwork", "atomic", "neon", "organic", "chrome", "solar" or "rocket".
+   */
+  style?: string;
 }
 
 export interface EraEntryView {
@@ -596,11 +618,19 @@ export interface WorldFrame {
   kind?: WorldKind | null;
 }
 
+/** Ruleset 3.1: how a match was decided. */
+export type OutcomeKind = 'jump' | 'supremacy' | 'standing' | 'classic' | 'none';
+
 export interface MatchOutcome {
   finished_month: Month;
   winner: SeatId | null;
   reason: string;
   reward: number;
+  /**
+   * Ruleset 3.1: "jump" (the programme completed), "supremacy" (the only sovereign left),
+   * "standing" (highest standing at the horizon), "classic" or "none". Absent on older referees.
+   */
+  kind?: OutcomeKind | string;
 }
 
 export interface GoodLine {
@@ -658,6 +688,11 @@ export interface Policies {
   war_policies?: WarPolicyView[];
   /** bts-protocol/2.6: the standing camp policy (subjugate defeated camps instead of scattering them). */
   camp_subjugate?: boolean;
+  /**
+   * Ruleset 3.1: public schooling (on by default). The referee opens, sizes and closes courses
+   * from the seat's vacant qualified posts; the seat only builds the venues.
+   */
+  schooling?: boolean;
 }
 
 export interface FactionView {
@@ -1227,6 +1262,8 @@ export interface ProgramView {
   graduates_total: number;
   paused: boolean;
   blockers: string[];
+  /** Ruleset 3.1: opened and sized by public schooling; the referee manages it. */
+  auto?: boolean;
 }
 
 /** bts-protocol/2.6: the charge of a refit in place. */
@@ -1409,9 +1446,25 @@ export interface Check {
   /**
    * For the checks of the jump programme, the base the check belongs to: 'industrial',
    * 'scientific', 'educational', 'logistical' or 'service'. Empty for governance
-   * checks; absent before ruleset 2.0 slice E.
+   * checks; absent before ruleset 2.0 slice E. For the steps of the standard contract
+   * (ruleset 3.1) it is the step's key: 'orbit', 'station', 'shipyard', 'assembly',
+   * 'first_jump' or 'second_jump'.
    */
   category?: string;
+}
+
+/** Ruleset 3.1: the victory contract of a match. */
+export type VictoryRule = 'standard' | 'classic';
+
+/** Ruleset 3.1: a seat's public standing under the standard contract. */
+export interface StandingView {
+  seat: SeatId;
+  name: string;
+  points: number;
+  /** Programme steps reached, of six. */
+  steps: number;
+  /** Whether the seat can still win (active and not a subordinate). */
+  sovereign: boolean;
 }
 
 export interface VictoryView {
@@ -1428,6 +1481,25 @@ export interface VictoryView {
   assemblies_operational?: number;
   deployment_done?: boolean;
   replacement_done?: boolean;
+  /** Ruleset 3.1: "standard" or "classic". Absent on older referees (the classic contract). */
+  rule?: VictoryRule | string;
+  /**
+   * Standard contract: the six steps of the jump programme in order. `category` is the step's
+   * key, `ok` whether it has been reached (a step is never lost), `detail` when it was reached
+   * or what reaches it.
+   */
+  steps?: Check[];
+  /** Standard contract: the key of the next step to reach, if any is left. */
+  next_step?: string | null;
+  /** Standard contract: this seat's standing in points. */
+  standing?: number;
+  /** Standard contract: this seat and the seats it has met, best first. */
+  standings?: StandingView[];
+  /** Standard contract: whether a jump trial can be ordered now, and if not, why. */
+  trial_ready?: boolean;
+  trial_blocker?: string;
+  /** Standard contract: the first month a trial would count as the second round trip. */
+  second_trial_from?: Month | null;
 }
 
 export interface ObjectivesView {
@@ -1513,6 +1585,8 @@ export type PolicySetting =
   | { kind: 'borders'; immigration: Immigration; emigration?: Emigration }
   /** bts-protocol/2.4: survivors of a camp this seat breaks become subjects (true) or refugees. */
   | { kind: 'camp_policy'; subjugate: boolean }
+  /** Ruleset 3.1: turn public schooling on or off (on by default). */
+  | { kind: 'schooling'; enabled: boolean }
   /** bts-protocol/2.4: pay tribute to the camp sighted in `region` for `years`. */
   | { kind: 'tribute'; region: RegionId; goods: GoodQty[]; years: number }
   /** bts-protocol/2.4: standing market order for one good (per_month 0 cancels). */
@@ -1545,7 +1619,7 @@ export type Action =
   | { kind: 'enter_era' }
   /** bts-protocol/2.2: hold a charter of the present era by its key. */
   | { kind: 'choose_charter'; charter: string }
-  /** bts-protocol/2.2: commit a slot ("machine" | "frontier") to a path ("steam" | "engine" | "wire" | "atom" | "network" | "living" | "synthetic"). */
+  /** bts-protocol/2.2: commit a slot ("machine" | "frontier") to a path (machine: "steam" | "engine" | "wire" | "gear"; frontier: "atom" | "network" | "living" | "synthetic" | "sun" | "rocket"). */
   | { kind: 'choose_tradition'; slot: string; path: string }
   /** bts-protocol/2.5: an order of the off-world layer. */
   | { kind: 'space'; order: SpaceOrder }
@@ -1639,6 +1713,11 @@ export interface MatchSummary {
   window?: number;
   finished?: boolean;
   winner?: SeatId | null;
+  /** Ruleset 3.1: how the match was decided and the referee's sentence about it, once finished. */
+  outcome_kind?: OutcomeKind | string | null;
+  outcome_reason?: string | null;
+  /** Ruleset 3.1: the victory contract of the match. */
+  victory?: VictoryRule | string;
   disclosed_objective?: boolean;
   waiting_on?: SeatId[];
   seats?: SeatSummary[];
@@ -1711,8 +1790,10 @@ export interface NewMatchRequest {
   regions?: 30 | 60 | 90 | 120 | 200 | 24 | 48 | 72;
   /** "earth_like" (the default generated planet) or "classic" (the flat map of ruleset 2.0). */
   world?: WorldKind;
-  /** "standard" (525 rounds, 5000 BC to AD 2500) or "quick" (230 rounds on the same dates). */
+  /** "standard" (525 rounds, 5000 BC to AD 2500) or "quick" (280 rounds on the same dates). */
   calendar?: 'standard' | 'quick';
+  /** Ruleset 3.1: the victory contract; "standard" when absent. */
+  victory?: VictoryRule;
   /** A fixture clock of twelve-month rounds ending at this month (tests); overrides `calendar`. */
   horizon?: number;
   pace_bp?: number;
@@ -1757,6 +1838,10 @@ export interface SpectatorCiv {
   /** bts-protocol/2.2. */
   era?: number;
   traditions?: string[];
+  /** Ruleset 3.1 (standard contract): programme steps reached (of six), standing points and stations in orbit. */
+  programme_steps?: number;
+  standing?: number;
+  stations?: number;
 }
 
 export interface SpectatorArmy {
@@ -1787,6 +1872,8 @@ export interface SpectatorOutcome {
   finished_month: Month;
   winner: SeatId | null;
   reason: string;
+  /** Ruleset 3.1: see `MatchOutcome.kind`. */
+  kind?: OutcomeKind | string;
 }
 
 export interface SpectatorView {

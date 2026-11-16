@@ -107,6 +107,16 @@ function BlockView({ block, query, term, canAct }: { block: Block; query: string
     case 'objective': {
       if (!canAct || !s.obs) return null;
       const v = s.obs.objectives.victory;
+      if (v && v.rule === 'standard') {
+        const steps = v.steps ?? [];
+        const next = steps.find((x) => !x.ok);
+        return (
+          <p class="alm-note is-gold" data-testid="almanac-objective"><Icon name="star" size={13} /> <span>
+            <b>{t('In this match:')}</b> {t('{n} of {m} steps reached', { n: steps.filter((x) => x.ok).length, m: steps.length || 6 })}
+            {next ? <> · {t('Next step')}: {tc(next.label)}</> : null}
+          </span></p>
+        );
+      }
       return v
         ? <p class="alm-note is-gold"><Icon name="star" size={13} /> <span><b>{t('Revealed to your civilization:')}</b> {tc(v.summary)}</span></p>
         : <p class="alm-note"><Icon name="question" size={13} /> <span>{t('In this match it has not been revealed to your civilization yet.')}</span></p>;

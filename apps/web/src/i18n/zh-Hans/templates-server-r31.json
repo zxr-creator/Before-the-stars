@@ -1,0 +1,102 @@
+[
+ {
+  "en": "Reached in {when}",
+  "zh": "{when}达成"
+ },
+ {
+  "en": "Jump programme: {label}",
+  "zh": "跃迁计划：{label}"
+ },
+ {
+  "en": "{name} completed the jump programme in {when}.",
+  "zh": "{name}于{when}完成了跃迁计划。"
+ },
+ {
+  "en": "{name} reached step {#i} of {#n} of the jump programme in {when}. Next: {next}",
+  "zh": "{name}于{when}达成了跃迁计划的第 {i} 步（共 {n} 步）。下一步：{next}"
+ },
+ {
+  "en": "Step {#i} of {#n} reached in {when}",
+  "zh": "{when}达成第 {i} 步（共 {n} 步）"
+ },
+ {
+  "en": "{name} reached step {#i} of {#n} of the jump programme. The first seat to complete all {#m} wins.",
+  "zh": "{name}达成了跃迁计划的第 {i} 步（共 {n} 步）。最先完成全部 {m} 步的席位获胜。"
+ },
+ {
+  "en": "{name}: Reach orbit",
+  "zh": "{name}：进入轨道"
+ },
+ {
+  "en": "{name}: A space station in low Earth orbit",
+  "zh": "{name}：近地轨道上的一座空间站"
+ },
+ {
+  "en": "{name}: An orbital shipyard",
+  "zh": "{name}：一座轨道船坞"
+ },
+ {
+  "en": "{name}: A jump assembly",
+  "zh": "{name}：一台跃迁装置"
+ },
+ {
+  "en": "{name}: First loaded jump round trip",
+  "zh": "{name}：第一次载荷跃迁往返"
+ },
+ {
+  "en": "{name}: Second jump round trip",
+  "zh": "{name}：第二次跃迁往返"
+ },
+ {
+  "en": "{name} completed the jump programme: a second loaded jump round trip, flown from its own orbital shipyard",
+  "zh": "{name}完成了跃迁计划：从自己的轨道船坞出发，完成了第二次载荷跃迁往返"
+ },
+ {
+  "en": "{name} completed the jump programme: a second loaded jump round trip, flown from its own orbital shipyard.",
+  "zh": "{name}完成了跃迁计划：从自己的轨道船坞出发，完成了第二次载荷跃迁往返。"
+ },
+ {
+  "en": "{name} is the only sovereign power left: every other seat is eliminated or its subordinate",
+  "zh": "{name}是仅存的主权势力：其他席位全部出局，或已成为其附庸"
+ },
+ {
+  "en": "{name} is the only sovereign power left: every other seat is eliminated or its subordinate.",
+  "zh": "{name}是仅存的主权势力：其他席位全部出局，或已成为其附庸。"
+ },
+ {
+  "en": "The horizon was reached; {name} holds the highest standing ({#pts} points, {#a} of {#b} programme steps)",
+  "zh": "期限已到；{name}总分最高（{pts} 分，跃迁计划达成 {a} / {b} 步）"
+ },
+ {
+  "en": "The horizon was reached; {name} holds the highest standing ({#pts} points, {#a} of {#b} programme steps).",
+  "zh": "期限已到；{name}总分最高（{pts} 分，跃迁计划达成 {a} / {b} 步）。"
+ },
+ {
+  "en": "In {when}: {reason}.",
+  "zh": "{when}：{reason}。"
+ },
+ {
+  "en": "Victory settled in {when}",
+  "zh": "{when}决出胜负"
+ },
+ {
+  "en": "{name} has won the match",
+  "zh": "{name}赢得了对局"
+ },
+ {
+  "en": "An assembly of {name} carried a standard load out and back. It is jump round trip {#n} of the two the programme needs, at least twelve months apart.",
+  "zh": "{name}的一台装置运载标准载荷完成了往返。这是计划所需的两次跃迁往返中的第 {n} 次，两次须相隔至少十二个月。"
+ },
+ {
+  "en": "The works ask for more {quals} than the venues can train. Build or expand: {venues}.",
+  "zh": "各工程需要的{quals}多于教学场所能培养的人数。请新建或扩建：{venues}。"
+ },
+ {
+  "en": "{a} era",
+  "zh": "{a}"
+ },
+ {
+  "en": "Tradition: {a} ({b})",
+  "zh": "传统：{a}（{b}）"
+ }
+]

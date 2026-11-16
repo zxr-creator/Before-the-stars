@@ -31,7 +31,8 @@ import { ObjectivesPanel } from './panels/objectives';
 import { ChronicleSheet, ChronicleTab } from './panels/chronicle';
 import { GameMenu } from './menu';
 import { ConnectHost } from './agents/connect';
-import { fmtYear, yearOf } from './format';
+import { fmtYear, int, yearOf } from './format';
+import { OUTCOME_HOW, OUTCOME_LABEL, outcomeIcon, outcomeKind } from './victory';
 import { StandingOrders } from './panels/orders';
 import { t, tc, useLocale } from './i18n';
 import { MomentBanner, NotifyColumn, RoundDock } from './theme/hud';
@@ -244,6 +245,8 @@ export function App() {
   const stageH = vp.h - TOPBAR_H;
   const notifyMax = Math.max(2, Math.min(8, Math.floor((stageH - ch - 170) / 46)));
   const winner = obs.outcome ? obs.outcome.winner : null;
+  const resultKind = outcomeKind(obs.outcome?.kind ?? s.summary.outcome_kind);
+  const finalStandings = obs.objectives.victory?.rule === 'standard' ? obs.objectives.victory.standings ?? [] : [];
 
   return (
     <div class={cx('app', s.pick && 'is-picking', watching && 'is-observing', s.overlay && 'has-overlay', s.banners.length > 0 && 'has-banner', mapW < 620 && 'is-narrow')}
@@ -312,9 +315,20 @@ export function App() {
             </div>
             <p class="eyebrow">{t('{year} · the match has ended', { year: fmtYear(obs.outcome.finished_month, obs.outcome.finished_month === obs.month ? obs.date : null) })}</p>
             <h2>{winner === null ? t('No civilization prevailed') : t('{name} prevails', { name: winner === obs.seat ? tc(obs.civ.name) : civName(obs, winner) })}</h2>
+            {resultKind ? <p class="result-how" data-testid="result-how" data-kind={resultKind}><Icon name={outcomeIcon(resultKind)} size={13} /> {t(OUTCOME_HOW[resultKind])}</p> : null}
             <p class="result-reason">{tc(obs.outcome.reason)}</p>
             <dl class="kvs">
               <div class="kv"><dt>{t('Winner')}</dt><dd>{winner === null ? t('None') : civName(obs, winner)}</dd></div>
+              {resultKind ? <div class="kv"><dt>{t('Decided by')}</dt><dd>{t(OUTCOME_LABEL[resultKind])}</dd></div> : null}
+              {finalStandings.length ? (
+                <div class="kv"><dt>{t('Standings')}</dt><dd>
+                  <ol class="result-standings" data-testid="result-standings">
+                    {finalStandings.slice(0, 6).map((row) => (
+                      <li class={row.seat === winner ? 'is-winner' : ''}><b>{tc(row.name)}</b> <span class="muted">{t('{points} points · {n} of {m} steps', { points: int(row.points), n: row.steps, m: 6 })}</span></li>
+                    ))}
+                  </ol>
+                </dd></div>
+              ) : null}
               <div class="kv"><dt>{t('{name}’s reward', { name: tc(obs.civ.name) })}</dt><dd><b>{obs.outcome.reward.toFixed(3)}</b> <small class="muted">{t('(2 − T/H for the sole winner, otherwise −1)')}</small></dd></div>
             </dl>
             <div class="row-end">

@@ -4,7 +4,7 @@
 import './economy/construction.css';
 import { useState } from 'preact/hooks';
 import { api } from './api';
-import type { AgentOptions, NewMatchRequest, SetupController, WorldKind } from './protocol';
+import type { AgentOptions, NewMatchRequest, SetupController, VictoryRule, WorldKind } from './protocol';
 import { AGENT_DEFAULTS, AgentBox, agentLine, agentOptions, agentProblem, type AgentSeatConfig } from './agents/setup-agent';
 import { openConnect } from './agents/connect';
 import { Btn, Field, cx } from './ui';
@@ -87,6 +87,8 @@ export function Setup() {
   const [world, setWorld] = useState<WorldKind>('earth_like');
   const [calendar, setCalendar] = useState<'standard' | 'quick'>('standard');
   const [disclosed, setDisclosed] = useState(false);
+  // ruleset 3.1: the standard contract (programme, supremacy or standing) unless the classic one is asked for
+  const [victory, setVictory] = useState<VictoryRule>('standard');
   const preset = presetOf(regions);
   const pickPreset = (p: MapPreset) => {
     setRegions(p.regions);
@@ -118,7 +120,9 @@ export function Setup() {
       world,
       calendar,
       controllers,
-      disclosed_objective: disclosed,
+      victory,
+      // the objective mode belongs to the classic contract; the standard one is known from the first round
+      disclosed_objective: victory === 'classic' ? disclosed : false,
     };
     if (agents) req.agent_options = agent_options;
     const err = await newMatch(req);
@@ -272,13 +276,28 @@ export function Setup() {
               <span class="field-label">{t('Calendar')}</span>
               <div class="segmented" role="radiogroup" aria-label={t('Calendar')}>
                 <button type="button" role="radio" aria-checked={calendar === 'standard'} class={cx('seg', calendar === 'standard' && 'is-active')} data-testid="setup-calendar-standard" onClick={() => setCalendar('standard')}>{t('Standard · 525 rounds')}</button>
-                <button type="button" role="radio" aria-checked={calendar === 'quick'} class={cx('seg', calendar === 'quick' && 'is-active')} data-testid="setup-calendar-quick" onClick={() => setCalendar('quick')}>{t('Quick · 230 rounds')}</button>
+                <button type="button" role="radio" aria-checked={calendar === 'quick'} class={cx('seg', calendar === 'quick' && 'is-active')} data-testid="setup-calendar-quick" onClick={() => setCalendar('quick')}>{t('Quick · 280 rounds')}</button>
               </div>
               <span class="field-hint">{calendar === 'quick'
                 ? t('The same 5000 BC to AD 2500 in fewer, longer rounds: up to a century each in antiquity, five years in the modern age.')
                 : t('5000 BC to AD 2500: rounds of fifty years in antiquity, shortening to two years from 1950. Standing orders act year by year inside long rounds.')}</span>
             </div>
 
+            <div class="field">
+              <span class="field-label">{t('Victory')}</span>
+              <div class="choice-cards" role="radiogroup" aria-label={t('Victory')}>
+                <button type="button" role="radio" aria-checked={victory === 'standard'} class={cx('choice', victory === 'standard' && 'is-active')} data-testid="setup-victory-standard" onClick={() => setVictory('standard')}>
+                  <b>{t('Standard')} <small class="choice-tag">{t('recommended')}</small></b>
+                  <span>{t('Three ways to win: complete the jump programme first, be the last sovereign power, or hold the highest standing at the last round. A match always has a winner.')}</span>
+                </button>
+                <button type="button" role="radio" aria-checked={victory === 'classic'} class={cx('choice', victory === 'classic' && 'is-active')} data-testid="setup-victory-classic" onClick={() => setVictory('classic')}>
+                  <b>{t('Classic')}</b>
+                  <span>{t('Govern the whole world for 96 months and sustain jump capability for 24, with two trials. Long and exacting; a match may end without a winner.')}</span>
+                </button>
+              </div>
+            </div>
+
+            {victory === 'classic' ? (
             <div class="field">
               <span class="field-label">{t('Final objective')}</span>
               <div class="choice-cards" role="radiogroup" aria-label={t('Objective mode')}>
@@ -292,6 +311,7 @@ export function Setup() {
                 </button>
               </div>
             </div>
+            ) : null}
 
           </section>
 
@@ -310,8 +330,9 @@ export function Setup() {
                 <dt>{t('You')}</dt><dd>{humans === 0 ? t('Observe') : humans === 1 ? t('Play one civilization') : t('Hot seat, {n} players', { n: humans })}</dd>
                 <dt>{t('World')}</dt><dd data-testid="setup-summary-world">{world === 'earth_like' ? t('Earth-like world') : t('Classic map')} · {t(preset.label)}, {t('{n} regions', { n: regions })} · {seed.trim() || t('random seed')}</dd>
                 <dt>{t('Civilizations')}</dt><dd>{seats.length}</dd>
-                <dt>{t('Calendar')}</dt><dd>{calendar === 'quick' ? t('Quick: 230 rounds, 5000 BC to AD 2500') : t('Standard: 525 rounds, 5000 BC to AD 2500')}</dd>
-                <dt>{t('Objective')}</dt><dd>{disclosed ? t('Disclosed from year 1') : t('Revealed by discovery')}</dd>
+                <dt>{t('Calendar')}</dt><dd>{calendar === 'quick' ? t('Quick: 280 rounds, 5000 BC to AD 2500') : t('Standard: 525 rounds, 5000 BC to AD 2500')}</dd>
+                <dt>{t('Victory')}</dt><dd data-testid="setup-summary-victory">{victory === 'standard' ? t('Standard: programme, supremacy or standing') : t('Classic: governance and jump capability')}</dd>
+                {victory === 'classic' ? <><dt>{t('Objective')}</dt><dd>{disclosed ? t('Disclosed from year 1') : t('Revealed by discovery')}</dd></> : null}
               </dl>
               {error ? <p class="action-note is-bad" role="alert"><Icon name="cross" size={12} /> {error}</p> : null}
               {problem ? <p class="summary-why"><Icon name="warn" size={12} /> {problem}</p> : null}

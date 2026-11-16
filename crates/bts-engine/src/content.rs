@@ -18,7 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub const CONTENT_VERSION: &str = "bts-content/3.0.0";
+pub const CONTENT_VERSION: &str = "bts-content/3.1.0";
 /// Ruleset 2.0 counts real people, posts and base units of goods
 /// (`docs/units-and-scale.md`). Ruleset 3.0 (design chapter 36) puts the game on a
 /// historical calendar from 5000 BC with historical population and knowledge
@@ -26,9 +26,9 @@ pub const CONTENT_VERSION: &str = "bts-content/3.0.0";
 /// carried pre-release tags (`-s4`, `-j4`: through slice 4, job 4a of the merged
 /// plan); this is the release, and a save of any pre-release build is refused by
 /// name.
-pub const RULESET_VERSION: &str = "bts-rules/3.0.0";
+pub const RULESET_VERSION: &str = "bts-rules/3.1.0";
 /// Generator 2.0 (design chapter 37, section 5.1): the Earth-like world by default.
-pub const GENERATOR_VERSION: &str = "bts-worldgen/2.1.0";
+pub const GENERATOR_VERSION: &str = "bts-worldgen/2.2.0";
 
 /// Base units in one display unit of goods, work, research or service.
 pub const DISPLAY_DIVISOR: i64 = 1000;

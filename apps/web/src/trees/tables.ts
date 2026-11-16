@@ -18,15 +18,18 @@ export interface Tradition {
   slot: 'machine' | 'frontier';
 }
 
-/** The seven traditions (design chapter 37, section 4; chapter 39, groups M-S). */
+/** The ten traditions (design chapter 37, section 4; chapter 39, groups M-S; three more with ruleset 3.1). */
 export const TRADITIONS: Tradition[] = [
   { key: 'steam', name: 'Coal and Steam', genre: 'Steampunk', slot: 'machine' },
   { key: 'engine', name: 'Oil and Engine', genre: 'Dieselpunk', slot: 'machine' },
   { key: 'wire', name: 'Current and Wire', genre: 'Electropunk', slot: 'machine' },
+  { key: 'gear', name: 'Gear and Spring', genre: 'Clockpunk', slot: 'machine' },
   { key: 'atom', name: 'Atom', genre: 'Atompunk', slot: 'frontier' },
   { key: 'network', name: 'Network', genre: 'Cyberpunk', slot: 'frontier' },
   { key: 'living', name: 'Living Systems', genre: 'Biopunk', slot: 'frontier' },
   { key: 'synthetic', name: 'Synthetic Minds', genre: 'AI-punk', slot: 'frontier' },
+  { key: 'sun', name: 'Sun and Commons', genre: 'Solarpunk', slot: 'frontier' },
+  { key: 'rocket', name: 'Rocket and Orbit', genre: 'Rocketpunk', slot: 'frontier' },
 ];
 export const traditionByKey = (key: string | null | undefined): Tradition | undefined => TRADITIONS.find((x) => x.key === key);
 

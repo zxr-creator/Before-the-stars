@@ -40,15 +40,15 @@ export interface GoodGroupDef {
 
 /** Every good in exactly one group, in the order the interface lists them. */
 export const GOOD_GROUPS: GoodGroupDef[] = [
-  { key: 'land', label: 'Food and land', hint: 'Grown on fields, pastures, plantations and fishing grounds', goods: ['food', 'fibres', 'horses', 'spices'] },
+  { key: 'land', label: 'Food and land', hint: 'Grown on fields and pastures and taken from fishing grounds', goods: ['food', 'fibres', 'horses', 'spices'] },
   { key: 'building', label: 'Timber and building materials', hint: 'Cut in forests, quarried and dug for building', goods: ['timber', 'materials'] },
   { key: 'ores', label: 'Ores and minerals', hint: 'Dug from deposits: finite tonnes in the ground', goods: ['copper_ore', 'tin', 'iron_ore', 'salt', 'saltpetre', 'bauxite', 'rare_earths', 'quartz', 'lithium', 'cobalt_nickel', 'uranium_ore'] },
   { key: 'metals', label: 'Metals', hint: 'Smelted and refined from ores', goods: ['copper', 'metal', 'aluminium', 'precious'] },
   { key: 'energy', label: 'Fuels and energy', hint: 'Burned or split for heat, motion and electricity', goods: ['coal', 'crude', 'gas', 'fuel', 'helium', 'nuclear_fuel'] },
   { key: 'chemicals', label: 'Chemicals and fertilizer', hint: 'Made in chemical works for fields, plastics and industry', goods: ['chemicals', 'fertilizer', 'insulation'] },
   { key: 'machinery', label: 'Tools and machinery', hint: 'Tools, machine parts and instruments: the upkeep of every works', goods: ['tools', 'components', 'spares', 'instruments'] },
-  { key: 'electrical', label: 'Electrical and electronic', hint: 'Wire, magnets, cells, chips and computers', goods: ['conductors', 'magnets', 'batteries', 'substrate', 'electronics', 'hardware'] },
-  { key: 'household', label: 'Household and luxury', hint: 'What people use and live with: cloth, wares, records, medicine and luxuries', goods: ['textiles', 'consumer_goods', 'fine_wares', 'media', 'medicine'] },
+  { key: 'electrical', label: 'Electrical and electronic', hint: 'Wire, magnets, chips and computers', goods: ['conductors', 'magnets', 'batteries', 'substrate', 'electronics', 'hardware'] },
+  { key: 'household', label: 'Household and luxury', hint: 'What people use and live with: cloth, household goods, records and medicine', goods: ['textiles', 'consumer_goods', 'fine_wares', 'media', 'medicine'] },
   { key: 'military', label: 'Military', hint: 'Consumed by armies in training and in battle', goods: ['munitions'] },
   { key: 'advanced', label: 'Advanced and off-world', hint: 'The jump programme and works beyond the Earth', goods: ['lattice', 'propellant', 'volatiles', 'helium3'] },
 ];

@@ -31,6 +31,7 @@ export function spectatorObservation(sp: SpectatorView, observerName: string): O
     status: c.status, contacted: true, contact_month: 0, at_war: false, overlord: c.overlord,
     population_low: c.population, population_high: c.population, regions_known: c.regions,
     military_estimate: '', observed_tier: c.highest_tier, trust: 0, notes: [],
+    era: c.era ?? null, traditions: c.traditions ?? [],
   }));
   const obs: Observation = {
     protocol_version: 'bts-protocol/1.0',

@@ -6,7 +6,8 @@ import { fmtNow, roundSpan, titleCase, tn } from '../format';
 import { isZh, t, tc, useLocale } from '../i18n';
 import { Icon } from '../icons';
 import { Badge, Btn, Empty, Section, cx } from '../ui';
-import { openPanel, selectRegion, useApp } from '../store';
+import { civName, openPanel, selectRegion, useApp } from '../store';
+import { OUTCOME_LABEL, outcomeKind } from '../victory';
 import type { PanelKey } from '../store';
 
 const SEVERITY: Record<string, { label: string; icon: string; tone: 'bad' | 'warn' | 'ok' | 'info' }> = {
@@ -55,7 +56,15 @@ export function actionLabel(action: string): string {
 
 function phaseAdvice(obs: Observation): { title: string; text: string; panel?: PanelKey } {
   const contacted = obs.others.filter((o) => o.contacted && o.status === 'active');
-  if (obs.phase === 'finished') return { title: t('The match has ended'), text: t('The record is closed. The chronicle keeps the whole history.'), panel: 'chronicle' };
+  if (obs.phase === 'finished') {
+    // who won and how (ruleset 3.1: the outcome carries its kind), then the referee's own sentence
+    const out = obs.outcome;
+    const kind = outcomeKind(out?.kind);
+    const head = out && out.winner !== null
+      ? `${t('{name} has won', { name: out.winner === obs.seat ? tc(obs.civ.name) : civName(obs, out.winner) })}${kind && kind !== 'none' ? ` · ${t(OUTCOME_LABEL[kind])}` : ''}. `
+      : '';
+    return { title: t('The match has ended'), text: head + (out ? tc(out.reason) + ' ' : '') + t('The record is closed. The chronicle keeps the whole history.'), panel: 'chronicle' };
+  }
   if (obs.phase === 'contact') {
     return contacted.length
       ? { title: t('Contact selection'), text: tn(contacted.length, 'Choose up to three of {n} known counterpart for this round. A channel opens only where the choice is mutual.', 'Choose up to three of {n} known counterparts for this round. A channel opens only where the choice is mutual.'), panel: 'diplomacy' }

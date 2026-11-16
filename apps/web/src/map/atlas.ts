@@ -12,6 +12,8 @@ import { hash32, rng } from '../format';
 import { DEPOSIT_COLOR, drawAnchor, drawBonusPicto, drawCampMark, drawDepositPicto, drawOutbreakSeal } from './pictos';
 import { SECTOR_COLOR, SECTORS, landUse, landUseSignature, type Building, type LandUse } from './landuse';
 import { BUILD_AMBER, drawChip, drawSite, chipRadius, sectorChips, siteExtent, type SiteKind } from './sites';
+import { PUNK, mixHex, type PunkLook, type PunkStyle } from './punk';
+import { drawPunkSkyline } from './punkart';
 
 export type MapMode = 'political' | 'terrain' | 'resources' | 'population' | 'construction';
 
@@ -21,6 +23,11 @@ export interface AtlasData {
   mySeat: number;
   /** Seat → CSS hex colour for this seat and every known counterpart. */
   seatColors: Record<number, string>;
+  /**
+   * Seat → the style its held traditions give its towns and works (ruleset 3.1). A seat
+   * that is absent holds no path and keeps the era-based look.
+   */
+  seatStyles?: Record<number, PunkStyle>;
   capital: RegionId | null;
   armies: ArmyView[];
   foreignArmies: ForeignArmyView[];
@@ -1131,6 +1138,13 @@ export class Atlas {
 
   // --- drawing -----------------------------------------------------------------------
 
+  /** The look of a seat's towns and works, when it holds a tradition. */
+  private lookOf(seat: number | null | undefined): PunkLook | null {
+    if (seat == null) return null;
+    const st = this.data?.seatStyles?.[seat];
+    return st ? PUNK[st] : null;
+  }
+
   private colorOf(seat: number | null): string {
     if (seat == null) return UNKNOWN_OWNER;
     return this.data?.seatColors[seat] ?? UNKNOWN_OWNER;
@@ -1648,8 +1662,9 @@ export class Atlas {
     const s = this.scale;
     const rem = p.r.visibility === 'remembered';
     const modern = t.era >= 3;
+    const look = rem ? null : this.lookOf(p.r.owner);
     ctx.globalAlpha = a * (rem ? 0.6 : 1);
-    ctx.fillStyle = alpha(modern ? '#bdb8ae' : '#d2c3a0', 0.72);
+    ctx.fillStyle = alpha(look ? look.ground : modern ? '#bdb8ae' : '#d2c3a0', look ? 0.8 : 0.72);
     ctx.beginPath();
     ctx.ellipse(p.sx, p.sy, t.r * 1.1, t.r * 0.92, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -1658,14 +1673,16 @@ export class Atlas {
     ctx.stroke();
     if (t.r * s >= 7) {
       const own = p.r.owner != null && !rem ? this.colorOf(p.r.owner) : '#9a9488';
-      const roofA = mix(own, modern ? '#8b9097' : '#a8573a', 0.62);
-      const roofB = mix(roofA, PAPER_LIGHT, 0.32);
+      const roofA = look ? mixHex(own, look.roof, 0.72) : mix(own, modern ? '#8b9097' : '#a8573a', 0.62);
+      const roofB = look ? mixHex(look.wall, own, 0.12) : mix(roofA, PAPER_LIGHT, 0.32);
+      // Every seventh block of a styled town carries the style's light: a sign, a lamp, a pane.
+      const spark = look ? look.glow : null;
       const outline = 2.3 * s >= 7;
       ctx.lineWidth = 0.6 * px;
       ctx.strokeStyle = alpha(INK, 0.55);
       const b = t.blocks;
       for (let i = 0; i < b.length; i += 4) {
-        ctx.fillStyle = (i >> 2) % 3 === 0 ? roofB : roofA;
+        ctx.fillStyle = spark && (i >> 2) % 7 === 3 ? spark : (i >> 2) % 3 === 0 ? roofB : roofA;
         ctx.fillRect(b[i] - b[i + 2] / 2, b[i + 1] - b[i + 3] / 2, b[i + 2], b[i + 3]);
         if (outline) ctx.strokeRect(b[i] - b[i + 2] / 2, b[i + 1] - b[i + 3] / 2, b[i + 2], b[i + 3]);
       }
@@ -2023,19 +2040,19 @@ export class Atlas {
     // Works standing on the land: drawn in place at their real size once that size can be
     // read, and summed into the sector chips under the name when it cannot.
     if (mode !== 'population') {
-      const drawn: { st: PlacedSite; x: number; y: number; rem: boolean }[] = [];
+      const drawn: { st: PlacedSite; x: number; y: number; rem: boolean; look: PunkLook | null }[] = [];
       for (const { p, ox } of visible) {
         for (const st of p.sites) {
           // Too small to read is not drawn at all: the chips carry it. A large works shows from afar.
           if (st.size * s < (st.kind === 'industry' ? 4.6 : 6.2)) continue;
           const [x, y] = this.worldToScreen(st.x + ox, st.y);
           if (x < -80 || x > this.w + 80 || y < -80 || y > this.h + 80) continue;
-          drawn.push({ st, x, y, rem: p.r.visibility === 'remembered' });
+          drawn.push({ st, x, y, rem: p.r.visibility === 'remembered', look: this.lookOf(p.r.owner) });
         }
       }
       drawn.sort((a, b) => a.y - b.y);
       ctx.globalAlpha = mode === 'resources' ? 0.6 : 1;
-      for (const { st, x, y, rem } of drawn) {
+      for (const { st, x, y, rem, look } of drawn) {
         const [ew, eh] = siteExtent(st.kind, st.n);
         const half = clamp(st.size * s, 7, 76);
         const u = half / ew;
@@ -2047,7 +2064,7 @@ export class Atlas {
         ctx.save();
         ctx.translate(x, gy);
         ctx.scale(u, u);
-        drawSite(ctx, st.kind, { n: st.n, active: st.active, faded: rem, px: 1 / u, depositColor: st.color, coarse: u < 0.75 });
+        drawSite(ctx, st.kind, { n: st.n, active: st.active, faded: rem, px: 1 / u, depositColor: st.color, coarse: u < 0.75, punk: look });
         ctx.restore();
       }
       ctx.globalAlpha = 1;
@@ -2084,7 +2101,7 @@ export class Atlas {
       } else if (r.settlement !== 'wilderness') {
         const roof = remembered ? '#9a9488' : mix(r.owner != null ? this.colorOf(r.owner) : '#a8573a', '#3a2a20', 0.12);
         const era = p.town?.era ?? 0;
-        this.drawSettlement(r.settlement, tx, ty + 4 * k, k, roof, remembered, era);
+        this.drawSettlement(r.settlement, tx, ty + 4 * k, k, roof, remembered, era, this.lookOf(r.owner));
         if (!apart) labelY = ty + 4 * k + 12 + 2 * k;
         if (d.capital === r.id) this.drawStar(tx, ty + 4 * k - this.settlementHeight(r.settlement) * k - 8 * k, 5.2 * k, this.colorOf(d.mySeat));
       } else if (r.city && s >= 1.6 && mode !== 'population') {
@@ -2322,8 +2339,27 @@ export class Atlas {
     return kind === 'camp' ? 11 : kind === 'village' ? 13 : kind === 'town' ? 16 : kind === 'city' ? 21 : kind === 'megalopolis' ? 31 : 25;
   }
 
-  private drawSettlement(kind0: SettlementKind, x: number, y: number, k0: number, roof: string, faded: boolean, era = 0): void {
+  private drawSettlement(kind0: SettlementKind, x: number, y: number, k0: number, roof0: string, faded: boolean, era = 0, look: PunkLook | null = null): void {
     const ctx = this.ctx;
+    // A seat on a tradition's path builds in that path's manner (ruleset 3.1): its towns and
+    // cities get the style's own skyline, its villages the style's roofs.
+    if (look && (kind0 === 'town' || kind0 === 'city' || kind0 === 'metropolis' || kind0 === 'megalopolis')) {
+      const size = kind0 === 'town' ? 0 : kind0 === 'city' ? 1 : 2;
+      const kk = kind0 === 'megalopolis' ? k0 * 1.24 : kind0 === 'city' ? k0 * 0.92 : k0;
+      const hw = size === 0 ? 16 : size === 1 ? 21 : 25;
+      const hh = size === 0 ? 17 : size === 1 ? 22 : 28;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(kk, kk);
+      ctx.fillStyle = alpha(PAPER_LIGHT, 0.6);
+      ctx.beginPath();
+      ctx.ellipse(0, -hh * 0.42, hw + 3, hh * 0.62 + 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawPunkSkyline(ctx, look, size, roof0, faded, 1.05 / kk);
+      ctx.restore();
+      return;
+    }
+    const roof = look && !faded && kind0 === 'village' ? mixHex(look.roof, roof0, 0.35) : roof0;
     // An industrial-age city is drawn as a smaller skyline rather than a walled town; a
     // megalopolis as a larger one.
     const kind: SettlementKind = (era >= 3 && kind0 === 'city') || kind0 === 'megalopolis' ? 'metropolis' : kind0;

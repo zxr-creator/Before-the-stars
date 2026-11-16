@@ -3,7 +3,9 @@
 // rough era (0 timber and thatch, 1 masonry, 2 industrial brick, 3 electrified,
 // 4 orbital age) that the caller derives from facilities that actually exist.
 import type { Deposit, SettlementKind } from '../protocol';
+import type { PunkStyle } from '../map/punk';
 import { Builder } from './builder';
+import { pieceA, punk3, punkLandmarks, punkSites, type Punk3 } from './punk3d';
 import { mixRgb, rng, scaleRgb, type RGB } from './util';
 
 export type Ground = (x: number, z: number) => number;
@@ -22,6 +24,8 @@ const BRICK: RGB = [0.72, 0.4, 0.3];
 const SLATE: RGB = [0.36, 0.4, 0.47];
 const CONCRETE: RGB = [0.86, 0.86, 0.83];
 const GLASS: RGB = [0.45, 0.72, 0.88];
+// The era kit's own materials, for code that swaps them for a tradition's (buildDistrict).
+const BRICK_0 = BRICK, CONCRETE_0 = CONCRETE, SLATE_0 = SLATE, GLASS_0 = GLASS, PLASTER_0 = PLASTER;
 const WHITE: RGB = [0.96, 0.97, 0.98];
 const TEAL: RGB = [0.25, 0.78, 0.8];
 const GOLD: RGB = [0.95, 0.76, 0.26];
@@ -107,10 +111,10 @@ function hut(b: Builder, r: number, wall: RGB, roof: RGB): void {
   b.cyl(0, r * 0.8, 0, r * 1.3, 0, r * 1.25, 7, roof);
 }
 
-function house(b: Builder, w: number, d: number, h: number, wall: RGB, roof: RGB, era: number, chimney = false): void {
+function house(b: Builder, w: number, d: number, h: number, wall: RGB, roof: RGB, era: number, chimney = false, glass?: RGB): void {
   if (era >= 3) {
     b.box(0, 0, 0, w, h, d, wall);
-    b.box(0, h * 0.45, 0, w + 0.06, h * 0.22, d + 0.06, ERAS[era].glass);
+    b.box(0, h * 0.45, 0, w + 0.06, h * 0.22, d + 0.06, glass ?? ERAS[era].glass);
     b.box(0, h, 0, w + 0.3, 0.25, d + 0.3, roof);
     return;
   }
@@ -172,6 +176,8 @@ export interface SettlementOpts {
   seed: number;
   /** No fire, smoke or flags in motion: a last-known picture only. */
   remembered: boolean;
+  /** The style of the owner's tradition (ruleset 3.1); absent: the era-based look. */
+  style?: PunkStyle | null;
 }
 
 /** Height of the tallest structure, for label and marker placement. */
@@ -181,18 +187,29 @@ export function settlementHeight(kind: SettlementKind, era: number, capital: boo
   return base + (k === 'city' || k === 'metropolis' ? era * 1.6 : 0) + (capital && (k === 'city' || k === 'metropolis') ? 6 : 0);
 }
 
+/** The building kit of a style: its palette in place of the era's. */
+function punkEraStyle(P: Punk3): EraStyle {
+  return { walls: P.walls, roofs: P.roofs, glass: P.glass, trim: P.trim };
+}
+
 export function buildSettlement(b: Builder, G: Ground, cx: number, cz: number, o: SettlementOpts, fx: Fx): void {
   const rand = rng(o.seed);
-  const era = Math.max(0, Math.min(4, o.era));
-  const st = ERAS[era];
+  // A seat on a tradition's path builds in the path's manner whatever its works: the kit's
+  // era, palette and height come from the style.
+  const P = o.style && o.kind !== 'camp' ? punk3(o.style) : null;
+  const era = P ? (o.kind === 'village' ? Math.min(2, P.geomEra) : P.geomEra) : Math.max(0, Math.min(4, o.era));
+  const st = P ? punkEraStyle(P) : ERAS[era];
   const R = settlementRadius(o.kind);
   const own = o.color;
   const pick = <T,>(a: T[]): T => a[Math.floor(rand() * a.length)];
   const roofFor = (): RGB => {
     const base = pick(st.roofs);
     const v = rand();
+    if (P) return v < 0.14 ? mixRgb(own, [0.2, 0.14, 0.1], 0.08) : mixRgb(base, own, 0.08);
     return v < 0.3 ? mixRgb(own, [0.2, 0.14, 0.1], 0.08) : mixRgb(base, own, era >= 3 ? 0.12 : 0.3);
   };
+  const punkAngle = ((o.seed >>> 3) % 628) / 100;
+  const pushSmoke = (wx: number, wy: number, wz: number, size: number) => { fx.smoke.push(wx, wy, wz, size); };
   const g0 = G(cx, cz);
   if (o.kind === 'wilderness') return;
 
@@ -247,13 +264,19 @@ export function buildSettlement(b: Builder, G: Ground, cx: number, cz: number, o
     b.pop();
     b.flag(cx - 1.4, G(cx - 1.4, cz + 1), cz + 1, 5.4, own, 0.3, 1);
     if (!o.remembered) fx.smoke.push(cx + 2.4, g0 + 2.6, cz - 1.8, 0.45);
+    if (P) punkLandmarks(b, G, cx, cz, P, { rank: 0, R, plaza: 2, height: 5, own, angle: punkAngle, remembered: o.remembered }, pushSmoke);
     return;
   }
 
   // --- town, city, metropolis ------------------------------------------------------
   const big = o.kind === 'city' || o.kind === 'metropolis';
   const metro = o.kind === 'metropolis';
-  drapeDisc(b, G, cx, cz, R * (era <= 2 && big ? 0.98 : 1.02), era >= 3 ? [0.74, 0.74, 0.72] : PAVING, 0.12, 16);
+  drapeDisc(b, G, cx, cz, R * (era <= 2 && big ? 0.98 : 1.02), P ? P.ground : era >= 3 ? [0.74, 0.74, 0.72] : PAVING, 0.12, 16);
+  // Where the style's own pieces will stand, the outer rings are left open.
+  const rank = metro ? 3 : big ? 2 : 1;
+  const punkOpts = P ? { rank, R, plaza: metro ? 5.2 : big ? 4.2 : 3, height: settlementHeight(o.kind, era, false) * P.rise, own, angle: punkAngle, remembered: o.remembered } : null;
+  const reserved = punkOpts ? punkSites(punkOpts) : [];
+  const rise = P ? P.rise : 1;
   const plaza = metro ? 5.2 : big ? 4.2 : 3;
   const count = metro ? 58 : big ? 36 : 17;
   const rings = metro ? 5 : big ? 4 : 3;
@@ -271,14 +294,15 @@ export function buildSettlement(b: Builder, G: Ground, cx: number, cz: number, o
       if (avenue < 0.16 && ring > 0) continue;
       const d = rr + (rand() - 0.5) * 0.9;
       const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+      if (reserved.length && reserved.some((s) => Math.hypot(x - (cx + Math.cos(s.a) * s.d), z - (cz + Math.sin(s.a) * s.d)) < 3.4 * s.s + 1.6)) continue;
       const core = 1 - ring / rings;
-      const tall = (metro ? 1.5 : big ? 1.15 : 0.9) * (0.7 + core * 0.9) * (1 + era * 0.16);
+      const tall = (metro ? 1.5 : big ? 1.15 : 0.9) * (0.7 + core * 0.9) * (1 + era * 0.16) * rise;
       b.push(x, G(x, z) - 0.08, z, -a + Math.PI / 2 + (rand() - 0.5) * 0.25);
       const w = 2.5 + rand() * 1.1, dd = 2.2 + rand() * 0.7;
-      if (era >= 3 && rand() < 0.3 + core * 0.4) {
+      if (era >= 3 && rand() < (0.3 + core * 0.4) * (P ? P.towers : 1)) {
         tower(b, 2.3 + rand() * 0.6, Math.max(2, Math.round(tall * (2 + rand() * 2.2))), st, rand() < 0.5 ? own : pick(st.roofs), era);
       } else {
-        house(b, w, dd, (1.5 + rand() * 0.9) * tall, pick(st.walls), roofFor(), era, era === 2 && rand() < 0.5);
+        house(b, w, dd, (1.5 + rand() * 0.9) * tall, pick(st.walls), roofFor(), era, era === 2 && rand() < 0.5, st.glass);
       }
       b.pop();
       placed++;
@@ -318,13 +342,13 @@ export function buildSettlement(b: Builder, G: Ground, cx: number, cz: number, o
 
   if (big) {
     // Skyline: taller landmarks near the centre.
-    const spires = (metro ? 6 : 3) + (era >= 3 ? 2 : 0);
+    const spires = Math.max(1, Math.round(((metro ? 6 : 3) + (era >= 3 ? 2 : 0)) * (P ? Math.min(1.2, P.towers + 0.2) : 1)));
     for (let i = 0; i < spires; i++) {
       const a = rand() * Math.PI * 2;
       const d = plaza + 1.5 + rand() * (metro ? 7 : 4);
       const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
       b.push(x, G(x, z) - 0.1, z, rand() * 1.5);
-      const floors = Math.round((metro ? 4.5 : 3.2) + rand() * 2.5 + era * (metro ? 1.5 : 0.9));
+      const floors = Math.max(2, Math.round(((metro ? 4.5 : 3.2) + rand() * 2.5 + era * (metro ? 1.5 : 0.9)) * rise));
       tower(b, 2 + rand() * 0.9, floors, st, i % 2 ? own : pick(st.roofs), era);
       b.pop();
     }
@@ -376,10 +400,11 @@ export function buildSettlement(b: Builder, G: Ground, cx: number, cz: number, o
     b.push(0, hgt, 0); b.cyl(0, 0, 0, 0.8, 0, -1.0, 4, GOLD); b.pop();
     b.pop();
   }
-  if (!o.remembered) {
+  if (!o.remembered && (!P || P.look.smokes)) {
     fx.smoke.push(cx + plaza + 2, g0 + 4.2, cz - 2, 0.5);
     if (big && era === 2) fx.smoke.push(cx - plaza - 3, g0 + 5, cz + 3, 0.7);
   }
+  if (P && punkOpts) punkLandmarks(b, G, cx, cz, P, punkOpts, pushSmoke);
 }
 
 // --- districts and improvements ---------------------------------------------------------
@@ -403,6 +428,8 @@ export interface DistrictOpts {
   onRiver?: boolean;
   /** Idle or switched-off facilities: no smoke, dark colours. */
   active: boolean;
+  /** The style of the owner's tradition (ruleset 3.1); absent: the era-based look. */
+  style?: PunkStyle | null;
 }
 
 /** Ground footprint radius the placer reserves for a district. */
@@ -439,7 +466,15 @@ function stack(b: Builder, x: number, z: number, r: number, h: number, fx: Fx | 
 export function buildDistrict(b: Builder, G: Ground, x: number, z: number, o: DistrictOpts, fx: Fx): void {
   const rand = rng(o.seed);
   const era = Math.max(0, Math.min(4, o.era));
-  const st = ERAS[era];
+  // Works of a seat on a tradition's path keep their shapes and take the path's materials;
+  // its heavy works carry the path's own piece beside them.
+  const P = o.style ? punk3(o.style) : null;
+  const st = P ? punkEraStyle(P) : ERAS[era];
+  const BRICK: RGB = P ? P.walls[0] : BRICK_0;
+  const CONCRETE: RGB = P ? P.walls[0] : CONCRETE_0;
+  const SLATE: RGB = P ? P.roofs[0] : SLATE_0;
+  const GLASS: RGB = P ? P.glass : GLASS_0;
+  const PLASTER: RGB = P ? P.walls[1] : PLASTER_0;
   const n = Math.max(1, Math.min(6, o.size));
   const g0 = G(x, z);
   const sfx: Fx | null = o.active ? fx : null;
@@ -454,8 +489,17 @@ export function buildDistrict(b: Builder, G: Ground, x: number, z: number, o: Di
     sfx.smoke.push(wx, g0 + h, wz, size);
   };
   const chimney = (lx: number, lz: number, r: number, h: number, col: RGB = BRICK) => {
+    // A style that burns nothing keeps a short vent where the stack would stand.
+    if (P && !P.look.smokes && o.kind !== 'thermal') { b.cyl(lx, 0, lz, r * 0.9, r * 0.8, h * 0.4, 6, P.metal, P.accent); return; }
     const [wx, wz] = W(lx, lz);
-    stack(b, lx, lz, r, h, sfx, g0, wx, wz, col);
+    stack(b, lx, lz, r, h, sfx, g0, wx, wz, P ? P.roofs[1] : col);
+  };
+  /** The style's own piece at a corner of the yard (local frame of the district). */
+  const punkPiece = (lx: number, lz: number, s: number) => {
+    if (!P) return;
+    b.push(lx, 0, lz, 0, s);
+    pieceA(b, P, o.active, sfx ? (px, py, pz, size) => { const [wx, wy, wz] = b.world(px, py, pz); sfx.smoke.push(wx, wy, wz, size * s); } : null);
+    b.pop();
   };
   const wall = st.walls[Math.floor(rand() * st.walls.length)];
   const roof = st.roofs[Math.floor(rand() * st.roofs.length)];
@@ -636,6 +680,7 @@ export function buildDistrict(b: Builder, G: Ground, x: number, z: number, o: Di
         }
       }
       b.box(-4.6, 0, 0, 1.4, 1.2, 4, o.color);
+      punkPiece(-5.4, halls > 1 ? -4.2 : -3, 0.62);
       b.pop();
       chimney(4.6, -1.4, 0.62, 7 + n * 0.5);
       if (n >= 2) chimney(4.9, 1.3, 0.5, 5.8 + n * 0.4);
@@ -678,6 +723,7 @@ export function buildDistrict(b: Builder, G: Ground, x: number, z: number, o: Di
       b.box(0, 0, -3.4, 1.2, 0.3, 0.6, o.color);
       b.box(3.6, 0, -2.6, 0.14, 4.4, 0.14, IRON);
       b.dome(3.6, 4.4, -2.6, 0.34, WHITE, 5, 2);
+      punkPiece(-4.6, -3.2, 0.5);
       b.pop();
       break;
     }
@@ -715,6 +761,7 @@ export function buildDistrict(b: Builder, G: Ground, x: number, z: number, o: Di
       b.box(0, 1.2, 1.82, 4.4, 1.3, 0.1, era >= 3 ? GLASS : [0.95, 0.8, 0.4]);
       b.cyl(-3.4, 0, 2.4, 1.8, 0.3, 1.5, 6, SOOT);
       if (era >= 3) for (let i = 0; i < 3; i++) { b.box(3.9, 0, -1.4 + i * 1.4, 1, 1.2, 0.9, [0.6, 0.64, 0.68]); b.cyl(3.9, 1.2, -1.4 + i * 1.4, 0.16, 0.1, 0.7, 4, [0.86, 0.9, 0.92]); }
+      punkPiece(4.4, 3.4, 0.55);
       b.pop();
       chimney(-1.6, -2.6, 0.7, 8 + n * 0.45, era >= 3 ? [0.82, 0.8, 0.78] : BRICK);
       if (n >= 3) chimney(0.8, -2.6, 0.6, 7 + n * 0.35, era >= 3 ? [0.82, 0.8, 0.78] : BRICK);

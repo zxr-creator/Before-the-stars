@@ -3,9 +3,13 @@
 A competitive civilization strategy game for humans and AI agents. Four civilizations
 grow from primitive, non-religious camps toward sustained faster-than-light capability
 while managing the interdependence of food, labour, education, production, knowledge,
-culture, diplomacy and war. One seat at most can win, and winning takes **both** real
-governance of the whole inhabited world **and** a jump-capable service the winner can
-build, crew, supply and replace.
+culture, diplomacy and war. Every match has exactly one winner: the first civilization
+to complete the **jump programme** (reach orbit, build a space station, give it a
+shipyard, build a jump assembly, fly it twice), or the last sovereign power standing, or,
+at the horizon, the one with the highest standing.
+
+The rules the game runs today are **ruleset 3.1**
+([docs/design/42-playable-ruleset-3.1.md](docs/design/42-playable-ruleset-3.1.md)).
 
 This repository contains the v1.0 design documentation (`docs/`) and a playable
 implementation of it: an authoritative Rust rules engine with native non-LLM opponents
@@ -132,10 +136,21 @@ negotiate, plan, and end the round; the world then settles month by month.
 - **Facilities and recipes.** Inputs are read from stock at the start of a month and
   outputs arrive the next month. Output is bounded by staff, qualified staff, inputs,
   power, upkeep and storage; every facility reports what is holding it back.
-- **Education.** Twenty-four courses turn real learners into qualified people over real
-  months, with teachers, places and materials. Students do not work. A first cohort can
-  teach itself slowly when no instructor exists yet.
-- **Knowledge.** The complete technology graph (138 nodes) is the same in every match;
+- **Education.** Public schooling runs itself: every year the referee opens the courses
+  your vacant posts ask for, in the places you have built. Your one lever is building
+  teaching lodges, schools, colleges and technical institutes. Students do not work; with
+  too few instructors a course takes longer, it never stops. You can switch schooling off
+  and run the twenty-four courses yourself.
+- **Households.** From the Early Modern era people expect textiles and consumer goods.
+  How much of that basket your stores supply is your standard of living: it steadies or
+  unsettles the realm. Every good shows a home price (demand against supply) so you can
+  see what is scarce.
+- **Traditions.** From the Industrial era you commit to a machine path and later a
+  frontier path, ten in all: Steampunk, Dieselpunk, Electropunk, Clockpunk, Atompunk,
+  Cyberpunk, Biopunk, AI-punk, Solarpunk, Rocketpunk. Each names your age, changes how
+  your towns look, has works only it can build and large effects that grow with mastery
+  and its branch technologies.
+- **Knowledge.** The complete technology graph (225 nodes) is the same in every match;
   what you see is only what your people have discovered. Practice and contact produce
   leads; a small study turns a lead into a question; funded investigation with qualified
   staff turns it into understanding; building and operating turns it into capability.
@@ -148,12 +163,15 @@ negotiate, plan, and end the round; the world then settles month by month.
 - **War.** Three mutually countering roles per equipment tier; power is people × 2.5^tier
   × proficiency × supply × morale. No dice. Capture takes five months of control and
   sovereignty six more; occupied people do not become loyal workers.
-- **The endgame.** Revealed only when your civilization discovers it (or from the start if
-  you choose "disclosed objective" at setup): 96 continuous months as the highest real
-  authority over every inhabited region with food, water and order holding everywhere; 24
-  continuous months of fleet-wide jump capability; and two loaded round trips at least
-  twelve months apart, flown during that governance. The winner scores `2 − T/H`;
-  everyone else scores `−1`. Reaching the horizon with no winner is a valid outcome.
+- **How to win.** Public from the first round (the objectives panel). (1) Complete the
+  jump programme first: six steps, each permanent once reached: reach orbit, place a
+  station in low Earth orbit, add a shipyard module, build a jump assembly, fly a loaded
+  jump round trip, and fly a second at least twelve months later. (2) Be the only
+  sovereign left: every rival eliminated or your subordinate. (3) Otherwise the highest
+  standing at the horizon wins: 1,000 points a programme step, one for each thousandth of
+  the world's people under your authority, one for each technology. The winner scores
+  `2 − T/H`; everyone else scores `−1`. The stricter classic contract (96 months of world
+  governance and 24 of fleet-wide jump capability) can be chosen at setup.
 
 The chronicle records what your civilization actually experienced as an illustrated
 timeline. Its cards grant nothing.
@@ -244,9 +262,10 @@ In short:
 
 - Implemented: seeded causal geography; aggregate population with 81 annual age cells,
   nine-month birth lag and one combined mortality calculation; labour, power, recipes,
-  upkeep and storage; all 138 technologies, 64 practices and 24 courses with dynamic
+  upkeep and storage; all 225 technologies, 174 practices and 24 courses with dynamic
   discovery; religion founding; structured treaties with the contact / window / envelope
-  limits; three-role warfare, occupation and elimination; G96 ∧ F24 ∧ Trials96 with
+  limits; three-role warfare, occupation and elimination; the standard victory contract
+  (programme steps, supremacy, standing) and the classic G96 ∧ F24 ∧ Trials96 with
   terminal reward; seat-filtered observations with opaque handles; three native AI
   difficulties without information or resource bonuses; saves, replay hashes, HTTP and
   CLI agent access; observer mode and language-model seats; a desktop application with
@@ -270,15 +289,14 @@ In short:
 - Not built: multi-match server rooms, generated SDKs, and post-match
   counterfactual replay.
 
-Numbers are provisional calibration, as the design states, tuned only through all-AI
-matches. In those matches the stronger native opponents typically reach the scientific
-method between year 45 and year 75 and complete the full technology and practice
-graphs between year 160 and year 200. Once the final objective is revealed they fight:
-the leader usually conquers or subordinates one or two rivals and can end holding most
-of the world. No native opponent has yet completed 96 months of global governance
-inside the 240-round horizon in the evaluation batches, so all-AI matches almost always
-end unresolved, which the design treats as a legitimate outcome. The complete-victory
-rules themselves are covered by tests.
+Numbers are provisional calibration, tuned only through all-AI matches
+([docs/calibration/ruleset3.1-eval.txt](docs/calibration/ruleset3.1-eval.txt)). In the
+ruleset 3.1 release batch every one of 32 standard matches had a winner: 28 by the jump
+programme (AD 1906 to 2294, median 2096) and 4 by standing at the horizon; the quick
+calendar and all-medium batches were won by the programme in every match. About half of
+the built-in seats put a station in orbit. Known gaps: the hard opponent is not yet
+stronger than the medium one, the easy opponent rarely leaves the Middle Ages, and there
+is no money, wage or private-investment layer at home (prices are a signal only).
 
 ## Design documentation
 

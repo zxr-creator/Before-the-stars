@@ -521,6 +521,7 @@ button.orb:hover:not(:disabled) .orb-face { fill: #b24a34; }
 .choice { text-align: left; border: 1px solid #d3c5a3; background: linear-gradient(180deg, #fffdf6, var(--paper-4)); border-radius: 8px; padding: 9px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; box-shadow: var(--shadow-sm); transition: border-color 0.14s, box-shadow 0.16s; }
 .choice:hover { border-color: var(--brass-lo); }
 .choice b { font-family: var(--serif); font-size: 14.5px; }
+.choice-tag { font: 600 10px/1 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: #5c4513; background: var(--gold-bg); border: 1px solid #c9aa5c; border-radius: 999px; padding: 2px 6px; margin-left: 4px; vertical-align: 2px; }
 .choice span { color: var(--ink-2); font-size: 12px; }
 .choice.is-active { border-color: var(--brass-deep); box-shadow: 0 0 0 1px var(--brass) inset, 0 0 0 3px rgba(201, 162, 77, 0.25), 0 3px 10px rgba(60, 45, 20, 0.2); background: linear-gradient(180deg, #fff, #fbf3dc); }
 .choice.is-active b::before { content: "◆ "; color: var(--accent); }

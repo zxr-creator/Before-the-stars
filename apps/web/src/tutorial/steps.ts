@@ -125,8 +125,8 @@ export const STEPS: Step[] = [
     key: 'people', icon: 'graduate', mode: 'info', anchors: [tid('rail-people')], side: 'right',
     title: 'People and teaching',
     body: [
-      'Qualified people run workshops, teach and investigate. Courses turn real learners into qualified people over real months, and need teachers, places and materials.',
-      'Open a teaching programme once a lodge or school stands. A first cohort can teach itself, slowly.',
+      'Qualified people run workshops, teach and investigate. Public schooling opens and sizes the courses for your vacant qualified posts; they still take teachers, places and real months.',
+      'Your part is the venues: build a teaching lodge or a school and the courses follow. Short of materials, classes continue at half speed.',
     ],
   },
   {
@@ -217,10 +217,10 @@ export const STEPS: Step[] = [
   },
   {
     key: 'objective', icon: 'objectives', mode: 'info', anchors: [tid('rail-objectives')], side: 'right',
-    title: 'The final objective',
+    title: 'How a match is won',
     body: [
-      'Unless you chose a disclosed objective at setup, the final objective is revealed only when your civilization discovers it. Until then the Objectives panel shows your own agendas and milestones.',
-      'When it is revealed you are given the exact tests, not a riddle to guess.',
+      'Three ways, known from the first round: complete the jump programme first, be the only sovereign power left, or hold the highest standing at the last round. A match always has a winner.',
+      'The Objectives panel lists the six steps of the programme with the next one marked, and the standings of every civilization you have met.',
     ],
   },
   {

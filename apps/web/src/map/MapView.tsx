@@ -20,6 +20,7 @@ import {
 import type { DepositHit, Map3D, Map3DData } from '../map3d';
 import { SECTOR_COLOR, type Building, type Sector } from './landuse';
 import { BUILD_AMBER, type ChipGlyph } from './sites';
+import { styleOfEra, styleOfTraditions, type PunkStyle } from './punk';
 import { ChipSwatch, DevelopmentCard } from './Development';
 import { ScaleSwitch, SpaceLayer, type ScaleChoice, type SpaceEntry, type SwitchBand } from '../space/SpaceLayer';
 import { lonLatToWorld, worldToLonLat } from '../space/globe';
@@ -138,17 +139,31 @@ const NO_MARKS: RegionId[] = [];
 const NO_BUILDING: Record<number, Building> = {};
 const NO_CATEGORIES: Record<string, string> = {};
 
+/** The style of the viewer's own held traditions: the frontier path styles the look when both are held. */
+export function ownPunkStyle(obs: Observation): PunkStyle | null {
+  return styleOfEra(obs.era);
+}
+
 function buildData(obs: Observation): Map3DData {
   const seatColors: Record<number, string> = { [obs.seat]: obs.civ.color };
   for (const o of obs.others) seatColors[o.seat] = o.color;
   const facilityCategories: Record<string, string> = {};
   for (const f of obs.catalog.facilities) facilityCategories[f.kind] = f.category;
+  // Held traditions are public among seats that have met (ruleset 3.1): each styles its seat's towns and works.
+  const seatStyles: Record<number, PunkStyle> = {};
+  const mine = ownPunkStyle(obs);
+  if (mine) seatStyles[obs.seat] = mine;
+  for (const o of obs.others) {
+    const st = styleOfTraditions(o.traditions);
+    if (st) seatStyles[o.seat] = st;
+  }
   return {
     world: obs.world,
     // a principal city's own class (bts-protocol/2.3) sets the size of the settlement drawn
     regions: obs.regions.map((r) => (r.city_size && r.city_size.class !== r.settlement ? { ...r, settlement: r.city_size.class } : r)),
     mySeat: obs.seat,
     seatColors,
+    seatStyles,
     capital: obs.civ.capital,
     armies: obs.armies,
     foreignArmies: obs.foreign_armies,

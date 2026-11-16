@@ -253,7 +253,7 @@ export function TutorialLayer() {
           ? (hole ? <div class="tut-hole" style={hole} aria-hidden="true" /> : <div class="tut-dim" aria-hidden="true" />)
           : (hole ? <div class={cx('tut-ring', step.capital && 'is-round', done && 'is-done')} style={hole} aria-hidden="true" /> : null)}
         <Callout step={step} index={tour.step} anchor={anchor} done={done} satisfied={tour.baseline.satisfied} asking={tour.asking} key={step.key}
-          extra={step.key === 'objective' && s.obs?.objectives.victory ? t('Yours has already been revealed: read it in the Objectives panel.') : null} />
+          extra={step.key === 'objective' && s.obs?.objectives.victory && s.obs.objectives.victory.rule !== 'standard' ? t('Yours has already been revealed: read it in the Objectives panel.') : null} />
       </div>
     );
   }

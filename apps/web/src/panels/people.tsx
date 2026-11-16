@@ -39,6 +39,9 @@ export function PeoplePanel() {
   const outbreaks = obs.regions.filter((r) => r.own && r.outbreak);
   const quals = civ.quals.filter((q) => q.count > 0);
   const unqualified = Math.max(0, civ.working_age - civ.quals.reduce((a, q) => a + q.count, 0));
+  // ruleset 3.1: public schooling runs the courses; the seat builds the venues
+  const schooling = civ.policies.schooling === true;
+  const readOnly = isReadOnly();
 
   return (
     <div class="panel people">
@@ -87,9 +90,25 @@ export function PeoplePanel() {
         )}
       </Section>
 
-      <Section title={t('Teaching programmes')} aside={<Btn small kind="primary" icon="plus" testid="open-programme" onClick={() => { setPresetRegion(s.selectedRegion ?? undefined); setOpening(true); }}>{t('Open programme')}</Btn>}>
-        {obs.programs.length === 0 ? <Empty>{t('No programme is running. Skills are kept alive only by people who teach them.')}</Empty> : (
-          <ul class="program-list">{obs.programs.map((p) => <li><ProgramCard p={p} /></li>)}</ul>
+      <Section title={t('Teaching programmes')} aside={<Btn small kind={schooling ? 'ghost' : 'primary'} icon="plus" testid="open-programme" onClick={() => { setPresetRegion(s.selectedRegion ?? undefined); setOpening(true); }}>{t('Open programme')}</Btn>}>
+        {civ.policies.schooling !== undefined ? (
+          <div class={cx('card schooling', schooling && 'is-on')} data-testid="schooling" data-on={schooling ? '1' : '0'}>
+            <div class="row-between">
+              <b class="detail-title"><Icon name="graduate" size={14} /> {t('Public schooling')}</b>
+              <span class="segmented" role="radiogroup" aria-label={t('Public schooling')}>
+                <button type="button" role="radio" aria-checked={schooling} class={cx('seg', schooling && 'is-active')} disabled={s.busy || readOnly} data-testid="schooling-on"
+                  onClick={() => { if (!schooling) void act({ kind: 'set_policy', setting: { kind: 'schooling', enabled: true } }, 'program'); }}>{t('On')}</button>
+                <button type="button" role="radio" aria-checked={!schooling} class={cx('seg', !schooling && 'is-active')} disabled={s.busy || readOnly} data-testid="schooling-off"
+                  onClick={() => { if (schooling) void act({ kind: 'set_policy', setting: { kind: 'schooling', enabled: false } }, 'program'); }}>{t('Off')}</button>
+              </span>
+            </div>
+            <p class="small">{schooling
+              ? t('The referee opens, sizes and closes courses to fill your vacant qualified posts; you only build the venues: teaching lodges, schools, colleges and technical institutes.')
+              : t('Schooling is off: no course opens by itself, so every programme must be opened and sized by hand.')}</p>
+          </div>
+        ) : null}
+        {obs.programs.length === 0 ? <Empty>{schooling ? t('No course is running. Public schooling opens one when a qualified post stands vacant and a venue can hold the class.') : t('No programme is running. Skills are kept alive only by people who teach them.')}</Empty> : (
+          <ul class="program-list">{obs.programs.map((p) => <li><ProgramCard p={p} schooling={schooling} /></li>)}</ul>
         )}
         <ActionNote tag="program" />
       </Section>
@@ -155,19 +174,24 @@ function Epidemics({ regions }: { regions: RegionView[] }) {
   );
 }
 
-function ProgramCard({ p }: { p: ProgramView }) {
+function ProgramCard({ p, schooling = false }: { p: ProgramView; schooling?: boolean }) {
   useLocale();
   const s = useApp();
   const [confirm, setConfirm] = useState(false);
   const blocked = p.blockers.length > 0;
+  // a programme opened by public schooling is the referee's to run while schooling is on
+  const managed = !!p.auto && schooling;
   return (
-    <div class={cx('card program', p.paused && 'is-paused', blocked && 'is-blocked')} data-testid="program-card">
+    <div class={cx('card program', p.paused && 'is-paused', blocked && 'is-blocked', p.auto && 'is-public')} data-testid="program-card" data-auto={p.auto ? '1' : '0'}>
       <div class="project-top">
         <div>
           <span class="kicker">{tx('Programme · {region}', { region: <RegionLink id={p.region} /> })}</span>
           <b class="project-title">{tc(p.course_name)}</b>
         </div>
-        {p.paused ? <Badge tone="muted" icon="pause">{t('Paused')}</Badge> : blocked ? <Badge tone="warn" icon="warn">{t('Held back')}</Badge> : null}
+        <span>
+          {p.auto ? <Badge tone="info" icon="graduate" title={t('Opened and sized by public schooling')}>{t('public')}</Badge> : null}
+          {p.paused ? <Badge tone="muted" icon="pause">{t('Paused')}</Badge> : blocked ? <Badge tone="warn" icon="warn">{t('Held back')}</Badge> : null}
+        </span>
       </div>
       <div class="program-grid">
         <div><span class="mini-label">{t('Enrolled')}</span><b>{peopleNum(p.enrolled)}</b><small>{t(' of {n} places', { n: peopleNum(p.seats) })}</small></div>
@@ -179,6 +203,9 @@ function ProgramCard({ p }: { p: ProgramView }) {
         <span class="progress-num">{tx('month {n} / {total}', { n: <b>{p.progress_months}</b>, total: p.months })}</span>
       </div>
       {blocked ? <ul class="blockers">{p.blockers.map((b) => <li><Icon name="warn" size={11} /> {tc(b)}</li>)}</ul> : null}
+      {managed ? (
+        <p class="muted small program-managed" data-testid={`prog-managed-${p.id}`}><Icon name="lock" size={11} /> {t('Run by public schooling: the referee sizes and closes it. Turn schooling off to manage it by hand.')}</p>
+      ) : (
       <div class="project-actions">
         <span />
         <span class="row">
@@ -191,6 +218,7 @@ function ProgramCard({ p }: { p: ProgramView }) {
           ) : <Btn small kind="ghost" icon="close" onClick={() => setConfirm(true)}>{t('Close…')}</Btn>}
         </span>
       </div>
+      )}
     </div>
   );
 }

@@ -23,7 +23,9 @@ fn mid_game() -> (Observation, NativeAi) {
             let roads = obs.catalog.facilities.iter().any(|f| f.kind == "roads" && f.available);
             let tools = obs.catalog.facilities.iter().find(|f| f.kind == "workshop").map(|f| f.recipes.iter().filter(|r| r.available).count()).unwrap_or(0);
             let builders = obs.civ.quals.iter().find(|q| q.qual == Qual::Builder).map(|q| q.count).unwrap_or(0);
-            if roads && tools >= 2 && builders >= 20_000 {
+            // (ruleset 3.1: public schooling trains builders for the posts and crews there are,
+            // not a standing share of the people: a few thousand at this date)
+            if roads && tools >= 2 && builders >= 4_000 {
                 return (obs, ais[0].clone());
             }
         }
@@ -107,7 +109,10 @@ fn a_starved_plant_is_switched_to_a_method_it_can_run_and_only_its_own_choices_a
     let id = obs.civ.capital;
     let recipes: Vec<RecipeView> = obs.catalog.facilities.iter().find(|f| f.kind == "workshop").unwrap().recipes.iter().filter(|r| r.available).cloned().collect();
     // the workshops ran their first method and had none of its inputs; every other method has plenty
-    let (starved, other) = (recipes[0].clone(), recipes[1].clone());
+    // (two methods that take different goods: since ruleset 3.1 bronze and copper tools
+    // are both cast from copper alone)
+    let starved = recipes[0].clone();
+    let other = recipes.iter().skip(1).find(|r| starved.inputs.iter().any(|i| !r.inputs.iter().any(|x| x.good == i.good))).expect("a method with other inputs").clone();
     for i in &starved.inputs {
         if !other.inputs.iter().any(|x| x.good == i.good) {
             obs.civ.goods.iter_mut().find(|g| g.good == i.good).unwrap().stock = 0;

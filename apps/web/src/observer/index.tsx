@@ -13,7 +13,7 @@ import {
   goodTonnes, peopleNum, qty, researchMonths, tonnes,
 } from '../format';
 import { Icon } from '../icons';
-import { eraName, traditionLabel } from '../era';
+import { ageOfTraditions, eraName, traditionLabel } from '../era';
 import { Btn, Tick, cx } from '../ui';
 import { dismissResult, loadAgentLog, openOverlay, refresh, setMenu, setScreen, toast, useApp, viewAsSeat } from '../store';
 import { api } from '../api';
@@ -32,7 +32,8 @@ import { StatePlate } from '../theme/overlay';
 import { spectatorObservation } from './synthetic';
 import { Compare } from './compare';
 import { Playback, PerspectiveSwitch, clock, useNow, useThinkingClock } from './controls';
-import './history';
+import { setStandardContract } from './history';
+import { OUTCOME_HOW, OUTCOME_LABEL, PROGRAMME_STEPS, outcomeIcon, outcomeKind } from '../victory';
 import './observer.css';
 
 const SIDE_W = 532;
@@ -137,6 +138,9 @@ export function ObserverConsole() {
   const sideW = sideOpen ? (vw < 1360 ? SIDE_W_NARROW : SIDE_W) : 0;
   const rounds = totalRounds(sp);
   const finished = !!summary.finished || !!sp.outcome || sp.phase === 'finished';
+  // Ruleset 3.1: the standard contract counts programme steps and standing, not the two streaks.
+  const standard = summary.victory === 'standard';
+  setStandardContract(standard);
   const seatOf = (seat: SeatId) => seats.find((x) => x.seat === seat);
   const show = (region: RegionId | null) => {
     if (region === null) return;
@@ -165,6 +169,15 @@ export function ObserverConsole() {
         <div class="obs-phase" data-testid="phase" data-phase={sp.phase}>
           <Icon name={finished ? 'flag' : 'hourglass'} size={13} />
           <span>{sp.phase === 'negotiate' ? t('Negotiation · window {n} of {m}', { n: sp.window, m: NEGOTIATION_WINDOWS }) : t(PHASE_LABEL[sp.phase])}</span>
+          {finished && sp.outcome ? (
+            <span class="obs-outcome" data-testid="observer-outcome" title={tc(sp.outcome.reason)}>
+              {(() => {
+                const w = sp.outcome.winner !== null ? sp.civs.find((c) => c.seat === sp.outcome!.winner) : undefined;
+                const k = outcomeKind(sp.outcome.kind ?? summary.outcome_kind);
+                return <>· {w ? t('{name} has won', { name: tc(w.name) }) : t('No winner')}{k && k !== 'none' ? <> · {t(OUTCOME_LABEL[k])}</> : null}</>;
+              })()}
+            </span>
+          ) : null}
         </div>
         <PerspectiveSwitch />
         <div class="obs-top-tools">
@@ -191,7 +204,7 @@ export function ObserverConsole() {
             <TabBtn tab="agents" now={tab} icon="agent" label={t('Agents')} count={agentSeats.length || undefined} alert={errors.length > 0} onPick={setTab} />
           </div>
           <div class="obs-side-body" key={tab}>
-            {tab === 'score' ? <Scoreboard sp={sp} seats={seats} finished={finished} thinkingOf={thinkingOf} onAgents={() => setTab('agents')} />
+            {tab === 'score' ? <Scoreboard sp={sp} seats={seats} finished={finished} standard={standard} thinkingOf={thinkingOf} onAgents={() => setTab('agents')} />
               : tab === 'compare' ? <Compare sp={sp} />
               : tab === 'events' ? <Events sp={sp} onShow={show} />
               : <Agents state={s} sp={sp} thinkingOf={thinkingOf} />}
@@ -256,16 +269,17 @@ function Streak({ value, max, title }: { value: number; max: number; title: stri
   );
 }
 
-function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
-  sp: SpectatorView; seats: SeatSummary[]; finished: boolean; thinkingOf: (a: AgentInfo) => number; onAgents: () => void;
+function Scoreboard({ sp, seats, finished, standard, thinkingOf, onAgents }: {
+  sp: SpectatorView; seats: SeatSummary[]; finished: boolean; standard: boolean; thinkingOf: (a: AgentInfo) => number; onAgents: () => void;
 }) {
+  const STEPS = PROGRAMME_STEPS.length;
   // with more than six civilizations the columns compact and any row can order them (design chapter 40, section 2.7)
   const [sortBy, setSortBy] = useState<string | null>(null);
   const many = sp.civs.length > 6;
   const seatOf = (seat: SeatId) => seats.find((x) => x.seat === seat);
   const civs0 = sp.civs;
   const civOf = (seat: SeatId) => civs0.find((c) => c.seat === seat);
-  const rows: Row[] = [
+  const allRows: Row[] = [
     { key: 'population', icon: 'people', label: t('Population'), rank: (c) => c.population, cell: (c) => <span title={t('{n} people', { n: int(c.population) })}><Tick value={c.population} format={(n) => peopleNum(n)} /></span> },
     { key: 'regions', icon: 'pin', label: t('Regions'), rank: (c) => c.regions, cell: (c) => <Tick value={c.regions} format={(n) => String(Math.round(n))} /> },
     {
@@ -275,7 +289,12 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
     {
       key: 'era', icon: 'hourglass', label: t('Era'), hint: t('The era each civilization has entered, and the traditions it holds'),
       rank: (c) => c.era ?? 0,
-      cell: (c) => <span data-testid={`score-era-${c.seat}`}>{c.era === undefined ? '—' : eraName(c.era)}{c.traditions?.length ? <small> · {c.traditions.map((k) => traditionLabel(k)).join(', ')}</small> : null}</span>,
+      cell: (c) => (
+        <span class="sb-stack" data-testid={`score-era-${c.seat}`} title={c.traditions?.length ? c.traditions.map((k) => traditionLabel(k)).join(', ') : undefined}>
+          <span>{c.era === undefined ? '—' : ageOfTraditions(c.traditions) ?? eraName(c.era)}</span>
+          {c.traditions?.length && c.era !== undefined ? <small class="sb-mini">{eraName(c.era)}</small> : null}
+        </span>
+      ),
     },
     { key: 'practices', icon: 'culture', label: t('Practices'), rank: (c) => c.practices, cell: (c) => <Tick value={c.practices} format={(n) => String(Math.round(n))} /> },
     {
@@ -327,6 +346,31 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
         </span>
       ),
     },
+    // The standard contract (ruleset 3.1): programme steps, standing and stations in place of the two streaks.
+    {
+      key: 'steps', icon: 'rocket', label: t('Jump programme'), hint: t('Steps of the jump programme reached, of six: orbit, a station in low Earth orbit, an orbital shipyard, a jump assembly, and two loaded jump round trips. The first sovereign power to reach all six wins.'),
+      rank: (c) => c.programme_steps ?? 0,
+      cell: (c) => (
+        <span class="sb-stack" data-testid={`score-steps-${c.seat}`}>
+          <Streak value={c.programme_steps ?? 0} max={STEPS} title={t('{n} of {m} steps reached', { n: c.programme_steps ?? 0, m: STEPS })} />
+          {c.assemblies || c.trials ? (
+            <small class="sb-mini" title={t('{a} assemblies in service · {b} loaded round trips flown', { a: c.assemblies, b: c.trials })}>
+              <Icon name="layers" size={10} />{c.assemblies}<Icon name="rocket" size={10} />{c.trials}
+            </small>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      key: 'standing', icon: 'star', label: t('Standing points'), hint: t('Points: 1,000 for each programme step, 1 for each thousandth of the world’s people under its authority, 1 for each technology understood. The highest standing wins if nobody has won by the last round.'),
+      rank: (c) => c.standing ?? 0,
+      cell: (c) => <b data-testid={`score-standing-${c.seat}`}><Tick value={c.standing ?? 0} format={(n) => int(Math.round(n))} /></b>,
+    },
+    {
+      key: 'stations', icon: 'globe', label: t('Stations'), hint: t('Space stations in orbit'),
+      rank: (c) => c.stations ?? 0,
+      cell: (c) => (c.stations ? <Tick value={c.stations} format={(n) => String(Math.round(n))} /> : <span class="muted">—</span>),
+    },
     {
       key: 'gov', icon: 'crown', label: t('Governance'), hint: t('Continuous months as the highest real authority over every inhabited region ({n} needed)', { n: GOVERNANCE_MONTHS }),
       rank: (c) => c.gov_streak, cell: (c) => <Streak value={c.gov_streak} max={GOVERNANCE_MONTHS} title={t('{n} of {m} months', { n: c.gov_streak, m: GOVERNANCE_MONTHS })} />,
@@ -370,6 +414,8 @@ function Scoreboard({ sp, seats, finished, thinkingOf, onAgents }: {
     },
   ];
 
+  const hidden = standard ? ['gov', 'ftl'] : ['steps', 'standing', 'stations'];
+  const rows = allRows.filter((r) => !hidden.includes(r.key));
   const sortRow = sortBy ? rows.find((r) => r.key === sortBy && r.rank) : undefined;
   const civs = sortRow ? [...sp.civs].sort((a, b) => sortRow.rank!(b) - sortRow.rank!(a) || a.seat - b.seat) : sp.civs;
   const active = civs.filter((c) => c.status === 'active');
@@ -733,7 +779,9 @@ function Result({ sp, seats }: { sp: SpectatorView; seats: SeatSummary[] }) {
   const out = sp.outcome;
   const winner = out && out.winner !== null ? sp.civs.find((c) => c.seat === out.winner) : undefined;
   const month = out?.finished_month ?? sp.month;
-  const ranked = [...sp.civs].sort((a, b) => (b.reward ?? -9) - (a.reward ?? -9) || a.seat - b.seat);
+  const kind = outcomeKind(out?.kind);
+  const standard = kind !== null && kind !== 'classic' && sp.civs.some((c) => c.standing !== undefined);
+  const ranked = [...sp.civs].sort((a, b) => (b.reward ?? -9) - (a.reward ?? -9) || (standard ? (b.standing ?? 0) - (a.standing ?? 0) : 0) || a.seat - b.seat);
   return (
     <div class="overlay" role="dialog" aria-modal="true" aria-label={t('Match result')} data-testid="result-screen">
       <div class="overlay-card result-card obs-result">
@@ -742,15 +790,17 @@ function Result({ sp, seats }: { sp: SpectatorView; seats: SeatSummary[] }) {
         </div>
         <p class="eyebrow">{t('{year} · the match has ended', { year: fmtYear(month, month === sp.month ? sp.date : null) })}</p>
         <h2>{winner ? t('{name} prevails', { name: tc(winner.name) }) : t('No civilization prevailed')}</h2>
+        {kind ? <p class="result-how" data-testid="result-how" data-kind={kind}><Icon name={outcomeIcon(kind)} size={13} /> {t(OUTCOME_HOW[kind])}</p> : null}
         {out ? <p class="result-reason">{tc(out.reason)}</p> : null}
         <table class="result-table">
-          <thead><tr><th>{t('Civilization')}</th><th>{t('Played by')}</th><th>{t('Status')}</th><th class="num">{t('Reward')}</th></tr></thead>
+          <thead><tr><th>{t('Civilization')}</th><th>{t('Played by')}</th><th>{t('Status')}</th>{standard ? <><th class="num">{t('Steps')}</th><th class="num">{t('Standing points')}</th></> : null}<th class="num">{t('Reward')}</th></tr></thead>
           <tbody>
             {ranked.map((c) => (
               <tr class={winner && c.seat === winner.seat ? 'is-winner' : ''}>
                 <th scope="row"><Emblem seat={c.seat} color={c.color} name={c.name} size={18} /> {tc(c.name)}</th>
                 <td>{controllerLine(c, seats.find((x) => x.seat === c.seat))}</td>
-                <td>{t(STATUS_LABEL[c.status] ?? c.status)}</td>
+                <td>{t(STATUS_LABEL[c.status] ?? c.status)}{c.overlord !== null && c.status === 'active' ? <small class="muted"> · {t('subordinate')}</small> : null}</td>
+                {standard ? <><td class="num">{c.programme_steps ?? 0} / {PROGRAMME_STEPS.length}</td><td class="num">{int(c.standing ?? 0)}</td></> : null}
                 <td class="num"><b>{c.reward !== null ? c.reward.toFixed(3) : '—'}</b></td>
               </tr>
             ))}

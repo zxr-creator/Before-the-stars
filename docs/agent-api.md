@@ -15,6 +15,33 @@ which holds all the permission rules. The browser build runs the same host as
 WebAssembly inside the page and has no HTTP API, so external agents always need this
 server-backed referee ([web-build.md](web-build.md)).
 
+## The shortest way to play (ruleset 3.1)
+
+1. `get_turn` and read `priorities` first: a list of what matters most now, most
+   important first, each with `do`, `why` and usually an `example` order you can submit
+   as it stands (with your own region, facility or handle where it names one).
+2. The briefing's OBJECTIVES section states how to win and where you stand: **be the
+   first to complete the six steps of the jump programme** (reach orbit, a station in low
+   Earth orbit, a shipyard on it, a jump assembly, two loaded jump round trips twelve
+   months apart), or be the only sovereign left, or hold the highest standing at the
+   horizon. A step once reached is never lost. Every match has a winner.
+3. Pass `delegate` with any `submit_turn` to hand domains to the built-in steward
+   (`["economy","research","education","culture","expansion","military"]` or any part of
+   it; `[]` takes everything back). The steward plans those domains at the end of every
+   planning phase from your own view, so you can decide only what you care about, down
+   to nothing but diplomacy and the programme. A fully delegated seat that submits
+   `{"actions": [], "advance": "round"}` every round plays a whole game.
+4. Education runs itself: with public schooling on (the default,
+   `civ.policies.schooling`) the referee opens the courses the vacant posts ask for. Your
+   only lever is building venues (teaching lodges, schools, colleges, technical
+   institutes); the briefing says when places are short.
+5. `civ.goods[].price_bp` is each good's home price against its base (10,000): above
+   12,500 the good is scarce (demand outran supply last round, `short` says by how much),
+   below 7,500 it is in glut. `civ.standard_of_living_bp` is how much of the household
+   basket (`era.expected_basket`) the stores supply.
+
+The rules behind this are in [design chapter 42](design/42-playable-ruleset-3.1.md).
+
 ## Integrated MCP decision exchange
 
 The game's MCP server is built into the game binary: `bts mcp` speaks newline-delimited
@@ -100,7 +127,7 @@ play a free seat; start it with `--require-tokens` to enforce them.
 | Method and path | Body or query | Returns |
 | --- | --- | --- |
 | `GET /api/match` | | Match summary: round, month, phase, window, seats, who is being waited on |
-| `POST /api/match` | `{seed, regions, horizon, pace_bp, controllers, disclosed_objective, public_seed}` (all optional) | Creates a match and returns its summary with tokens for external seats |
+| `POST /api/match` | `{seed, regions, horizon, pace_bp, calendar, victory, controllers, disclosed_objective, public_seed}` (all optional; `victory` is `"standard"` (default) or `"classic"`, `calendar` `"standard"` or `"quick"`) | Creates a match and returns its summary with tokens for external seats |
 | `GET /api/observation` | `?seat=N&token=T` | The seat's `Observation` |
 | `POST /api/actions` | `{seat, token, actions:[Action…]}` (at most 32) | `{receipts:[Receipt…]}` |
 | `POST /api/ready` | `{seat, token, through_round}` | Match summary after the referee has advanced as far as it can |
@@ -281,7 +308,10 @@ A human or external seat may delegate any of `economy`, `research`, `education`,
 policy restricted to those domains. It acts once per round at the end of the plan
 phase, from that seat's own observation and through ordinary actions, so its receipts
 appear with the seat's own. An empty `domains` list ends the delegation. Diplomacy is
-never delegated.
+never delegated. Over the turn API the same is done with the `delegate` field of a
+submission (`POST /api/turn`, the `submit_turn` tool); the brief packet reports
+`delegated` and `steward_domains`. In a quick-calendar game the steward also plans
+inside long rounds, at the standard calendar's cadence.
 
 ## Reading an observation
 
@@ -308,8 +338,19 @@ never delegated.
 - `catalog` lists facility types, courses and formation tiers the seat knows about,
   with structured `site_key`, costs, jobs and recipes so that an agent can plan
   without parsing text.
-- `objectives.victory` is absent until the seat has discovered the final objective
-  (or the match was created with `disclosed_objective`).
+- `objectives.victory` is present from the first round under the standard contract
+  (`rule: "standard"`): `steps` (the six programme steps as checks, `category` the step
+  key, `ok` whether reached), `next_step`, `standing` and `standings` (yours and those of
+  the seats you have met), `trial_ready` / `trial_blocker` and `second_trial_from`. Under
+  the classic contract (`rule: "classic"`) it is absent until the seat has discovered the
+  final objective (or the match was created with `disclosed_objective`) and carries the
+  governance and jump checks of design chapter 15.
+- `outcome.kind` says how a finished match was decided: `jump`, `supremacy`, `standing`,
+  `classic` or `none`.
+- `programs[].auto` marks the courses public schooling runs; `set_policy` with
+  `{"kind":"schooling","enabled":false}` hands them to you.
+- `era.age_name`, and for each tradition option `effects`, `age_name` and `style`; for
+  the held path `strength_bp`, `branch_known` and `branch_total`.
 - `briefing` holds events of the last resolved round plus standing conditions;
   `receipts` holds this round's action results; `chronicle` is the seat's history.
 

@@ -7,13 +7,13 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 
 | Design area | Status | Notes |
 | --- | --- | --- |
-| Clock and rounds (30 §3, 36 §2) | Implemented | One simulation month. Since ruleset 3.0 a historical calendar: the standard game runs 525 rounds from 5000 BC to AD 2500 (rounds of 50 years down to 2), the quick game 230 rounds on the same dates, and fixture clocks serve tests (`docs/units-and-scale.md` section 11). Contact → five negotiation windows → plan → resolve; standing orders act inside long rounds |
+| Clock and rounds (30 §3, 36 §2) | Implemented | One simulation month. Since ruleset 3.0 a historical calendar: the standard game runs 525 rounds from 5000 BC to AD 2500 (rounds of 50 years down to 2), the quick game 280 rounds on the same dates (ruleset 3.1: a shorter antiquity, the standard rounds from AD 1000 to 1950, five-year rounds after, with planning points for the built-in policies inside its long rounds), and fixture clocks serve tests (`docs/units-and-scale.md` section 11). Contact → five negotiation windows → plan → resolve; standing orders act inside long rounds |
 | World generation (08, 37 §5) | Implemented, simplified | Since ruleset 3.0 slice 4 a generated Earth-like planet by default (wrapped 2,000 x 1,000 map, plates, climate bands and rain shadows, terrain and climate zones, geology tags for deposits; `docs/units-and-scale.md` section 13); the flat classic map remains for fixtures. Seeded Voronoi regions (24/48/72), downhill rivers, coasts and sea links, correlated deposits, viable starts with guaranteed reachable copper, iron, coal and rare minerals, three fixed test nodes. The real Earth (slice 16) is not built; the client draws a region that crosses the date line only once, clipped at the map edge. Derivation uses a keyed integer hash rather than HMAC-SHA256; `public_seed: false` mixes in server entropy |
 | Economy and production (02, 21) | Abstracted | About sixty facility types carry the 34 recipes and 10 capital modules with inputs, shaft/electric/compute services, upkeep, condition and storage throttles. Goods are pooled per civilization with a per-region carriage efficiency set by transport grade and distance, not per-shipment logistics. No prices, money or private balance sheets: the limit on what a government can direct is the callable-labour share raised by institutions |
 | Industrial traditions (22) | Implemented as content | Water/wind, steam, diesel and electric power are separate facilities with real fuel and site limits; generators, grids and motors bridge them; fission, fusion and orbital power follow. No route skips electricity, electronics, computing or orbit |
 | Eras and traditions (37 §3-4) | Implemented, adapted | Ten eras entered by decision once knowledge and a built proof stand, crossings scored into golden, steady or dark ages, 24 charters, two tradition slots with exclusive works, unit variants, branch evidence and seeded drawbacks (ruleset 3.0 slices 10 and 13; adaptations listed below). The client does not yet show or set them |
 | Population (32) | Implemented, simplified | Sparse blocks keyed by region × lineage × religion with 81 annual age cells, nine-month lagged birth intensity, one combined mortality calculation, annual ageing, migration that moves real counts. One access class per region; qualifications are counted per region rather than per block |
-| Education (19, 32 §8) | Implemented | All 24 courses with entrants, teachers, class sizes, venues, materials and months. Students and teachers leave the labour pool; graduates are usable next month; founding cohorts teach themselves slowly. Authorization states (review due, dormant) are not modelled |
+| Education (19, 32 §8, 42 §3) | Implemented, simplified in ruleset 3.1 | All 24 courses with entrants, venues, materials and months. Since ruleset 3.1 **public schooling** (`sim::schooling`, on by default) opens each year's cohorts itself from vacant qualified posts in the venues the seat has built; people without a qualification enrol first in any course, instructors set the pace and not the size of a cohort, and a class short of materials goes on at half speed. Students and teachers leave the labour pool; graduates are usable next month. A seat may still run its own programmes or switch schooling off |
 | Knowledge (31) | Implemented | Fixed 300-node graph (atlas, doc 37, doc 39) with rival families, locks, revisit studies, fragile know-how and investigation lines; states hinted → discovered → investigating → understood → prototyped → adopted; evidence from actual sector activity, contact and paid exploratory studies; research classes need qualified staff and facilities; licences shorten work but never create operators. T048/T117/T121 corrections applied |
 | Culture (07, 18, 31 §6) | Implemented, simplified | Fixed 174-practice graph with exclusive groups, repeal, tensions, era costs, institutional load and reform slots; recognition by people living with the prerequisites, reform with real requirements, gradual adoption shaped by eight private tendencies with 150/500 basis-point yearly drift limits; observed traits need sustained behaviour. Adoption is tracked per civilization, not per local lineage. C045/C047 corrections applied |
 | Religion (10) | Implemented, light | No religion at start; movement → tradition → precinct → recognized founder → founding with four fixed beliefs; three founding slots per world; fictional names; spread by local and neighbouring contact |
@@ -21,10 +21,10 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Diplomacy (29) | Implemented | Three counterparts, mutual channels, five simultaneous windows, ten envelopes per pair, protected withdraw/decline/break, structured treaties with performance records and trust. Since ruleset 2.0 slice E treaties can second experts (real people who move and come home) and share a launch complex, orbital yard or high-energy laboratory under a joint programme (`docs/units-and-scale.md` section 8). Evidence attachments and multilateral treaties are not built |
 | Contracts (14) | Abstracted | Goods deliveries with shortfall records, knowledge, practice and map transfers, pacts, subordination, cession, secondment of experts and joint programmes (with their own performance records: people sent, owed, returned and kept behind; months served and shortfalls). Custody, collateral and staged acceptance are not built |
 | Warfare (05, 13) | Implemented, simplified | Six tiers × three roles with the published counter matrix, 2.5^tier, proficiency, supply and morale; simultaneous losses, retreat, five-month capture, six-month sovereignty transfer, militia, elimination. Fronts, frontage and prisoners are not modelled |
-| Victory (15, 33) | Implemented | G96 ∧ F24 ∧ Trials96 checked monthly; subordination counts only while real; a broken window restarts; reward 2 − T/H or −1; horizon and all-ineligible endings. Since ruleset 2.0 slice E fleet-wide jump capability also needs separate educational, scientific, industrial and logistical bases measured against the installed works, none of them a population threshold; contracted imports, seconded experts and a partner's launch, orbital-yard or laboratory service can stand in for parts of them while their treaties last (`docs/units-and-scale.md` section 8) |
+| Victory (42 §1; 15, 33) | Implemented | **Standard contract** (ruleset 3.1, the default): six permanent steps of the jump programme (orbit, a station in low Earth orbit, a shipyard on it, a jump assembly, two round trips twelve months apart), or the only sovereign left, or the highest standing at the horizon; checked monthly, public from the first round, always one winner. The classic contract of chapter 15 (G96 ∧ F24 ∧ Trials96 with the base checks of ruleset 2.0 slice E) remains as `victory: classic`; reward `2 − T/H` or −1 under both |
 | Information boundary (06, 02) | Implemented | Observations are projected per seat before serialization; unknown nodes do not appear; opaque per-seat handles; uniform errors for unknown and nonexistent references; foreign estimates are coarse and stable within a year |
-| Native AI (33) | Implemented | Deterministic, non-LLM, protocol-only crate. Difficulty changes candidate actions per round (12/24/48), preparation horizon and offer margins; no resource or information bonus. It is a bounded rule-and-scoring policy, not the forward-search planner sketched in the design |
-| Agent access (technical/02, 04) | Partly | HTTP API and CLI with seat tokens. MCP adapter, generated SDKs, idempotency keys and isolated runner images are not built |
+| Native AI (33) | Implemented | Deterministic, non-LLM, protocol-only crate. Difficulty changes candidate actions per round (12/24/48, more in long rounds and large realms), preparation horizon and offer margins; no resource or information bonus. Since ruleset 3.1 every difficulty runs the jump programme and builds a station, chooses among ten traditions, leaves the courses to public schooling, and plans inside long quick-calendar rounds. It is a bounded rule-and-scoring policy, not the forward-search planner sketched in the design |
+| Agent access (technical/02, 04) | Implemented | HTTP API and CLI with seat tokens; the MCP server (`bts mcp`, `tools/mcp.mjs`) with `get_turn`, `submit_turn` and `get_building_tree`, idempotent submissions and stale-cursor refusal. Since ruleset 3.1 every brief packet carries `priorities` (what matters most now, with example orders) and a submission may `delegate` domains to the built-in steward. Generated SDKs and isolated runner images are not built |
 | Language-model seats | Built; Codex agent verified on real runs, Claude Code agent verified up to sign-in | Claude Code and Codex play as agents through the game's MCP server (`bts mcp`) bound to the seat with a consultation-only token; Claude over the Messages API and OpenAI-compatible endpoints answer a text briefing once per consultation. Setup detects the CLIs and has a Test button; a cost guard caps time, tool calls and dollars per consultation; failures are retried, then the steward plays the round, and a seat stops after N failures in a row until resumed. A scripted agent plays end to end through the real MCP server in the tests |
 | Observer mode | Implemented | A match with no human seat exposes a referee-wide spectator view, a scoreboard, world events, playback control (step, play, run ten), each seat's own view read-only and each model's notes. Refused when a human seat exists or seat tokens are required |
 | Interface and chronicle (34) | Mostly | 3D diorama map with four lenses and a flat atlas fallback; technology and civics trees limited to discovered nodes; economy ledger (market, production, chains, workforce, balance sheet); title screen, setup, tutorial (24 steps) and almanac (21 topics); Historic Moments timeline with Markdown/JSON export. Post-match world timeline and counterfactual replay are not built. Seasonal map grading and further lenses are not built |
@@ -33,6 +33,41 @@ means the mechanism exists in a simpler form with the same strategic feedback;
 | Multicore (technical/03) | Partly | Independent matches run in parallel across cores; a single match is fast enough to settle a full 240-round game in about two seconds single-threaded, so in-match staged parallelism is not implemented |
 | Persistence | Implemented | Full checkpoint saves including controller memory; state hashes; `bts verify` checks repeatability and checkpoint recovery |
 | Conservation (`docs/conservation-audit.md`) | Implemented | Goods, people, qualified people, service, work and deposits each have a ledger and an identity; every source is listed with what backs it. The referee can record its books every month (`Match::record_ledgers`), and scripted and all-AI matches are audited month by month over whole campaigns. Capacities (water, care, storage, venue places, transport grade, generator and grid capacity) still depend on works existing rather than on their staffing |
+
+## Ruleset 3.1 (design chapter 42): a playable game
+
+Branch `playable-3.1`. One page of rules: [design chapter 42](design/42-playable-ruleset-3.1.md);
+release batches: `docs/calibration/ruleset3.1-eval.txt`. In short:
+
+- **Victory**: the standard contract (programme steps, supremacy, standing) replaces the
+  sustained windows as the default; `sim::victory`, `tests/standard.rs`.
+- **Stations**: the station in orbit stands in for the ground station and yard everywhere;
+  a first station needs one array; the shipyard needs only its technology; lattice works
+  stand anywhere; the programme's works draw far less power; investigations need their
+  installation to stand, not to run that month.
+- **Education**: public schooling (`sim::schooling`).
+- **Resources**: twelve goods, eight deposits and thirteen works retired
+  (`content::RETIRED_GOODS`); a second method for magnets; higher field yields, irrigation
+  and food synthesis.
+- **Knowledge**: 225 technologies (75 merged, `scripts/merge_late_tech.py`), six rival
+  families; lower research classes stand in at a discount; pacing recalibrated.
+- **Traditions**: ten paths with strength-scaled effects, three new ones (Clockpunk,
+  Solarpunk, Rocketpunk) with their works (automaton works, sun gardens, rocket works),
+  age names and map styles.
+- **Households and prices**: the era basket is consumed (standard of living); every good
+  has a home price from supply and demand (`GoodLine.price_bp`, `short`).
+- **Calendar**: the quick game is 280 rounds, with planning points for built-in policies
+  inside its long rounds.
+- **Agents**: `priorities` and `delegate` in the turn API.
+- **Client**: objectives panel for the standard contract, result screens, schooling switch,
+  ten town and works styles on both maps, era titles, tradition effects, translations
+  (typecheck and build pass; panels were driven against canned replies, not a live match).
+
+Not done in 3.1: money, wages, taxes and private investment at home (the economy is still
+physical allocation by priority); a consumption basket beyond textiles and consumer goods;
+branch technologies for the three new paths; the Easy opponent is weak (it rarely leaves
+the Middle Ages); dates of the industrial eras still run a few decades early for the
+leading seat and late for laggards.
 
 ## Ruleset 3.0 (design chapter 36) progress
 
@@ -302,7 +337,9 @@ Branch `ruleset3`. Slices are recorded here as they land; calibration outputs ar
 ## Known calibration gaps
 
 - All numeric parameters are first-pass values tuned only through all-AI matches.
-- No all-AI match of the 32-seed release set has a winner (target 55-75%, doc 36 §7):
+- (Ruleset 3.0, superseded: under ruleset 3.1's standard contract every all-AI match of
+  the release set has a winner, see `docs/calibration/ruleset3.1-eval.txt`. The gaps
+  below describe the classic contract and the 3.0 economy.) No all-AI match of the 32-seed release set has a winner (target 55-75%, doc 36 §7):
   the hard seat integrates the world and reaches the jump standards, but its late
   economy does not keep the three deployment nodes, the flight-hardware year (lattice,
   magnets, computing hardware) and the launch-and-recovery service (fuel-starved launch

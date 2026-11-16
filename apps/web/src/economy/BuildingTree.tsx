@@ -6,6 +6,9 @@ import type { BuildingNode, BuildingTree as Tree, Observation, ReqExpr } from '.
 import { api } from '../api';
 import { fmtMonths, int, joinList, lc, peopleNum, workMonths } from '../format';
 import { t, tc, useLocale } from '../i18n';
+import { ExclusiveIcon } from './punkworks';
+import { traditionLabel } from '../era';
+import { traditionByKey } from '../trees/tables';
 import { Icon } from '../icons';
 import { GoodsList, cx } from '../ui';
 import { OverlayFrame, StatePlate } from '../theme/overlay';
@@ -39,7 +42,7 @@ export function reqText(r: ReqExpr): string {
     case 'tech': return t('Technology: {field} ({era} era)', { field: tc(r.field), era: t(ERA_LABEL[r.era] ?? String(r.era)) });
     case 'practice': return t('Practice: {field} ({era} era)', { field: tc(r.field), era: t(ERA_LABEL[r.era] ?? String(r.era)) });
     case 'facility': return t('Works: {name}', { name: tc(r.key.replace(/_/g, ' ')) });
-    case 'tradition': return t('Tradition: {name}', { name: tc(r.key.replace(/_/g, ' ')) });
+    case 'tradition': return t('Tradition: {name}', { name: traditionByKey(r.key) ? traditionLabel(r.key) : tc(r.key.replace(/_/g, ' ')) });
     case 'religion': return t('A local religious tradition');
     default: return tc(r.text);
   }
@@ -109,7 +112,7 @@ export function BuildingTreeOverlay({ obs }: { obs: Observation }) {
                           <button type="button" class={cx('bt-node', have > 0 && 'is-built', sel?.key === n.key && 'is-sel', n.tradition && 'is-tradition')}
                             data-testid={`bt-node-${n.key}`} data-built={have > 0 ? have : undefined} onClick={() => setPick(n.key)}
                             title={have > 0 ? t('Built: {n} levels in all', { n: have }) : undefined}>
-                            <span class="bt-stage">{n.stage}</span><span class="bt-name">{tc(n.name)}</span>
+                            <span class="bt-stage">{n.stage}</span><ExclusiveIcon kind={n.key} size={14} /><span class="bt-name">{tc(n.name)}</span>
                             {up ? <i class="bt-up" aria-label={t('Can be upgraded in place')}>↗</i> : null}
                             {have > 0 ? <Icon name="check" size={11} /> : null}
                           </button>
@@ -137,7 +140,7 @@ function NodeDetail({ n, tree, byKey, built }: { n: BuildingNode; tree: Tree; by
   return (
     <div data-testid="bt-detail">
       <p class="eyebrow">{tc(n.category)} · {t('stage {n}', { n: n.stage })} · {t(ERA_LABEL[n.era] ?? String(n.era))}{n.tradition ? ' · ' + t('tradition works') : ''}</p>
-      <h3>{tc(n.name)}</h3>
+      <h3><ExclusiveIcon kind={n.key} size={20} /> {tc(n.name)}</h3>
       {built > 0 ? <p class="bt-have"><Icon name="check" size={12} /> {t('Built: {n} levels in all', { n: built })}</p> : null}
       <p>{tc(n.desc)}</p>
       <dl class="kvs">

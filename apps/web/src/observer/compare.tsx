@@ -12,7 +12,7 @@ import { cx } from '../ui';
 import { t, tc } from '../i18n';
 import { Emblem } from '../theme/emblem';
 import { LineChart, SeriesKey, Spark, type ChartSeries } from './chart';
-import { FOOD_CAP_MONTHS, METRIC_KEYS, measure, useHistory, worksBySeat, type History, type MetricKey } from './history';
+import { FOOD_CAP_MONTHS, METRIC_KEYS, isStandardContract, measure, useHistory, worksBySeat, type History, type MetricKey } from './history';
 
 interface MetricDef {
   key: MetricKey;
@@ -49,7 +49,9 @@ function metricDefs(): MetricDef[] {
     { key: 'soldiers', icon: 'military', label: t('Military strength'), unit: t('soldiers under arms'), hint: t('People under arms. Equipment tiers are on the scoreboard.'), fmt: heads, whole: true },
     {
       key: 'objective', icon: 'rocket', label: t('Objective progress'), unit: t('% of the road to the final objective'),
-      hint: t('Five equal steps: scientific method, planetary reach, interstellar reach, the governance streak ({g} months) and the jump-service streak ({f} months).', { g: GOVERNANCE_MONTHS, f: FTL_MONTHS }),
+      hint: isStandardContract()
+        ? t('The six steps of the jump programme: orbit, a station in low Earth orbit, an orbital shipyard, a jump assembly, and two loaded jump round trips.')
+        : t('Five equal steps: scientific method, planetary reach, interstellar reach, the governance streak ({g} months) and the jump-service streak ({f} months).', { g: GOVERNANCE_MONTHS, f: FTL_MONTHS }),
       fmt: (v) => Math.round(v) + '%', max: 100,
     },
   ];

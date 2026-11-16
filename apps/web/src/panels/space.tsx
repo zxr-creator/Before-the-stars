@@ -4,6 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { GoodQty, Good, Observation, SpaceOrder, SpaceSiteView, StationView } from '../protocol';
 import { GOOD_LABEL, GOODS, goodTonnes, int, peopleNum, qty, tonnes } from '../format';
 import { t, tc, useLocale } from '../i18n';
+import { Icon } from '../icons';
 import { ActionNote, Badge, Btn, Empty, Meter, NumInput, Section, Tabs, Why, cx } from '../ui';
 import { act, useApp } from '../store';
 import { openPanel } from '../store';
@@ -82,6 +83,9 @@ export function SpacePanel() {
     return (
       <div class="panel space-ops" data-testid="space-panel">
         <Empty>{t('Space opens with the Space era. Until a launch stage makes boost, nothing here can be ordered.')}</Empty>
+        {obs.objectives.victory?.rule === 'standard' ? (
+          <p class="note" data-testid="space-programme-hint">{t('Reaching orbit is the first step of the jump programme. After it come a K1 core in low Earth orbit and a shipyard module on it, both ordered from this sheet.')}</p>
+        ) : null}
       </div>
     );
   }
@@ -235,12 +239,81 @@ function Stations({ obs, flies }: { obs: Observation; flies: string[] }) {
   const avail = new Set(sp.available ?? []);
   return (
     <>
+      <ProgrammeGuide obs={obs} avail={avail} />
       <p class="note">{t('One station per realm in each orbit. A core carries the modules; a better core upgrades the old one for 60% of its mass. Parts are built from the national stores and lifted with boost.')}</p>
       {ORBITS.map((o) => {
         const st = (sp.stations ?? []).find((x) => x.owner === obs.seat && x.orbit === o.key);
         return <OrbitRow obs={obs} orbit={o.key} st={st} avail={avail} flies={flies} />;
       })}
     </>
+  );
+}
+
+/**
+ * The first station, step by step (ruleset 3.1): a K1 core in low Earth orbit and a shipyard
+ * module on it are steps two and three of the jump programme, so the stations view leads with
+ * them until both stand. One solar array powers this first station; the shipyard needs no
+ * works on the ground.
+ */
+function ProgrammeGuide({ obs, avail }: { obs: Observation; avail: Set<string> }) {
+  const s = useApp();
+  const sp = spaceView(obs)!;
+  const v = obs.objectives.victory;
+  const steps = v?.rule === 'standard' ? v.steps ?? [] : [];
+  const stepOk = (key: string) => steps.find((x) => x.category === key)?.ok ?? false;
+  const leo = (sp.stations ?? []).find((x) => x.owner === obs.seat && x.orbit === 'leo');
+  const has = (word: string) => (leo?.modules ?? []).some((m) => m.kind.toLowerCase().includes(word));
+  const haveCore = !!leo;
+  const haveYard = has('shipyard') || stepOk('shipyard');
+  const havePower = has('solar') || has('reactor');
+  if (steps.length ? stepOk('station') && stepOk('shipyard') : haveCore && haveYard) return null;
+  const orbit = steps.length ? stepOk('orbit') : (sp.boost?.made_last ?? 0) > 0 || (sp.boost?.stock ?? 0) > 0;
+  const tag = 'space-place-leo';
+  const place = (part: string) => void order({ op: 'place', orbit: 'leo', part }, tag);
+  const rows: { key: string; done: boolean; title: string; text: string; part?: string; why?: string | null; label?: string }[] = [
+    { key: 'orbit', done: orbit, title: t('Reach orbit'), text: t('A launch stage that makes boost puts the first payload in orbit. Boost is what lifts every part below.') },
+    {
+      key: 'station', done: haveCore || stepOk('station'), title: t('Place a K1 core in low Earth orbit'), part: 'k1', label: t('Place the K1 core'),
+      text: t('The core is the station: {m} t, {n} module slots. This is step two of the jump programme.', { m: int(CORE_DEF.k1.mass), n: CORE_DEF.k1.slots }),
+      why: avail.has('k1') ? null : t('The K1 core cannot be built yet: its technologies are not understood'),
+    },
+    {
+      key: 'power', done: havePower, title: t('Add one solar array'), part: 'solar', label: t('Place a solar array'),
+      text: t('One array powers a first station: the core, a shipyard, a berth and life support.'),
+      why: !haveCore ? t('Place a core in that orbit first') : avail.has('solar') ? null : t('The solar array cannot be built yet'),
+    },
+    {
+      key: 'shipyard', done: haveYard, title: t('Add a shipyard module'), part: 'shipyard', label: t('Place the shipyard'),
+      text: t('The shipyard needs no works on the ground: only its technology and a slot on the core. {m} t. This is step three; jump assemblies are built here.', { m: int(MODULE_DEF.shipyard.mass) }),
+      why: !haveCore ? t('Place a core in that orbit first') : avail.has('shipyard') ? null : t('The shipyard cannot be built yet: its technology is not understood'),
+    },
+  ];
+  const next = rows.find((r) => !r.done);
+  return (
+    <section class="card sx-guide" data-testid="space-programme-guide">
+      <b class="detail-title">{t('Your first station')}</b>
+      <ol class="programme">
+        {rows.map((r, i) => {
+          const isNext = r === next;
+          return (
+            <li class={cx('programme-step', r.done && 'is-done', isNext && 'is-next')} data-testid={`space-guide-${r.key}`} data-state={r.done ? 'done' : isNext ? 'next' : 'later'}>
+              <span class="programme-mark" aria-hidden="true">{r.done ? <Icon name="check" size={13} /> : i + 1}</span>
+              <div class="programme-text">
+                <b>{r.title}</b>
+                <p class={isNext ? 'programme-how' : 'muted small'}>{r.text}</p>
+                {!r.done && r.part ? (
+                  <div class="form-actions">
+                    <Btn small kind={isNext ? 'primary' : 'default'} icon="plus" disabled={s.busy} why={r.why ?? null} testid={`space-guide-place-${r.part}`} onClick={() => place(r.part!)}>{r.label}</Btn>
+                    {r.why && isNext ? <Why>{r.why}</Why> : null}
+                  </div>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <ActionNote tag={tag} />
+    </section>
   );
 }
 

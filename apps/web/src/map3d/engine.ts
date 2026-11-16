@@ -668,12 +668,13 @@ export class Map3D {
 
     // Region dressing: rebuild only regions whose signature changed.
     const ctx: DecorContext = {
-      topo, hf, rivers: this.riverPaths, seatColor: (s) => this.rgbOf(s), capital: d.capital, civEra, categories: d.facilityCategories ?? {},
+      topo, hf, rivers: this.riverPaths, seatColor: (s) => this.rgbOf(s), seatStyle: (s) => (s == null ? null : d.seatStyles?.[s] ?? null),
+      capital: d.capital, civEra, categories: d.facilityCategories ?? {},
       building: d.construction,
     };
     let decorChanged = terrainChanged;
     for (const p of topo.regions) {
-      const sig = decorSignature(p.r, d.capital, civEra, this.colorOf(p.r.owner), d.construction?.[p.r.id]?.levels ?? 0);
+      const sig = decorSignature(p.r, d.capital, civEra, this.colorOf(p.r.owner), d.construction?.[p.r.id]?.levels ?? 0, p.r.owner == null ? null : d.seatStyles?.[p.r.owner] ?? null);
       const have = this.decor.get(p.r.id);
       if (have && have.sig === sig) continue;
       if (have?.mesh) { this.decorGroup.remove(have.mesh); have.mesh.geometry.dispose(); }

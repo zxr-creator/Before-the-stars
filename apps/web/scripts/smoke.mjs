@@ -181,7 +181,12 @@ async function partA(browser) {
   assert(await page.isDisabled(tid('setup-seats-plus')), 'three seats is the most a Small map takes');
   assert(await page.locator(tid('setup-seat-0-human') + '[aria-checked="true"]').count() === 1, 'the human seat is kept');
   await page.click(tid('setup-calendar-standard'));
+  // ruleset 3.1: the standard contract is the default and is public from the first
+  // year; the discovery / disclosed choice belongs to the classic contract only
+  await page.click(tid('setup-victory-classic'));
   await page.click(tid('setup-objective-discovery'));
+  await page.click(tid('setup-victory-standard'));
+  assert(!(await page.$(tid('setup-objective-discovery'))), 'the standard contract has no discovery choice');
   await shot('01-setup');
   const created = page.waitForResponse((r) => r.url().endsWith('/api/match') && r.request().method() === 'POST');
   await page.click(tid('setup-start'));
@@ -530,6 +535,10 @@ async function partA(browser) {
     await clearToasts();
   }
   await openPanel('objectives');
+  // the standard contract: six programme steps, the ways to win and the standings
+  await page.waitForSelector(tid('programme-steps'));
+  assert(await page.locator('[data-testid^="programme-step-"]').count() === 6, 'the six steps of the jump programme are listed');
+  assert(await page.locator(tid('victory-ways')).count() === 1 && await page.locator(tid('standings')).count() === 1, 'ways to win and standings are shown');
   await shot('45-objectives');
 
   // Chronicle sheet: timeline, detail drawer, show on map, exports.
@@ -840,8 +849,8 @@ async function partB() {
 
 // =====================================================================================
 async function partC() {
-  log('Part C: disclosed objective and a short horizon, to reach the victory contract and the result screen');
-  await apiCall('POST', '/api/match', { seed: 'disc-1', regions: 24, horizon: 120, pace_bp: 3300, controllers: ['human', 'medium', 'medium', 'medium'], disclosed_objective: true });
+  log('Part C: the classic contract, disclosed, and a short horizon, to reach the victory contract and the result screen');
+  await apiCall('POST', '/api/match', { seed: 'disc-1', regions: 24, horizon: 120, pace_bp: 3300, controllers: ['human', 'medium', 'medium', 'medium'], disclosed_objective: true, victory: 'classic' });
   await page.goto(BASE + '/');
   await page.waitForSelector(tid('map-canvas'));
   await page.waitForTimeout(300);

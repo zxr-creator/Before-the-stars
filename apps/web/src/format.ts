@@ -35,7 +35,17 @@ export const GOOD_SHORT: Record<Good, string> = {
   textiles: 'Textiles', consumer_goods: 'Consumer goods', fine_wares: 'Fine wares', lattice: 'Lattice',
   volatiles: 'Volatiles', propellant: 'Propellant', helium3: 'Helium-3',
 };
-export const GOODS: Good[] = Object.keys(GOOD_LABEL) as Good[];
+/**
+ * Goods and deposits retired with ruleset 3.1. The wire enum keeps them (old saves and older
+ * referees still name them), but no observation carries them any more, so no list the client
+ * builds from its own tables offers them.
+ */
+export const RETIRED_GOODS: ReadonlySet<Good> = new Set<Good>([
+  'spices', 'fine_wares', 'precious', 'tin', 'saltpetre', 'salt', 'lithium', 'cobalt_nickel', 'helium', 'gas', 'quartz', 'batteries',
+]);
+export const RETIRED_DEPOSITS: ReadonlySet<Deposit> = new Set<Deposit>(['tin', 'salt', 'saltpetre', 'precious', 'gas', 'lithium', 'cobalt_nickel', 'quartz']);
+/** Every good in play, in table order. */
+export const GOODS: Good[] = (Object.keys(GOOD_LABEL) as Good[]).filter((g) => !RETIRED_GOODS.has(g));
 
 export const QUAL_LABEL: Record<Qual, string> = {
   lorekeeper: 'Lorekeepers', artisan: 'Artisans', agronomist: 'Agronomists', tallier: 'Talliers', smith: 'Smiths',

@@ -43,7 +43,7 @@ function Dev() {
   const base = src === 'live' || src === 'file' ? live : fixture;
   // ?build=1 queues a few building projects in the viewer's largest regions, so the
   // construction markers and the development card can be judged on saved fixtures.
-  const obs = useMemo(() => {
+  const built = useMemo(() => {
     if (!base || q.get('build') !== '1') return base;
     const own = base.regions.filter((r) => r.own).sort((a, b) => (b.own?.population ?? 0) - (a.own?.population ?? 0)).slice(0, 4);
     const projects = own.flatMap((r, i) => (r.own?.facilities ?? []).slice(0, i === 0 ? 3 : 1).map((f, j) => ({
@@ -53,6 +53,24 @@ function Dev() {
     })));
     return { ...base, projects: [...base.projects, ...projects] };
   }, [base]);
+  // ?punk=steam gives the viewer's seat a held tradition (by tradition key); ?punks=engine,atom,…
+  // gives the other seats one each in order, so the ten styles can be judged on any fixture.
+  const obs = useMemo(() => {
+    if (!built || (!q.has('punk') && !q.has('punks'))) return built;
+    const mine = q.get('punk');
+    const theirs = (q.get('punks') ?? '').split(',').filter(Boolean);
+    const frontier = ['atom', 'network', 'living', 'synthetic', 'sun', 'rocket'];
+    const era = mine ? {
+      era: 6, name: 'Information', since: 0, transition: null, age: null, charters: [], charter_slots: 1, charter_note: '', next: null,
+      expected_basket: [], history: [],
+      traditions: [{
+        slot: frontier.includes(mine) ? 'frontier' : 'machine', offered: true, held: mine, mastery_bp: 5000, signature_share_bp: 800,
+        reform_to: null, reform_project: null, switch_allowed_from: 0, options: [],
+      }],
+    } : built.era;
+    const others = theirs.length ? built.others.map((o, i) => ({ ...o, traditions: [theirs[i % theirs.length]] })) : built.others;
+    return { ...built, era, others };
+  }, [built]);
   (window as unknown as { __devObs?: Observation | null }).__devObs = obs;
 
   useEffect(() => {

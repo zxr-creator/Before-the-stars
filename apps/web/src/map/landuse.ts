@@ -36,6 +36,10 @@ const KIND_SECTOR: Record<string, Sector> = {
   high_energy: 'knowledge',
   launch_complex: 'space', orbital_station: 'space', orbital_yard: 'space', interferometer: 'space', jump_testbed: 'space',
   jump_yard: 'space', jump_base: 'space',
+  // works only a tradition can build (ruleset 3.1)
+  steam_hammer: 'industry', motor_works: 'industry', automaton_works: 'industry', isotope_works: 'industry', biofoundry: 'industry',
+  noc: 'industry', tramways: 'transport', compact_reactor: 'power', sun_gardens: 'power', implant_clinic: 'civic',
+  machine_governance: 'civic', rocket_works: 'space', proving_ground: 'space',
 };
 const CATEGORY_SECTOR: Record<string, Sector> = {
   food: 'food', extraction: 'extraction', industry: 'industry', manufacturing: 'industry', power: 'power', energy: 'power',
@@ -49,7 +53,7 @@ export function sectorOf(kind: string, category?: string): Sector | null {
   return c ?? KIND_SECTOR[kind] ?? null;
 }
 
-const CRAFT = new Set(['workshop', 'kiln', 'press', 'instrument_shop']);
+const CRAFT = new Set(['workshop', 'kiln', 'press', 'instrument_shop', 'automaton_works']);
 const SCHOOLS = new Set(['lodge', 'school', 'college', 'tech_institute']);
 const MINE_DEPOSIT: Record<string, Deposit> = {
   mine_copper: 'copper_ore', mine_iron: 'iron_ore', mine_coal: 'coal', oilwell: 'crude', mine_tin: 'tin', mine_precious: 'precious', mine_bauxite: 'bauxite', mine_uranium: 'uranium_ore',
@@ -59,7 +63,7 @@ const MINE_DEPOSIT: Record<string, Deposit> = {
 export type PowerKind = 'mill' | 'thermal' | 'hydro' | 'nuclear' | 'fusion' | 'beamed';
 const POWER_KIND: Record<string, PowerKind> = {
   waterwheel: 'mill', steam: 'thermal', diesel: 'thermal', generator: 'thermal', hydro: 'hydro', fission: 'nuclear',
-  fusion: 'fusion', orbital_power: 'beamed',
+  fusion: 'fusion', orbital_power: 'beamed', compact_reactor: 'nuclear', sun_gardens: 'beamed',
 };
 const POWER_RANK: PowerKind[] = ['mill', 'thermal', 'hydro', 'nuclear', 'fusion', 'beamed'];
 
@@ -74,6 +78,8 @@ const ERA_OF: Record<string, number> = {
   water_treatment: 3, tech_institute: 3,
   launch_complex: 4, orbital_station: 4, orbital_yard: 4, interferometer: 4, jump_testbed: 4, jump_yard: 4, jump_base: 4,
   fusion: 4, orbital_power: 4,
+  steam_hammer: 2, automaton_works: 1, motor_works: 3, tramways: 3, compact_reactor: 3, isotope_works: 3, noc: 3, implant_clinic: 3,
+  biofoundry: 3, machine_governance: 4, sun_gardens: 3, rocket_works: 4,
 };
 
 export function eraOfFacilities(facilities: FacilityView[]): number {
@@ -195,7 +201,7 @@ export function landUse(r: RegionView, categories: Record<string, string> = {}, 
         break;
       case 'space':
         if (f.kind.startsWith('jump')) u.jump += f.level;
-        else if (f.kind === 'launch_complex') u.launch += f.level;
+        else if (f.kind === 'launch_complex' || f.kind === 'rocket_works' || f.kind === 'proving_ground') u.launch += f.level;
         else u.orbital += f.level;
         break;
       default:

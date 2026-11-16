@@ -6,6 +6,8 @@
 // line art in the atlas's ink-and-wash manner.
 import type { Deposit } from '../protocol';
 import { SECTOR_COLOR, magnitude, type LandUse, type Sector } from './landuse';
+import { rgba, type PunkLook } from './punk';
+import { drawPunkEmblem } from './punkart';
 
 export type SiteKind =
   | 'industry' | 'craft' | 'pit' | 'well' | 'timber' | 'mill' | 'thermal' | 'hydro' | 'nuclear' | 'fusion' | 'beamed'
@@ -24,6 +26,8 @@ export interface SiteStyle {
   depositColor?: string;
   /** Simplify: no windows, hatching or small parts. */
   coarse?: boolean;
+  /** The look of the owner's tradition (ruleset 3.1): its palette, and its sign beside heavy works. */
+  punk?: PunkLook | null;
 }
 
 const INK = '#2b2620';
@@ -104,6 +108,16 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
   c.strokeStyle = ink;
   const tone = (col: string) => (st.faded ? '#d8d2c4' : col);
   const n = Math.max(1, st.n);
+  // A seat on a tradition's path builds its works in the path's materials.
+  const L = st.punk && !st.faded ? st.punk : null;
+  const cBrick = L ? L.roof2 : BRICK;
+  const cShedA = L ? L.wall : SLATE;
+  const cShedB = L ? L.wall2 : '#a3a9af';
+  const cPane = L ? L.glass : SLATE_DARK;
+  const cWall = L ? L.wall : WALL;
+  const cRoof = L ? L.roof : OCHRE;
+  const cSteel = L ? L.metal : STEEL;
+  const cPlume = L ? rgba(L.smoke, 0.9) : 'rgba(236,232,224,0.9)';
   switch (kind) {
     case 'industry': {
       // Rows of saw-toothed sheds with stacks behind; the footprint grows with the levels built.
@@ -117,11 +131,15 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
       for (let i = 0; i < stacks; i++) {
         const sx = x0 + ((i + 0.5) / stacks) * cols * w + (i % 2 ? 1.2 : -0.8);
         const sh = 8 + (i % 3) * 1.6;
-        if (st.active) plume(c, sx + 0.8, top - sh - 1.4, 1.5, 'rgba(236,232,224,0.9)');
+        if (st.active && (!L || L.smokes)) plume(c, sx + 0.8, top - sh - 1.4, 1.5, cPlume);
         c.strokeStyle = ink;
-        poly(c, [sx - 0.9, top + 1, sx - 0.6, top - sh, sx + 0.6, top - sh, sx + 0.9, top + 1], tone(BRICK));
+        poly(c, [sx - 0.9, top + 1, sx - 0.6, top - sh, sx + 0.6, top - sh, sx + 0.9, top + 1], tone(cBrick));
         if (!st.coarse) { c.beginPath(); c.moveTo(sx - 0.7, top - sh + 1.4); c.lineTo(sx + 0.7, top - sh + 1.4); c.stroke(); }
       }
+      // The sign of the owner's tradition stands behind the sheds, over the roofs.
+      if (st.punk && !st.coarse) drawPunkEmblem(c, st.punk, x0 + cols * w * 0.5 + (cols > 1 ? w * 0.5 : 0), top + 1, cols > 2 ? 1.05 : 0.9, lw, !!st.faded);
+      c.lineWidth = lw;
+      c.strokeStyle = ink;
       for (let r = rows - 1; r >= 0; r--) {
         // Front rows are full; the back row holds the remainder.
         const inRow = r < rows - 1 ? cols : n - cols * (rows - 1);
@@ -129,11 +147,11 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
         const off = (cols - inRow) * w * 0.5 + (r % 2 ? 0.8 : 0);
         for (let i = 0; i < inRow; i++) {
           const x = x0 + off + i * w;
-          const fill = tone((i + r) % 2 ? SLATE : '#a3a9af');
+          const fill = tone((i + r) % 2 ? cShedA : cShedB);
           // Wall with a two-tooth north-light roof.
           poly(c, [x, y, x, y - h, x + w * 0.5, y - h - 2.2, x + w * 0.5, y - h, x + w, y - h - 2.2, x + w, y], fill);
           if (!st.coarse) {
-            c.fillStyle = st.faded ? '#bdb7a8' : SLATE_DARK;
+            c.fillStyle = st.faded ? '#bdb7a8' : cPane;
             c.fillRect(x + 1, y - h + 1.2, w * 0.5 - 2, 1.1);
             c.fillRect(x + w * 0.5 + 1, y - h + 1.2, w * 0.5 - 2, 1.1);
           }
@@ -147,11 +165,11 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
       const x0 = -(k * 7.2) / 2;
       for (let i = 0; i < k; i++) {
         const x = x0 + i * 7.2;
-        box(c, x + 0.6, 0, 6, 3.4, tone(WALL));
-        poly(c, [x, -3.4, x + 3.6, -6.2, x + 7.2, -3.4], tone(OCHRE));
+        box(c, x + 0.6, 0, 6, 3.4, tone(cWall));
+        poly(c, [x, -3.4, x + 3.6, -6.2, x + 7.2, -3.4], tone(cRoof));
         if (i === 0) {
-          box(c, x + 4.6, -4.2, 1.2, 3.2, tone(BRICK));
-          if (st.active) plume(c, x + 5.4, -8.6, 0.9, 'rgba(236,232,224,0.85)');
+          box(c, x + 4.6, -4.2, 1.2, 3.2, tone(cBrick));
+          if (st.active && (!L || L.smokes)) plume(c, x + 5.4, -8.6, 0.9, cPlume);
         }
       }
       break;
@@ -220,13 +238,13 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
       const k = Math.min(3, n);
       const x0 = -(k * 7.2 + 6) / 2;
       if (kind === 'nuclear') {
-        box(c, x0, 0, 5.6, 4, tone(STEEL));
-        c.fillStyle = tone(WALL);
+        box(c, x0, 0, 5.6, 4, tone(cSteel));
+        c.fillStyle = tone(cWall);
         c.beginPath(); c.arc(x0 + 2.8, -4, 2.8, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
       } else {
-        box(c, x0, 0, 5.6, 5.2, tone(SLATE));
-        box(c, x0 + 3.6, -5.2, 1.2, 5.4, tone(BRICK));
-        if (st.active) plume(c, x0 + 4.6, -12, 1.1, 'rgba(210,205,196,0.9)');
+        box(c, x0, 0, 5.6, 5.2, tone(cShedA));
+        box(c, x0 + 3.6, -5.2, 1.2, 5.4, tone(cBrick));
+        if (st.active) plume(c, x0 + 4.6, -12, 1.1, L ? cPlume : 'rgba(210,205,196,0.9)');
       }
       for (let i = 0; i < k; i++) {
         const x = x0 + 7 + i * 7.2;
@@ -275,8 +293,8 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
     case 'port': {
       // Quay and warehouse with a moored hull; more berths with more levels.
       const k = Math.min(3, n);
-      box(c, -8 - k, 0, 7, 3.6, tone(WALL));
-      poly(c, [-8.8 - k, -3.6, -4.5 - k, -6.2, -0.2 - k, -3.6], tone('#7f9bb0'));
+      box(c, -8 - k, 0, 7, 3.6, tone(cWall));
+      poly(c, [-8.8 - k, -3.6, -4.5 - k, -6.2, -0.2 - k, -3.6], tone(L ? L.roof : '#7f9bb0'));
       c.lineWidth = lw * 1.6;
       c.beginPath(); c.moveTo(-1 - k, 0); c.lineTo(9 + k, 0); c.stroke();
       c.lineWidth = lw;
@@ -293,9 +311,9 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
     }
     case 'school': {
       // A porticoed hall under a pediment.
-      box(c, -7, 0, 14, 1.2, tone(WALL));
-      box(c, -6, -1.2, 12, 4.6, tone(WALL));
-      poly(c, [-7.2, -5.8, 0, -9.6, 7.2, -5.8], tone('#b9a7d6'));
+      box(c, -7, 0, 14, 1.2, tone(cWall));
+      box(c, -6, -1.2, 12, 4.6, tone(cWall));
+      poly(c, [-7.2, -5.8, 0, -9.6, 7.2, -5.8], tone(L ? L.roof : '#b9a7d6'));
       c.beginPath();
       for (let x = -4.5; x <= 4.5; x += 3) { c.moveTo(x, -1.4); c.lineTo(x, -5.6); }
       c.stroke();
@@ -303,10 +321,10 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
     }
     case 'lab': {
       // An observatory dome beside a laboratory block.
-      box(c, -8, 0, 8, 5, tone(WALL));
-      if (!st.coarse) { c.fillStyle = st.faded ? '#bdb7a8' : VIOLET; c.fillRect(-6.8, -3.8, 1.4, 1.4); c.fillRect(-4.2, -3.8, 1.4, 1.4); c.fillRect(-1.8, -3.8, 1.4, 1.4); }
-      box(c, 1, 0, 6.4, 3.6, tone(WALL));
-      c.fillStyle = tone(VIOLET);
+      box(c, -8, 0, 8, 5, tone(cWall));
+      if (!st.coarse) { c.fillStyle = st.faded ? '#bdb7a8' : L ? L.glow : VIOLET; c.fillRect(-6.8, -3.8, 1.4, 1.4); c.fillRect(-4.2, -3.8, 1.4, 1.4); c.fillRect(-1.8, -3.8, 1.4, 1.4); }
+      box(c, 1, 0, 6.4, 3.6, tone(cWall));
+      c.fillStyle = tone(L ? L.roof : VIOLET);
       c.beginPath(); c.arc(4.2, -3.6, 3.2, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
       c.beginPath(); c.moveTo(4.2, -6.8); c.lineTo(6.6, -10.2); c.stroke();
       break;
@@ -378,10 +396,10 @@ export function drawSite(c: Ctx, kind: SiteKind, st: SiteStyle): void {
     }
     case 'hamlet': {
       // A farmstead: two roofs and a rick.
-      box(c, -5.4, 0, 4.4, 2.6, tone(WALL));
-      poly(c, [-6, -2.6, -3.2, -5, -0.4, -2.6], tone('#b9825a'));
-      box(c, 0.6, 0, 3.6, 2.2, tone(WALL));
-      poly(c, [0.1, -2.2, 2.4, -4.2, 4.7, -2.2], tone('#b9825a'));
+      box(c, -5.4, 0, 4.4, 2.6, tone(cWall));
+      poly(c, [-6, -2.6, -3.2, -5, -0.4, -2.6], tone(L ? L.roof : '#b9825a'));
+      box(c, 0.6, 0, 3.6, 2.2, tone(cWall));
+      poly(c, [0.1, -2.2, 2.4, -4.2, 4.7, -2.2], tone(L ? L.roof : '#b9825a'));
       if (n >= 2) { c.fillStyle = tone('#d9c26a'); c.beginPath(); c.arc(-7.4, -1.1, 1.3, Math.PI, 0); c.lineTo(-6.1, 0); c.lineTo(-8.7, 0); c.closePath(); c.fill(); c.stroke(); }
       break;
     }

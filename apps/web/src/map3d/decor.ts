@@ -4,6 +4,8 @@
 // a region with no reported facilities gets its settlement and nothing else.
 import type { Deposit, RegionView, SettlementKind } from '../protocol';
 import { eraOfFacilities, facilityActive, type Building } from '../map/landuse';
+import type { PunkStyle } from '../map/punk';
+import { punkGeomEra } from './punk3d';
 import { Builder } from './builder';
 import {
   buildDistrict, buildSettlement, districtRadius, pylon, settlementHeight, settlementRadius,
@@ -31,6 +33,10 @@ const KIND_MAP: Record<string, DistrictKind> = {
   auto_lab: 'research', high_energy: 'collider',
   launch_complex: 'launch', orbital_station: 'dishes', orbital_yard: 'dishes', interferometer: 'dishes',
   jump_testbed: 'jump', jump_yard: 'jump', jump_base: 'jump',
+  // works only a tradition can build (ruleset 3.1)
+  steam_hammer: 'industry', motor_works: 'industry', automaton_works: 'workshop', isotope_works: 'chemical', biofoundry: 'chemical',
+  noc: 'hightech', tramways: 'depot', compact_reactor: 'nuclear', sun_gardens: 'rectenna', implant_clinic: 'health',
+  machine_governance: 'admin', rocket_works: 'launch', proving_ground: 'launch',
 };
 const CATEGORY_MAP: Record<string, DistrictKind> = {
   food: 'fields', extraction: 'timber', industry: 'workshop', power: 'thermal', transport: 'depot', civic: 'admin',
@@ -83,6 +89,8 @@ export interface DecorContext {
   hf: Heightfield;
   rivers: RiverPath[];
   seatColor(seat: number | null): RGB;
+  /** The style a seat's held traditions give its towns and works (ruleset 3.1), if it holds any. */
+  seatStyle?(seat: number | null): PunkStyle | null;
   capital: number | null;
   civEra: number;
   categories: Record<string, string>;
@@ -130,13 +138,15 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
   // A megalopolis is modelled as the largest skyline the kit has.
   const kind: SettlementKind = r.settlement === 'megalopolis' ? 'metropolis' : r.settlement;
   const era = settlementEra(r, ctx.civEra);
+  const style = ctx.seatStyle?.(r.owner) ?? null;
   const color = ctx.seatColor(r.owner);
   const settR = settlementRadius(kind);
   const isCapital = ctx.capital === r.id;
   if (kind !== 'wilderness') {
-    buildSettlement(b, G, p.sx, p.sy, { kind, era, color, capital: isCapital, seed: hash32(r.id * 97 + 3, 0xc17), remembered }, fx);
+    buildSettlement(b, G, p.sx, p.sy, { kind, era, color, capital: isCapital, seed: hash32(r.id * 97 + 3, 0xc17), remembered, style }, fx);
     out.clear.push(p.sx, p.sy, settR + 2);
-    out.labelLift = settlementHeight(kind, era, isCapital) + 4;
+    // A styled town is built with the style's kit; an airship or a mast may stand above it.
+    out.labelLift = settlementHeight(kind, style && kind !== 'camp' && kind !== 'village' ? punkGeomEra(style) : era, isCapital) + (style && kind !== 'camp' && kind !== 'village' ? 7 : 4);
   }
 
   // --- candidate sites ----------------------------------------------------------------
@@ -286,7 +296,7 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
       if (w.kind === 'mine' || w.kind === 'oilwell') if (w.deposit) mineAt.set(w.deposit, [site.x, site.z]);
       buildDistrict(b, G, site.x, site.z, {
         kind: w.kind, size: dsize, era: Math.max(era, w.kind === 'fields' || w.kind === 'pasture' ? 0 : 0), color, seed: hash32(r.id * 59 + c, key.length + key.charCodeAt(0) * 7),
-        rot, deposit: w.deposit, onRiver, active: w.active,
+        rot, deposit: w.deposit, onRiver, active: w.active, style,
       }, fx);
       if (hasRoads && w.kind !== 'hydro') tracks.push([site.x, site.z, rad]);
     }
@@ -396,8 +406,8 @@ export function buildRegionDecor(p: TRegion, ctx: DecorContext): RegionDecor {
 }
 
 /** A cheap signature of everything `buildRegionDecor` reads from a region. */
-export function decorSignature(r: RegionView, capital: number | null, civEra: number, colour: string, building = 0): string {
-  let s = `${r.settlement}|${r.owner}|${r.visibility}|${capital === r.id ? 1 : 0}|${civEra}|${colour}|${r.test_node ? 1 : 0}|${Math.min(6, Math.ceil(building / 2))}`;
+export function decorSignature(r: RegionView, capital: number | null, civEra: number, colour: string, building = 0, style: PunkStyle | null = null): string {
+  let s = `${r.settlement}|${r.owner}|${r.visibility}|${capital === r.id ? 1 : 0}|${civEra}|${colour}|${r.test_node ? 1 : 0}|${Math.min(6, Math.ceil(building / 2))}|${style ?? ''}`;
   if (r.own) for (const f of r.own.facilities) s += `;${f.kind}:${f.level}:${f.enabled ? (f.utilization_bp > 0 && (f.staff_needed <= 0 || f.staffed > 0) ? 'a' : 'i') : 'x'}`;
   if (r.survey) for (const d of r.survey.deposits) s += `;d${d.kind}`;
   return s;

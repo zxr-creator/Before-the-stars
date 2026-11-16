@@ -25,7 +25,8 @@ export const MODULE_DEF: Record<string, { name: string; mass: number }> = {
   solar: { name: 'Solar array', mass: 150 },
   reactor: { name: 'Reactor', mass: 600 },
   docking: { name: 'Docking and depot', mass: 500 },
-  shipyard: { name: 'Shipyard', mass: 6000 },
+  // ruleset 3.1: half its old mass, and no ground works behind it
+  shipyard: { name: 'Shipyard', mass: 3000 },
   lab: { name: 'Research laboratory', mass: 300 },
   refinery: { name: 'Propellant refinery', mass: 400 },
 };

@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// `ForeignCiv.traditions`, `ArmyView.variant`, `SpectatorCiv.era`,
 /// `SpectatorCiv.traditions`, `Action::EnterEra`, `Action::ChooseCharter`,
 /// `Action::ChooseTradition`).
-pub const PROTOCOL_VERSION: &str = "bts-protocol/2.6";
+pub const PROTOCOL_VERSION: &str = "bts-protocol/2.7";
 
 pub type SeatId = u8;
 pub type RegionId = u16;

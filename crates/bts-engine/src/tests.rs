@@ -710,9 +710,12 @@ fn a_founding_cohort_is_at_most_twenty_thousand_and_courses_use_materials_per_th
     m.world.regions[home].quals[Qual::Artisan.index()] = 0;
     crate::sim::projects::step(&mut m.world, 0);
     let p = m.world.civs[0].programs[0].clone();
-    assert_eq!(p.enrolled, 20_000, "{:?}", p.blockers);
+    // (at most twenty thousand, and never more than the households can spare)
+    let founding = p.enrolled;
+    assert!(founding <= 20_000 && founding >= 12_000, "{founding} {:?}", p.blockers);
+    assert!(founding == 20_000 || p.blockers.iter().any(|b| b.starts_with("Households cannot spare")), "{:?}", p.blockers);
     assert_eq!(p.teachers, 0);
-    assert_eq!(m.world.regions[home].students, 20_000);
+    assert_eq!(m.world.regions[home].students, founding);
     // (ruleset 3.1) with too few instructors the whole cohort still enrols, in larger
     // classes and for longer: all the instructors there are teach it
     m.world.civs[0].programs[0] = Program { id: 901, course: c.course_ix["E002"], region: capital, seats: 20_000, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: 0, graduates: 0, paused: false, blockers: vec![], last_grad: 0, auto: false };
@@ -721,10 +724,10 @@ fn a_founding_cohort_is_at_most_twenty_thousand_and_courses_use_materials_per_th
     crate::sim::projects::step(&mut m.world, 0);
     let p = m.world.civs[0].programs[0].clone();
     let class = c.courses[c.course_ix["E002"]].class_size as u32;
-    assert_eq!(p.enrolled, 20_000, "{:?}", p.blockers);
+    assert_eq!(p.enrolled, founding, "{:?}", p.blockers);
     assert_eq!(p.teachers, 1_000);
     let months = c.courses[c.course_ix["E002"]].months as u32;
-    let wanted = (20_000 + class - 1) / class;
+    let wanted = (founding + class - 1) / class;
     assert_eq!(p.duration as u32, months + months * (wanted - 1_000) / wanted, "a course short of instructors takes longer, at most twice as long");
     // a month of teaching draws 0.1 t of materials and 0.02 tool lots per learner
     let (mat, tools) = (m.world.civs[0].stock[Good::Materials.index()], m.world.civs[0].stock[Good::Tools.index()]);

@@ -1,0 +1,139 @@
+Ruleset 3.1 release calibration (design chapter 42).
+Ruleset bts-rules/3.1.0, content bts-content/3.1.0, generator bts-worldgen/2.2.0,
+protocol bts-protocol/2.7, policy bts-native/1.8.0. Release build, 60-region Earth-like
+world, standard victory contract unless stated. 2026-11-16.
+
+   bts run --matches 32 --seed eval --threads 10 --curve final.csv        (hard,medium,medium,easy)
+   bts run --matches 8  --seed eval --calendar quick
+   bts run --matches 8  --seed med  --ai medium,medium,medium,medium
+   bts run --matches 2  --seed eval --victory classic
+   bts verify --seed eval-3 --rounds 300
+
+Headline (ruleset 3.0 on the same kind of batch: 0 winners of 32; 1 seat of 128 in the
+Space era; quick calendar: every seat at about sixty technologies in AD 2500)
+
+ measure                              result
+ matches with a winner                32 of 32 standard; 8 of 8 quick; 8 of 8 all-medium
+ how they were won (standard, 32)     jump programme 28, standing at the horizon 4, supremacy 0
+ year of a jump victory               AD 1906 to 2294, median 2096 (quick: 1977 to 2129)
+ wins by seat (standard, 32)          hard 9, medium 13 and 9, easy 1
+ seats that reached orbit             74 of 128
+ seats with a station in orbit        61 of 128 (first station: median AD 2020)
+ seats entering the Space era         58 of 128 (median AD 2030; window 2030-2090)
+ era entries, median seat             Classical 1070 BC, Medieval AD 530, Early Modern 1750,
+                                      Industrial 1800, Modern 1850, Information 1970
+ scientific method, median seat       AD 1570 (108 of 128 seats)
+ classic contract (2 seeds)           no winner, as under ruleset 3.0 (kept as an option)
+ determinism                          repeated inputs and checkpoint recovery reproduce the state
+ tests                                cargo test --workspace: all pass; MCP adapter tests pass;
+                                      browser smoke test (apps/web/scripts/smoke.mjs) passes
+
+Known gaps
+ - The hard opponent does not win more often than the medium ones (9 of 32 against 22):
+   in about a third of matches it reaches the scientific method centuries after a medium
+   neighbour. Its research and era-entry rules were tuned for ruleset 3.0 and were not
+   retuned; changing its research split alone made no difference on 16 seeds.
+ - The easy opponent rarely leaves the Middle Ages (about sixty technologies at the end).
+ - The spread between seats is wide: the scientific method arrives between AD 1300 and
+   1780 for the middle half of seats, and a quarter of seats never enter the Early Modern era.
+ - Early Modern entry is late against its window (median 1750 against 1400-1600) while
+   the eras after it are in or near theirs.
+ - Population of the median seat: 3.5 M in AD 1000, 23 M in 1800, 70 M in 2000 (below
+   design table 3.1 after 1800); the largest seats reach 400-800 M.
+ - Supremacy never decided a match in these batches: the native policy no longer goes to
+   war for the objective itself.
+
+Raw output
+
+== standard calendar, hard,medium,medium,easy, 32 seeds
+match  0  winner Some(1) jump       AD 1906  33s  0:226M/15r/148t/1s/0st  1:173M/18r/203t/6s/1st  2:244M/21r/127t/0s/0st  3:6M/5r/59t/0s/0st
+match  1  winner Some(2) jump       AD 2168  43s  0:63M/10r/117t/0s/0st  1:374M/19r/201t/3s/1st  2:120M/17r/205t/6s/1st  3:12M/14r/72t/0s/0st
+match  2  winner Some(1) jump       AD 2024  38s  0:71M/8r/181t/3s/1st  1:82M/16r/206t/6s/1st  2:171M/24r/162t/0s/0st  3:6M/9r/61t/0s/0st
+match  3  winner Some(0) jump       AD 2102  39s  0:102M/12r/201t/6s/1st  1:160M/18r/171t/3s/1st  2:125M/14r/164t/1s/0st  3:4M/8r/60t/0s/0st
+match  4  winner Some(0) jump       AD 2090  39s  0:432M/26r/204t/6s/1st  1:93M/11r/163t/0s/0st  2:186M/12r/184t/3s/1st  3:5M/10r/62t/0s/0st
+match  5  winner Some(0) jump       AD 2150  54s  0:170M/11r/195t/6s/1st  1:42M/11r/150t/0s/0st  2:234M/27r/173t/3s/1st  3:18M/11r/71t/0s/0st
+match  6  winner Some(1) jump       AD 2072  38s  0:66M/17r/140t/3s/1st  1:217M/19r/207t/6s/1st  2:41M/10r/157t/3s/1st  3:3M/8r/59t/0s/0st
+match  7  winner Some(0) jump       AD 2054  58s  0:93M/14r/200t/6s/1st  1:204M/23r/172t/3s/1st  2:209M/11r/145t/0s/0st  3:7M/11r/70t/0s/0st
+match  8  winner Some(1) jump       AD 1942  37s  0:40M/13r/96t/0s/0st  1:120M/10r/200t/6s/1st  2:144M/23r/127t/0s/0st  3:3M/11r/60t/0s/0st
+match  9  winner Some(2) jump       AD 1970  32s  0:86M/18r/121t/0s/0st  1:56M/8r/161t/0s/0st  2:82M/21r/204t/6s/1st  3:4M/8r/60t/0s/0st
+match 10  winner Some(0) standing   AD 2500  71s  0:25M/7r/190t/3s/1st  1:98M/19r/187t/0s/0st  2:203M/21r/178t/0s/0st  3:87M/13r/144t/0s/0st
+match 11  winner Some(1) jump       AD 2124  58s  0:131M/22r/177t/1s/0st  1:95M/10r/206t/6s/1st  2:376M/19r/164t/1s/0st  3:44M/9r/99t/0s/0st
+match 12  winner Some(2) jump       AD 2106  45s  0:177M/18r/189t/3s/1st  1:100M/15r/166t/3s/1st  2:318M/17r/206t/6s/1st  3:2M/5r/60t/0s/0st
+match 13  winner Some(0) jump       AD 2206  36s  0:139M/20r/201t/6s/1st  1:89M/17r/200t/3s/1st  2:103M/17r/208t/3s/1st  3:3M/6r/61t/0s/0st
+match 14  winner Some(2) jump       AD 2254  53s  0:26M/9r/95t/0s/0st  1:45M/7r/203t/3s/1st  2:74M/15r/199t/6s/1st  3:166M/29r/131t/1s/0st
+match 15  winner Some(2) standing   AD 2500  71s  0:47M/9r/178t/1s/0st  1:37M/4r/113t/0s/0st  2:216M/33r/203t/3s/1st  3:104M/13r/163t/0s/0st
+match 16  winner Some(1) jump       AD 2030  48s  0:183M/22r/166t/3s/1st  1:739M/28r/206t/6s/1st  2:28M/4r/106t/0s/0st  3:2M/4r/56t/0s/0st
+match 17  winner Some(0) jump       AD 2216  41s  0:121M/22r/207t/6s/1st  1:89M/13r/199t/3s/1st  2:117M/18r/180t/3s/1st  3:5M/7r/61t/0s/0st
+match 18  winner Some(1) jump       AD 1906  39s  0:32M/5r/119t/0s/0st  1:106M/19r/201t/6s/1st  2:116M/19r/138t/1s/0st  3:3M/11r/61t/0s/0st
+match 19  winner Some(0) jump       AD 2010  39s  0:245M/22r/208t/6s/1st  1:153M/15r/160t/0s/0st  2:145M/15r/175t/3s/1st  3:4M/8r/61t/0s/0st
+match 20  winner Some(2) jump       AD 2294  40s  0:26M/9r/97t/0s/0st  1:84M/28r/135t/0s/0st  2:204M/18r/206t/6s/1st  3:2M/5r/57t/0s/0st
+match 21  winner Some(1) jump       AD 2054  43s  0:61M/11r/183t/2s/1st  1:295M/22r/200t/6s/1st  2:172M/15r/167t/3s/1st  3:7M/10r/68t/0s/0st
+match 22  winner Some(1) jump       AD 2080  34s  0:92M/15r/164t/3s/1st  1:276M/19r/205t/6s/1st  2:191M/18r/201t/3s/1st  3:4M/6r/61t/0s/0st
+match 23  winner Some(1) standing   AD 2500  64s  0:78M/14r/196t/0s/0st  1:80M/23r/203t/3s/1st  2:42M/13r/193t/3s/1st  3:62M/9r/106t/0s/0st
+match 24  winner Some(2) jump       AD 2174  35s  0:194M/20r/207t/3s/1st  1:83M/17r/202t/3s/1st  2:290M/17r/205t/6s/1st  3:3M/6r/58t/0s/0st
+match 25  winner Some(0) jump       AD 1984  36s  0:129M/19r/207t/6s/1st  1:147M/18r/182t/3s/1st  2:200M/14r/142t/1s/0st  3:13M/8r/75t/0s/0st
+match 26  winner Some(1) jump       AD 2160  37s  0:78M/10r/134t/0s/0st  1:261M/25r/204t/6s/1st  2:64M/9r/89t/0s/0st  3:4M/9r/58t/0s/0st
+match 27  winner Some(2) jump       AD 2086  43s  0:83M/13r/186t/1s/0st  1:110M/18r/208t/3s/1st  2:153M/19r/201t/6s/1st  3:3M/8r/59t/0s/0st
+match 28  winner Some(2) jump       AD 2202  37s  0:88M/11r/200t/3s/1st  1:167M/19r/177t/1s/0st  2:139M/20r/205t/6s/1st  3:4M/10r/60t/0s/0st
+match 29  winner Some(3) standing   AD 2500  76s  0:64M/14r/177t/1s/0st  1:28M/9r/189t/3s/1st  2:155M/16r/183t/1s/0st  3:149M/19r/199t/3s/1st
+match 30  winner Some(1) jump       AD 2154  39s  0:27M/8r/78t/0s/0st  1:210M/29r/206t/6s/1st  2:74M/14r/161t/3s/1st  3:10M/9r/68t/0s/0st
+match 31  winner Some(1) jump       AD 2276  55s  0:82M/19r/166t/1s/0st  1:119M/25r/209t/6s/1st  2:44M/8r/188t/0s/0st  3:2M/8r/61t/0s/0st
+outcomes: jump 28, standing 4
+Classical    entered 128/128  q25/med/q75 (-1190, -1070, -750)  window (-1400, -500)
+Medieval     entered 128/128  q25/med/q75 (260, 530, 780)  window (400, 900)
+EarlyMod     entered  97/128  q25/med/q75 (1630, 1750, 1890)  window (1400, 1600)
+Industrial   entered  95/128  q25/med/q75 (1680, 1800, 1930)  window (1760, 1850)
+Modern       entered  92/128  q25/med/q75 (1780, 1850, 1970)  window (1880, 1930)
+Information  entered  79/128  q25/med/q75 (1900, 1970, 2060)  window (1960, 2010)
+Space        entered  58/128  q25/med/q75 (1960, 2030, 2090)  window (2030, 2090)
+AI           entered  33/128  q25/med/q75 (2030, 2110, 2190)  window 
+boost       74/128 (1910, 1980, 2060)
+station     61/128 (1960, 2020, 2090)
+m_SCI      108/128 (1300, 1570, 1780)
+m_T100      99/128 (1660, 1790, 1910)
+m_T111      93/128 (1850, 1900, 2000)
+m_T142      80/128 (1950, 2000, 2080)
+m_T162      46/128 (2010, 2070, 2160)
+-1000 pop median M 2.8 max 8
+1000 pop median M 3.5 max 37
+1500 pop median M 7.8 max 151
+1800 pop median M 23.1 max 425
+1900 pop median M 41.2 max 530
+2000 pop median M 70.4 max 800
+== quick calendar, 8 seeds
+match  0  winner Some(0) jump       AD 1977  30s  0:214M/26r/205t/6s/1st  1:131M/14r/140t/1s/0st  2:105M/14r/111t/0s/0st  3:3M/5r/60t/0s/0st
+match  1  winner Some(0) jump       AD 1980  35s  0:321M/18r/202t/6s/1st  1:345M/20r/147t/1s/0st  2:31M/8r/106t/0s/0st  3:6M/11r/71t/0s/0st
+match  2  winner Some(0) jump       AD 2060  33s  0:62M/8r/202t/6s/1st  1:89M/11r/171t/1s/0st  2:221M/27r/160t/3s/1st  3:4M/9r/57t/0s/0st
+match  3  winner Some(0) jump       AD 1985  30s  0:114M/11r/208t/6s/1st  1:125M/19r/171t/3s/1st  2:107M/13r/160t/2s/1st  3:3M/6r/60t/0s/0st
+match  4  winner Some(2) jump       AD 2129  36s  0:84M/22r/176t/1s/0st  1:75M/12r/188t/0s/0st  2:230M/14r/206t/6s/1st  3:16M/11r/77t/0s/0st
+match  5  winner Some(2) jump       AD 2112  42s  0:247M/12r/178t/1s/0st  1:110M/11r/151t/0s/0st  2:152M/26r/206t/6s/1st  3:7M/8r/62t/0s/0st
+match  6  winner Some(0) jump       AD 2087  33s  0:158M/24r/205t/6s/1st  1:65M/14r/167t/0s/0st  2:48M/7r/127t/0s/0st  3:4M/9r/60t/0s/0st
+match  7  winner Some(1) jump       AD 2004  35s  0:76M/12r/181t/3s/1st  1:322M/21r/205t/6s/1st  2:228M/15r/174t/3s/1st  3:11M/12r/77t/0s/0st
+outcomes: jump 8
+Classical    entered  32/32  q25/med/q75 (-1230, -1030, -670)  window (-1400, -500)
+Medieval     entered  32/32  q25/med/q75 (-70, 210, 380)  window (400, 900)
+EarlyMod     entered  24/32  q25/med/q75 (1630, 1700, 1760)  window (1400, 1600)
+Industrial   entered  24/32  q25/med/q75 (1700, 1750, 1830)  window (1760, 1850)
+Modern       entered  24/32  q25/med/q75 (1770, 1840, 1890)  window (1880, 1930)
+Information  entered  20/32  q25/med/q75 (1860, 1940, 1970)  window (1960, 2010)
+Space        entered  12/32  q25/med/q75 (1900, 1960, 2030)  window (2030, 2090)
+AI           entered   6/32  q25/med/q75 (1940, 2030, 2060)  window 
+boost       18/32 (1830, 1930, 1950)
+== medium x4, 8 seeds
+match  0  winner Some(3) jump       AD 2086  39s  0:155M/16r/199t/5s/1st  1:75M/15r/198t/3s/1st  2:57M/13r/199t/3s/1st  3:60M/11r/202t/6s/1st
+match  1  winner Some(0) jump       AD 2172  50s  0:54M/11r/190t/6s/1st  1:72M/17r/193t/2s/1st  2:37M/9r/177t/3s/1st  3:262M/21r/183t/0s/0st
+match  2  winner Some(1) jump       AD 2084  45s  0:74M/15r/150t/1s/0st  1:192M/13r/204t/6s/1st  2:129M/23r/169t/3s/1st  3:180M/8r/127t/1s/0st
+match  3  winner Some(3) jump       AD 2188  35s  0:65M/10r/186t/3s/1st  1:72M/11r/187t/3s/1st  2:82M/14r/172t/3s/1st  3:192M/21r/208t/6s/1st
+match  4  winner Some(0) jump       AD 2088  44s  0:212M/17r/204t/6s/1st  1:68M/13r/196t/3s/1st  2:73M/16r/169t/3s/1st  3:76M/10r/200t/3s/1st
+match  5  winner Some(1) jump       AD 2158  36s  0:48M/7r/135t/1s/0st  1:86M/19r/206t/6s/1st  2:86M/14r/203t/3s/1st  3:104M/20r/181t/3s/1st
+match  6  winner Some(0) jump       AD 2090  47s  0:448M/22r/204t/6s/1st  1:97M/16r/166t/3s/1st  2:55M/12r/188t/3s/1st  3:80M/10r/112t/0s/0st
+match  7  winner Some(1) jump       AD 2136  46s  0:221M/30r/191t/3s/1st  1:65M/11r/197t/6s/1st  2:50M/10r/132t/0s/0st  3:85M/9r/158t/1s/0st
+outcomes: jump 8
+== classic contract, 2 seeds
+match  0  winner None none       AD 2500  53s  0:0M/0r/206t/0s/0st  1:0M/0r/197t/0s/0st  2:23M/60r/216t/0s/3st  3:0M/0r/59t/0s/0st
+match  1  winner None none       AD 2500  57s  0:200M/60r/225t/0s/1st  1:0M/0r/183t/0s/0st  2:0M/0r/138t/0s/0st  3:0M/0r/60t/0s/0st
+outcomes: none 2
+== verify
+repeat          4a647d512f63debb
+checkpointed    4a647d512f63debb
+OK: repeated inputs and checkpoint recovery reproduce the same state

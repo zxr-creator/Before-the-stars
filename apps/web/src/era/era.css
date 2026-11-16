@@ -48,3 +48,30 @@
 .era-path.is-reform { border-style: dashed; border-color: var(--brass); }
 .era-events, .era-history { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 12px; }
 .era-parts li { grid-template-columns: 110px 1fr 36px; }
+
+/* Ruleset 3.1: a held tradition names the age and dresses the banner, the era screen and its paths in its palette. */
+.era-banner.is-punk { border-color: var(--punk-accent); background: linear-gradient(180deg, color-mix(in srgb, var(--punk-accent) 26%, transparent), color-mix(in srgb, var(--punk-roof) 22%, transparent)); box-shadow: 0 0 10px color-mix(in srgb, var(--punk-glow) 30%, transparent); }
+.era-banner.is-punk:hover { border-color: var(--punk-glow); }
+.era-banner.is-punk .era-banner-mark { background: linear-gradient(160deg, var(--punk-glow), var(--punk-accent)); box-shadow: 0 0 0 1.5px var(--punk-metal); color: #1c1a17; }
+.era-banner.is-punk .era-banner-text b { color: color-mix(in srgb, var(--punk-glow) 70%, #fff8e6); }
+.punk-banner { display: block; width: 100%; border-radius: 8px; }
+.era-hero { position: relative; margin: 0 0 14px; border-radius: 10px; overflow: hidden; border: 1px solid var(--punk-accent); box-shadow: var(--shadow-sm); }
+.era-hero .punk-banner { border-radius: 0; }
+.era-hero-text { position: absolute; left: 16px; top: 12px; right: 16px; pointer-events: none; }
+.era-hero-text h3 { margin: 0; font: 600 26px var(--serif); font-variant-caps: small-caps; letter-spacing: 0.06em; color: var(--ink); text-shadow: 0 0 6px rgba(247, 241, 225, 0.95), 0 0 2px rgba(247, 241, 225, 0.95); }
+.era-hero-text p { margin: 2px 0 0; font: 600 12px var(--sans); color: var(--ink-2); text-shadow: 0 0 5px rgba(247, 241, 225, 0.95), 0 0 2px rgba(247, 241, 225, 0.95); }
+.era-hero.punk-neon .era-hero-text h3 { color: #fff3fb; text-shadow: 0 0 10px var(--punk-accent), 0 0 3px #1c1e28; }
+.era-hero.punk-neon .era-hero-text p { color: #d8f6ff; text-shadow: 0 0 6px #1c1e28; }
+.era-sub { margin: 0 0 2px; font: 600 12.5px var(--sans); color: var(--ink-2); }
+.era-body.is-punk .era-ladder li.is-now { background: linear-gradient(160deg, var(--punk-glow), var(--punk-accent)); border-color: var(--punk-metal); color: #1c1a17; }
+.era-path.is-punk { border-left: 4px solid var(--punk-accent); }
+.era-path.is-punk.is-held { border-color: var(--punk-accent); box-shadow: 0 0 0 1px var(--punk-accent); }
+.era-path-art { grid-column: 1 / -1; margin: -2px 0 6px; border: 1px solid var(--line); }
+.era-path.is-punk .era-path-genre { color: color-mix(in srgb, var(--punk-accent) 70%, var(--ink)); }
+.era-effects { margin: 3px 0; }
+.era-effects ul { margin: 2px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 12px; }
+.era-effects li { display: flex; gap: 5px; align-items: flex-start; }
+.era-effects .icon { color: var(--ok); margin-top: 2px; }
+.era-strength { margin-bottom: 4px; }
+.era-path.is-punk { grid-template-rows: auto auto auto auto; }
+.era-path.is-punk > .btn, .era-path.is-punk > .badge { grid-row: 2 / span 3; }

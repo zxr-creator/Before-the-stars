@@ -24,6 +24,8 @@ const FILES = [
   'crates/bts-engine/src/sim/raiders.rs', 'crates/bts-engine/src/sim/market.rs',
   // ruleset 3.0 job 4a: the space core
   'crates/bts-engine/src/sim/space.rs',
+  // ruleset 3.1: public schooling
+  'crates/bts-engine/src/sim/schooling.rs',
 ];
 // The referee binary: only its HTTP error replies and new-match validation are player-facing.
 const SERVER = 'crates/bts-server/src/main.rs';

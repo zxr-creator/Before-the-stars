@@ -128,7 +128,7 @@ function ObserverQuickStart({ live, busy, onClose }: { live: boolean; busy: bool
       }))} />
       <Seg label={t('Calendar')} value={q.quick} testid="quick-calendar" onPick={(quick) => pick({ quick })} options={[
         { value: false, label: t('Standard · 525 rounds'), hint: t('5000 BC to AD 2500: rounds of fifty years in antiquity, shortening to two years from 1950. Standing orders act year by year inside long rounds.') },
-        { value: true, label: t('Quick · 230 rounds'), hint: t('The same 5000 BC to AD 2500 in fewer, longer rounds: up to a century each in antiquity, five years in the modern age.') },
+        { value: true, label: t('Quick · 280 rounds'), hint: t('The same 5000 BC to AD 2500 in fewer, longer rounds: up to a century each in antiquity, five years in the modern age.') },
       ]} />
       <button type="button" class="title-btn is-primary tq-start" disabled={busy} data-testid="title-observer-start" onClick={() => void start()}>
         <Icon name="eye" size={15} /> {busy ? t('Drawing the world…') : t('Start watching')}

@@ -57,8 +57,21 @@ const listeners = new Set<() => void>();
 let lastSeen: SpectatorView | null = null;
 let saveTimer = 0;
 
-/** Share of the road to the final objective, 0–100: three milestones and the two streaks of the victory contract. */
+let standardContract = false;
+/** Tell the history which victory contract the match is played under (ruleset 3.1). */
+export function setStandardContract(on: boolean): void {
+  standardContract = on;
+}
+export function isStandardContract(): boolean {
+  return standardContract;
+}
+
+/**
+ * Share of the road to the final objective, 0–100. Standard contract: the six steps of the jump
+ * programme. Classic: three milestones and the two streaks of the contract.
+ */
 export function objectiveProgress(c: SpectatorCiv): number {
+  if (standardContract) return (Math.min(6, c.programme_steps ?? 0) / 6) * 100;
   const steps = (c.sci_method !== null ? 1 : 0) + (c.planetary !== null ? 1 : 0) + (c.interstellar !== null ? 1 : 0)
     + Math.min(1, c.gov_streak / GOVERNANCE_MONTHS) + Math.min(1, c.ftl_streak / FTL_MONTHS);
   return (steps / 5) * 100;

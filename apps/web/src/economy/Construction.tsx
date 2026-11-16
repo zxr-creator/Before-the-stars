@@ -20,6 +20,8 @@ import {
   peopleNum, qty, qtySigned, researchMonths, tcAll, tcChecks, tn, tonnes, workMonths, RESEARCH_LABEL,
 } from '../format';
 import { isZh, t, tc, useLocale } from '../i18n';
+import { ExclusiveIcon, exclusiveStyle } from './punkworks';
+import { PUNK } from '../map/punk';
 import { Icon } from '../icons';
 import { ActionNote, Badge, Btn, Checklist, Empty, GoodsList, Meter, OBSERVING, Stepper, cx, toneOfBp } from '../ui';
 import { act, closeOverlay, isReadOnly, openOverlay, selectRegion, useApp } from '../store';
@@ -720,7 +722,7 @@ function BuildTab({ obs, r, pick, onPick }: { obs: Observation; r: RegionView; p
             {rows.map(({ f, q, block, built }) => (
               <li>
                 <button type="button" class={cx('wb-item', sel?.kind === f.kind && 'is-selected', block.length > 0 && 'is-blocked')} data-testid={`build-card-${f.kind}`} onClick={() => onPick(f.kind)}>
-                  <span class="wb-name">{block.length ? <Icon name="lock" size={11} /> : null}{tc(f.name)}<LineTag fac={f} /></span>
+                  <span class="wb-name">{block.length ? <Icon name="lock" size={11} /> : null}<ExclusiveIcon kind={f.kind} size={15} />{tc(f.name)}<LineTag fac={f} /></span>
                   <span class="wb-meta">{built ? t('level {n}/{max}', { n: built.level, max: q?.cap ?? built.max_level }) : q && q.cap > 0 ? t('room for {n}', { n: q.room }) : t('no site here')}{q && q.queued ? ' · ' + t('{n} queued', { n: q.queued }) : ''}</span>
                   <span class="wb-cost">{q ? <>{workMonths(q.work)}{q.crew.length ? ' · ' + t('crew {n}', { n: peopleNum(q.crew.reduce((n, c) => n + c.count, 0)) }) : ''}{q.power ? ' · ' + energy(q.power) : ''} · {fmtMonths(q.months)}</> : null}</span>
                 </button>
@@ -749,7 +751,7 @@ function BuildDetail({ obs, r, fac }: { obs: Observation; r: RegionView; fac: Fa
   return (
     <div class="works-detail" data-testid={`build-detail-${fac.kind}`}>
       <header class="wd-head">
-        <div><small>{tc(fac.category)}</small><h4>{tc(fac.name)}</h4><LineTag fac={fac} long /></div>
+        <div><small>{tc(fac.category)}{exclusiveStyle(fac.kind) ? ' · ' + t('{genre} works', { genre: t(PUNK[exclusiveStyle(fac.kind)!].name) }) : ''}</small><h4><ExclusiveIcon kind={fac.kind} size={20} /> {tc(fac.name)}</h4><LineTag fac={fac} long /></div>
         <strong class="wd-level">{built?.level ?? 0}<small> / {one?.cap ?? 0}</small></strong>
       </header>
       <p class="wd-desc">{tc(fac.description)}</p>

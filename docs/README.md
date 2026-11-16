@@ -4,6 +4,12 @@ The current design version is **v1.0**. This is an English-language, design-only
 
 ## Start here
 
+**The rules the game runs today are ruleset 3.1:
+[42 A playable game](design/42-playable-ruleset-3.1.md)** (one page: the standard victory
+contract, one kind of space station, public schooling, fewer goods and technologies, ten
+punk ages, households and prices). It takes precedence over the chapters below where they
+differ.
+
 1. [Complete v1.0 plan](design/30-complete-plan-v1.0.md): product, scope, time, interconnected systems, victory and development gates.
 2. [Knowledge and culture](design/31-knowledge-and-culture-v1.0.md): a fixed complete graph, dynamic discovery and implementation, prerequisite corrections, culture and education.
 3. [Population and education](design/32-population-and-education-v1.0.md): the simplified computational representation, conserved flows and preserved strategic feedback.
