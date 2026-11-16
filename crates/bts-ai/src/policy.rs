@@ -236,7 +236,9 @@ impl<'a> Plan<'a> {
             obs,
             diff,
             actions: Vec::new(),
-            budget: diff.candidates() * scale,
+            // (ruleset 3.1) a large realm has more to order: a tenth more for every
+            // region beyond ten, up to three times as much
+            budget: diff.candidates() * scale * (10 + obs.regions.iter().filter(|r| r.own.is_some()).count().saturating_sub(10)).min(30) / 10,
             avail,
             wanted: HashSet::new(),
             builds,
@@ -677,7 +679,9 @@ fn contact(obs: &Observation) -> Vec<Action> {
 const INTEGRATION_YEAR: i32 = 1850;
 
 fn integrating(diff: Difficulty, obs: &Observation) -> bool {
-    matches!(diff, Difficulty::Hard | Difficulty::Expert) && obs.date.as_ref().map(|d| d.year >= INTEGRATION_YEAR).unwrap_or(false) && obs.civ.overlord.is_none()
+    // the classic contract needs the whole world under one government; the standard
+    // one (ruleset 3.1) does not, and its policy goes to war for its own reasons only
+    !standard_rule(obs) && matches!(diff, Difficulty::Hard | Difficulty::Expert) && obs.date.as_ref().map(|d| d.year >= INTEGRATION_YEAR).unwrap_or(false) && obs.civ.overlord.is_none()
 }
 
 fn own_power(obs: &Observation) -> i64 {
@@ -1576,7 +1580,9 @@ fn research(ai: &NativeAi, p: &mut Plan) {
             }
         }
     }
-    let cap_for = |class: ResearchClass| -> i64 { obs.civ.research.iter().filter(|l| l.class >= class).map(|l| l.capacity).sum() };
+    // capacity of the class and above, and (ruleset 3.1) of lower classes at half
+    // the worth for every class of difference
+    let cap_for = |class: ResearchClass| -> i64 { obs.civ.research.iter().map(|l| if l.class >= class { l.capacity } else { l.capacity >> (class.index() - l.class.index()).min(20) }).sum() };
     let class_of = |handle: &Option<String>| -> Option<ResearchClass> { handle.as_ref().and_then(|h| obs.knowledge.techs.iter().find(|t| &t.handle == h)).map(|t| t.class) };
     let active = obs.projects.iter().filter(|x| x.kind == "research" && !x.paused).count();
     let mut cands: Vec<&TechCard> = obs.knowledge.techs.iter().filter(|t| t.can_investigate && cap_for(t.class) > 0).collect();
@@ -1827,6 +1833,11 @@ fn tradition_choice(obs: &Observation, slot: &str, seed: u64) -> Option<&'static
         if copper > 0 && hydro_sites >= 3 {
             consider((hydro_sites * 100 / 11).min(200) + wire_posts.min(100) + lean("wire"), "wire");
         }
+        // Gear and Spring: a seat of scholars and instrument makers without great
+        // coal, oil or water (and the fallback of a seat that has none of the three)
+        let craft_posts = posts_in(obs, &["instrument_shop", "workshop", "waterwheel"]) / 1_000;
+        let research: i64 = obs.civ.research.iter().map(|l| l.capacity).sum::<i64>() / 10_000;
+        consider(60 + craft_posts.min(80) + research.min(80) + lean("gear"), "gear");
         return best.map(|b| b.1);
     }
     let uranium = known_deposit(obs, Deposit::UraniumOre) / 1_000;
@@ -1853,6 +1864,17 @@ fn tradition_choice(obs: &Observation, slot: &str, seed: u64) -> Option<&'static
     // labour the binding constraint (few without posts) and electricity to spare
     if household * 10 < working * 3 && elec.0 > elec.1 {
         consider(120 + computing.min(100) / 2 + lean("synthetic"), "synthetic");
+    }
+    // Rocket and Orbit: a seat already in the race for the jump programme
+    let steps = obs.objectives.victory.as_ref().map(|v| v.steps.iter().filter(|c| c.ok).count() as i64).unwrap_or(0);
+    let launch = posts_in(obs, &["proving_ground", "launch_complex"]) / 1_000;
+    if steps > 0 || launch > 0 {
+        consider(90 + steps * 30 + launch.min(60) + lean("rocket"), "rocket");
+    }
+    // Sun and Commons: land and water, a settled people, little to dig
+    let hydro_sites = own.iter().filter(|r| r.survey.as_ref().map(|s| s.hydro > 0).unwrap_or(false)).count() as i64;
+    if arable_per_m > 0 && obs.civ.stability < 80 || hydro_sites >= 4 {
+        consider(70 + (hydro_sites * 10).min(60) + (arable_per_m * 100 / 10).min(60) + lean("sun"), "sun");
     }
     best.map(|b| b.1)
 }
@@ -2046,6 +2068,9 @@ fn eras(ai: &mut NativeAi, p: &mut Plan, regions: &[&RegionView], capital: &Regi
                 wants.push(("implant_clinic", 1));
             }
             "living" => wants.push(("biofoundry", 2 + pop / 40_000_000)),
+            "gear" => wants.push(("automaton_works", 2 + levels_of("machine_shop") / 2)),
+            "sun" => wants.push(("sun_gardens", 2 + pop / 20_000_000)),
+            "rocket" => wants.push(("rocket_works", 1 + levels_of("launch_complex") / 2)),
             "synthetic" => {
                 if obs.civ.admin_load + 2 >= obs.civ.admin_capacity {
                     wants.push(("machine_governance", 1));

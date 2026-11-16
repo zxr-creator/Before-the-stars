@@ -17,7 +17,7 @@ use crate::util::*;
 use bts_protocol::*;
 
 /// Learners a founding cohort can hold when nobody qualified can teach it.
-pub const FOUNDING_COHORT_MAX: i64 = 4_000;
+pub const FOUNDING_COHORT_MAX: i64 = 20_000;
 /// Teaching places a precinct of the Teaching Order hosts.
 const TEACHING_ORDER_PLACES: i64 = 16_000;
 
@@ -326,6 +326,22 @@ pub fn step(w: &mut World, seat: SeatId) {
                     break;
                 }
             }
+            // ruleset 3.1: research of a lower class can stand in, at half the worth
+            // for every class of difference, so that a seat with investigators of
+            // the wrong kind is slowed, never stopped
+            if got < progress {
+                let mut cost = 2i64;
+                for k in (0..class.index()).rev() {
+                    let take = ((progress - got) * cost).min(pools[k]);
+                    pools[k] -= take;
+                    used[k] += take;
+                    got += take / cost;
+                    cost *= 2;
+                    if got >= progress {
+                        break;
+                    }
+                }
+            }
             if got < progress {
                 blockers.push(format!("Not enough {} capacity", class.label().to_lowercase()));
             }
@@ -521,8 +537,11 @@ pub fn tech_site_ok(w: &World, seat: SeatId, tech: usize) -> bool {
         None => true,
         Some(key) => {
             let k = c.f(key);
-            // the installation must actually be running, not merely exist
-            w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(k).map(|f| f.level > 0 && f.run.as_ref().map(|x| x.rate_bp >= 2500 || (x.blockers & 1024 != 0 && f.staffed * 2 >= f.staff_needed)).unwrap_or(false)).unwrap_or(false))
+            // ruleset 3.1: the installation must stand and be switched on. (It used to
+            // have to run at a quarter rate that very month: a laboratory short of one
+            // input for a season stopped every investigation that depended on it, and
+            // the seat's whole programme with them.)
+            w.regions.iter().any(|r| r.controller == Some(seat) && r.fac(k).map(|f| f.level > 0 && f.enabled).unwrap_or(false))
                 || service_of_facility(key).map(|s| w.programme_access(seat, s)).unwrap_or(false)
                 || (key == "orbital_station" && w.programme_access(seat, ProgrammeService::OrbitalYard))
                 // a crewed station in orbit is the installation itself (ruleset 3.1)
@@ -902,13 +921,19 @@ fn step_programs(w: &mut World, seat: SeatId) {
                 }
             }
             let bootstrap = teacher_avail == 0;
-            let teach_limit = if bootstrap { FOUNDING_COHORT_MAX } else { teacher_avail * class_size };
+            // ruleset 3.1: instructors set the pace, not the size, of a cohort. A
+            // cohort with fewer instructors than its classes need takes longer, up
+            // to twice as long with none at all; only a founding cohort is capped.
+            let teach_limit = if bootstrap { FOUNDING_COHORT_MAX } else { i64::MAX };
             // entrants
             let qsum: u32 = r.quals.iter().sum();
             let unskilled = (working as i64 * 92 / 100 - qsum as i64 - r.students as i64).max(0);
             let mut entrant: Option<Qual> = None;
             let mut entrant_avail: i64 = 0;
-            for e in &course.entrants {
+            // ruleset 3.1: people without a qualification enrol first, whatever the
+            // course; holders of an earlier qualification only where there are none
+            // (a ladder of courses drained the lower rungs: no artisans left)
+            for e in course.entrants.iter().filter(|_| unskilled == 0) {
                 let a = match e {
                     None => unskilled,
                     Some(q) => {
@@ -926,10 +951,10 @@ fn step_programs(w: &mut World, seat: SeatId) {
             // none of its usual entrants is to be had, people without a qualification
             // enrol and take half as long again.
             let mut from_scratch = false;
-            if entrant_avail == 0 && unskilled > 0 && !course.entrants.contains(&None) {
+            if unskilled > 0 {
                 entrant = None;
                 entrant_avail = unskilled;
-                from_scratch = true;
+                from_scratch = !course.entrants.contains(&None);
             }
             if entrant_avail == 0 {
                 blockers.push("No eligible learners here".into());
@@ -942,11 +967,15 @@ fn step_programs(w: &mut World, seat: SeatId) {
                 w.civs[si].programs[i].blockers = blockers;
                 continue;
             }
-            let teachers_needed = if bootstrap { 0 } else { ((enrol + class_size - 1) / class_size).max(1) };
+            let teachers_wanted = ((enrol + class_size - 1) / class_size).max(1);
+            let teachers_needed = if bootstrap { 0 } else { teachers_wanted.min(teacher_avail) };
             let mut duration = course.months as i64;
             if bootstrap {
                 duration *= 2;
                 blockers.push("No qualified instructor: a founding cohort is working it out slowly".into());
+            } else if teachers_needed < teachers_wanted {
+                duration += duration * (teachers_wanted - teachers_needed) / teachers_wanted;
+                blockers.push("Too few instructors: larger classes, a longer course".into());
             }
             if from_scratch {
                 duration = duration * 3 / 2;

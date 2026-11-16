@@ -97,14 +97,16 @@ impl FieldMethod {
     }
 }
 
+// Ruleset 3.1: every method that rests on a technology yields a sixth to a third
+// more than under ruleset 3.0 (seats of every size sat at the food ceiling of their land).
 pub const FIELD_METHODS: [FieldMethod; 7] = [
     FieldMethod { key: "hand", name: "Hand cultivation", techs: &[], practices: &[], rations: 30_000, posts: 10_000, inputs: [0, 0, 0, 0] },
-    FieldMethod { key: "traction", name: "Animal traction", techs: &["T020"], practices: &[], rations: 46_000, posts: 8_000, inputs: [30, 0, 0, 0] },
-    FieldMethod { key: "rotation", name: "Rotation and manuring", techs: &["T020", "T011"], practices: &["C017"], rations: 60_000, posts: 8_000, inputs: [30, 0, 0, 0] },
-    FieldMethod { key: "inputs", name: "Fertilized fields", techs: &["T095"], practices: &[], rations: 120_000, posts: 6_000, inputs: [0, 150, 0, 0] },
-    FieldMethod { key: "mechanized", name: "Mechanized farming", techs: &["T094"], practices: &[], rations: 110_000, posts: 3_000, inputs: [0, 0, 0, 100] },
-    FieldMethod { key: "intensive", name: "Mechanized farming with fertilizer", techs: &["T094", "T095"], practices: &[], rations: 250_000, posts: 2_000, inputs: [0, 300, 0, 150] },
-    FieldMethod { key: "restorative", name: "Restorative mechanized farming", techs: &["T133", "T094", "T095"], practices: &[], rations: 380_000, posts: 1_500, inputs: [0, 200, 50, 150] },
+    FieldMethod { key: "traction", name: "Animal traction", techs: &["T020"], practices: &[], rations: 52_000, posts: 8_000, inputs: [30, 0, 0, 0] },
+    FieldMethod { key: "rotation", name: "Rotation and manuring", techs: &["T020", "T011"], practices: &["C017"], rations: 72_000, posts: 8_000, inputs: [30, 0, 0, 0] },
+    FieldMethod { key: "inputs", name: "Fertilized fields", techs: &["T095"], practices: &[], rations: 150_000, posts: 6_000, inputs: [0, 150, 0, 0] },
+    FieldMethod { key: "mechanized", name: "Mechanized farming", techs: &["T094"], practices: &[], rations: 150_000, posts: 3_000, inputs: [0, 0, 0, 100] },
+    FieldMethod { key: "intensive", name: "Mechanized farming with fertilizer", techs: &["T094", "T095"], practices: &[], rations: 330_000, posts: 2_000, inputs: [0, 300, 0, 150] },
+    FieldMethod { key: "restorative", name: "Restorative mechanized farming", techs: &["T133", "T094", "T095"], practices: &[], rations: 500_000, posts: 1_500, inputs: [0, 200, 50, 150] },
 ];
 
 pub fn field_method_index(key: &str) -> Option<usize> {
@@ -783,7 +785,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                     let irrigated = irrigated_left.min(levels);
                     irrigated_left -= irrigated;
                     if irrigated > 0 {
-                        opts.push(FoodOpt { yield_k: adj((y * 125 / 100).min(cap)), capacity: irrigated as u32 * field_crew, used: 0, tag: Tag::Farm, inp, per, field: true, act_bp: lp });
+                        opts.push(FoodOpt { yield_k: adj((y * 140 / 100).min(cap * 12 / 10)), capacity: irrigated as u32 * field_crew, used: 0, tag: Tag::Farm, inp, per, field: true, act_bp: lp });
                     }
                     if levels > irrigated {
                         opts.push(FoodOpt { yield_k: adj(y.min(cap)), capacity: (levels - irrigated) as u32 * field_crew, used: 0, tag: Tag::Farm, inp, per, field: true, act_bp: lp });
@@ -1407,11 +1409,13 @@ pub fn step(w: &mut World, seat: SeatId) {
     let motor_age = w.civs[si].knows_id("T094");
     // boost (design chapter 39, 4.2): the cap is what the launch stages' methods give
     // this month; what the stock lacks of it is all they may make
+    // (Rocket and Orbit, Atom: more boost from the same stages)
+    let boost_bp = crate::sim::eras::boost_bp(&w.civs[si]);
     let mut boost_cap = 0i64;
     for (pi, &ri) in regs.iter().enumerate() {
         for (fi, f) in w.regions[ri].facilities.iter().enumerate() {
             if let Some(m) = methods[pi][fi] {
-                boost_cap += c.facilities[f.kind].recipes[m].boost_cap * f.level as i64;
+                boost_cap += c.facilities[f.kind].recipes[m].boost_cap * f.level as i64 * boost_bp / 10_000;
             }
         }
     }
@@ -1543,7 +1547,7 @@ pub fn step(w: &mut World, seat: SeatId) {
             // a launch stage stands down at the boost cap: posts stay filled, nothing is drawn
             let mut standing_down = false;
             if rec.boost > 0 {
-                let full = rec.boost * level;
+                let full = rec.boost * level * boost_bp / 10_000;
                 let room = (boost_room * 10_000 / full.max(1)).min(10_000);
                 if room < rate {
                     rate = room;
@@ -1643,7 +1647,7 @@ pub fn step(w: &mut World, seat: SeatId) {
                 }
             }
             if rec.boost > 0 {
-                let made = rec.boost * level * rate / 10_000;
+                let made = rec.boost * level * boost_bp / 10_000 * rate / 10_000;
                 boost_room -= made;
                 let cs = &mut w.civs[si].space;
                 cs.boost += made;

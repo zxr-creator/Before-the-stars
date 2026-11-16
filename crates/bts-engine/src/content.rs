@@ -1504,7 +1504,9 @@ fn build_terms(key: &str) -> (Vec<(Vec<Qual>, u32)>, i64, u16) {
         "jump_yard" => (&[(&[Builder], 8_000), (&[Mechanic], 6_000), (&[Technician], 6_000), (&[Electrician], 4_000), (&[FtlEngineer], 4_000)], 400.0, 48),
         "jump_base" => (&[(&[Builder], 4_000), (&[Technician], 3_000), (&[Electrician], 2_000), (&[Orbital], 3_000), (&[FtlEngineer], 2_000)], 200.0, 24),
         // tradition works
-        "steam_hammer" | "motor_works" => (&[(B, 1_000), (ME, 500)], 5.0, 6),
+        "steam_hammer" | "motor_works" | "automaton_works" => (&[(B, 1_000), (ME, 500)], 5.0, 6),
+        "sun_gardens" => (&[(B, 1_000), (EL, 300)], 5.0, 6),
+        "rocket_works" => (&[(&[Builder], 4_000), (&[Mechanic], 2_000), (&[Technician], 2_000)], 60.0, 18),
         "tramways" => (&[(B, 2_000), (EL, 500)], 10.0, 12),
         "compact_reactor" => (&[(&[Builder], 1_000), (&[Technician], 500), (&[Electrician], 500), (&[Scientist], 200)], 20.0, 24),
         "isotope_works" | "biofoundry" => (&[(B, 1_000), (MT, 500)], 10.0, 9),
@@ -1791,9 +1793,9 @@ fn facilities() -> Vec<FacDef> {
         fac("granary", "Granaries", "Food", "Dry stores with custodians. Each level keeps 2.5 million rations and slows spoilage.")
             .req("T007").cost(&[(Materials, 6.0)]).work(20.0).general(1_000).provides(Cap::Storage, 2500.0).people(Cap::Provision, 300_000)
             .labor(L::Services).tags(&[Tag::Farm, Tag::Record]),
-        fac("irrigation", "Irrigation works", "Food", "Channels and gates. Each level waters five levels of fields.")
+        fac("irrigation", "Irrigation works", "Food", "Channels and gates. Each level waters eight levels of fields, which yield two fifths more and suffer half as much from a bad year.")
             .req("T011").site(Site::River).cost(&[(Materials, 8.0), (Tools, 1.0)]).work(40.0).general(1_000)
-            .provides(Cap::Irrigation, 5.0).labor(L::Services).tags(&[Tag::Water, Tag::Farm]).scale(1, "C008"),
+            .provides(Cap::Irrigation, 8.0).labor(L::Services).tags(&[Tag::Water, Tag::Farm]).scale(1, "C008"),
         // ---- extraction -------------------------------------------------
         // ruleset 3.0 splits timber from building materials (design chapter 36, 5.2)
         fac("camp", "Forestry camps", "Extraction", "Felling and hauling timber within what the forest renews: fuel for furnaces, ships, handles and frames.")
@@ -1961,10 +1963,10 @@ fn facilities() -> Vec<FacDef> {
             .upkeep(&[(Spares, 0.8)]).labor(L::Industry).tags(&[Tag::Fuel, Tag::Chem]),
         // ruleset 3.0 (design chapter 36, section 3.3): food from electricity, chemicals
         // and the carbon of the air (a declared atmospheric-input recipe), not limited by land
-        fac("food_synthesis", "Food synthesis works", "Industry", "Food made from electricity, chemicals and the carbon of the air: not limited by land, only by power and inputs. Two hundred thousand rations a month per level.")
+        fac("food_synthesis", "Food synthesis works", "Industry", "Food made from electricity, chemicals and the carbon of the air: not limited by land, only by power and inputs. Six hundred thousand rations a month per level.")
             .req("T132 & T135").cost(&[(Metal, 30.0), (Components, 15.0), (Conductors, 6.0), (Instruments, 4.0)]).work(400.0)
             .skilled(&[Q::Technician], 2_000).general(2_000)
-            .recipe(rec("food_synthesis", "Atmospheric food synthesis").inp(&[(Chemicals, 4.0)]).out(&[(Food, 200.0)]).elec(400.0))
+            .recipe(rec("food_synthesis", "Atmospheric food synthesis").inp(&[(Chemicals, 4.0)]).out(&[(Food, 600.0)]).elec(300.0))
             .upkeep(&[(Spares, 0.5)]).labor(L::Industry).tags(&[Tag::Chem, Tag::Bio]),
         fac("purifier", "High-purity materials works", "Industry", "Electrochemical purification into substrates that ordinary glass or metal cannot replace.")
             .req("T103").cost(&[(Metal, 20.0), (Components, 10.0), (Conductors, 6.0), (Instruments, 4.0)]).work(300.0)
@@ -2056,6 +2058,9 @@ fn facilities() -> Vec<FacDef> {
             .req("T103").cost(&[(Metal, 10.0), (Components, 6.0), (Instruments, 2.0), (Materials, 6.0)]).work(200.0)
             .skilled(&[Q::Technician], 1_000).general(1_500)
             .recipe(rec("magnets", "Rare-earth magnets").inp(&[(RareEarths, 3.0), (Metal, 1.0), (Chemicals, 0.5)]).out(&[(Magnets, 1.0)]).elec(40.0))
+            // ruleset 3.1: a seat without rare earths is slowed, not shut out of
+            // everything that needs a magnet (laboratories, lattice, jump assemblies)
+            .recipe(rec("ferrite", "Ferrite magnets and wound coils").inp(&[(Metal, 2.0), (Copper, 1.0), (Chemicals, 0.5)]).out(&[(Magnets, 0.5)]).elec(80.0))
             .upkeep(&[(Spares, 0.2)]).labor(L::Industry).tags(&[Tag::Electric, Tag::Chem]),
         fac("battery_works", "Battery works", "Industry", "Electrochemical cells and packs: storage, electric transport and autonomous forces.")
             .req("T105").cost(&[(Metal, 10.0), (Components, 6.0), (Instruments, 2.0), (Materials, 6.0)]).work(200.0)
@@ -2413,6 +2418,22 @@ fn facilities() -> Vec<FacDef> {
             .skilled(&[Q::Mechanic, Q::Smith, Q::Artisan], 4_000).general(6_000)
             .recipe(rec("forging", "Steam forging").inp(&[(Metal, 12.5), (Tools, 0.8), (Coal, 1.5)]).out(&[(Components, 10.0)]).shaft(40.0))
             .upkeep(&[(Tools, 1.0)]).labor(L::Industry).tags(&[Tag::Machine, Tag::Steam, Tag::Metal]),
+        // ---- ruleset 3.1: the works of the three new paths ----
+        fac("automaton_works", "Automaton works", "Industry", "Clockwork lathes and self-acting engines driven by springs and falling weights: components and instruments from metal with no engine house at all. Gear and Spring only.")
+            .req("T061 & TRAD:gear").cost(&[(Metal, 10.0), (Tools, 6.0), (Materials, 8.0)]).work(140.0)
+            .skilled(&[Q::Artisan, Q::Mechanic, Q::Smith], 3_000).general(3_000)
+            .recipe(rec("clockwork", "Clockwork manufacture").inp(&[(Metal, 12.5), (Tools, 0.6)]).out(&[(Components, 8.0), (Instruments, 2.0)]))
+            .upkeep(&[(Tools, 0.5)]).labor(L::Industry).tags(&[Tag::Machine, Tag::Measure]),
+        fac("sun_gardens", "Sun gardens", "Power", "Glass, mirrors, wind and stored heat over the roofs of a town: 80 units of electricity a level with no fuel and no smoke. Sun and Commons only.")
+            .req("T100 & TRAD:sun").cost(&[(Metal, 8.0), (Conductors, 4.0), (Components, 2.0), (Materials, 12.0)]).work(200.0)
+            .skilled(&[Q::Electrician, Q::Technician], 500).general(1_000)
+            .recipe(rec("sunlight", "Sun and wind").gives_elec(80.0))
+            .upkeep(&[(Spares, 0.1)]).labor(L::Industry).tags(&[Tag::Electric]).power(),
+        fac("rocket_works", "Rocket works", "Space", "Boosters built in series on a moving line and flown from the works' own pads: 600 t of boost a level-month for half the propellant of a launch complex. Rocket and Orbit only.")
+            .req("T140 & TRAD:rocket").cost(&[(Metal, 40.0), (Components, 30.0), (Electronics, 10.0)]).work(1500.0)
+            .skilled(&[Q::Technician], 4_000).skilled(&[Q::Mechanic], 4_000).skilled(&[Q::Scientist], 1_000).general(6_000)
+            .recipe(rec("serial_rockets", "Serial rocket production").inp(&[(Fuel, 16.0), (Metal, 2.0), (Components, 1.0), (Electronics, 0.2)]).elec(100.0).boost(600, 2_400))
+            .upkeep(&[(Spares, 1.0)]).labor(L::Industry).tags(&[Tag::Space, Tag::Fuel]).max(4),
         fac("motor_works", "Motor works", "Industry", "Engines and vehicles built on moving lines: components from fewer hands, burning fuel on the test beds. Oil and Engine only.")
             .req("T280 & TRAD:engine").cost(&[(Metal, 14.0), (Components, 4.0), (Tools, 4.0), (Materials, 8.0)]).work(150.0)
             .skilled(&[Q::Mechanic, Q::Technician], 2_000).general(2_500)
@@ -2597,6 +2618,9 @@ pub fn line_meta(key: &str) -> (&'static str, u8, u8) {
         // tradition works: lines of their own, so that no generic stage upgrades into them
         "steam_hammer" => ("tradition_steam", 1, 4),
         "motor_works" => ("tradition_engine", 1, 5),
+        "automaton_works" => ("tradition_gear", 1, 4),
+        "sun_gardens" => ("tradition_sun", 1, 6),
+        "rocket_works" => ("tradition_rocket", 1, 6),
         "tramways" => ("tradition_wire", 1, 5),
         "compact_reactor" => ("tradition_atom", 1, 7),
         "isotope_works" => ("tradition_atom_isotopes", 1, 7),

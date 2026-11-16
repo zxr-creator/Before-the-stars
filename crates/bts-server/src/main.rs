@@ -520,7 +520,7 @@ fn run(args: &Args) {
                     let start = std::time::Instant::now();
                     let (s, rows) = run_one(cfg, &args, rounds, u32::MAX, false);
                     let secs = start.elapsed().as_secs_f64();
-                    results.lock().unwrap().push((i, seed, s.m.winner(), s.m.month(), s.m.diagnostics(), rows, secs));
+                    results.lock().unwrap().push((i, seed, s.m.winner(), s.m.month(), s.m.diagnostics(), rows, secs, s.m.outcome().map(|o| o.0).unwrap_or_default()));
                 }
             })
         })
@@ -531,12 +531,15 @@ fn run(args: &Args) {
     let mut results = std::mem::take(&mut *results.lock().unwrap());
     results.sort_by_key(|r| r.0);
     let mut all_rows = Vec::new();
-    for (i, seed, winner, month, diag, rows, secs) in results {
-        let line: Vec<String> = diag.iter().map(|d| format!("{}:{}p/{}r/{}t", d.seat, d.population, d.regions, d.understood)).collect();
+    let mut kinds: std::collections::BTreeMap<String, u32> = Default::default();
+    for (i, seed, winner, month, diag, rows, secs, kind) in results {
+        let line: Vec<String> = diag.iter().map(|d| format!("{}:{}M/{}r/{}t/{}s/{}st", d.seat, d.population / 1_000_000, d.regions, d.understood, d.steps, d.stations)).collect();
         let date = bts_engine::calendar::year_label(run_config(args).calendar.date(month).0);
-        println!("match {i:>2}  winner {:?}  month {month:>5} ({date})  {:.1}s  {}", winner, secs, line.join("  "));
+        println!("match {i:>2}  winner {:?} {kind:<9}  {date:<8} {:.0}s  {}", winner, secs, line.join("  "));
+        *kinds.entry(if kind.is_empty() { "unfinished".into() } else { kind }).or_default() += 1;
         all_rows.extend(rows.into_iter().map(|r| (seed.clone(), r)));
     }
+    println!("outcomes: {}", kinds.iter().map(|(k, n)| format!("{k} {n}")).collect::<Vec<_>>().join(", "));
     if let Some(path) = args.flags.get("curve") {
         write_curve(path, &all_rows);
     }

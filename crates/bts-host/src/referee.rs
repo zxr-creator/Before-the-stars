@@ -242,6 +242,9 @@ struct NewMatch {
     controllers: Option<Vec<String>>,
     #[serde(default)]
     disclosed_objective: Option<bool>,
+    /// "standard" (ruleset 3.1, the default) or "classic" (design chapter 15).
+    #[serde(default)]
+    victory: Option<String>,
     #[serde(default)]
     public_seed: Option<bool>,
     /// Per-seat options for LLM agent seats, keyed by seat number.
@@ -368,6 +371,11 @@ fn config_from<A: AgentSlot>(n: NewMatch) -> Result<MatchConfig, String> {
     if let Some(d) = n.disclosed_objective {
         cfg.disclosed_objective = d;
     }
+    match n.victory.as_deref() {
+        None | Some("standard") => {}
+        Some("classic") => cfg.victory = VictoryRule::Classic,
+        Some(other) => return Err(format!("unknown victory contract '{other}': use 'standard' or 'classic'")),
+    }
     if let Some(p) = n.public_seed {
         cfg.public_seed = p;
     }
@@ -410,6 +418,11 @@ pub struct MatchSummary {
     pub window: u8,
     pub finished: bool,
     pub winner: Option<SeatId>,
+    /// How the match ended ("jump", "supremacy", "standing", "classic", "none") and why.
+    pub outcome_kind: Option<String>,
+    pub outcome_reason: Option<String>,
+    /// The victory contract: "standard" or "classic".
+    pub victory: String,
     pub disclosed_objective: bool,
     pub waiting_on: Vec<SeatId>,
     pub seats: Vec<SeatSummary>,
@@ -648,6 +661,9 @@ impl<A: AgentSlot> Host<A> {
             window: s.m.window(),
             finished: s.m.finished(),
             winner: s.m.winner(),
+            outcome_kind: s.m.outcome().map(|o| o.0),
+            outcome_reason: s.m.outcome().map(|o| o.1),
+            victory: if cfg.victory == VictoryRule::Classic { "classic".into() } else { "standard".into() },
             disclosed_objective: cfg.disclosed_objective,
             waiting_on: s.m.waiting_on(),
             seats: (0..s.m.seats())

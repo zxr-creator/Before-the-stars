@@ -31,9 +31,9 @@ const RESERVE_PCT: u64 = 10;
 const FLOOR_BP: u64 = 30;
 const FLOOR_MAX: u64 = 40_000;
 /// The literate share general schooling aims for, per ten thousand of working age.
-const LITERATE_BP: u64 = 2_000;
+const LITERATE_BP: u64 = 1_000;
 /// Programmes the referee keeps for one seat at most.
-const AUTO_MAX: usize = 120;
+const AUTO_MAX: usize = 160;
 /// The smallest cohort worth opening a programme for.
 const MIN_SEATS: u64 = 500;
 
@@ -92,81 +92,74 @@ pub fn step(w: &mut World, seat: SeatId) {
         training[c.courses[p.course].output.index()] += p.enrolled as u64;
     }
 
-    // ---- the gap of each qualification the seat can teach ----------------------------
-    let mut gaps: Vec<(usize, u64, u64)> = Vec::new(); // (qual, gap, target)
-    let mut surplus = [false; NQ];
+    // ---- every year the places are dealt afresh: idle programmes of the referee's are
+    // closed, and a running cohort keeps only the places it fills
+    {
+        let civ = &mut w.civs[si];
+        civ.programs.retain(|p| !(p.auto && p.enrolled == 0));
+        for p in civ.programs.iter_mut().filter(|p| p.auto) {
+            p.seats = p.enrolled;
+        }
+    }
+
+    // ---- the gap of each qualification the seat can teach: posts first, floors after
+    let mut gaps: Vec<(usize, u64, u64, bool)> = Vec::new(); // (qual, gap, target, for posts)
     for q in 0..NQ {
         let qual = Qual::ALL[q];
         if !c.courses.iter().enumerate().any(|(i, course)| course.output == qual && ctx_ok[i]) {
             continue;
         }
-        let floor = if qual == Qual::Literate { working * LITERATE_BP / 10_000 } else { (working * FLOOR_BP / 10_000).min(FLOOR_MAX) };
-        let target = (need[q] * (100 + RESERVE_PCT) / 100).max(floor);
         let stock = have[q] + training[q];
-        if stock < target {
-            gaps.push((q, target - stock, target));
-        } else if stock * 100 > target * 125 {
-            surplus[q] = true;
+        let posts = need[q] * (100 + RESERVE_PCT) / 100;
+        let floor = if qual == Qual::Literate { working * LITERATE_BP / 10_000 } else { (working * FLOOR_BP / 10_000).min(FLOOR_MAX) };
+        if stock < posts {
+            gaps.push((q, posts - stock, posts, true));
+        }
+        if stock.max(posts) < floor {
+            gaps.push((q, floor - stock.max(posts), floor, false));
         }
     }
-    // the most depleted first
-    gaps.sort_by_key(|(q, gap, target)| (std::cmp::Reverse(gap * 1000 / (*target).max(1)), *q));
+    // real posts before standing floors; within each, the most depleted first
+    gaps.sort_by_key(|(q, gap, target, posts)| (!*posts, std::cmp::Reverse(gap * 1000 / (*target).max(1)), *q));
 
-    // ---- close what is no longer needed: idle programmes of a qualification in surplus
-    {
-        let civ = &mut w.civs[si];
-        civ.programs.retain(|p| !(p.auto && p.enrolled == 0 && surplus[c.courses[p.course].output.index()]));
-        // and those whose region the seat no longer governs are dropped by step_programs
-    }
-
-    // ---- open or grow programmes into the free places --------------------------------
+    // ---- open this year's cohorts in the free places ---------------------------------
     let mut short_places: Vec<Qual> = Vec::new();
-    for (q, gap, _) in gaps {
+    for (q, gap, _, for_posts) in gaps {
         let qual = Qual::ALL[q];
-        // the shortest available course that gives the qualification
-        let Some(ci) = (0..c.courses.len()).filter(|i| c.courses[*i].output == qual && ctx_ok[*i]).min_by_key(|i| (c.courses[*i].months, *i)) else { continue };
-        let course = &c.courses[ci];
+        // the courses that give the qualification, shortest first: a longer course
+        // in another kind of venue takes what the shortest cannot seat
+        let mut courses: Vec<usize> = (0..c.courses.len()).filter(|i| c.courses[*i].output == qual && ctx_ok[*i]).collect();
+        courses.sort_by_key(|i| (c.courses[*i].months, *i));
         let mut left = gap;
-        // where the vacancies are, then where the people are
-        let mut order: Vec<usize> = (0..regions.len()).collect();
-        order.sort_by_key(|k| (std::cmp::Reverse(vacant_in[*k][q]), std::cmp::Reverse(w.regions[regions[*k]].working()), regions[*k]));
         let mut placed = 0u64;
-        for k in order {
-            if left < MIN_SEATS.min(gap) {
-                break;
-            }
-            let ri = regions[k];
-            let (cap, reserved) = crate::sim::projects::venue_seats(w, seat, ri, course.venue);
-            let places_bp = crate::sim::eras::course_places_bp(&w.civs[si], &course.id);
-            let free = ((cap - reserved).max(0) as u64) * places_bp as u64 / 10_000;
-            if free < MIN_SEATS.min(gap) {
-                continue;
-            }
-            let add = left.min(free).min(crate::actions::PROGRAM_SEATS_MAX as u64);
-            let civ = &mut w.civs[si];
-            if let Some(p) = civ.programs.iter_mut().find(|p| p.auto && p.course == ci && p.region as usize == ri) {
-                p.seats = (p.seats as u64 + add).min(crate::actions::PROGRAM_SEATS_MAX as u64) as u32;
-                p.paused = false;
-            } else {
-                if civ.programs.iter().filter(|p| p.auto).count() >= AUTO_MAX || civ.programs.len() >= 200 {
-                    break;
+        'courses: for ci in courses {
+            let course = &c.courses[ci];
+            // where the vacancies are, then where the people are
+            let mut order: Vec<usize> = (0..regions.len()).collect();
+            order.sort_by_key(|k| (std::cmp::Reverse(vacant_in[*k][q]), std::cmp::Reverse(w.regions[regions[*k]].working()), regions[*k]));
+            for k in order {
+                if left < MIN_SEATS.min(gap) {
+                    break 'courses;
                 }
+                let ri = regions[k];
+                let (cap, reserved) = crate::sim::projects::venue_seats(w, seat, ri, course.venue);
+                let places_bp = crate::sim::eras::course_places_bp(&w.civs[si], &course.id);
+                let free = ((cap - reserved).max(0) as u64) * places_bp as u64 / 10_000;
+                if free < MIN_SEATS.min(gap) {
+                    continue;
+                }
+                if w.civs[si].programs.iter().filter(|p| p.auto).count() >= AUTO_MAX || w.civs[si].programs.len() >= 200 {
+                    break 'courses;
+                }
+                let add = left.min(free).min(crate::actions::PROGRAM_SEATS_MAX as u64);
                 let id = w.id();
                 w.civs[si].programs.push(Program { id, course: ci, region: ri as RegionId, seats: add as u32, enrolled: 0, entrant: None, teachers: 0, teacher_qual: None, progress: 0, duration: course.months, graduates: 0, paused: false, blockers: vec![], last_grad: 0, auto: true });
+                left -= add;
+                placed += add;
             }
-            left -= add;
-            placed += add;
         }
-        if placed == 0 && gap >= MIN_SEATS {
+        if for_posts && placed * 2 < gap && gap >= MIN_SEATS {
             short_places.push(qual);
-        }
-    }
-    // idle auto programmes shrink back to what their last cohort filled, so that
-    // booked places do not stand empty while another course wants them
-    for p in w.civs[si].programs.iter_mut().filter(|p| p.auto && p.enrolled == 0 && p.graduates > 0) {
-        let filled = p.blockers.iter().all(|b| !b.contains("fewer places"));
-        if !filled {
-            p.seats = (p.seats / 2).max(MIN_SEATS as u32);
         }
     }
     if !short_places.is_empty() && w.first_month_of_round() {

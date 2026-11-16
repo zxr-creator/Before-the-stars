@@ -180,7 +180,7 @@ pub struct TraditionDef {
     pub pulls: &'static [usize],
 }
 
-pub const TRADITIONS: [TraditionDef; 7] = [
+pub const TRADITIONS: [TraditionDef; 10] = [
     TraditionDef {
         key: "steam",
         slot: 0,
@@ -279,7 +279,143 @@ pub const TRADITIONS: [TraditionDef; 7] = [
         drawbacks: &["Compute and power hunger of the lights-out works", "Labour displacement: stability -2 for every tenth of general posts automated away"],
         pulls: &[1],
     },
+    // ---- ruleset 3.1: three more paths (appended: saved indices of the first seven hold) ----
+    TraditionDef {
+        key: "gear",
+        slot: 0,
+        name: "Clockpunk",
+        sober: "Gear and Spring",
+        desc: "Springs, escapements and cut gears: automaton works that need no engine, an instrument on every bench, machines built to outlast their makers.",
+        favoured: "craftsmen, instrument makers and mill streams",
+        signature: &["instrument_shop", "waterwheel", "workshop", "automaton_works"],
+        exclusive: &["automaton_works"],
+        variant: "No formation variant: the drill book is unchanged",
+        variant_tiers: &[],
+        drawbacks: &["Hand-fitted: every works takes a tenth more construction work", "No brute power: it adds nothing to heavy industry beyond its own works"],
+        pulls: &[1],
+    },
+    TraditionDef {
+        key: "sun",
+        slot: 1,
+        name: "Solarpunk",
+        sober: "Sun and Commons",
+        desc: "Sunlight, wind and shared works: sun gardens that light a town without fuel, clean air and water, long and settled lives.",
+        favoured: "arable land, rivers and open sky",
+        signature: &["hydro", "sun_gardens", "water_treatment", "hospital"],
+        exclusive: &["sun_gardens"],
+        variant: "No formation variant: the drill book is unchanged",
+        variant_tiers: &[],
+        drawbacks: &["Gentle on the land: mines, wells and camps work up to 15% less well", "A people slow to arms: up to a fifth less recruit room"],
+        pulls: &[3],
+    },
+    TraditionDef {
+        key: "rocket",
+        slot: 1,
+        name: "Rocketpunk",
+        sober: "Rocket and Orbit",
+        desc: "Gantries, slide rules and the high frontier: rocket works that turn out boosters in series, and a people that looks up.",
+        favoured: "fuel, metal and room to launch",
+        signature: &["proving_ground", "launch_complex", "rocket_works", "refinery"],
+        exclusive: &["rocket_works"],
+        variant: "No formation variant: the drill book is unchanged",
+        variant_tiers: &[],
+        drawbacks: &["The programme comes first: services work up to a tenth less well", "Fuel hunger of the rocket works"],
+        pulls: &[6],
+    },
 ];
+
+/// What a path looks and feels like (ruleset 3.1): the name its age takes, the
+/// visual style of its towns and works, and its effects at full strength.
+pub struct PunkDef {
+    pub key: &'static str,
+    pub age: &'static str,
+    pub style: &'static str,
+    pub effects: &'static [&'static str],
+}
+
+pub const PUNK: [PunkDef; 10] = [
+    PunkDef { key: "steam", age: "Age of Steam", style: "steam", effects: &["Industry works +30% labour productivity", "Construction +15%", "Railway regions carry a quarter more freight", "Industrial research +10%"] },
+    PunkDef { key: "engine", age: "Diesel Age", style: "diesel", effects: &["Mines, wells and camps +25% labour productivity", "Construction +15%, and every works is built in up to a fifth less time", "Recruit room +25%"] },
+    PunkDef { key: "wire", age: "Electric Age", style: "electric", effects: &["Services +25% labour productivity", "Knowledge works +10%", "Industrial research +15%"] },
+    PunkDef { key: "gear", age: "Clockwork Age", style: "clockwork", effects: &["Scholarly and industrial research +25%, experimental science +15%", "Every works costs up to a quarter less upkeep", "Knowledge works +15%, industry +10% labour productivity"] },
+    PunkDef { key: "atom", age: "Atomic Age", style: "atomic", effects: &["Advanced and frontier research +20%", "Launch stages make a quarter more boost"] },
+    PunkDef { key: "network", age: "Neon Age", style: "neon", effects: &["Computing centres deliver a quarter more", "Advanced research +20%", "Services +20% labour productivity", "Administrative capacity +30%", "Stability -2: everyone is watched"] },
+    PunkDef { key: "living", age: "Age of Living Machines", style: "organic", effects: &["Fields, pastures and fisheries +25% labour productivity", "Health +4 points"] },
+    PunkDef { key: "synthetic", age: "Age of Synthetic Minds", style: "chrome", effects: &["Industry works +20% labour productivity", "The ceiling of automation rises by a fifth", "Advanced and frontier research +15%"] },
+    PunkDef { key: "sun", age: "Solar Age", style: "solar", effects: &["Stability +6", "Health +3 points", "Food +15% labour productivity", "Every works costs up to a fifth less upkeep"] },
+    PunkDef { key: "rocket", age: "Rocket Age", style: "rocket", effects: &["Launch stages make half as much boost again", "Launch and orbital works take up to 30% less construction work", "Frontier research +15%"] },
+];
+
+pub fn punk_def(key: &str) -> &'static PunkDef {
+    PUNK.iter().find(|p| p.key == key).expect("every tradition has its look")
+}
+
+/// Strength of a held path, basis points (0 when not held): a quarter for holding
+/// it, three eighths from mastery, three eighths from its branch technologies
+/// understood (from mastery where the path has no branch). Its effects scale with
+/// it. Cached once a month in [`EraState::strength`].
+pub fn strength(civ: &Civ, key: &str) -> i64 {
+    let Some(i) = tradition_index(key) else { return 0 };
+    for s in 0..2 {
+        if civ.era.traditions[s] == Some(i as u8) {
+            return civ.era.strength[s] as i64;
+        }
+    }
+    0
+}
+
+/// Branch technologies of a path the seat understands, and how many the path has.
+pub fn branch_counts(civ: &Civ, key: &str) -> (i64, i64) {
+    let c = content();
+    let (mut known, mut total) = (0, 0);
+    for (i, t) in c.techs.iter().enumerate() {
+        if t.tradition.as_deref() == Some(key) {
+            total += 1;
+            if civ.knows(i) {
+                known += 1;
+            }
+        }
+    }
+    (known, total)
+}
+
+fn strength_now(civ: &Civ, slot: usize) -> u16 {
+    let Some(p) = civ.era.traditions[slot] else { return 0 };
+    let key = TRADITIONS[p as usize].key;
+    let m = civ.era.mastery[slot] as i64;
+    let (known, total) = branch_counts(civ, key);
+    let b = if total > 0 { 10_000 * known / total } else { m };
+    (2_500 + 3_750 * m / 10_000 + 3_750 * b / 10_000).clamp(0, 10_000) as u16
+}
+
+/// The name of the seat's age: its frontier path's, else its machine path's, else
+/// the era's own.
+pub fn age_name(civ: &Civ) -> String {
+    for s in [1usize, 0] {
+        if let Some(p) = civ.era.traditions[s] {
+            return punk_def(TRADITIONS[p as usize].key).age.to_string();
+        }
+    }
+    format!("{} era", ERA_NAMES[civ.era.era as usize])
+}
+
+/// What the held paths add to a sector's labour productivity, basis points.
+pub fn punk_sector(civ: &Civ, sector: Sector) -> i64 {
+    let s = |k: &str, bp: i64| bp * strength(civ, k) / 10_000;
+    match sector {
+        Sector::Industry => s("steam", 3_000) + s("synthetic", 2_000) + s("gear", 1_000),
+        Sector::Construction => s("steam", 1_500) + s("engine", 1_500),
+        Sector::Extraction => s("engine", 2_500) - s("sun", 1_500),
+        Sector::Services => s("wire", 2_500) + s("network", 2_000) - s("rocket", 1_000),
+        Sector::Knowledge => s("gear", 1_500) + s("wire", 1_000),
+        Sector::Food => s("living", 2_500) + s("sun", 1_500),
+    }
+}
+
+/// Factor on the boost launch stages make (Rocket and Orbit, Atom), basis points.
+pub fn boost_bp(civ: &Civ) -> i64 {
+    10_000 + 5_000 * strength(civ, "rocket") / 10_000 + 2_500 * strength(civ, "atom") / 10_000
+}
 
 pub fn tradition_index(key: &str) -> Option<usize> {
     TRADITIONS.iter().position(|t| t.key == key)
@@ -362,6 +498,9 @@ pub struct EraState {
     /// Held path per slot (indices into [`TRADITIONS`]).
     pub traditions: [Option<u8>; 2],
     pub mastery: [u16; 2],
+    /// Strength of the held paths, basis points, reckoned once a month ([`strength`]).
+    #[serde(default)]
+    pub strength: [u16; 2],
     /// Month the last switch in each slot completed.
     pub switched: [Option<Month>; 2],
     /// Paths switched away from, and the month they stopped being held.
@@ -1019,6 +1158,10 @@ pub fn tradition_activity(w: &World, seat: SeatId, key: &str) -> i64 {
 fn step_traditions(w: &mut World, seat: SeatId) {
     let si = seat as usize;
     let month = w.month;
+    for s in 0..2 {
+        let v = strength_now(&w.civs[si], s);
+        w.civs[si].era.strength[s] = v;
+    }
     // mastery once a year, in January
     if crate::util::date(&w.cfg, month).1 != 1 {
         return;
@@ -1206,6 +1349,11 @@ pub fn stability_delta(w: &World, seat: SeatId) -> i64 {
     if civ.projects.iter().any(|p| matches!(p.kind, ProjKind::TraditionReform { .. })) {
         d -= 5;
     }
+    // Sun and Commons; the watched cities of the Network
+    d += 6 * strength(civ, "sun") / 10_000;
+    if held(civ, "network") {
+        d -= 2;
+    }
     // oil dependence
     if held(civ, "engine") {
         let fuel = civ.stock_of(Good::Fuel);
@@ -1281,6 +1429,17 @@ pub fn research_terms(civ: &Civ, class: ResearchClass, month: Month) -> (i64, i6
     if matches!(class, ResearchClass::Advanced | ResearchClass::Frontier) && charter_held(civ, "compute_commons") {
         f = f * 11_000 / 10_000;
     }
+    // the held paths (ruleset 3.1)
+    let s = |k: &str, bp: i64| bp * strength(civ, k) / 10_000;
+    let add = match class {
+        ResearchClass::Craft => s("gear", 1_000),
+        ResearchClass::Scholarly => s("gear", 2_500),
+        ResearchClass::Scientific => s("gear", 1_500),
+        ResearchClass::Industrial => s("gear", 2_500) + s("wire", 1_500) + s("steam", 1_000),
+        ResearchClass::Advanced => s("atom", 2_000) + s("network", 2_000) + s("synthetic", 1_500),
+        ResearchClass::Frontier => s("atom", 2_000) + s("synthetic", 1_500) + s("rocket", 1_500),
+    };
+    f = f * (10_000 + add) / 10_000;
     (f, minus)
 }
 
@@ -1305,6 +1464,7 @@ pub fn recruit_bp(civ: &Civ, month: Month) -> i64 {
     if dark(civ, month) {
         f = f * 11_000 / 10_000;
     }
+    f = f * (10_000 + 2_500 * strength(civ, "engine") / 10_000 - 2_000 * strength(civ, "sun") / 10_000) / 10_000;
     f
 }
 
@@ -1328,6 +1488,7 @@ pub fn admin_terms(w: &World, seat: SeatId, base: i64) -> i64 {
     if charter_held(civ, "machine_stewardship") {
         cap = cap * 3 / 2;
     }
+    cap = cap * (10_000 + 3_000 * strength(civ, "network") / 10_000) / 10_000;
     cap
 }
 
@@ -1362,7 +1523,7 @@ pub fn sector_lp_add(civ: &Civ, sector: Sector, month: Month) -> i64 {
         }
         _ => {}
     }
-    d
+    d + punk_sector(civ, sector)
 }
 
 /// Names of what bears on a sector, for the productivity breakdown.
@@ -1377,22 +1538,29 @@ pub fn sector_lp_notes(civ: &Civ, sector: Sector, month: Month) -> Vec<String> {
     if sector == Sector::Construction && golden(civ, month) {
         out.push("A golden age".into());
     }
+    if punk_sector(civ, sector) != 0 {
+        for p in civ.era.traditions.iter().flatten() {
+            let t = &TRADITIONS[*p as usize];
+            out.push(format!("Tradition: {} ({})", t.name, t.sober));
+        }
+    }
     out
 }
 
 pub fn health_add(civ: &Civ) -> i64 {
-    if charter_held(civ, "factory_acts") { 300 } else { 0 }
+    (if charter_held(civ, "factory_acts") { 300 } else { 0 }) + 400 * strength(civ, "living") / 10_000 + 300 * strength(civ, "sun") / 10_000
 }
 
 /// The ceiling of automation of qualified posts for a seat.
 pub fn auto_cap(civ: &Civ) -> i64 {
-    if charter_held(civ, "human_primacy") {
+    let base = if charter_held(civ, "human_primacy") {
         12_500
     } else if charter_held(civ, "automation_drive") {
         16_000
     } else {
         15_000
-    }
+    };
+    base + 2_000 * strength(civ, "synthetic") / 10_000
 }
 
 /// Factor on the labour productivity of a works from its tradition (basis points):
@@ -1466,6 +1634,14 @@ pub fn build_terms(civ: &Civ, key: &str) -> (i64, i64, i64, i64) {
     if held(civ, "living") && matches!(key, "biofoundry" | "pharma") {
         months = 15_000;
     }
+    // the held paths (ruleset 3.1)
+    if held(civ, "gear") {
+        work = work * 11 / 10;
+    }
+    if space || key == "rocket_works" || key == "proving_ground" {
+        work = work * (10_000 - 3_000 * strength(civ, "rocket") / 10_000) / 10_000;
+    }
+    months = months * (10_000 - 2_000 * strength(civ, "engine") / 10_000) / 10_000;
     (work, goods, months, cond)
 }
 
@@ -1497,6 +1673,7 @@ pub fn upkeep_bp(civ: &Civ, def: &FacDef, g: Good, month: Month) -> i64 {
             f = f * 15_000 / 10_000;
         }
     }
+    f = f * (10_000 - 2_500 * strength(civ, "gear") / 10_000 - 2_000 * strength(civ, "sun") / 10_000) / 10_000;
     let _ = month;
     f
 }
@@ -1563,6 +1740,7 @@ pub fn compute_bp(w: &World, seat: SeatId) -> i64 {
     if charter_held(civ, "compute_commons") {
         f = f * 9_000 / 10_000;
     }
+    f = f * (10_000 + 2_500 * strength(civ, "network") / 10_000) / 10_000;
     if w.month < civ.era.network_until {
         f = f * 7_000 / 10_000;
     }
@@ -1638,7 +1816,9 @@ pub fn carriage_loss_bp(civ: &Civ, r: &Region) -> i64 {
 
 /// Factor on a region's freight capacity (National Railways: railway regions).
 pub fn freight_bp(civ: &Civ, r: &Region) -> i64 {
-    if charter_held(civ, "national_railways") && r.fac(content().f("rail")).map(|f| f.level > 0).unwrap_or(false) { 12_500 } else { 10_000 }
+    let rail = r.fac(content().f("rail")).map(|f| f.level > 0).unwrap_or(false);
+    let f = if charter_held(civ, "national_railways") && rail { 12_500 } else { 10_000 };
+    if rail { f * (10_000 + 2_500 * strength(civ, "steam") / 10_000) / 10_000 } else { f }
 }
 
 /// Factor on space-domain evidence (Lunar Industry).
@@ -1881,6 +2061,9 @@ pub fn view(w: &World, seat: SeatId) -> EraView {
                 switch_allowed_from: allowed,
                 // the paths are shown once the slot is offered
                 options: if e >= SLOT_ERA[s] { TRADITIONS.iter().enumerate().filter(|(_, t)| t.slot as usize == s).map(|(i, t)| tradition_option(w, seat, t, held_p == Some(i as u8))).collect() } else { Vec::new() },
+                strength_bp: strength_now(civ, s),
+                branch_known: held_p.map(|p| branch_counts(civ, TRADITIONS[p as usize].key).0 as u8).unwrap_or(0),
+                branch_total: held_p.map(|p| branch_counts(civ, TRADITIONS[p as usize].key).1 as u8).unwrap_or(0),
             }
         })
         .collect();
@@ -1893,6 +2076,7 @@ pub fn view(w: &World, seat: SeatId) -> EraView {
         charters,
         charter_slots: slots as u8,
         charter_note,
+        age_name: age_name(civ),
         next,
         expected_basket: expected_basket(e).iter().filter(|(_, a)| *a > 0).map(|(g, a)| GoodQty { good: *g, amount: *a }).collect(),
         traditions,
@@ -1937,6 +2121,9 @@ pub fn tradition_option(w: &World, seat: SeatId, t: &TraditionDef, is_held: bool
         unit_variant: t.variant.into(),
         drawbacks: t.drawbacks.iter().map(|x| x.to_string()).collect(),
         held: is_held,
+        effects: punk_def(t.key).effects.iter().map(|x| x.to_string()).collect(),
+        age_name: punk_def(t.key).age.into(),
+        style: punk_def(t.key).style.into(),
     }
 }
 

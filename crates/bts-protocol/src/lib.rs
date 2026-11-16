@@ -600,6 +600,11 @@ pub struct EraView {
     pub charter_slots: u8,
     /// What changing a charter would cost now, or why it is not allowed.
     pub charter_note: String,
+    /// The name of the seat's age as its traditions colour it (ruleset 3.1): "Age of
+    /// Steam" for a Steampunk seat in the Industrial era; the era's plain name
+    /// without a tradition.
+    #[serde(default)]
+    pub age_name: String,
     /// The next era and what entering it takes; absent at the top of the ladder.
     pub next: Option<NextEraView>,
     /// What the people of this era expect each month per thousand residents (design
@@ -703,6 +708,16 @@ pub struct TraditionView {
     /// Month from which another switch in this slot is allowed (0: allowed now).
     pub switch_allowed_from: Month,
     pub options: Vec<TraditionOption>,
+    /// Strength of the held path, basis points (ruleset 3.1): a quarter for holding
+    /// it, the rest from mastery and from its branch technologies understood. Its
+    /// effects scale with it.
+    #[serde(default)]
+    pub strength_bp: u16,
+    /// Branch technologies of the held path understood, and how many it has.
+    #[serde(default)]
+    pub branch_known: u8,
+    #[serde(default)]
+    pub branch_total: u8,
 }
 
 /// A path of a tradition slot. Static content, the same for every seat.
@@ -719,6 +734,17 @@ pub struct TraditionOption {
     pub unit_variant: String,
     pub drawbacks: Vec<String>,
     pub held: bool,
+    /// What the path gives at full strength, one line each (ruleset 3.1).
+    #[serde(default)]
+    pub effects: Vec<String>,
+    /// The name the seat's age takes while the path is held ("Age of Steam").
+    #[serde(default)]
+    pub age_name: String,
+    /// A visual style key for towns and works of a seat on this path: "steam",
+    /// "diesel", "electric", "clockwork", "atomic", "neon", "organic", "chrome",
+    /// "solar" or "rocket".
+    #[serde(default)]
+    pub style: String,
 }
 
 /// An era entered, and the age its crossing ended in.
@@ -2542,6 +2568,14 @@ pub struct SpectatorCiv {
     pub era: u8,
     #[serde(default)]
     pub traditions: Vec<String>,
+    /// Standard contract (ruleset 3.1): programme steps reached (of six), standing
+    /// points and stations in orbit.
+    #[serde(default)]
+    pub programme_steps: u32,
+    #[serde(default)]
+    pub standing: i64,
+    #[serde(default)]
+    pub stations: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

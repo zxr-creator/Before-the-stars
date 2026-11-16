@@ -1988,6 +1988,9 @@ pub fn spectate(w: &World) -> SpectatorView {
                 reward: w.outcome.as_ref().map(|_| victory::reward(w, seat)),
                 era: civ.era.era,
                 traditions: crate::sim::eras::tradition_keys(civ),
+                programme_steps: victory::steps_done(w, seat),
+                standing: victory::standing(w, seat),
+                stations: w.space.stations.iter().filter(|s| s.owner == seat).count() as u32,
             }
         })
         .collect();
