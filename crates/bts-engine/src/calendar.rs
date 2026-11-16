@@ -77,6 +77,13 @@ const QUICK: [Segment; 8] = [
     Segment { first_round: 171, last_round: 280, years_per_round: 5, from: 1950, to: 2500 },
 ];
 
+/// Months of the standard schedule's round at a historical year: the cadence at which
+/// the built-in policies plan inside the longer rounds of another schedule (ruleset
+/// 3.1), so that a quick game's seats build as often as a standard game's.
+pub fn standard_round_months_at(year: i32) -> u32 {
+    STANDARD.iter().find(|s| year >= s.from && year < s.to).map(|s| s.years_per_round * 12).unwrap_or(24)
+}
+
 /// Historical year (signed, no year zero) of an astronomical year.
 pub fn historical(astro: i32) -> i32 {
     if astro >= 1 {

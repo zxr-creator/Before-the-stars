@@ -242,7 +242,25 @@ impl Session {
             return false;
         }
         self.run_stewards();
-        self.m.try_advance()
+        // inside a long round of the quick schedule the built-in policies and the
+        // stewards plan again at the standard schedule's cadence (ruleset 3.1)
+        let Session { m, ais, stewards, delegates, .. } = self;
+        m.try_advance_with(&mut |m: &mut Match| {
+            for s in 0..m.seats() {
+                let seat = s as SeatId;
+                if m.status(seat) == SeatStatus::Eliminated {
+                    continue;
+                }
+                let actions = match ais[s].as_mut() {
+                    Some(ai) => ai.decide(&m.observe(seat)),
+                    None if !delegates[s].is_empty() => stewards[s].advise(&m.observe(seat), &delegates[s]),
+                    None => continue,
+                };
+                for chunk in actions.chunks(MAX_ACTIONS_PER_BATCH) {
+                    m.act(seat, chunk.to_vec());
+                }
+            }
+        })
     }
 
     /// Advance until an external seat must act or the match ends.

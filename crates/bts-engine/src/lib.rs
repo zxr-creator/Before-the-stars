@@ -192,9 +192,32 @@ impl Match {
 
     /// Advance one phase step if every seat is ready. Returns true if anything advanced.
     pub fn try_advance(&mut self) -> bool {
+        self.try_advance_with(&mut |_| {})
+    }
+
+    /// The months between planning points inside this round, when its schedule's
+    /// rounds are longer than the standard schedule's at this date (the quick game).
+    pub fn midround_interval(&self) -> Option<u32> {
+        let cfg = &self.world.cfg;
+        if !matches!(cfg.calendar, calendar::CalendarId::Quick) {
+            return None;
+        }
+        let (year, _) = cfg.calendar.date(self.world.month);
+        let std = calendar::standard_round_months_at(year);
+        (std < cfg.round_months(self.world.round)).then_some(std)
+    }
+
+    /// [`Match::try_advance`], with planning points inside a long round (ruleset
+    /// 3.1): while a round of the quick schedule resolves, `midround` is called at
+    /// the standard schedule's cadence with the match in its plan phase, so that the
+    /// host can let the built-in policies and stewards place orders on what they
+    /// then see. Seats played from outside are not asked: their standing orders
+    /// carry them through the round as before.
+    pub fn try_advance_with(&mut self, midround: &mut dyn FnMut(&mut Match)) -> bool {
         if self.finished() || !self.waiting_on().is_empty() {
             return false;
         }
+        let every = self.midround_interval();
         let w = &mut self.world;
         match w.phase {
             Phase::Contact => {
@@ -228,7 +251,8 @@ impl Match {
                 }
                 let months = w.cfg.round_months(w.round);
                 w.round_start = w.month;
-                for _ in 0..months {
+                for k in 0..months {
+                    let w = &mut self.world;
                     if let Some(c) = self.curve.as_mut() {
                         c.before_month(w);
                     }
@@ -242,7 +266,14 @@ impl Match {
                     if w.outcome.is_some() {
                         break;
                     }
+                    // a planning point inside a long round
+                    if let Some(n) = every {
+                        if (k + 1) % n == 0 && k + 1 < months {
+                            midround(self);
+                        }
+                    }
                 }
+                let w = &mut self.world;
                 sim::close_round(w);
                 if w.outcome.is_none() {
                     w.round += 1;
